@@ -36,6 +36,11 @@ namespace Buklod.Empire.Tests {
             Assert.False(p.TryCast(w,SkillSlot.Ultimate,Vector2.right,.5f,true));
             Assert.True(p.TryCast(w,SkillSlot.Ultimate,Vector2.right,1,true));Assert.AreEqual(45,p.Mana);
         }
+        [Test] public void CleanseAndImmunityDoNotRemoveSuppression(){
+            var a=new SkillActor("phan");a.Set("root",1,5,0);a.Set("silence",1,5,0);a.Set("disarm",1,5,0);
+            Assert.False(a.CanMove(1));Assert.False(a.CanCast(1));Assert.False(a.CanAttack(1));Assert.True(a.Cleanse(1));Assert.True(a.CanMove(1));
+            a.Set("ccimmune",1,4,1);a.Set("stun",1,3,1);Assert.True(a.CanCast(2));a.Set("suppression",1,3,1);Assert.False(a.CanCast(2));Assert.False(a.Cleanse(2));Assert.False(a.CanMove(2));Assert.True(a.CanMove(3));
+        }
         [Test] public void SameTickSuccessfulCastsRemainDistinct(){
             var p=new SkillActor("phan"){Level=6};var w=new World();
             Assert.True(p.TryCast(w,SkillSlot.Primary,Vector2.right,0,true));

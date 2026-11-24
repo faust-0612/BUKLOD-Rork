@@ -17,7 +17,10 @@ namespace Buklod.Empire {
     }
     public sealed class SkillActor {
         public readonly HeroKit Kit;
-        public float Health=160, MaxHealth=160, Mana=100, Shield;
+        public float Health=160, MaxHealth=160, Mana=100, MaxMana=100, Shield;
+        internal float ShieldCapacity=105;
+        internal float Clock,EquipmentCooldown,TalentCooldown,TalentRecovery;
+        internal int HarmonyStacks,TriageSequence;
         private float temporaryShield,temporaryShieldUntil;
         public int Level=3;
         public float LastCastAt {get;private set;}=float.NegativeInfinity;
@@ -36,33 +39,59 @@ namespace Buklod.Empire {
         private readonly float[] last={float.NegativeInfinity,float.NegativeInfinity,float.NegativeInfinity};
         public SkillActor(string hero){Kit=HeroKitCatalog.Get(hero);castHistory=new SkillCastEvent[CastHistoryCapacity];}
         internal SkillActor(float health){Health=MaxHealth=health;Mana=0;Level=0;}
-        internal void Respawn(){Health=MaxHealth;Mana=100;Shield=0;temporaryShield=temporaryShieldUntil=0;buffs.Clear();}
-        public float Buff(string id,float now)=>buffs.TryGetValue(id,out var b)&&b.until>now?b.strength:0;
+        internal void Respawn(){Health=MaxHealth;Mana=MaxMana;Shield=0;temporaryShield=temporaryShieldUntil=0;buffs.Clear();}
+        public float Buff(string id,float now){
+            float basic=buffs.TryGetValue(id,out var b)&&b.until>now?b.strength:0;
+            return buffs.TryGetValue("field:"+id,out var f)&&f.until>now?Mathf.Max(basic,f.strength):basic;
+        }
+        internal bool ExtendPickupBuff(string id,float value,float duration,float now){
+            if(duration<=0||value<=0)return false;string key="field:"+id;
+            bool active=buffs.TryGetValue(key,out var old)&&old.until>now;
+            float end=Mathf.Min(now+60,(active?old.until:now)+duration),strength=active?Mathf.Max(old.strength,value):value;
+            if(active&&end<=old.until&&strength<=old.strength)return false;buffs[key]=(strength,end);return true;
+        }
         public void Clear(string id)=>buffs.Remove(id);
+        private static readonly string[] Cleanseable={"stun","slow","root","silence","disarm","blind","fear"};
+        public bool CanMove(float now)=>Alive&&Buff("stun",now)<=0&&Buff("root",now)<=0&&Buff("suppression",now)<=0&&Buff("fear",now)<=0;
+        public bool CanCast(float now)=>Alive&&Buff("stun",now)<=0&&Buff("silence",now)<=0&&Buff("suppression",now)<=0&&Buff("fear",now)<=0;
+        public bool CanAttack(float now)=>Alive&&Buff("stun",now)<=0&&Buff("disarm",now)<=0&&Buff("suppression",now)<=0&&Buff("fear",now)<=0;
+        public bool Cleanse(float now){bool changed=false;foreach(string id in Cleanseable){if(Buff(id,now)>0)changed=true;Clear(id);}return changed;}
         public void Set(string id,float strength,float until,float now){
+            if(string.IsNullOrEmpty(id)||float.IsNaN(strength)||float.IsInfinity(strength)||float.IsNaN(until)||float.IsInfinity(until)||until<=now||strength<=0)return;
+            if(Buff("ccimmune",now)>0&&Array.IndexOf(Cleanseable,id)>=0)return;
             if(buffs.TryGetValue(id,out var b)&&b.until>now){strength=Mathf.Max(strength,b.strength);until=Mathf.Max(until,b.until);}
             buffs[id]=(strength,until);
         }
-        public void Heal(float value){if(Alive)Health=Mathf.Min(MaxHealth,Health+Mathf.Max(0,value));}
-        public void AddShield(float value,float cap=105){if(Alive)Shield=Mathf.Min(cap,Shield+Mathf.Max(0,value));}
-        internal void AddTemporaryShield(float value,float until,float now){
-            if(!Alive)return;if(temporaryShieldUntil<=now)temporaryShield=0;
-            temporaryShield=Mathf.Min(Mathf.Max(0,105-Shield),temporaryShield+Mathf.Max(0,value));temporaryShieldUntil=Mathf.Max(temporaryShieldUntil,until);
+        public void Heal(float value){if(Alive&&!float.IsNaN(value)&&!float.IsInfinity(value))Health=Mathf.Min(MaxHealth,Health+Mathf.Max(0,value)*(1+TalentRecovery)*(1-Mathf.Clamp(Buff("antiheal",Clock),0,.5f)));}
+        public void AddShield(float value,float cap=105){if(!Alive)return;if(temporaryShieldUntil<=Clock)temporaryShield=0;
+            float limit=Mathf.Min(ShieldCapacity,cap+ShieldCapacity-105);Shield+=Mathf.Max(0,Mathf.Min(value,limit-Shield-temporaryShield));}
+        internal float AddTemporaryShield(float value,float until,float now){
+            if(!Alive)return 0;if(temporaryShieldUntil<=now)temporaryShield=0;
+            float before=temporaryShield;temporaryShield=Mathf.Min(Mathf.Max(0,ShieldCapacity-Shield),temporaryShield+Mathf.Max(0,value));
+            if(temporaryShield>before)temporaryShieldUntil=Mathf.Max(temporaryShieldUntil,until);return Mathf.Max(0,temporaryShield-before);
         }
         internal float Absorb(float incoming,float now){
             if(temporaryShieldUntil<=now)temporaryShield=0;
             float t=Mathf.Min(temporaryShield,incoming);temporaryShield-=t;incoming-=t;
             float s=Mathf.Min(Shield,incoming);Shield-=s;return incoming-s;
         }
+        internal float PickupShield(float value,float now){
+            if(temporaryShieldUntil<=now)temporaryShield=0;
+            float gain=Mathf.Max(0,Mathf.Min(value,ShieldCapacity-Shield-temporaryShield));if(Alive)Shield+=gain;else gain=0;return gain;
+        }
+        internal float ReduceActiveCooldowns(float seconds,float now){
+            if(!Alive||Kit==null||seconds<=0)return 0;float total=0;
+            for(int i=0;i<3;i++){float n=Mathf.Min(seconds,Remaining((SkillSlot)i,now));if(n>0){last[i]-=n;total+=n;}}return total;
+        }
         public float Cooldown(SkillSlot slot,float now){
-            var v=Kit.Skill(slot).Cooldown*(1-Mathf.Clamp(Buff("cooldown",now),0,.25f));
+            var v=Kit.Skill(slot).Cooldown*(1-Mathf.Clamp(Buff("cooldown",now)+EquipmentCooldown+TalentCooldown,0,.35f));
             if(Kit.Id=="angel")v*=.9f;
             if(Kit.Id=="trudice")v*=1-.05f*Mathf.Clamp(Buff("insight",now),0,3);
             return v;
         }
         public float Remaining(SkillSlot slot,float now)=>Mathf.Max(0,Cooldown(slot,now)-(now-last[(int)slot]));
         public bool TryCast(IHeroSkillWorld world,SkillSlot slot,Vector2 aim,float now,bool active){
-            if(!active||!Alive||Kit==null||world==null||float.IsNaN(now)||float.IsInfinity(now)||now<0||Buff("stun",now)>0)return false;
+            if(!active||!Alive||Kit==null||world==null||float.IsNaN(now)||float.IsInfinity(now)||now<0||!CanCast(now))return false;
             if(slot!=SkillSlot.Primary&&slot!=SkillSlot.Secondary&&slot!=SkillSlot.Ultimate)return false;
             if(float.IsNaN(aim.x)||float.IsInfinity(aim.x)||float.IsNaN(aim.y)||float.IsInfinity(aim.y))return false;
             if(slot==SkillSlot.Secondary&&Level<3||slot==SkillSlot.Ultimate&&Level<6)return false;
@@ -70,7 +99,7 @@ namespace Buklod.Empire {
             if(Mana<cost||Remaining(slot,now)>0)return false;
             if(!HeroSkillRules.Cast(world,this,Kit.Skill(slot).Id,aim,now))return false;
             Mana-=cost;last[(int)slot]=now;LastCastAt=now;LastCastSlot=slot;LastCastAim=aim;
-            CastSequence++;castHistory[(CastSequence-1)%CastHistoryCapacity]=new SkillCastEvent(CastSequence,slot,aim);
+            CastSequence++;if(Kit.Skill(slot).Id=="checkmate_rescue")TriageSequence=CastSequence;castHistory[(CastSequence-1)%CastHistoryCapacity]=new SkillCastEvent(CastSequence,slot,aim);
             foreach(var e in world.Enemies(this,17.5f,Vector2.zero)){
                 if(e.Kit?.Id!="trudice")continue;
                 e.Set("insight",Mathf.Min(3,e.Buff("insight",now)+1),now+6,now);Set("revealed",1,now+2,now);
@@ -84,11 +113,12 @@ namespace Buklod.Empire {
             void Buff(SkillActor a,string key,float value,float seconds)=>a.Set(key,value,now+seconds,now);
             void Allies(float r,string key,float value,float seconds){foreach(var a in w.Allies(p,r))Buff(a,key,value,seconds);}
             void Enemies(float r,string key,float value,float seconds){foreach(var a in w.Enemies(p,r,Vector2.zero))Buff(a,key,value,seconds);}
-            void Heal(float r,float amount,float shield=0){foreach(var a in w.Allies(p,r)){a.Heal(amount);if(shield>0)a.AddShield(shield);}}
+            float HealScale()=>p.Kit.Id=="lhen"?1+.08f*p.HarmonyStacks:1;
+            void Heal(float r,float amount,float shield=0){foreach(var a in w.Allies(p,r)){a.Heal(amount*HealScale());if(shield>0)a.AddShield(shield);}if(p.Kit.Id=="lhen")p.HarmonyStacks=Math.Min(5,p.HarmonyStacks+1);}
             bool Area(float r,float damage,float slow=0){bool any=false;foreach(var e in w.Enemies(p,r,Vector2.zero)){if(!w.Hit(p,e,damage))continue;any=true;if(slow>0)Buff(e,"slow",slow,3);}return any;}
             SkillActor Nearest(float r,bool directional=false){var es=w.Enemies(p,r,directional?aim:Vector2.zero);return es.Count>0?es[0]:null;}
             bool Hit(float r,float damage,bool directional=false,string effect=null,float value=0,float seconds=0){var e=Nearest(r,directional);if(e==null||!w.Hit(p,e,damage))return false;if(effect!=null)Buff(e,effect,value,seconds);return true;}
-            bool Wounded(float r,bool shield){SkillActor best=null;foreach(var a in w.Allies(p,r))if(best==null||a.Health/a.MaxHealth<best.Health/best.MaxHealth)best=a;if(best==null)return false;if(shield)best.AddShield(35);else best.Heal(38);return true;}
+            bool Wounded(float r,bool shield){SkillActor best=null;foreach(var a in w.Allies(p,r))if(best==null||a.Health/a.MaxHealth<best.Health/best.MaxHealth)best=a;if(best==null)return false;if(shield)best.AddShield(35);else{best.Heal(38*HealScale());if(p.Kit.Id=="lhen")p.HarmonyStacks=Math.Min(5,p.HarmonyStacks+1);}return true;}
             bool Dash(float distance,float damage=0,float radius=0,float slow=0){if(!w.Dash(p,dir,distance))return false;if(damage>0)Area(radius,damage,slow);return true;}
             switch(id){
                 case "foundation_wall":case "mosaic_wall":return w.Wall(p,dir,4,2.2f,5);

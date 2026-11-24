@@ -20,6 +20,12 @@ namespace Buklod.Empire {
         bool CraftAtFront(ArenaTeam team,VillageItem item);
         int ReviveRecent(ArenaTeam team,int maxCount,float seconds,float healthFraction);
     }
+    // Optional physical logistics adapter; standalone job tests may use the abstract economy.
+    public interface IVillageLogistics {
+        bool TryGather(ArenaTeam team,string workerId,double wood,double stone,double crystal);
+    }
+    public interface IVillageConstruction { bool HasConstructionOrder(ArenaTeam team); }
+    public interface IVillageWorkGate { bool CanWork(ArenaTeam team,string workerId); }
     public sealed class VillageMember {
         public readonly VillageJob Job;
         public float Health { get; private set; }=200;
@@ -36,9 +42,10 @@ namespace Buklod.Empire {
             Health=Math.Max(0,Health-amount);
             if(!Alive)Respawn=60;
         }
-        internal void Tick(double dt) {
-            Remaining-=dt*(Alive?1:.25);
-            if(!Alive) { Respawn-=dt; if(Respawn<=0){Health=100;Respawn=0;} }
+        internal void Tick(double dt,bool canRespawn) {
+            if(Alive){Remaining-=dt;return;}
+            if(!canRespawn)return;
+            Respawn-=dt;if(Respawn<=0){Health=100;Respawn=0;}
         }
         internal void Complete(bool success) {
             Remaining=Job.Interval/Power;
@@ -66,6 +73,27 @@ namespace Buklod.Empire {
         public double Wood {get;private set;}
         public double Stone {get;private set;}
         public double Crystal {get;private set;}
+        public double Gold {get;private set;}
+        public double Food {get;private set;}
+        public const double ResourceCap=10000;
+        public double ResourceBalance(VillageResourceKind kind){switch(kind){case VillageResourceKind.Wood:return Wood;case VillageResourceKind.Stone:return Stone;case VillageResourceKind.Crystal:return Crystal;case VillageResourceKind.Food:return Food;case VillageResourceKind.Gold:return Gold;default:return 0;}}
+        public static double ResourceTarget(VillageResourceKind kind){switch(kind){case VillageResourceKind.Wood:return 65;case VillageResourceKind.Stone:return 40;case VillageResourceKind.Food:return 40;case VillageResourceKind.Crystal:return 30;case VillageResourceKind.Gold:return 25;default:return 1;}}
+        internal double DepositResource(VillageResourceKind kind,double amount){
+            if(!Enum.IsDefined(typeof(VillageResourceKind),kind)||double.IsNaN(amount)||double.IsInfinity(amount)||amount<=0)return 0;
+            double added=Math.Max(0,Math.Min(amount,ResourceCap-ResourceBalance(kind)));
+            switch(kind){case VillageResourceKind.Wood:Wood+=added;break;case VillageResourceKind.Stone:Stone+=added;break;case VillageResourceKind.Crystal:Crystal+=added;break;case VillageResourceKind.Food:Food+=added;break;case VillageResourceKind.Gold:Gold+=added;break;}return added;
+        }
+        internal double CreditPickup(string resource,double amount){
+            if(double.IsNaN(amount)||double.IsInfinity(amount)||amount<=0)return 0;
+            double current=resource=="wood"?Wood:resource=="stone"?Stone:resource=="gold"?Gold:-1;
+            if(current<0)return 0;double added=Math.Max(0,Math.Min(amount,10000-current));
+            if(resource=="wood")Wood+=added;else if(resource=="stone")Stone+=added;else Gold+=added;return added;
+        }
+        internal bool DepositCargo(double wood,double stone,double crystal){
+            if(wood<0||stone<0||crystal<0||double.IsNaN(wood+stone+crystal)||double.IsInfinity(wood+stone+crystal))return false;
+            if(Wood+wood>10000||Stone+stone>10000||Crystal+crystal>10000)return false;
+            Wood+=wood;Stone+=stone;Crystal+=crystal;return true;
+        }
         public int ResearchTier {get;private set;}
         public int TowersUpgraded {get;private set;}
         public int ItemsCrafted {get;private set;}
@@ -92,43 +120,59 @@ namespace Buklod.Empire {
                 accumulator-=step;Time+=step;
                 if(Time>=OfflineMatchRules.MatchLimit)break;
                 foreach(var m in members) {
-                    m.Tick(step);
-                    if(m.Remaining<=0)m.Complete(Run(m));
+                    m.Tick(step,waves.CanReinforce(Team));
+                    if(waves.Finished)break;
+                    if(m.Alive&&m.Remaining<=0&&(!(battle is IVillageWorkGate gate)||gate.CanWork(Team,m.Job.Id)))m.Complete(Run(m));
                 }
             }
         }
         private bool CanPay(double w,double s,double c)=>Wood>=w&&Stone>=s&&Crystal>=c;
+        private static bool ConstructionCost(VillageBuildOrder kind,out double wood,out double stone){
+            wood=stone=0;switch(kind){case VillageBuildOrder.Depot:wood=35;stone=20;return true;case VillageBuildOrder.GuardPost:wood=55;stone=40;return true;case VillageBuildOrder.Repair:wood=10;stone=5;return true;case VillageBuildOrder.Farm:wood=25;stone=5;return true;case VillageBuildOrder.Barracks:wood=60;stone=35;return true;default:return false;}
+        }
+        internal bool CanFundConstruction(VillageBuildOrder kind)=>ConstructionCost(kind,out double w,out double s)&&CanPay(w,s,0);
+        internal bool SpendConstruction(VillageBuildOrder kind){if(!ConstructionCost(kind,out double w,out double s)||!CanPay(w,s,0))return false;Pay(w,s,0);return true;}
         private void Pay(double w,double s,double c){Wood-=w;Stone-=s;Crystal-=c;}
+        private bool FundJob(double gold,double wood,double stone,double crystal,Func<bool> action){
+            bool useGold=Gold>=gold;if(!useGold&&!CanPay(wood,stone,crystal))return false;
+            if(!action())return false;if(useGold)Gold-=gold;else Pay(wood,stone,crystal);return true;
+        }
         private bool Run(VillageMember m) {
             float p=m.Power;bool lux=Team==ArenaTeam.Lux;
             switch(m.Job.Effect) {
                 case VillageEffect.Gather:
                     double rate=(lux?1:1.4)*(m.Level>=5?1.2:1);
-                    Wood+=6*p*rate;Stone+=4*p*rate;Crystal+=2*p*rate;return true;
+                    if(battle is IVillageLogistics logistics)return logistics.TryGather(Team,m.Job.Id,6*p*rate,4*p*rate,2*p*rate);
+                    Wood=Math.Min(10000,Wood+6*p*rate);Stone=Math.Min(10000,Stone+4*p*rate);Crystal=Math.Min(10000,Crystal+2*p*rate);return true;
                 case VillageEffect.Build:
+                    if(battle is IVillageConstruction construction&&construction.HasConstructionOrder(Team))return false;
                     int level=battle.LowestTowerLevel(Team);
-                    if(level<1||!CanPay(40d*level,30d*level,0))return false;
+                    if(level<1||level>=5||!CanPay(40d*level,30d*level,0))return false;
                     if(!battle.UpgradeTower(Team,level,(lux ? .15f : .05f)*p,(lux ? .05f : .15f)*p))return false;
                     Pay(40d*level,30d*level,0);TowersUpgraded++;return true;
                 case VillageEffect.Train:
-                    if(!CanPay(25,0,0))return false;
+                    double foodCost=battle is IVillageLogistics?(lux?12:10):0;
+                    if(!CanPay(25,0,0)||Food<foodCost)return false;
                     if(!battle.Deploy(Team,(ArenaLane)(lane%3),lux?2:1,(lux?1:1.4f)*p*(1+.04f*ResearchTier)))return false;
-                    Pay(25,0,0);lane=(lane+1)%3;return true;
+                    Pay(25,0,0);Food-=foodCost;lane=(lane+1)%3;return true;
                 case VillageEffect.Heal:return battle.HealNearBase(Team,25*p,700);
                 case VillageEffect.Research:
                     if(ResearchTier>=5||!CanPay(0,0,20*(ResearchTier+1)))return false;
                     Pay(0,0,20*(ResearchTier+1));ResearchTier++;
                     waves.SetResearchBonus(Team,.04f*ResearchTier);return true;
                 case VillageEffect.Supply:
-                    var item=Supply[supply];supply=(supply+1)%Supply.Length;
-                    return battle.GiveItem(Team,item,p);
+                    var item=Supply[supply];if(!FundJob(12,8,0,4,()=>battle.GiveItem(Team,item,p)))return false;
+                    supply=(supply+1)%Supply.Length;return true;
                 case VillageEffect.Craft:
-                    if(!battle.CraftAtFront(Team,Craft[craft]))return false;
+                    if(!FundJob(18,12,6,0,()=>battle.CraftAtFront(Team,Craft[craft])))return false;
                     craft=(craft+1)%Craft.Length;ItemsCrafted++;return true;
-                case VillageEffect.Revive:return battle.ReviveRecent(Team,2,25,.6f)>0;
+                case VillageEffect.Revive:
+                    int affordable=Math.Min(2,(int)(Crystal/8));if(affordable<=0)return false;
+                    int revived=battle.ReviveRecent(Team,affordable,25,.6f);if(revived<=0)return false;
+                    Pay(0,0,8*Math.Min(affordable,revived));return true;
                 case VillageEffect.Scavenge:
                     if(scavenged<=0)return false;
-                    Wood+=scavenged*.5;Stone+=scavenged*.3;Crystal+=scavenged*.2;scavenged=0;return true;
+                    Wood=Math.Min(10000,Wood+scavenged*.5);Stone=Math.Min(10000,Stone+scavenged*.3);Crystal=Math.Min(10000,Crystal+scavenged*.2);scavenged=0;return true;
                 default:return false;
             }
         }
