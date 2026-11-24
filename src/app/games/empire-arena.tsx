@@ -22,6 +22,7 @@ import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { openBundledEmpireArena } from '../../../modules/buklod-genesis-godot';
+import GenesisNativeWorldEntry, {isGenesis206NativeWorldEntry} from '@/features/season2/genesis/GenesisNativeWorldEntry';
 import {
   CHARACTER_DISPLAY_NAME, getCachedBuklodCharacterSelectionV2, getMyBuklodCharacterSelectionV2,
   type BuklodCharacterId,
@@ -1015,7 +1016,8 @@ export default function EmpireArenaRouteGuard() {
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access"/>;
   if (requiresAcceptance) return <Redirect href="/privacy/consent"/>;
   if (!profile) return <Redirect href="/onboarding"/>;
-  // Only 2.0.5's newly signed binary may use direct native-first launching.
+  if(isGenesis206NativeWorldEntry()) return <GenesisNativeWorldEntry world="arena" fallback={<EmpireArenaInApp/>}/>;
+  // Preserve the existing 2.0.5 native-first route.
   return Platform.OS === 'android' &&
     process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V205 === 'true'
     ? <NativeGodotArenaPrimary/> : <EmpireArenaInApp/>;

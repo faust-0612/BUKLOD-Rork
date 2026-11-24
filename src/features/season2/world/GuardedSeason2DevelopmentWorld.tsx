@@ -7,6 +7,7 @@ import {useCompliance} from '@/providers/ComplianceProvider';
 import {useRuntimeConfig} from '@/providers/RuntimeConfigProvider';
 import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 import Season2DevelopmentMap from './Season2DevelopmentMap';
+import GenesisNativeWorldEntry, {isGenesis206NativeWorldEntry} from '../genesis/GenesisNativeWorldEntry';
 
 export default function GuardedSeason2DevelopmentWorld({world}:{world:'home'|'village'}) {
   const {session,loading,profile}=useAuth();
@@ -20,5 +21,6 @@ export default function GuardedSeason2DevelopmentWorld({world}:{world:'home'|'vi
   if (config?.pilot_access_required && !config?.pilot_access_granted) return <Redirect href="/system/pilot-access"/>;
   if (requiresAcceptance) return <Redirect href="/privacy/consent"/>;
   if (!profile) return <Redirect href="/onboarding"/>;
+  if(isGenesis206NativeWorldEntry()) return <GenesisNativeWorldEntry world={world==='home'?'house':'community'} fallback={<Season2DevelopmentMap world={world}/>}/>;
   return <Season2DevelopmentMap world={world}/>;
 }

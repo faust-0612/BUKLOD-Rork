@@ -1,0 +1,78 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-native-world-entry-diagnostics-20261124.json",
+  "objective": "Staging-only strict Genesis 206 native world routing and truthful OTA launch diagnostics after owner-reported Android Godot engine failure; no release until exact Android diagnosis and positive runtime proof.",
+  "baseRef": "7da090dfc73429ff7a1080d74249ae38c1067fbf",
+  "productionBaselineEvidence": "Existing signed staging 206 f1bca8319113402caffe99bd78c7ed0e963f963f and published OTA 63e2575f3818a6cf08d33cbed2588a175fce9d12; no new MAIN changes. Keep published 7da RC source intact outside exact paths.",
+  "chosenApproach": "Strict 206 world entry uses approved OTA ZIP only, reports runtime/channel/update ID/expected pack SHA and launch outcome without claiming native readiness, preserves explicit legacy fallback and original auth/consent gates. Separate exact-APK runtime diagnosis workflow.",
+  "selectionRationale": "Correct independently proven routing and silent fallback gaps without guessing native engine root cause or rebuilding APK.",
+  "alternativeApproaches": [
+    "No silent embedded game fallback for strict 206.",
+    "No production release or backend writes.",
+    "No native APK change until Android evidence."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "godot-content",
+    "ads"
+  ],
+  "preserveBehaviors": [
+    "Preserve production Kingdom map and ad placements, existing 205 routes, current sign-in/consent/maintenance checks, no new economy authority or backend calls."
+  ],
+  "acceptanceChecks": [
+    "New focused regression tests plus existing Genesis native contract, ad/navigation gates, TypeScript.",
+    "Exact signed APK and exact published ZIP diagnosis; actual engine-ready runtime verification required before any release."
+  ],
+  "allowedPaths": [
+    "modules/buklod-genesis-godot/index.ts",
+    "src/app/games/index.tsx",
+    "src/app/games/empire-arena.tsx",
+    "src/features/season2/world/GuardedSeason2DevelopmentWorld.tsx",
+    "src/features/season2/genesis/GenesisNativeWorldEntry.tsx",
+    "tests/genesis-206-strict-native-world-entry-20261124.test.mjs",
+    ".buklod/scopes/genesis-206-native-world-entry-diagnostics-20261124.json"
+  ],
+  "regressionTests": [
+    "tests/genesis-206-strict-native-world-entry-20261124.test.mjs",
+    "tests/genesis-full-staging-godot-ota-native-206.test.mjs",
+    "tests/genesis-godot-native-first-crash-recovery-20261123.test.mjs",
+    "tests/buklod-ads-rendering-baseline-20261123.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add strict staging entry only",
+      "preservedBehaviors": [
+        "Existing 205/MAIN routes and native ABI untouched."
+      ],
+      "tests": [
+        "tests/genesis-206-strict-native-world-entry-20261124.test.mjs",
+        "tests/genesis-full-staging-godot-ota-native-206.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Preserve guarded routes and fallback",
+      "preservedBehaviors": [
+        "Auth, maintenance, update, pilot access, consent and onboarding unchanged or enforced for strict 206."
+      ],
+      "tests": [
+        "tests/genesis-206-strict-native-world-entry-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Preserve MAIN placement and no economy authority",
+      "preservedBehaviors": [
+        "No ad code change; production Kingdom map and banner preserved."
+      ],
+      "tests": [
+        "tests/buklod-ads-rendering-baseline-20261123.test.mjs",
+        "tests/genesis-206-strict-native-world-entry-20261124.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_CANDIDATE_NOT_PUBLISHED",
+  "physicalDeviceVerification": "FAILED_OWNER_REPORTED_ENGINE_SETUP_ERROR_RELEASE_BLOCKED"
+}
