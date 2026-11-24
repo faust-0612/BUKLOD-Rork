@@ -26,7 +26,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence;public LODGroup[] lodGroups;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -123,7 +123,11 @@ namespace Buklod.Empire {
                     v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;
                 }
                 bool hero=u.Kind==BattleTargetKind.Hero;
-                if(hero&&v.lodGroups!=null)foreach(var lod in v.lodGroups)if(lod)lod.ForceLOD(premiumVisuals?0:-1);
+                int requestedLod=premiumVisuals?0:-1;
+                if(hero&&v.lodGroups!=null&&v.forcedLod!=requestedLod){
+                    foreach(var lod in v.lodGroups)if(lod)lod.ForceLOD(requestedLod);
+                    v.forcedLod=requestedLod;
+                }
                 SetShadows(v,(premiumVisuals&&hero&&inView)||BattleRenderBudget.KeepShadow(player,v.shadowsOn,distanceSquared));
                 var t=v.instance.transform;
                 if((v.sampledAt-u.Position).sqrMagnitude>=.15f*.15f){
