@@ -1,0 +1,114 @@
+{
+  "status": "ACTUAL_GLB_GENERATION_VALIDATED_REVIEW_ONLY",
+  "sourceCommit": "69b8a984ac619cafea11e465ca0e9bf3294fd729",
+  "models": [
+    {
+      "id": "lux_depot",
+      "team": "lux",
+      "role": "depot",
+      "triangles": 934,
+      "bytes": 93320
+    },
+    {
+      "id": "lux_guard_post",
+      "team": "lux",
+      "role": "guard_post",
+      "triangles": 588,
+      "bytes": 59508
+    },
+    {
+      "id": "lux_farm",
+      "team": "lux",
+      "role": "farm",
+      "triangles": 2280,
+      "bytes": 222504
+    },
+    {
+      "id": "lux_barracks",
+      "team": "lux",
+      "role": "barracks",
+      "triangles": 910,
+      "bytes": 90972
+    },
+    {
+      "id": "lux_market",
+      "team": "lux",
+      "role": "market",
+      "triangles": 1174,
+      "bytes": 117088
+    },
+    {
+      "id": "lux_house",
+      "team": "lux",
+      "role": "house",
+      "triangles": 862,
+      "bytes": 86392
+    },
+    {
+      "id": "tenebra_depot",
+      "team": "tenebra",
+      "role": "depot",
+      "triangles": 678,
+      "bytes": 68748
+    },
+    {
+      "id": "tenebra_guard_post",
+      "team": "tenebra",
+      "role": "guard_post",
+      "triangles": 440,
+      "bytes": 45316
+    },
+    {
+      "id": "tenebra_farm",
+      "team": "tenebra",
+      "role": "farm",
+      "triangles": 2024,
+      "bytes": 197936
+    },
+    {
+      "id": "tenebra_barracks",
+      "team": "tenebra",
+      "role": "barracks",
+      "triangles": 654,
+      "bytes": 66404
+    },
+    {
+      "id": "tenebra_market",
+      "team": "tenebra",
+      "role": "market",
+      "triangles": 918,
+      "bytes": 92516
+    },
+    {
+      "id": "tenebra_house",
+      "team": "tenebra",
+      "role": "house",
+      "triangles": 606,
+      "bytes": 61820
+    },
+    {
+      "id": "field_pickup",
+      "team": "neutral",
+      "role": "pickup",
+      "triangles": 120,
+      "bytes": 14044
+    },
+    {
+      "id": "relic_pickup",
+      "team": "neutral",
+      "role": "relic",
+      "triangles": 312,
+      "bytes": 32480
+    }
+  ],
+  "checks": [
+    "14 deterministic byte-identical repeated GLBs",
+    "valid accessors and buffer bounds",
+    "finite attributes",
+    "normalized normals"
+  ],
+  "unityImportVerified": false,
+  "unityRenderVerified": false,
+  "approvedArt": false,
+  "paidGenerationRequests": 0
+}
