@@ -1,0 +1,19 @@
+{
+  "status": "OFFLINE_TEST_APK_VALIDATOR_FIXTURES_PASSED",
+  "checks": {
+    "positive": true,
+    "mainPackage": true,
+    "wrongSha": true,
+    "wrongSize": true,
+    "unsigned": true,
+    "missingNative": true,
+    "wrongAbi": true,
+    "nonDebug": true,
+    "duplicateZip": true,
+    "missingUnityAssets": true,
+    "duplicateReceipt": true
+  },
+  "actualApkVerified": false,
+  "unityCompiled": false,
+  "productionApproved": false
+}
