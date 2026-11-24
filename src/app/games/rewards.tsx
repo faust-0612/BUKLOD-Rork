@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/providers/AuthProvider';
+import ArenaStoneTreasury from '@/features/games/kingdom/ArenaStoneTreasury';
 import BuklodCommunityInlineAd from '@/components/BuklodCommunityInlineAd';
 import { maybeShowBuklodInterstitial, warmBuklodInterstitial } from '@/lib/buklodAds';
 import {
@@ -112,6 +113,7 @@ export default function KingdomRewardsScreen() {
         <MaterialCommunityIcons name="shield-check-outline" size={22} color="#9ce0c2"/>
         <Text style={s.infoText}>1 Shard per first verified game Mastery; 2 per first claimed Character collectible. Replays never award more. Existing eligible achievements count when the wallet syncs.</Text>
       </View>
+      <ArenaStoneTreasury key={uid??'guest'} uid={uid}/>
       <Text style={s.sectionTitle}>PERMANENT GAME UNLOCKS</Text>
       {KINGDOM_SHARD_ITEMS.map(item=>{
         const owned=snapshot.ownedItems.includes(item.key);
