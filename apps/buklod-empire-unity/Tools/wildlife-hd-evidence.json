@@ -1,0 +1,25 @@
+{
+  "status": "ACTUAL_SHARED_2K_TEXTURE_GENERATION_AND_UV_VALIDATION_REVIEW_ONLY",
+  "generatorBlob": "1229303028331a49feba6908bce6bf0e87dc1647",
+  "wildlifeGeneratorBlob": "7b22b5a2e518ff46e37235cac63449f065c94cc8",
+  "resolution": 2048,
+  "textureFamilies": 7,
+  "generatedMaps": 21,
+  "normalMaps": 7,
+  "encodedBytes": 65158527,
+  "validatedUvTriangles": 48144,
+  "models": 14,
+  "checks": [
+    "decoded every PNG at 2048x2048",
+    "21 SHA-256 and byte-length matches",
+    "seven unit normal maps with positive Z",
+    "varying base textures",
+    "all 48144 UV triangles nondegenerate",
+    "all non-UV accessor bytes preserved",
+    "deterministic repeated GLB generation"
+  ],
+  "unityImportVerified": false,
+  "unityRenderingVerified": false,
+  "paidGenerationRequests": 0,
+  "generatedBinariesCommitted": false
+}
