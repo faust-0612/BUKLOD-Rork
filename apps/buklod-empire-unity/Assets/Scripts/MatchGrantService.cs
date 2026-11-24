@@ -30,7 +30,7 @@ namespace Buklod.Empire {
         static string Hash(string text){using(var sha=SHA256.Create())return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(text)));}
         internal string IssueVerified(string verifiedAccount){
             Sweep();
-            if(match.Finished||!match.ContainsPlayer(verifiedAccount))return null;
+            if(Aborted||match.Finished||!match.ContainsPlayer(verifiedAccount))return null;
             if(byAccount.TryGetValue(verifiedAccount,out var old))grants.Remove(old);
             if(grants.Count>=AuthoritativeMatch.ParticipantCount)return null;
             var bytes=new byte[32];using(var rng=RandomNumberGenerator.Create())rng.GetBytes(bytes);
@@ -40,7 +40,7 @@ namespace Buklod.Empire {
         }
         public MatchSession Redeem(Guid matchId,int protocol,string ticket){
             Sweep();
-            if(matchId!=MatchId||protocol!=ProtocolVersion||ticket==null||ticket.Length!=44||match.Finished)return null;
+            if(Aborted||matchId!=MatchId||protocol!=ProtocolVersion||ticket==null||ticket.Length!=44||match.Finished)return null;
             string key=Hash(ticket);
             if(!grants.TryGetValue(key,out var g))return null;
             grants.Remove(key);byAccount.Remove(g.Account);
@@ -52,7 +52,12 @@ namespace Buklod.Empire {
         bool Active(MatchSession s)=>s!=null&&leases.TryGetValue(s,out var l)&&now()-l.LastSeen<TimeSpan.FromSeconds(IdleSeconds);
         public bool Heartbeat(MatchSession s){if(!Active(s))return false;leases[s].LastSeen=now();return true;}
         internal bool Started{get;private set;}
-        internal bool Start(){if(Started||match.Finished||ConnectedCount!=AuthoritativeMatch.ParticipantCount)return false;Started=true;return true;}
+        internal bool Aborted{get;private set;}
+        internal void Abort(){
+            if(Aborted)return;Aborted=true;Started=false;grants.Clear();byAccount.Clear();
+            foreach(var session in new List<MatchSession>(leases.Keys))Close(session);
+        }
+        internal bool Start(){if(Aborted||Started||match.Finished||ConnectedCount!=AuthoritativeMatch.ParticipantCount)return false;Started=true;return true;}
         public bool Submit(MatchSession s,MatchInput frame){
             if(!Started||!Active(s)||!match.Submit(s,frame))return false;
             leases[s].LastSeen=now();return true;

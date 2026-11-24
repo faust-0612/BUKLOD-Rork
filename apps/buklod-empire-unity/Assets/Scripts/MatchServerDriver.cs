@@ -24,13 +24,13 @@ namespace Buklod.Empire {
             double now=clock.Elapsed.TotalSeconds,delta=now-previous;previous=now;
             accumulator+=delta;
             // Stop rather than silently discard simulation time or settle an invalid result.
-            if(accumulator>.5){Faulted=true;running=false;return;}
+            if(accumulator>.5){Faulted=true;running=false;grants.Abort();return;}
             int n=0;
             while(accumulator+1e-7>=OfflineBattle.Step&&n++<MaxCatchupTicks&&!grants.Finished){
                 accumulator-=OfflineBattle.Step;grants.AdvanceTick();
             }
         }
-        public void Dispose(){if(stopped)return;stopped=true;running=false;loop.Dispose();}
+        public void Dispose(){if(stopped)return;stopped=true;running=false;grants.Abort();loop.Dispose();}
     }
 }
 #endif
