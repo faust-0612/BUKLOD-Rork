@@ -14,7 +14,8 @@ namespace Buklod.Empire {
         private Text title,summary,choice;
         private Button resume,start;
         private RectTransform commands;
-        private Text commandStatus,settingsText,bankText;
+        private Text commandStatus,settingsText,bankText,marketText;
+        private VillageResourceKind marketResource=VillageResourceKind.Wood;
         private Button[] shop;
         private static readonly string[] GearIds={"blade","armor","boots","sealbreaker","withering_thorn","precision","fervor","renewal","wisdom","aegis","vitality","giantbane"};
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
@@ -105,8 +106,12 @@ namespace Buklod.Empire {
             for(int n=0;n<orders.Length;n++){int opt=n;float x=.05f+n*.225f;ButtonAt(orders[n],commands,new Vector2(x,.36f),new Vector2(x+.22f,.43f),orders[n],()=>RunOrder(b=>opt==3?b.CancelPlayerConstruction():b.OrderPlayerWorker("lira",opt==0?VillageWorkerOrder.Return:opt==1?VillageWorkerOrder.Hold:VillageWorkerOrder.Gather)));}
             var kinds=new[]{VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Farm,VillageBuildOrder.Barracks};
             for(int n=0;n<kinds.Length;n++){var kind=kinds[n];float x=.05f+n*.225f;ButtonAt("Build "+kind,commands,new Vector2(x,.26f),new Vector2(x+.22f,.33f),kind.ToString().ToUpperInvariant(),()=>RunOrder(b=>b.OrderPlayerConstruction(kind,b.Player.Position)));}
-            ButtonAt("Repair nearest",commands,new Vector2(.05f,.16f),new Vector2(.49f,.23f),"REPAIR NEAREST DAMAGED",()=>RunOrder(b=>{var target=b.Units.Where(u=>u.Team==b.Player.Team&&u.Kind==BattleTargetKind.Structure&&!u.Temporary&&u.State.Alive&&u.State.Health<u.State.MaxHealth).OrderBy(u=>Vector2.Distance(u.Position,b.Player.Position)).ThenBy(u=>u.Id).FirstOrDefault();return target!=null&&b.OrderPlayerRepair(target.Id);}));
-            Label("Hint",commands,new Vector2(.05f,.04f),new Vector2(.95f,.14f),"Construction uses your hero's current ground position. Move to open friendly ground first. Tap owned shop item to sell; new item to buy.",20);
+            ButtonAt("Repair nearest",commands,new Vector2(.05f,.17f),new Vector2(.33f,.24f),"REPAIR DAMAGED",()=>RunOrder(b=>{var target=b.Units.Where(u=>u.Team==b.Player.Team&&u.Kind==BattleTargetKind.Structure&&!u.Temporary&&u.State.Alive&&u.State.Health<u.State.MaxHealth).OrderBy(u=>Vector2.Distance(u.Position,b.Player.Position)).ThenBy(u=>u.Id).FirstOrDefault();return target!=null&&b.OrderPlayerRepair(target.Id);}));
+            var market=ButtonAt("Market resource",commands,new Vector2(.34f,.17f),new Vector2(.53f,.24f),"WOOD",()=>{marketResource=(VillageResourceKind)(((int)marketResource+1)%4);if(marketText)marketText.text=marketResource.ToString().ToUpperInvariant();});
+            marketText=market.GetComponentInChildren<Text>();
+            ButtonAt("Market buy",commands,new Vector2(.54f,.17f),new Vector2(.735f,.24f),"BUY 20 / 24G",()=>RunOrder(b=>b.ExchangePlayerResource(marketResource,true)));
+            ButtonAt("Market sell",commands,new Vector2(.745f,.17f),new Vector2(.95f,.24f),"SELL 20 / 12G",()=>RunOrder(b=>b.ExchangePlayerResource(marketResource,false)));
+            Label("Hint",commands,new Vector2(.05f,.04f),new Vector2(.95f,.14f),"Build at current hero position on open friendly ground. Market requires a live nearby core/depot; 10s cooldown. Tap owned gear to sell.",20);
             commands.gameObject.SetActive(false);
         }
         private void OpenCommands(){if(shown||commandOpen||view.Paused||view.Battle==null||view.Battle.Finished||view.Battle.AutonomousTraining)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);commandStatus.text="Choose an order. The match is paused.";RefreshCommands();}

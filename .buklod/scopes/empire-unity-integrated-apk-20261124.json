@@ -26,7 +26,8 @@
     "Native compile/EditMode/PlayMode and actual approved assets before APK",
     "Native offline controls for setup, tactic, orders, economy and visibility; PlayMode test added, execution pending",
     "All village jobs require canonical active job and fixed match tick; no free adapter operations",
-    "Visible world-object and target-lock binding; strict hybrid production asset/Android settings validation"
+    "Visible world-object and target-lock binding; strict hybrid production asset/Android settings validation",
+    "Funded match-local resource exchange at live storage, fixed spread and cooldown"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-unity-integrated-apk-20261124.json",
@@ -56,7 +57,8 @@
     "apps/buklod-empire-unity/Assets/Scripts/BattleVisualCatalog.cs",
     "apps/buklod-empire-unity/Assets/Editor/AndroidBuildGuard.cs",
     "apps/buklod-empire-unity/Tools/ASSET_ACCEPTANCE.md",
-    "apps/buklod-empire-unity/Assets/Scripts/BattleWorldObjects.cs"
+    "apps/buklod-empire-unity/Assets/Scripts/BattleWorldObjects.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/VillageSystemTests.cs"
   ],
   "regressionTests": [
     "apps/buklod-empire-unity/Tools/test_faction_materials.py",

@@ -241,6 +241,13 @@ namespace Buklod.Empire {
         private readonly List<Fallen> fallen=new List<Fallen>();
         private sealed class Fallen {public ArenaTeam Team;public ArenaLane Lane;public MinionRole Role;public Vector2 Position;public float Power,Health,Time;}
         public VillageSystem GetVillage(ArenaTeam team)=>villages[(int)team];
+        public float MarketReadyAt {get;private set;}
+        public bool ExchangePlayerResource(VillageResourceKind resource,bool buy){
+            if(Finished||AutonomousTraining||Time>=OfflineMatchRules.MatchLimit||Time<MarketReadyAt||!Player.State.CanCast(Time))return false;
+            var depot=Depot(Player);if(depot==null||Dist(Player,depot)>8)return false;
+            if(!villages[(int)Player.Team].ExchangeResource(resource,buy))return false;
+            MarketReadyAt=Time+10;return true;
+        }
         private Vector2 Base(ArenaTeam team)=>new Vector2(team==ArenaTeam.Lux?14:Width-14,Height*.5f);
         private int nextId,tick; private double accumulator;
         private int nextDropId;private readonly System.Random dropRandom,combatRandom,relicRandom;

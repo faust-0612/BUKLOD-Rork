@@ -77,6 +77,15 @@ namespace Buklod.Empire {
         public double Gold {get;private set;}
         public double Food {get;private set;}
         public const double ResourceCap=10000;
+        public const int MarketBundle=20, MarketBuyGold=24, MarketSellGold=12;
+        internal bool ExchangeResource(VillageResourceKind resource,bool buy){
+            if(!Enum.IsDefined(typeof(VillageResourceKind),resource)||resource==VillageResourceKind.Gold)return false;
+            var debit=buy?VillageResourceKind.Gold:resource;var credit=buy?resource:VillageResourceKind.Gold;
+            double cost=buy?MarketBuyGold:MarketBundle,gain=buy?MarketBundle:MarketSellGold;
+            if(ResourceBalance(debit)<cost||ResourceBalance(credit)+gain>ResourceCap)return false;
+            switch(debit){case VillageResourceKind.Wood:Wood-=cost;break;case VillageResourceKind.Stone:Stone-=cost;break;case VillageResourceKind.Crystal:Crystal-=cost;break;case VillageResourceKind.Food:Food-=cost;break;case VillageResourceKind.Gold:Gold-=cost;break;}
+            DepositResource(credit,gain);return true;
+        }
         public double ResourceBalance(VillageResourceKind kind){switch(kind){case VillageResourceKind.Wood:return Wood;case VillageResourceKind.Stone:return Stone;case VillageResourceKind.Crystal:return Crystal;case VillageResourceKind.Food:return Food;case VillageResourceKind.Gold:return Gold;default:return 0;}}
         public static double ResourceTarget(VillageResourceKind kind){switch(kind){case VillageResourceKind.Wood:return 65;case VillageResourceKind.Stone:return 40;case VillageResourceKind.Food:return 40;case VillageResourceKind.Crystal:return 30;case VillageResourceKind.Gold:return 25;default:return 1;}}
         internal double DepositResource(VillageResourceKind kind,double amount){

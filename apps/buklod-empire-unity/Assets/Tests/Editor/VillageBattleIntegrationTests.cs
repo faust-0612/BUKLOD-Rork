@@ -9,6 +9,22 @@ namespace Buklod.Empire.Tests {
             var enemy=villagers.First(u=>u.Team==ArenaTeam.Tenebra);
             Assert.True(b.Hit(b.Player.State,enemy.State,50));Assert.AreEqual(150,enemy.State.Health);Assert.AreEqual(150,enemy.Villager.Health);
         }
+        [Test] public void MarketCannotMintOrSpendWithoutFunding(){
+            var b=new OfflineBattle("phan");
+            Assert.False(b.ExchangePlayerResource(VillageResourceKind.Wood,true));
+            Assert.False(b.ExchangePlayerResource(VillageResourceKind.Food,false));
+            Assert.False(b.ExchangePlayerResource(VillageResourceKind.Gold,true));
+            Assert.AreEqual(0,b.MarketReadyAt);
+            Assert.True(b.OrderPlayerResource("lira",VillageResourceKind.Gold));
+            for(int i=0;i<550;i++)b.Advance(.1f,Vector2.zero);
+            var bank=b.GetVillage(ArenaTeam.Lux);Assert.GreaterOrEqual(bank.Gold,24);
+            var before=bank.Gold;var wood=bank.Wood;
+            Assert.True(b.ExchangePlayerResource(VillageResourceKind.Wood,true));Assert.AreEqual(before-24,bank.Gold,.001);Assert.AreEqual(wood+20,bank.Wood,.001);
+            Assert.False(b.ExchangePlayerResource(VillageResourceKind.Wood,false));
+            for(int i=0;i<101;i++)b.Advance(.1f,Vector2.zero);
+            before=bank.Gold;wood=bank.Wood;Assert.True(b.ExchangePlayerResource(VillageResourceKind.Wood,false));
+            Assert.AreEqual(before+12,bank.Gold,.001);Assert.AreEqual(wood-20,bank.Wood,.001);
+        }
         [Test] public void ProductionAndUpgradeCannotBypassWorkerAndPayment(){
             var b=new OfflineBattle("phan");var t=b.Units.First(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Structure&&!u.Core);
             Assert.False(b.Deploy(ArenaTeam.Tenebra,ArenaLane.Top,1,1));
