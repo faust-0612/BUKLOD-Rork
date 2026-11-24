@@ -44,7 +44,7 @@ namespace Buklod.Empire {
         public static bool TryQuoteCombination(IReadOnlyList<string> ingredients,string output,IReadOnlyDictionary<string,long> balance,out IReadOnlyDictionary<string,long> cost){
             cost=null;if(ingredients==null||balance==null||!ArenaDraftRules.Known(output)||ingredients.Any(h=>!ArenaDraftRules.Known(h)||h==output))return false;
             var required=ingredients.GroupBy(h=>h,StringComparer.Ordinal).ToDictionary(g=>g.Key,g=>(long)g.Count(),StringComparer.Ordinal);
-            if(!(ingredients.Count==2&&required.Count==1||ingredients.Count==3&&required.Count==3))return false;
+            if(!ArenaStoneRules.CanConvert(output,ingredients,balance,ingredients.Count==ArenaStoneRules.UniversalCost))return false;
             foreach(var entry in required)if(!balance.TryGetValue(entry.Key,out long count)||count<entry.Value)return false;
             cost=new ReadOnlyDictionary<string,long>(required);return true;
         }

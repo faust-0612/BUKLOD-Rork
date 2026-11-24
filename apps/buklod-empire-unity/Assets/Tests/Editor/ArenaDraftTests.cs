@@ -11,8 +11,10 @@ namespace Buklod.Empire.Tests {
             Assert.True(ArenaDraftRules.IsEnemyCounter("p0",heroes[5],picks));Assert.False(ArenaDraftRules.IsEnemyCounter("p0",heroes[1],picks));
         }
         [Test] public void CombinationOnlyQuotesCanonicalIngredientsWithoutMutation(){
-            var b=new Dictionary<string,long>{{"phan",2},{"quin",1},{"van",1}};
-            Assert.True(StoneEconomy.TryQuoteCombination(new[]{"phan","phan"},"quin",b,out var cost));Assert.AreEqual(2,cost["phan"]);Assert.AreEqual(2,b["phan"]);
+            var b=new Dictionary<string,long>{{"phan",3},{"quin",1},{"van",1},{"trudice",1}};
+            Assert.True(StoneEconomy.TryQuoteCombination(new[]{"phan","van"},"quin",b,out var cost));Assert.AreEqual(1,cost["phan"]);Assert.AreEqual(1,cost["van"]);Assert.AreEqual(3,b["phan"]);
+            Assert.True(StoneEconomy.TryQuoteCombination(new[]{"phan","phan","phan"},"quin",b,out _));
+            Assert.False(StoneEconomy.TryQuoteCombination(new[]{"phan","phan"},"quin",b,out _));
             Assert.True(StoneEconomy.TryQuoteCombination(new[]{"phan","quin","van"},"ace",b,out _));
             Assert.False(StoneEconomy.TryQuoteCombination(new[]{"phan","phan"},"phan",b,out _));Assert.False(StoneEconomy.TryQuoteCombination(new[]{"quin","quin"},"ace",b,out _));
         }

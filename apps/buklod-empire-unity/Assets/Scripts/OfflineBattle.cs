@@ -216,6 +216,7 @@ namespace Buklod.Empire {
         public bool RecruitmentPending(ArenaTeam team)=>ArenaDraftRules.ValidTeam(team)&&recruitmentEnd[(int)team]>0;
         private bool CanRecruit(ArenaTeam team)=>!Finished&&Time<OfflineMatchRules.MatchLimit&&ArenaDraftRules.ValidTeam(team)&&ProductionSite(team)!=null&&units.Any(u=>u.Team==team&&u.IsHouse&&u.State.Alive)&&PopulationUsed(team)<PopulationCapacity(team)&&units.Count(u=>u.Team==team&&u.Villager?.Recruited==true&&u.State.Alive)<MaxRecruitedWorkers&&villages[(int)team].CanRecruit;
         private bool QueueRecruitment(ArenaTeam team){if(!CanRecruit(team)||RecruitmentPending(team))return false;var site=ProductionSite(team);recruitmentSite[(int)team]=site.Id;recruitmentEnd[(int)team]=Time+12;return true;}
+        public bool CanRecruitPlayerGatherer=>!AutonomousTraining&&!RecruitmentPending(Player.Team)&&CanRecruit(Player.Team);
         public bool RecruitPlayerGatherer()=>!AutonomousTraining&&QueueRecruitment(Player.Team);
         public bool CancelPlayerRecruitment(){if(Finished||AutonomousTraining||!RecruitmentPending(Player.Team))return false;recruitmentEnd[(int)Player.Team]=0;recruitmentSite[(int)Player.Team]=0;return true;}
         private void AdvanceRecruitment(){
@@ -566,6 +567,23 @@ namespace Buklod.Empire {
             var a=Find(actor);if(Finished||a==null||!actor.Alive||!Finite(dir)||!Finite(new Vector2(distance,health))||!Finite(new Vector2(duration,damage))||distance<0||distance>30||health<=0||health>1000||duration<=0||duration>120||damage<=0||damage>300||units.Count(u=>u.Team==a.Team&&u.Temporary&&u.State.Alive)>=3)return false;
             Vector2 p=a.Position+dir.normalized*distance;if(Blocked(p,1.6f))return false;
             var t=Add(a.Team,BattleTargetKind.Structure,new SkillActor(health),p,a.Lane,temporary:true);t.Expires=Time+duration;t.AttackDamage=damage;return true;
+        }
+        // Free offline demonstration only; no persistent stone grants or debits.
+        private bool practiceCounterUsed;
+        private BattleUnit counterTarget;
+        private float counterUntil;
+        public BattleUnit ActivePracticeCounterTarget=>counterTarget!=null&&counterTarget.State.Alive&&counterTarget.State.Buff(ArenaStoneRules.CounterBuff,Time)>0?counterTarget:null;
+        public float PracticeCounterRemaining=>ActivePracticeCounterTarget==null?0:Mathf.Max(0,counterUntil-Time);
+        public bool PracticeCounterUsed=>practiceCounterUsed;
+        public BattleUnit PracticeCounterTarget=>Finished||AutonomousTraining||practiceCounterUsed||!Player.State.CanCast(Time)?null:units.Where(u=>u.Kind==BattleTargetKind.Hero&&u.Team!=Player.Team&&u.State.Alive&&IsVisibleTo(Player.Team,u)&&ClearSight(Player.Position,u.Position)&&Dist(Player,u)<=ArenaStoneRules.CounterRange).OrderBy(u=>Dist(Player,u)).ThenBy(u=>u.Id).FirstOrDefault();
+        public bool TryPracticeCounter(string stoneHero,int enemyUnitId){
+            var enemy=units.FirstOrDefault(u=>u.Id==enemyUnitId);
+            if(AutonomousTraining||enemy==null||enemy.Kind!=BattleTargetKind.Hero||!Player.State.CanCast(Time)||!IsVisibleTo(Player.Team,enemy)||!ClearSight(Player.Position,enemy.Position)||
+               !ArenaStoneRules.CanCounter(stoneHero,enemy.State.Kit?.Id,enemy.Team!=Player.Team,
+                  enemy.State.Alive,!Finished,false,practiceCounterUsed?1:0,Dist(Player,enemy),
+                  enemy.State.Buff(ArenaStoneRules.CounterBuff,Time)>0))return false;
+            enemy.State.Set(ArenaStoneRules.CounterBuff,1,Time+ArenaStoneRules.CounterDuration,Time);
+            counterTarget=enemy;counterUntil=Time+ArenaStoneRules.CounterDuration;practiceCounterUsed=true;return true;
         }
         public bool CastPlayer(SkillSlot slot,Vector2 aim){bool ok=Player.State.TryCast(this,slot,aim,Time,!Finished);if(ok)Player.RecallEnds=0;return ok;}
         public bool PlayerAttack(Vector2 aim)=>Basic(Player,aim);

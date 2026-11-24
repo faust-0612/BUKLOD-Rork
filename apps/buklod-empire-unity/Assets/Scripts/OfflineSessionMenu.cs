@@ -11,7 +11,7 @@ namespace Buklod.Empire {
     public sealed class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
-        private string selected;private bool shown,lastFinished;private int page,seed=1;
+        private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
         private Image panelBackground;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
@@ -132,8 +132,9 @@ namespace Buklod.Empire {
                     Cell(i,4,3,(owned?"SELL ":"BUY ")+id.Replace('_',' ')+" "+(owned?(int)(price*.6f):price),()=>Reply(owned?b.SellPlayer(id):b.BuyPlayer(id),owned?"Sold":"Purchased"),active&&b.CanShopPlayer&&(owned||p.Gear.Count<6&&p.Gold>=price));}
                 summary.text+="  •  Shop "+(b.CanShopPlayer?"available":"requires surviving base & range")+"  •  "+p.Gear.Count+"/6 slots";
             }else if(page==3&&b!=null){
-                var bank=b.GetVillage(p.Team);var worker=b.Units.FirstOrDefault(u=>u.Team==p.Team&&u.Villager?.Job.Effect==VillageEffect.Gather);string id=worker?.Villager.Job.Id;
-                summary.text=$"Wood {bank.Wood:0}  Stone {bank.Stone:0}  Food {bank.Food:0}  Crystal {bank.Crystal:0}  Gold {bank.Gold:0}  •  Cargo {(worker?.Cargo??0):0}  •  Paid troops {b.PaidTroops(p.Team)}/{b.PaidTroopCapacity(p.Team)}";
+                var bank=b.GetVillage(p.Team);var gatherers=b.Units.Where(u=>u.Team==p.Team&&u.Villager?.Job.Effect==VillageEffect.Gather&&u.State.Alive).OrderBy(u=>u.Id).ToArray();
+                var worker=gatherers.FirstOrDefault(u=>u.Villager.Job.Id==selectedGatherer)??gatherers.FirstOrDefault();string id=worker?.Villager.Job.Id;selectedGatherer=id;
+                summary.text=$"Wood {bank.Wood:0}  Stone {bank.Stone:0}  Food {bank.Food:0}  Crystal {bank.Crystal:0}  Gold {bank.Gold:0}  •  Cargo {(worker?.Cargo??0):0}  •  Population {b.PopulationUsed(p.Team)}/{b.PopulationCapacity(p.Team)}";
                 bool can=active&&b.Time<OfflineMatchRules.MatchLimit;bool working=can&&worker!=null&&worker.State.Alive;
                 Cell(0,5,4,"Auto gather",()=>Reply(b.OrderPlayerResource(id,null),"Auto gathering"),working);
                 int i=1;foreach(VillageResourceKind kind in Enum.GetValues(typeof(VillageResourceKind))){var k=kind;Cell(i++,5,4,"Gather "+k,()=>Reply(b.OrderPlayerResource(id,k),"Worker assigned to "+k),working);}
@@ -144,6 +145,9 @@ namespace Buklod.Empire {
                 Cell(15,5,4,"Cancel construction",()=>Reply(b.CancelPlayerConstruction(),"Cancelled"),can&&b.HasConstructionOrder(p.Team));
                 var builder=b.Units.FirstOrDefault(u=>u.Team==p.Team&&u.Villager?.Job.Effect==VillageEffect.Build);
                 Cell(16,5,4,builder?.Construction!=null?builder.Construction.Kind+" "+builder.Construction.Progress.ToString("0.0")+"s":"Builder idle",()=>{},false);
+                Cell(17,5,4,"Worker: "+(id??"none"),()=>{int index=System.Array.IndexOf(gatherers,worker);selectedGatherer=gatherers[(index+1)%gatherers.Length].Villager.Job.Id;Rebuild();},gatherers.Length>1);
+                Cell(18,5,4,b.RecruitmentPending(p.Team)?"Recruiting (12s)":"Recruit: 20 wood + 30 food",()=>Reply(b.RecruitPlayerGatherer(),"Recruitment queued"),can&&b.CanRecruitPlayerGatherer);
+                Cell(19,5,4,"Cancel recruitment",()=>Reply(b.CancelPlayerRecruitment(),"Recruitment cancelled"),can&&b.RecruitmentPending(p.Team));
             }else if(page==4&&b!=null){
                 var bank=b.GetVillage(p.Team);summary.text=$"Village gold {bank.Gold:0}  •  Buy 10 units / 15 gold  •  Sell 10 units / 6 gold  •  Living market required";
                 int i=0;foreach(var kind in new[]{VillageResourceKind.Wood,VillageResourceKind.Stone,VillageResourceKind.Food,VillageResourceKind.Crystal}){var k=kind;Cell(i++,4,2,"Buy "+k,()=>Reply(b.TradePlayerResource(k,true),"Trade complete"),active);Cell(i++,4,2,"Sell "+k,()=>Reply(b.TradePlayerResource(k,false),"Trade complete"),active);}
@@ -152,11 +156,13 @@ namespace Buklod.Empire {
             }else if(page==5&&b!=null){
                 summary.text=$"Damage {p.DamageDealt:0} dealt / {p.DamageTaken:0} taken • Relics {p.Relics.Count} • Nearest visible field targets";
                 int i=0;
-                foreach(var u in b.Units.Where(u=>u.Team!=p.Team&&u.State.Alive&&b.IsVisibleTo(p.Team,u)&&Vector2.Distance(p.Position,u.Position)<=p.State.Kit.BasicRange).OrderBy(u=>Vector2.Distance(p.Position,u.Position)).Take(5)){var target=u;Cell(i++,4,4,"Attack "+(u.State.Kit?.Name??u.Kind.ToString()),()=>{Close();b.PlayerAttackUnit(target.Id);},active);}
-                foreach(var camp in b.Camps.Where(c=>c.Alive&&Vector2.Distance(p.Position,c.Position)<=p.State.Kit.BasicRange).OrderBy(c=>Vector2.Distance(p.Position,c.Position)).Take(3)){var target=camp;Cell(i++,4,4,"Attack "+camp.Kind,()=>{Close();b.AttackNeutralPlayer(target.Id);},active);}
-                foreach(var drop in b.Drops.Where(x=>Vector2.Distance(p.Position,x.Position)<=ArenaPickupCatalog.Radius).Take(4)){var target=drop;Cell(i++,4,4,"Pick "+drop.Item.Name,()=>Reply(b.CollectPlayerPickup(target.Id),"Picked up"),active);}
-                foreach(var drop in b.RelicDrops.Where(x=>Vector2.Distance(p.Position,x.Position)<=ArenaRelicCatalog.Radius).Take(4)){var target=drop;Cell(i++,4,4,"Relic "+drop.Item.Name,()=>Reply(b.CollectPlayerRelic(target.Id),"Relic acquired"),active);}
-                if(i==0)Cell(0,4,4,"No nearby target",()=>{},false);
+                var counterTarget=b.PracticeCounterTarget;
+                Cell(i++,4,5,b.PracticeCounterUsed?"Practice counter used":counterTarget==null?"No counter target":"Counter "+counterTarget.State.Kit.Name,()=>Reply(counterTarget!=null&&b.TryPracticeCounter(counterTarget.State.Kit.Id,counterTarget.Id),"Practice counter activated; no stone spent"),active&&counterTarget!=null);
+                foreach(var u in b.Units.Where(u=>u.Team!=p.Team&&u.State.Alive&&b.IsVisibleTo(p.Team,u)&&Vector2.Distance(p.Position,u.Position)<=p.State.Kit.BasicRange).OrderBy(u=>Vector2.Distance(p.Position,u.Position)).Take(5)){var target=u;Cell(i++,4,5,"Attack "+(u.State.Kit?.Name??u.Kind.ToString()),()=>{Close();b.PlayerAttackUnit(target.Id);},active);}
+                foreach(var camp in b.Camps.Where(c=>c.Alive&&b.IsPositionVisibleTo(p.Team,c.Position)&&Vector2.Distance(p.Position,c.Position)<=p.State.Kit.BasicRange).OrderBy(c=>Vector2.Distance(p.Position,c.Position)).Take(3)){var target=camp;Cell(i++,4,5,"Attack "+camp.Kind,()=>{Close();b.AttackNeutralPlayer(target.Id);},active);}
+                foreach(var drop in b.Drops.Where(x=>Vector2.Distance(p.Position,x.Position)<=ArenaPickupCatalog.Radius).Take(4)){var target=drop;Cell(i++,4,5,"Pick "+drop.Item.Name,()=>Reply(b.CollectPlayerPickup(target.Id),"Picked up"),active);}
+                foreach(var drop in b.RelicDrops.Where(x=>Vector2.Distance(p.Position,x.Position)<=ArenaRelicCatalog.Radius).Take(4)){var target=drop;Cell(i++,4,5,"Relic "+drop.Item.Name,()=>Reply(b.CollectPlayerRelic(target.Id),"Relic acquired"),active);}
+                if(i==0)Cell(0,4,5,"No nearby target",()=>{},false);
             }
         }
         private void Resume(){if(Active)Close();}
@@ -177,7 +183,7 @@ namespace Buklod.Empire {
         }
         private void BeginMatch(){
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
-            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;Close();
+            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;Close();
         }
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void Update(){
