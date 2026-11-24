@@ -8,6 +8,8 @@ namespace Buklod.Empire {
         public Camera battleCamera;
         public string selectedHero="phan";
         public float worldScale=1, cameraHeight=23;
+        [Tooltip("Preserve full-detail hero geometry and visible hero shadows. Disable only for an explicit lower-quality mode.")]
+        public bool premiumVisuals=true;
         public OfflineBattle Battle {get;private set;}
 #if UNITY_EDITOR
         [SerializeField, HideInInspector] private bool editorReviewOnly;
@@ -24,7 +26,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence;public LODGroup[] lodGroups;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -75,6 +77,7 @@ namespace Buklod.Empire {
             else go=Instantiate(prefab,transform);
             go.SetActive(true);
             var v=new Visual{instance=go,prefab=prefab,animator=go.GetComponentInChildren<Animator>(true)};
+            v.lodGroups=go.GetComponentsInChildren<LODGroup>(true);
             v.renderers=go.GetComponentsInChildren<Renderer>(true);v.originalShadows=new ShadowCastingMode[v.renderers.Length];
             for(int i=0;i<v.renderers.Length;i++){
                 var r=v.renderers[i];v.originalShadows[i]=r.shadowCastingMode;
@@ -111,14 +114,17 @@ namespace Buklod.Empire {
                 if(!u.State.Alive)continue;
                 bool player=u==Battle.Player,existing=active.TryGetValue(u.Id,out var v);
                 float distanceSquared=(u.Position-playerPosition).sqrMagnitude;
-                if(!BattleRenderBudget.RetainVisual(player,IsInView(u),existing,distanceSquared))continue;
+                bool inView=IsInView(u);
+                if(!BattleRenderBudget.RetainVisual(player,inView,existing,distanceSquared))continue;
                 seen.Add(u.Id);
                 if(!existing){
                     v=Rent(visuals.Resolve(u));active.Add(u.Id,v);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;
                 }
-                SetShadows(v,BattleRenderBudget.KeepShadow(player,v.shadowsOn,distanceSquared));
+                bool hero=u.Kind==BattleTargetKind.Hero;
+                if(hero&&v.lodGroups!=null)foreach(var lod in v.lodGroups)if(lod)lod.ForceLOD(premiumVisuals?0:-1);
+                SetShadows(v,(premiumVisuals&&hero&&inView)||BattleRenderBudget.KeepShadow(player,v.shadowsOn,distanceSquared));
                 var t=v.instance.transform;
                 if((v.sampledAt-u.Position).sqrMagnitude>=.15f*.15f){
                     v.sampledAt=u.Position;v.groundY=Ground(u.Position).y;

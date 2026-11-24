@@ -43,6 +43,8 @@ class Candidate(original.Hero):
         # Smooth only rounded surfaces, leaving deliberately faceted armor and gems intact.
         if mat not in (0,1,7,self.stone_index) and not (self.nodes[joint]["name"]=="Head" and max(size)<.04):
             segments=max(segments,16);steps=max(steps,8)
+        if not getattr(self,'mobile_lod',False) and self.nodes[joint]["name"]=="Head" and max(size)>.08 and mat not in (0,1,7,self.stone_index):
+            segments=max(segments,28);steps=max(steps,14)
         if getattr(self,'mobile_lod',False):
             segments=max(6,min(segments,8));steps=max(3,min(steps,4))
         g=self.geo[mat];start=len(g['p'])
@@ -81,7 +83,7 @@ def main():
         row['clips']=add_skill_motions(path,hero_id)
         row['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
         row['bytes']=path.stat().st_size
-        row['surfaceRevision']='original-procedural-pbr-v3-identity'
+        row['surfaceRevision']='original-procedural-pbr-v4-fidelity'
         assert h.stone_count==1 and len(row["clips"])==12 and row["bones"]>0
         row["stone"]=stone_by[hero_id]["stone"]
         row["sourceGeneratorSha256"]=hashlib.sha256(source.read_bytes()).hexdigest()

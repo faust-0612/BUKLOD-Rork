@@ -50,13 +50,50 @@ namespace Buklod.Empire.Editor {
             var volume=new GameObject("Review atmospheric grade",typeof(Volume)).GetComponent<Volume>();
             volume.isGlobal=true;volume.priority=10;volume.sharedProfile=profile;
             var data=camera.GetUniversalAdditionalCameraData();
-            data.renderPostProcessing=true;data.antialiasing=AntialiasingMode.FastApproximateAntialiasing;
+            data.renderPostProcessing=true;data.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            data.antialiasingQuality=AntialiasingQuality.High;
             data.volumeLayerMask=data.volumeLayerMask.value|(1<<volume.gameObject.layer);
             camera.allowHDR=true;
+            var cube=ReviewSkyReflection();
+            RenderSettings.defaultReflectionMode=DefaultReflectionMode.Custom;
+            RenderSettings.customReflectionTexture=cube;
+            RenderSettings.reflectionIntensity=1.05f;
             // Far haze; do not obscure nearby actors, targeting or the HUD.
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;
             RenderSettings.fogColor=new Color(.31f,.42f,.49f);RenderSettings.fogStartDistance=45;RenderSettings.fogEndDistance=120;
             Debug.Log("Review environment water, animated foliage and cinematic grade configured. Verify on device before approving.");
+        }
+        // Original environment reflection, no downloaded HDRI and no per-frame capture.
+        static Cubemap ReviewSkyReflection(){
+            const int size=128;string path=Out+"/ReviewSkyReflection.asset";
+            var cube=AssetDatabase.LoadAssetAtPath<Cubemap>(path);
+            if(cube)return cube;
+            cube=new Cubemap(size,TextureFormat.RGBAHalf,true);
+            var faces=new[]{CubemapFace.PositiveX,CubemapFace.NegativeX,CubemapFace.PositiveY,CubemapFace.NegativeY,CubemapFace.PositiveZ,CubemapFace.NegativeZ};
+            var sun=new Vector3(-.45f,.78f,-.35f).normalized;
+            foreach(var face in faces){
+                var pixels=new Color[size*size];
+                for(int y=0;y<size;y++)for(int x=0;x<size;x++){
+                    float u=2*(x+.5f)/size-1,v=2*(y+.5f)/size-1;
+                    Vector3 dir;
+                    switch(face){
+                        case CubemapFace.PositiveX:dir=new Vector3(1,-v,-u);break;
+                        case CubemapFace.NegativeX:dir=new Vector3(-1,-v,u);break;
+                        case CubemapFace.PositiveY:dir=new Vector3(u,1,v);break;
+                        case CubemapFace.NegativeY:dir=new Vector3(u,-1,-v);break;
+                        case CubemapFace.PositiveZ:dir=new Vector3(u,-v,1);break;
+                        default:dir=new Vector3(-u,-v,-1);break;
+                    }
+                    dir.Normalize();
+                    var horizon=new Color(.52f,.63f,.69f);
+                    var sky=Color.Lerp(horizon,new Color(.14f,.32f,.62f),Mathf.Clamp01(dir.y));
+                    if(dir.y<0)sky=Color.Lerp(horizon,new Color(.12f,.16f,.12f),-dir.y);
+                    float lobe=Mathf.Pow(Mathf.Max(0,Vector3.Dot(dir,sun)),32)*2.4f;
+                    pixels[y*size+x]=sky+new Color(1,.78f,.48f)*lobe;
+                }
+                cube.SetPixels(pixels,face);
+            }
+            cube.Apply(true,false);AssetDatabase.CreateAsset(cube,path);return cube;
         }
         static T Get<T>(VolumeProfile profile) where T:VolumeComponent{
             if(profile.TryGet<T>(out var existing))return existing;
