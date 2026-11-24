@@ -28,6 +28,7 @@ namespace Buklod.Empire {
     // Server transport adapter. The hosting layer must enforce TLS at the public
     // ingress, reject unauthenticated upgrades by rate limit and supply a real WebSocket.
     // No reward settlement or public listener is provided here.
+#if UNITY_EDITOR || UNITY_SERVER
     public sealed class MatchSocketEndpoint {
         readonly MatchGrantService grants;readonly MatchLoop loop;readonly IMatchIdentityVerifier identity;
         readonly SemaphoreSlim sockets=new SemaphoreSlim(20,20),authRequests=new SemaphoreSlim(8,8);
@@ -94,12 +95,13 @@ namespace Buklod.Empire {
                 if(snapshot.Tick!=sentTick){
                     await MatchSocketFrames.Send(socket,MatchWire.EncodeSnapshot(snapshot),token);sentTick=snapshot.Tick;
                     // Final result can be fetched after reconnect only when final-result retention is implemented.
-                    if(snapshot.Finished)return;
+                    if(snapshot.Finished){await Task.Delay(1000,token);return;}
                 }
                 await Task.Delay(50,token);
             }
         }
     }
+#endif
     // Client transport foundation. The Unity online presentation adapter will consume
     // the received snapshot DTOs; do not run a separate rewarding local simulation.
     public sealed class MatchSocketClient:IDisposable {
@@ -111,8 +113,10 @@ namespace Buklod.Empire {
             if(ticket==null||ticket.Length!=44||match==Guid.Empty)throw new ArgumentException("Invalid match grant.");
             using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancellation)){
                 deadline.CancelAfter(TimeSpan.FromSeconds(8));
-                await socket.ConnectAsync(endpoint,deadline.Token);
-                await MatchSocketFrames.Send(socket,MatchWire.EncodeHello(match,ticket),deadline.Token);
+                try{
+                    await socket.ConnectAsync(endpoint,deadline.Token);
+                    await MatchSocketFrames.Send(socket,MatchWire.EncodeHello(match,ticket),deadline.Token);
+                }catch{socket.Abort();throw;}
             }
         }
         public Task SendInput(MatchInput input,CancellationToken token)=>Send(MatchWire.EncodeInput(input),token);

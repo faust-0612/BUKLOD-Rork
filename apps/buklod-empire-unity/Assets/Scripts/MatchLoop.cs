@@ -8,13 +8,15 @@ namespace Buklod.Empire {
         const int Capacity=128;
         readonly ConcurrentQueue<Action> queue=new ConcurrentQueue<Action>();
         readonly object gate=new object();
-        bool stopped;int pending;
-        public Task<T> Invoke<T>(Func<T> action,CancellationToken cancellation){
+        volatile bool stopped;int pending;
+        readonly int ownerThread=Thread.CurrentThread.ManagedThreadId;
+        void RequireOwner(){if(Thread.CurrentThread.ManagedThreadId!=ownerThread)throw new InvalidOperationException("Use the match owner thread.");}
+        public async Task<T> Invoke<T>(Func<T> action,CancellationToken cancellation){
             if(action==null)throw new ArgumentNullException(nameof(action));
-            if(cancellation.IsCancellationRequested)return Task.FromCanceled<T>(cancellation);
+            cancellation.ThrowIfCancellationRequested();
             var completion=new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
             lock(gate){
-                if(stopped||pending>=Capacity){completion.TrySetException(new InvalidOperationException("Match loop unavailable."));return completion.Task;}
+                if(stopped||pending>=Capacity)throw new InvalidOperationException("Match loop unavailable.");
                 pending++;
                 queue.Enqueue(()=>{
                     try{
@@ -24,9 +26,10 @@ namespace Buklod.Empire {
                     }catch(Exception e){completion.TrySetException(e);}
                 });
             }
-            return completion.Task;
+            using(cancellation.Register(()=>completion.TrySetCanceled()))return await completion.Task.ConfigureAwait(false);
         }
         public void Pump(int max=Capacity){
+            RequireOwner();
             for(int i=0;i<Math.Min(max,Capacity);i++){
                 Action work;
                 lock(gate){if(!queue.TryDequeue(out work))return;pending--;}
@@ -34,6 +37,7 @@ namespace Buklod.Empire {
             }
         }
         public void Dispose(){
+            RequireOwner();
             lock(gate){stopped=true;}
             Pump();
         }

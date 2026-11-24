@@ -22,7 +22,9 @@ namespace Buklod.Empire {
         public Guid MatchId {get;}
         public MatchGrantService(Guid matchId,AuthoritativeMatch match,Func<DateTimeOffset> clock=null){
             if(matchId==Guid.Empty||match==null)throw new ArgumentException("Invalid match authority.");
-            MatchId=matchId;this.match=match;now=clock??(()=>DateTimeOffset.UtcNow);
+            MatchId=matchId;this.match=match;
+            var origin=DateTimeOffset.UtcNow;var elapsed=System.Diagnostics.Stopwatch.StartNew();
+            now=clock??(()=>origin+elapsed.Elapsed);
         }
         // Single match-loop thread only; transport must marshal calls to this owner.
         static string Hash(string text){using(var sha=SHA256.Create())return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(text)));}
@@ -67,6 +69,9 @@ namespace Buklod.Empire {
             var stale=new List<MatchSession>();foreach(var kv in leases)if(time-kv.Value.LastSeen>=TimeSpan.FromSeconds(IdleSeconds))stale.Add(kv.Key);
             foreach(var s in stale)Close(s);
         }
+        public int ConnectedCount=>leases.Count;
+        public int Tick=>match.Tick;
+        public bool Finished=>match.Finished;
         public bool AdvanceTick(){Sweep();return match.AdvanceTick();}
     }
 }
