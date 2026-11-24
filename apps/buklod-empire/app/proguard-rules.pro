@@ -1,0 +1,2 @@
+-keep class org.godotengine.godot.** { *; }
+-keep class org.mzbministry.buklod.empire.EmpireActivity { *; }

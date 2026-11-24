@@ -1,0 +1,16 @@
+{
+  "status": "DEV_BUILD_REQUESTED",
+  "package": "org.mzbministry.buklod.empire",
+  "version": "0.1.0-dev",
+  "base": "05ac6bce40f13d8a8e38887ce3d43cf411117635",
+  "mainRemoval": false,
+  "production": false,
+  "newSupabaseProject": false,
+  "realRewardSettlement": false,
+  "build": "Native Gradle, official Godot AAR, no Expo/Vercel",
+  "requires": [
+    "Android actual launch four scenes and battle",
+    "Stable separate release signing",
+    "Same-project account, character and server rewards parity before MAIN removal"
+  ]
+}

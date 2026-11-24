@@ -1,0 +1,63 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/buklod-empire-standalone-native-20261124.json",
+  "baseRef": "05ac6bce40f13d8a8e38887ce3d43cf411117635",
+  "objective": "Build independent BUKLOD Empire native APK for existing Kingdom and Arena content; no MAIN changes; same shared backend authority retained.",
+  "chosenApproach": "Standalone Gradle Android application with official Godot AAR and APK root resources; offline DEV build before account/reward integration.",
+  "selectionRationale": "Remove existing embedded host startup restrictions and isolate game build; first APK before deleting MAIN games.",
+  "alternativeApproaches": [
+    "No Expo, Vercel or new Supabase project",
+    "No local reward ledger or privileged keys",
+    "No MAIN game removal in phase one"
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "godot-content",
+    "backend-security"
+  ],
+  "preserveBehaviors": [
+    "MAIN app unchanged",
+    "Existing hero data and original game asset inventory preserved",
+    "Existing canonical server points/rewards remain authoritative"
+  ],
+  "acceptanceChecks": [
+    "Exact independent APK identity and native ABIs",
+    "Real Android emulator render and battle",
+    "No backend write or MAIN deploy"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire/settings.gradle",
+    "apps/buklod-empire/build.gradle",
+    "apps/buklod-empire/gradle.properties",
+    "apps/buklod-empire/app/build.gradle",
+    "apps/buklod-empire/app/proguard-rules.pro",
+    "apps/buklod-empire/app/src/main/AndroidManifest.xml",
+    "apps/buklod-empire/app/src/main/java/org/mzbministry/buklod/empire/EmpireActivity.java",
+    "apps/buklod-empire/app/src/main/assets/.gitkeep",
+    "apps/buklod-empire/game/EmpireMenu.tscn",
+    "apps/buklod-empire/game/empire_session.gd",
+    "apps/buklod-empire/game/empire_menu.gd",
+    "scripts/build-buklod-empire-standalone.mjs",
+    "scripts/verify-buklod-empire-android.sh",
+    "tests/buklod-empire-standalone-contract.test.mjs",
+    "apps/buklod-empire/README.md",
+    ".github/workflows/buklod-empire-standalone-native-dev.yml",
+    ".buklod/releases/buklod-empire-standalone-dev-20261124.json",
+    ".buklod/scopes/buklod-empire-standalone-native-20261124.json"
+  ],
+  "regressionTests": [
+    "tests/buklod-empire-standalone-contract.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "godot-content",
+      "reason": "Separate native engine from main application without altering canonical source.",
+      "preservedBehaviors": [
+        "Existing gameplay and approved resources are packaged from the same source."
+      ],
+      "tests": [
+        "tests/buklod-empire-standalone-contract.test.mjs"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+name: BUKLOD Empire standalone Android — local Gradle DEV APK
+on:
+  push:
+    branches:
+      - dev/buklod-empire-standalone-native-20261124
+    paths:
+      - '.github/workflows/buklod-empire-standalone-native-dev.yml'
+      - 'apps/buklod-empire/**'
+      - 'scripts/build-buklod-empire-standalone.mjs'
+      - 'scripts/verify-buklod-empire-android.sh'
+      - 'tests/buklod-empire-standalone-contract.test.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: buklod-empire-standalone-dev
+  cancel-in-progress: false
+jobs:
+  native-empire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      BUKLOD_GENESIS_PREMIUM_3D: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Source contract and original reviewed game content
+        run: |
+          set -euo pipefail
+          node --test tests/buklod-empire-standalone-contract.test.mjs
+          node scripts/genesis-import-verified-3d.mjs
+          node scripts/build-buklod-empire-standalone.mjs
+      - name: Native Gradle build and binary identity, no Expo or Vercel
+        run: |
+          set -euo pipefail
+          gradle -p apps/buklod-empire :app:assembleRelease --no-daemon
+          APK=apps/buklod-empire/app/build/outputs/apk/release/app-release.apk
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          TOOLS="$(find "$SDK/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLS/aapt" dump badging "$APK" > build/buklod-empire/apk-badging.txt
+          grep -F "package: name='org.mzbministry.buklod.empire'" build/buklod-empire/apk-badging.txt
+          "$TOOLS/apksigner" verify --print-certs "$APK" > build/buklod-empire/signing.txt
+          unzip -Z1 "$APK" > build/buklod-empire/apk-entries.txt
+          grep -Fx 'assets/project.godot' build/buklod-empire/apk-entries.txt
+          grep -Fx 'assets/scenes/EmpireMenu.tscn' build/buklod-empire/apk-entries.txt
+          grep -E '^lib/arm64-v8a/.*godot.*\.so$' build/buklod-empire/apk-entries.txt
+          grep -E '^lib/x86_64/.*godot.*\.so$' build/buklod-empire/apk-entries.txt
+          if grep -E 'assets/index.android.bundle|lib/[^/]+/libhermes.so' build/buklod-empire/apk-entries.txt; then exit 1; fi
+          sha256sum "$APK" > build/buklod-empire/apk-sha256.txt
+          stat -c %s "$APK" > build/buklod-empire/apk-bytes.txt
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Actual Android launch and four game worlds, battle and return
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: bash scripts/verify-buklod-empire-android.sh
+      - name: Deliver only Android-tested DEV APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Empire-native-DEV-android-tested
+          path: |
+            apps/buklod-empire/app/build/outputs/apk/release/app-release.apk
+            build/buklod-empire/content-receipt.json
+            build/buklod-empire/apk-badging.txt
+            build/buklod-empire/signing.txt
+            build/buklod-empire/apk-sha256.txt
+            build/buklod-empire/apk-bytes.txt
+            build/buklod-empire/android-qa/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Diagnostics only when failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUKLOD-Empire-failed-qa-diagnostics
+          path: |
+            build/buklod-empire/android-qa/
+            build/buklod-empire/content-receipt.json
+          if-no-files-found: ignore
+          retention-days: 7
