@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Rendering;
 namespace Buklod.Empire {
     public sealed class BattleView:MonoBehaviour {
         public BattleVisualCatalog visuals;
@@ -19,7 +20,11 @@ namespace Buklod.Empire {
         private readonly Dictionary<GameObject,Stack<GameObject>> pool=new Dictionary<GameObject,Stack<GameObject>>();
         private readonly HashSet<int> seen=new HashSet<int>();
         private readonly List<int> removed=new List<int>();
-        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private readonly Plane[] frustum=new Plane[6];
+        private int pooledCount;
+        public int ActiveVisualCount=>active.Count;
+        public int PooledVisualCount=>pooledCount;
+        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -47,7 +52,7 @@ namespace Buklod.Empire {
             Battle=new OfflineBattle(hero,new Navigation(worldScale));
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
-            Sync(true);Follow(true);
+            Follow(true);Sync(true);
         }
         private void Start(){if(Battle==null)StartMatch(selectedHero);}
         private Vector2 ToWorld(Vector2 screen){
@@ -65,21 +70,60 @@ namespace Buklod.Empire {
         private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}
         private Visual Rent(GameObject prefab){
             if(!pool.TryGetValue(prefab,out var stack)){stack=new Stack<GameObject>();pool[prefab]=stack;}
-            var go=stack.Count>0?stack.Pop():Instantiate(prefab,transform);
+            GameObject go;
+            if(stack.Count>0){go=stack.Pop();pooledCount--;}
+            else go=Instantiate(prefab,transform);
             go.SetActive(true);
             var v=new Visual{instance=go,prefab=prefab,animator=go.GetComponentInChildren<Animator>(true)};
-            if(v.animator){v.animator.Rebind();foreach(var p in v.animator.parameters)v.parameters.Add(p.name);}
+            v.renderers=go.GetComponentsInChildren<Renderer>(true);v.originalShadows=new ShadowCastingMode[v.renderers.Length];
+            for(int i=0;i<v.renderers.Length;i++){
+                var r=v.renderers[i];v.originalShadows[i]=r.shadowCastingMode;
+                if(r is SkinnedMeshRenderer skin)skin.updateWhenOffscreen=false;
+            }
+            if(v.animator){v.animator.cullingMode=AnimatorCullingMode.CullUpdateTransforms;v.animator.Rebind();foreach(var p in v.animator.parameters)v.parameters.Add(p.name);}
             return v;
         }
-        private void Return(Visual v){v.instance.SetActive(false);pool[v.prefab].Push(v.instance);}
+        private void SetShadows(Visual v,bool enabled){
+            if(v.shadowsOn==enabled)return;
+            v.shadowsOn=enabled;
+            for(int i=0;i<v.renderers.Length;i++)if(v.renderers[i])
+                v.renderers[i].shadowCastingMode=enabled?v.originalShadows[i]:ShadowCastingMode.Off;
+        }
+        private void Return(Visual v){
+            v.instance.SetActive(false);
+            SetShadows(v,true); // preserve original prefab shadow modes across rentals
+            var stack=pool[v.prefab];
+            if(BattleRenderBudget.CanPool(pooledCount,stack.Count)){stack.Push(v.instance);pooledCount++;}
+            else Destroy(v.instance);
+        }
+        private bool IsInView(BattleUnit u){
+            // Conservative world-space envelope, including tall structures and pose margins.
+            // Keep nearby actors even outside the camera (audio and camera movement).
+            float radius=Mathf.Max(1,worldScale)*8;
+            var center=new Vector3(u.Position.x*worldScale,3*worldScale,u.Position.y*worldScale);
+            return GeometryUtility.TestPlanesAABB(frustum,new Bounds(center,Vector3.one*(2*radius)));
+        }
         private void Sync(bool immediate){
             seen.Clear();
+            GeometryUtility.CalculateFrustumPlanes(battleCamera,frustum);
+            var playerPosition=Battle.Player.Position;
             foreach(var u in Battle.Units){
                 if(!u.State.Alive)continue;
+                bool player=u==Battle.Player,existing=active.TryGetValue(u.Id,out var v);
+                float distanceSquared=(u.Position-playerPosition).sqrMagnitude;
+                if(!BattleRenderBudget.RetainVisual(player,IsInView(u),existing,distanceSquared))continue;
                 seen.Add(u.Id);
-                if(!active.TryGetValue(u.Id,out var v)){v=Rent(visuals.Resolve(u));active.Add(u.Id,v);v.instance.transform.position=Ground(u.Position);v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;}
-                var t=v.instance.transform;var goal=new Vector3(u.Position.x*worldScale,t.position.y,u.Position.y*worldScale);
-                if((goal-t.position).sqrMagnitude>.0001f)goal=Ground(u.Position);
+                if(!existing){
+                    v=Rent(visuals.Resolve(u));active.Add(u.Id,v);
+                    var ground=Ground(u.Position);v.instance.transform.position=ground;
+                    v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;
+                }
+                SetShadows(v,BattleRenderBudget.KeepShadow(player,v.shadowsOn,distanceSquared));
+                var t=v.instance.transform;
+                if((v.sampledAt-u.Position).sqrMagnitude>=.15f*.15f){
+                    v.sampledAt=u.Position;v.groundY=Ground(u.Position).y;
+                }
+                var goal=new Vector3(u.Position.x*worldScale,v.groundY,u.Position.y*worldScale);
                 var delta=goal-t.position;var flat=new Vector3(delta.x,0,delta.z);
                 if(immediate)t.position=goal;else t.position=Vector3.Lerp(t.position,goal,1-Mathf.Exp(-18*Time.deltaTime));
                 if(flat.sqrMagnitude>.0001f)t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
