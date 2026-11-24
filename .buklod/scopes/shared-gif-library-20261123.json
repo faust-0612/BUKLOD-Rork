@@ -1,0 +1,91 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/shared-gif-library-20261123.json",
+  "objective": "Offer searchable online animated GIF reactions in Public Wall, scoped community wall and comments while keeping the existing Connect path and no manual GIF-by-GIF upload requirement.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main SOURCE commit 7b224c39624827282c3cbf003060317045b0a73f was fetched and inspected 2026-11-23; this is the code baseline only, NOT independently confirmed live installed APK/OTA. EAS GIPHY API key state remains unverified; feature is DEV-only.",
+  "chosenApproach": "Restore the existing community GIF picker as a shared G-rated GIPHY-backed browser, reuse the already established Connect catalog and secure post/comment flows, add view-local search/debounce/pagination/caching and graceful offline fallback. Do not change RLS, AdsProvider, Expo native modules, or product identity.",
+  "selectionRationale": "Existing Connect GIPHY integration and post/comment GIF media attachments make reuse safer and smaller than another provider or native package; selecting a GIF must never auto-send a comment or publish a post.",
+  "alternativeApproaches": [
+    "Bulk import and bundle thousands of GIF binary files into APK (rejected: huge app size, storage egress, content licensing and stale selections).",
+    "Use deprecated Tenor/provider-native GIF SDK (rejected: provider availability/integration risk and new native runtime/build requirement).",
+    "Leave hardcoded 48-GIF comment grid and disabled Wall picker in place (rejected: not searchable or extensive)."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "connect"
+  ],
+  "preserveBehaviors": [
+    "Public and scoped community audience and membership authorization, post creation workflow and comment manual Send remain unchanged.",
+    "Existing Connect direct-message upload and send authorization remains exactly as before.",
+    "AdMob first-view rendering and ad lifecycle, current dashboard navigation, video playback and PTT audio are not touched.",
+    "Offline/no-key cases show limited fallback GIFs rather than an empty or crashing interface.",
+    "No production OTA, web hosting publish, Play release, database migration, security policy change or native rebuild."
+  ],
+  "acceptanceChecks": [
+    "Run both changed Node tests and full Engineering Accountability and performance/compact CI gates on exact head.",
+    "Confirm full online library with a real GIPHY API key configured in the intended EAS environment; no key committed to source.",
+    "Manually validate Android selecting/searching GIF, private scope attachment, retries and comment manual Send on weak network.",
+    "Verify AdMob first-view/fill and dashboard navigation in staging before any consolidated RC or production OTA."
+  ],
+  "regressionTests": [
+    "tests/shared-gif-library-20261123.test.mjs",
+    "tests/shared-gif-navigation-scope-connect-20261123.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodCommunityGifPicker.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/lib/buklodConnectGifCatalog.ts",
+    "tests/shared-gif-library-20261123.test.mjs",
+    "tests/shared-gif-navigation-scope-connect-20261123.test.mjs",
+    ".buklod/scopes/shared-gif-library-20261123.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Replace retired shared GIF picker and bounded catalog retrieval in active React Native components without changing other runtime features.",
+      "preservedBehaviors": [
+        "Existing post and comment submission, ad loading, media visibility and protected media storage remain intact."
+      ],
+      "tests": [
+        "tests/shared-gif-library-20261123.test.mjs",
+        "tests/shared-gif-navigation-scope-connect-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Expose Wall GIF entry only inside the already authenticated composer while preserving current navigation and manual publication boundaries.",
+      "preservedBehaviors": [
+        "Public navigation, authenticated post creation and account-specific comment draft handling remain unchanged."
+      ],
+      "tests": [
+        "tests/shared-gif-navigation-scope-connect-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Expose the shared GIF chooser only within authorized scoped Community Wall without changing private membership or scope IDs.",
+      "preservedBehaviors": [
+        "Existing Cluster/Organization privacy, membership-guarded RPC and scoped storage policies are not modified."
+      ],
+      "tests": [
+        "tests/shared-gif-navigation-scope-connect-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "connect-ptt-calls",
+      "reason": "Extend the existing Connect GIF catalog search with short-lived caching and reaction categories without altering messaging or call controls.",
+      "preservedBehaviors": [
+        "Direct message delivery, PTT/call isolation, and authorized Connect attachments remain unchanged."
+      ],
+      "tests": [
+        "tests/shared-gif-navigation-scope-connect-20261123.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "releaseMode": "dev-only-no-publish",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
