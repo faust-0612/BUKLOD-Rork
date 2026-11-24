@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync,copyFileSync,mkdirSync,rmSync,readdirSync,statSync} from 'node:fs';
 import path from 'node:path';
-import {createHash} from 'node:crypto';
+import {createHash,createPublicKey} from 'node:crypto';
 const base=path.resolve('apps/buklod-empire');
 const assets=path.join(base,'app/src/main/assets');
 const build=path.resolve('build/buklod-empire');
@@ -60,11 +60,15 @@ const baseHash=createHash('sha256').update(JSON.stringify(inventory)).digest('he
 const channel=process.env.BUKLOD_EMPIRE_OTA_CHANNEL||'dev';
 assert.ok(['dev','staging','production'].includes(channel));
 const key=process.env.BUKLOD_EMPIRE_OTA_PUBLIC_KEY||'';
-if(key)assert.match(key,/^-----BEGIN PUBLIC KEY-----[\s\S]+-----END PUBLIC KEY-----\s*$/);
-if(channel!=='dev')assert.ok(key,'Release channel requires permanent public key');
+if(key){
+ const pinned=createPublicKey(key);
+ assert.equal(pinned.asymmetricKeyType,'rsa');
+ assert.ok(pinned.asymmetricKeyDetails.modulusLength>=2048);
+}
+if(channel!=='dev'||process.env.BUKLOD_EMPIRE_REQUIRE_RELEASE_SIGNING==='true')assert.ok(key,'Owner-controlled permanent OTA public key required');
 mkdirSync(path.join(assets,'empire-ota'),{recursive:true});
 writeFileSync(path.join(assets,'empire-ota/config.json'),JSON.stringify({schema:1,channel,runtime:'empire-godot-4.7.2-r1',base:baseHash,key}));
-writeFileSync(path.join(build,'ota-baseline.json'),JSON.stringify({schema:1,channel,runtime:'empire-godot-4.7.2-r1',base:baseHash,inventory},null,2)+'\n');
+writeFileSync(path.join(build,'ota-baseline.json'),JSON.stringify({schema:1,channel,runtime:'empire-godot-4.7.2-r1',base:baseHash,keyFingerprint:key?createHash('sha256').update(createPublicKey(key).export({type:'spki',format:'der'})).digest('hex'):null,inventory},null,2)+'\n');
 const manifest={otaProtocol:1,otaChannel:channel,otaTrustConfigured:!!key,otaBaseline:baseHash,status:'OFFLINE_DEV',sourceSha:process.env.GITHUB_SHA??null,package:'org.mzbministry.buklod.empire',godot:'4.7.2',canonicalPackSha256:createHash('sha256').update(readFileSync(zip)).digest('hex'),worlds:['arena','kingdom','house','community'],heroes:13,models:22,rigged:2,kingdomItems:42,audioCues:70,liveRewards:false,backendProjectCreated:false};
 writeFileSync(path.join(build,'content-receipt.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log('BUKLOD_EMPIRE_ASSETS_READY '+JSON.stringify(manifest));

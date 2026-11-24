@@ -6,6 +6,9 @@ OUT=build/buklod-empire/android-qa
 mkdir -p "$OUT"
 adb install -r "$APK"
 adb shell input keyevent 82 || true
+# Only the disposable emulator launcher may be stopped. Never suppress Empire ANRs.
+adb shell am force-stop com.google.android.apps.nexuslauncher || true
+adb shell am force-stop com.android.launcher3 || true
 adb logcat -c
 adb shell am start -W -n "$PKG/.EmpireActivity"
 wait_marker() {
@@ -17,6 +20,7 @@ wait_marker() {
    # Engine receipts alone can be green while the display is entirely gray.
    for render_attempt in $(seq 1 6); do
     adb exec-out screencap -p > "$OUT/$file.png"
+    adb shell dumpsys window windows | grep -E "mCurrentFocus|mFocusedApp" > "$OUT/$file-focus.txt" || true
     if python3 scripts/verify-buklod-empire-frame.py "$OUT/$file.png"; then
      adb logcat -d > "$OUT/$file.log"
      if grep -E 'Program linking failed|Fragment shader active uniforms exceed|shader failed to compile|SCRIPT ERROR|FATAL EXCEPTION' "$OUT/$file.log"; then return 1; fi

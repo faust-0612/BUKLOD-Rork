@@ -14,6 +14,9 @@ on:
       - 'scripts/build-buklod-empire-ota.mjs'
       - 'scripts/verify-buklod-empire-ota-godot.sh'
       - 'scripts/prepare-buklod-empire-ota-fixture.mjs'
+      - 'scripts/buklod-empire-storage.mjs'
+      - 'scripts/setup-buklod-empire-dev-trust.sh'
+      - 'tests/buklod-empire-release-trust.test.mjs'
 permissions:
   contents: read
 concurrency:
@@ -26,7 +29,7 @@ jobs:
     env:
       BUKLOD_GENESIS_PREMIUM_3D: 'true'
       BUKLOD_EMPIRE_OTA_CHANNEL: dev
-      BUKLOD_EMPIRE_OTA_PUBLIC_KEY: ${{ vars.BUKLOD_EMPIRE_DEV_OTA_PUBLIC_KEY }}
+      BUKLOD_EMPIRE_OTA_PUBLIC_KEY: ''
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,7 +47,9 @@ jobs:
       - name: Source contract and original reviewed game content
         run: |
           set -euo pipefail
-          node --test tests/buklod-empire-standalone-contract.test.mjs tests/buklod-empire-ota.test.mjs
+          node --test tests/buklod-empire-standalone-contract.test.mjs tests/buklod-empire-ota.test.mjs tests/buklod-empire-release-trust.test.mjs
+          bash -n scripts/setup-buklod-empire-dev-trust.sh
+          node --check scripts/buklod-empire-storage.mjs
           node scripts/genesis-import-verified-3d.mjs
           node scripts/build-buklod-empire-standalone.mjs
       - name: Real Godot engine signature, delta mount, interruption recovery and rollback
@@ -94,15 +99,15 @@ jobs:
         with:
           api-level: 35
           arch: x86_64
-          target: google_apis
+          target: default
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -no-snapshot
           script: bash scripts/verify-buklod-empire-android.sh
-      - name: Deliver only Android-tested DEV APK
+      - name: Deliver Android-tested QA-only APK (not owner-signed, remote OTA disabled)
         uses: actions/upload-artifact@v4
         with:
-          name: BUKLOD-Empire-native-DEV-android-tested
+          name: BUKLOD-Empire-QA-ONLY-not-release-signed
           path: |
             apps/buklod-empire/app/build/outputs/apk/release/app-release.apk
             build/buklod-empire/content-receipt.json

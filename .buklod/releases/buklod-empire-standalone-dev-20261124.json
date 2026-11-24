@@ -1,7 +1,7 @@
 {
-  "status": "DEV_OTA_PROTOCOL_IMPLEMENTED_QA_PENDING",
+  "status": "DEV_TRUST_PROVISIONING_PREPARED_OWNER_CREDENTIALS_REQUIRED",
   "package": "org.mzbministry.buklod.empire",
-  "version": "0.1.1-dev",
+  "version": "0.1.2-dev",
   "base": "05ac6bce40f13d8a8e38887ce3d43cf411117635",
   "mainRemoval": false,
   "production": false,
@@ -15,6 +15,8 @@
   ],
   "otaProtocol": 1,
   "otaPublished": false,
-  "trustKey": "REQUIRES_DURABLE_OWNER_CONTROLLED_KEY",
-  "storage": "existing MAIN project; bucket not provisioned or verified"
+  "trustKey": "Owner-controlled setup prepared; not configured",
+  "storage": "Dedicated API-only bucket setup prepared; not created",
+  "remoteCanary": "NOT_PERFORMED",
+  "previousQA": "45332721553 launcher ANR blocked frame gate; Empire menu visible"
 }

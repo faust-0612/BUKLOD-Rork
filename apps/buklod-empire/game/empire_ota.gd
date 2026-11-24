@@ -4,7 +4,7 @@ signal status_changed
 const CONFIG := "res://empire-ota/config.json"
 const DIR := "user://empire-ota-v1"
 const STATE := DIR + "/state.json"
-const MAX_BYTES := 128 * 1024 * 1024
+const MAX_BYTES := 32 * 1024 * 1024
 const MAX_MANIFEST := 65536
 const MAX_ENTRIES := 4096
 const COOLDOWN := 60.0
@@ -84,7 +84,7 @@ func _save() -> bool:
  return DirAccess.rename_absolute(STATE + ".tmp", STATE) == OK
 
 func _enabled() -> bool:
- return config.get("key","") is String and not str(config.get("key","")).is_empty() and config.get("channel","") in ["dev","staging","production"] and str(config.get("base","")).length() == 64 and config.get("runtime","") == "empire-godot-4.7.2-r1"
+ return config.get("key","") is String and not str(config.get("key","")).is_empty() and config.get("channel","") in ["dev","staging","production"] and _hex(str(config.get("base",""))) and config.get("runtime","") == "empire-godot-4.7.2-r1"
 
 func _hex(s: String) -> bool:
  if s.length() != 64:
@@ -276,6 +276,7 @@ func stage_verified(envelope: Dictionary, path: String) -> bool:
  _remove_unreferenced()
  restart_required = true
  _set_status("Content v"+str(int(data.sequence))+" downloaded • next launch")
+ print("BUKLOD_EMPIRE_OTA_STAGED "+str(int(data.sequence)))
  return true
 
 func check_once() -> void:
@@ -289,7 +290,7 @@ func check_once() -> void:
 
 func _origin() -> String:
  # Fixed existing MAIN project; read-only public release path. No arbitrary manifest URLs.
- return "https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/empire-updates/"+str(config.channel)+"/"
+ return "https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/empire-updates/"+str(config.channel)+"/"+str(config.base)+"/"
 
 func _process(_delta: float) -> void:
  if current_download and Time.get_ticks_msec() - last_progress_at >= 250:
