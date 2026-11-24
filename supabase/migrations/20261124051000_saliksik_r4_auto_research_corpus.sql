@@ -304,6 +304,7 @@ BEGIN
       OR length(coalesce(item->>'lesson_text','')) NOT BETWEEN 150 AND 12000
       OR coalesce(item->>'source_excerpt','') IS DISTINCT FROM r.source_text
       OR jsonb_typeof(item->'scripture_refs')<>'array'
+      OR NOT (item->'scripture_refs' @> jsonb_build_array(r.scripture_anchor))
    THEN RAISE EXCEPTION 'unverified_auto_payload'; END IF;
    v_counts:='{"understanding":0,"evidence":0,"context":0,"reasoning":0,"transfer":0}'::jsonb;
    FOR q IN SELECT value FROM jsonb_array_elements(v_bank) LOOP
@@ -320,6 +321,14 @@ BEGIN
    END LOOP;
    IF EXISTS(SELECT 1 FROM jsonb_each_text(v_counts) t WHERE t.value::int<>v_need/5)
    THEN RAISE EXCEPTION 'competency_balance_failed'; END IF;
+   IF EXISTS(
+     SELECT 1 FROM public.saliksik_investigations prev
+     JOIN public.saliksik_question_keys oldkey ON oldkey.investigation_id=prev.id
+     CROSS JOIN LATERAL jsonb_array_elements(oldkey.questions) oq
+     CROSS JOIN LATERAL jsonb_array_elements(v_bank) nq
+     WHERE prev.collection_id=c AND
+     lower(btrim(oq->>'prompt'))=lower(btrim(nq->>'prompt'))
+   ) THEN RAISE EXCEPTION 'duplicate_research_question_across_batched_investigations'; END IF;
    INSERT INTO public.saliksik_investigations(
      collection_id,sequence,tier,title,summary,lesson_text,source_excerpt,
      scripture_refs,status,published_at)
