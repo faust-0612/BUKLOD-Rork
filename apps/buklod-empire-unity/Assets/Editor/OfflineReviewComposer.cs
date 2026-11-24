@@ -85,7 +85,7 @@ namespace Buklod.Empire.Editor {
             sun.type=LightType.Directional;sun.color=new Color(1,.93f,.82f);sun.intensity=1.35f;sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(48,-35,0);
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.44f,.53f,.65f);RenderSettings.ambientEquatorColor=new Color(.34f,.38f,.4f);RenderSettings.ambientGroundColor=new Color(.21f,.24f,.19f);
             EnvironmentReviewLook.Apply(map,camera);
-            var root=new GameObject("UNAPPROVED EDITOR OFFLINE MATCH",typeof(BattleView),typeof(BattleEffects),typeof(WorldInteractionEffects));
+            var root=new GameObject("UNAPPROVED EDITOR OFFLINE MATCH",typeof(BattleView),typeof(BattleEffects),typeof(WorldInteractionEffects),typeof(ReviewContactShadows));
             var view=root.GetComponent<BattleView>();view.visuals=c;view.battleCamera=camera;view.ConfigureEditorReview();
             var shader=Shader.Find("BUKLOD/CombatPulse");if(!shader)throw new InvalidOperationException("Combat shader missing.");
             var mat=AssetDatabase.LoadAssetAtPath<Material>(Out+"/ReviewPulse.mat");
@@ -99,6 +99,13 @@ namespace Buklod.Empire.Editor {
             if(!fragmentMaterial){fragmentMaterial=new Material(fragmentShader);AssetDatabase.CreateAsset(fragmentMaterial,fragmentPath);}
             else if(fragmentMaterial.shader!=fragmentShader){fragmentMaterial.shader=fragmentShader;EditorUtility.SetDirty(fragmentMaterial);}
             root.GetComponent<WorldInteractionEffects>().debrisMaterial=fragmentMaterial;
+            var shadowShader=Shader.Find("BUKLOD/Review/ContactGround");
+            if(!shadowShader||!shadowShader.isSupported)throw new InvalidOperationException("Contact ground review shader unavailable.");
+            var shadowPath=Out+"/ReviewContactGround.mat";
+            var shadowMaterial=AssetDatabase.LoadAssetAtPath<Material>(shadowPath);
+            if(!shadowMaterial){shadowMaterial=new Material(shadowShader);AssetDatabase.CreateAsset(shadowMaterial,shadowPath);}
+            else if(shadowMaterial.shader!=shadowShader){shadowMaterial.shader=shadowShader;EditorUtility.SetDirty(shadowMaterial);}
+            root.GetComponent<ReviewContactShadows>().material=shadowMaterial;
             if(!EditorSceneManager.SaveScene(scene,ScenePath))throw new InvalidOperationException("Failed to save offline review scene.");
             AssetDatabase.SaveAssets();
             Debug.Log("Editor-only offline match scene assembled. Three lanes and both base routes verified. No production approval or Android build.");
