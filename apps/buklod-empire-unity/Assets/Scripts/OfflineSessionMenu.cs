@@ -11,7 +11,8 @@ namespace Buklod.Empire {
         private BattleView view;
         private RectTransform canvas,panel,heroGrid;
         private Text title,summary,choice;
-        private Button resume,start;
+        private Button resume,start,counter;
+        private Text counterLabel;
         private GameObject ownedEventSystem;
         private string selected;
         private bool shown,lastFinished;
@@ -43,6 +44,8 @@ namespace Buklod.Empire {
             scaler.referenceResolution=new Vector2(1280,720);scaler.matchWidthOrHeight=.5f;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             ButtonAt("Menu",canvas,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
+            counter=ButtonAt("Practice counter",canvas,new Vector2(.70f,.91f),new Vector2(.88f,.99f),"COUNTER",ActivatePracticeCounter);
+            counterLabel=counter.GetComponentInChildren<Text>();
             panel=Rect("Session panel",canvas,Vector2.zero,Vector2.one);
             panel.gameObject.AddComponent<Image>().color=Navy;
             title=Label("Title",panel,new Vector2(.1f,.84f),new Vector2(.9f,.96f),"OFFLINE TRAINING",44);
@@ -72,7 +75,16 @@ namespace Buklod.Empire {
         private void Resume(){if(view.Battle==null||view.Battle.Finished)return;Close();}
         private void StartNew(){view.StartMatch(selected);lastFinished=false;Close();}
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
+        private void ActivatePracticeCounter(){
+            var b=view.Battle;var target=b?.PracticeCounterTarget;
+            if(shown||view.Paused||target==null)return;
+            b.TryPracticeCounter(target.State.Kit.Id,target.Id);
+        }
         private void Update(){
+            var b=view.Battle;var target=b?.PracticeCounterTarget;
+            counter.gameObject.SetActive(!shown&&b!=null&&!b.Finished);
+            counter.interactable=!view.Paused&&target!=null;
+            counterLabel.text=b!=null&&b.PracticeCounterUsed?"COUNTER USED":target==null?"COUNTER: NO TARGET":"COUNTER "+target.State.Kit.Name;
             bool finished=view.Battle!=null&&view.Battle.Finished;
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();
             lastFinished=finished;

@@ -140,6 +140,19 @@ namespace Buklod.Empire {
             Vector2 p=a.Position+dir.normalized*distance;if(Blocked(p,1.6f))return false;
             var t=Add(a.Team,BattleTargetKind.Structure,new SkillActor(health),p,a.Lane,temporary:true);t.Expires=Time+duration;t.AttackDamage=damage;return true;
         }
+        // Free offline demonstration only; no persistent stone grants or debits.
+        private bool practiceCounterUsed;
+        public bool PracticeCounterUsed=>practiceCounterUsed;
+        public BattleUnit PracticeCounterTarget=>Finished||practiceCounterUsed||!Player.State.Alive?null:units.Where(u=>u.Kind==BattleTargetKind.Hero&&u.Team!=Player.Team&&u.State.Alive&&Dist(Player,u)<=ArenaStoneRules.CounterRange).OrderBy(u=>Dist(Player,u)).ThenBy(u=>u.Id).FirstOrDefault();
+        public bool TryPracticeCounter(string stoneHero,int enemyUnitId){
+            var enemy=units.FirstOrDefault(u=>u.Id==enemyUnitId);
+            if(enemy==null||enemy.Kind!=BattleTargetKind.Hero||!Player.State.Alive||
+               !ArenaStoneRules.CanCounter(stoneHero,enemy.State.Kit?.Id,enemy.Team!=Player.Team,
+                  enemy.State.Alive,!Finished,false,practiceCounterUsed?1:0,Dist(Player,enemy),
+                  enemy.State.Buff(ArenaStoneRules.CounterBuff,Time)>0))return false;
+            enemy.State.Set(ArenaStoneRules.CounterBuff,1,Time+ArenaStoneRules.CounterDuration,Time);
+            practiceCounterUsed=true;return true;
+        }
         public bool CastPlayer(SkillSlot slot,Vector2 aim)=>Player.State.TryCast(this,slot,aim,Time,!Finished);
         public bool PlayerAttack(Vector2 aim)=>Basic(Player,aim);
         public bool BuyPlayer(string item)=>Buy(Player,item);
