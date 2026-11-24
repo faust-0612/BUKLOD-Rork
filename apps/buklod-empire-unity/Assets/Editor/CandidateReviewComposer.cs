@@ -92,7 +92,20 @@ namespace Buklod.Empire.Editor {
                     var walk=sm.AddState("Walk");walk.motion=clips["Walk"];
                     var move=idle.AddTransition(walk);move.hasExitTime=false;move.duration=.12f;move.AddCondition(AnimatorConditionMode.Greater,.1f,"Speed");
                     var stop=walk.AddTransition(idle);stop.hasExitTime=false;stop.duration=.12f;stop.AddCondition(AnimatorConditionMode.Less,.1f,"Speed");
-                    foreach(var pair in clips.Where(c=>c.Key!="Idle"&&c.Key!="Walk")){
+                    if(clips.TryGetValue("Run",out var runClip)){
+                        var run=sm.AddState("Run");run.motion=runClip;
+                        var fast=walk.AddTransition(run);fast.hasExitTime=false;fast.duration=.12f;fast.AddCondition(AnimatorConditionMode.Greater,4f,"Speed");
+                        var slow=run.AddTransition(walk);slow.hasExitTime=false;slow.duration=.12f;slow.AddCondition(AnimatorConditionMode.Less,3.8f,"Speed");
+                    }
+                    if(clips.ContainsKey("Skill")){
+                        foreach(var action in new[]{"Primary","Secondary"}){
+                            controller.AddParameter(action,AnimatorControllerParameterType.Trigger);
+                            var state=sm.AddState(action);state.motion=clips["Skill"];
+                            var enter=sm.AddAnyStateTransition(state);enter.hasExitTime=false;enter.duration=.08f;enter.canTransitionToSelf=false;enter.AddCondition(AnimatorConditionMode.If,0,action);
+                            var exit=state.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;exit.duration=.1f;
+                        }
+                    }
+                    foreach(var pair in clips.Where(c=>c.Key!="Idle"&&c.Key!="Walk"&&c.Key!="Run")){
                         controller.AddParameter(pair.Key,AnimatorControllerParameterType.Trigger);
                         var state=sm.AddState(pair.Key);state.motion=pair.Value;
                         var enter=sm.AddAnyStateTransition(state);enter.hasExitTime=false;enter.duration=.08f;enter.canTransitionToSelf=false;enter.AddCondition(AnimatorConditionMode.If,0,pair.Key);

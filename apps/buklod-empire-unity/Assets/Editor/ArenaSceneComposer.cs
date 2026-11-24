@@ -33,7 +33,16 @@ namespace Buklod.Empire.Editor {
             else AssetDatabase.CreateAsset(surface.navMeshData,navPath);
             var cameraObject=new GameObject("Battle Camera",typeof(Camera),typeof(AudioListener));cameraObject.tag="MainCamera";
             var camera=cameraObject.GetComponent<Camera>();camera.fieldOfView=48;camera.nearClipPlane=.2f;camera.farClipPlane=250;
-            var root=new GameObject("Offline Battle",typeof(BattleView));var view=root.GetComponent<BattleView>();view.visuals=catalog;view.battleCamera=camera;
+            var root=new GameObject("Offline Battle",typeof(BattleView),typeof(BattleEffects));var view=root.GetComponent<BattleView>();view.visuals=catalog;view.battleCamera=camera;
+            // Scene-owned, free lighting only when the approved map has no light rig.
+            if(world.GetComponentsInChildren<Light>(true).Length==0){
+                var sun=new GameObject("Arena sunlight",typeof(Light)).GetComponent<Light>();sun.type=LightType.Directional;sun.color=new Color(1f,.92f,.8f);sun.intensity=1.3f;sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(48,-35,0);
+                RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.44f,.53f,.65f);RenderSettings.ambientEquatorColor=new Color(.34f,.38f,.40f);RenderSettings.ambientGroundColor=new Color(.21f,.24f,.19f);
+            }
+            var pulseShader=Shader.Find("BUKLOD/CombatPulse");if(!pulseShader)throw new BuildFailedException("Combat pulse shader missing.");
+            const string pulsePath="Assets/Scenes/CombatPulse.mat";var pulse=AssetDatabase.LoadAssetAtPath<Material>(pulsePath);
+            if(!pulse){pulse=new Material(pulseShader);AssetDatabase.CreateAsset(pulse,pulsePath);}
+            root.GetComponent<BattleEffects>().pulseMaterial=pulse;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,AndroidBuildGuard.ExpectedApplicationId);
             PlayerSettings.productName="BUKLOD EMPIRE";PlayerSettings.defaultInterfaceOrientation=UIOrientation.LandscapeLeft;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android,ScriptingImplementation.IL2CPP);

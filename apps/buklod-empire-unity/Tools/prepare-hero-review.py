@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Refine existing original procedural hero candidates, without modifying MAIN or approving them."""
 import copy, importlib.util, json, pathlib, hashlib
+from refine_surfaces import texture_glb
 root=pathlib.Path(__file__).resolve().parents[1]
 repo=root.parents[1]
 source=repo/"scripts/generate-buklod-empire-hero-glbs.py"
@@ -34,14 +35,41 @@ class Candidate(original.Hero):
         if mat==7 and tuple(size)==(.032,.044,.017):
             mat=self.stone_index
             self.stone_count+=1
-        return super().ell(mat,joint,center,size,segments,steps)
+        # Smooth only rounded surfaces, leaving deliberately faceted armor and gems intact.
+        if mat not in (0,1,7,self.stone_index):
+            segments=max(segments,16);steps=max(steps,8)
+        g=self.geo[mat];start=len(g['p'])
+        super().ell(mat,joint,center,size,segments,steps)
+        if mat not in (0,1,7,self.stone_index):
+            for i in range(start,len(g['p'])):
+                p=g['p'][i]
+                g['n'][i]=original.norm(tuple((p[k]-center[k])/(size[k]**2) for k in range(3)))
+    def make(self):
+        result=super().make()
+        _,pelvis,chest,head,arms,legs,_=result
+        # Raised rivets and layered trim, anchored to the existing independent rigs.
+        for side in (-1,1):
+            for j in range(3):
+                self.ell(1,chest,(side*.125*self.w,(1.16+j*.065)*self.h,.178),(.012,.012,.009),6,3)
+        for (_,fore,_),(_,shin,_) in zip(arms,legs):
+            for j in range(2):
+                x,y,z=self.rest[fore]
+                self.plate(1,fore,(x,y-(.08+j*.065)*self.h,z+.082),[(-.05,0),(0,.02),(.05,0),(0,-.02)],.008)
+                x,y,z=self.rest[shin]
+                self.plate(1,shin,(x,y-(.09+j*.075)*self.h,z+.082),[(-.055,0),(0,.023),(.055,0),(0,-.023)],.009)
+        return result
 def main():
     out=root/"Tools/ReviewOutput/heroes"
     out.mkdir(parents=True,exist_ok=True)
     rows=[]
     for hero_id,profile in original.HEROES.items():
         h=Candidate(hero_id,profile)
-        row=h.export(out/(hero_id+".glb"))
+        path=out/(hero_id+".glb")
+        row=h.export(path)
+        texture_glb(path)
+        row['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+        row['bytes']=path.stat().st_size
+        row['surfaceRevision']='original-procedural-pbr-v2'
         assert h.stone_count==1 and len(row["clips"])==9 and row["bones"]>0
         row["stone"]=stone_by[hero_id]["stone"]
         row["sourceGeneratorSha256"]=hashlib.sha256(source.read_bytes()).hexdigest()

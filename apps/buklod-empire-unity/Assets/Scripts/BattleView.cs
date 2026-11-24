@@ -9,11 +9,12 @@ namespace Buklod.Empire {
         public float worldScale=1, cameraHeight=23;
         public OfflineBattle Battle {get;private set;}
         private MobileBattleInput input;
+        private BattleEffects effects;
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
         private readonly Dictionary<GameObject,Stack<GameObject>> pool=new Dictionary<GameObject,Stack<GameObject>>();
         private readonly HashSet<int> seen=new HashSet<int>();
         private readonly List<int> removed=new List<int>();
-        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,cast=float.NegativeInfinity;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,cast=float.NegativeInfinity,health;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -33,6 +34,7 @@ namespace Buklod.Empire {
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
             visuals.Validate();
             foreach(var v in active.Values)Return(v);active.Clear();
+            effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale));
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
@@ -66,17 +68,16 @@ namespace Buklod.Empire {
             foreach(var u in Battle.Units){
                 if(!u.State.Alive)continue;
                 seen.Add(u.Id);
-                if(!active.TryGetValue(u.Id,out var v)){v=Rent(visuals.Resolve(u));active.Add(u.Id,v);v.instance.transform.position=Ground(u.Position);}
+                if(!active.TryGetValue(u.Id,out var v)){v=Rent(visuals.Resolve(u));active.Add(u.Id,v);v.instance.transform.position=Ground(u.Position);v.attack=u.LastAttack;v.cast=u.State.LastCastAt;v.health=u.State.Health;}
                 var t=v.instance.transform;var goal=new Vector3(u.Position.x*worldScale,t.position.y,u.Position.y*worldScale);
                 if((goal-t.position).sqrMagnitude>.0001f)goal=Ground(u.Position);
                 var delta=goal-t.position;var flat=new Vector3(delta.x,0,delta.z);
                 if(immediate)t.position=goal;else t.position=Vector3.Lerp(t.position,goal,1-Mathf.Exp(-18*Time.deltaTime));
                 if(flat.sqrMagnitude>.0001f)t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
-                if(v.animator){
-                    if(v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",flat.magnitude*10);
-                    if(u.LastAttack>v.attack){v.attack=u.LastAttack;if(v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");}
-                    if(u.State.LastCastAt>v.cast){v.cast=u.State.LastCastAt;var name=u.State.LastCastSlot.ToString();if(v.parameters.Contains(name))v.animator.SetTrigger(name);}
-                }
+                if(v.animator&&v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
+                if(u.LastAttack>v.attack){v.attack=u.LastAttack;if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");if(effects&&u.Kind==BattleTargetKind.Hero)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),0);}
+                if(u.State.LastCastAt>v.cast){v.cast=u.State.LastCastAt;var name=u.State.LastCastSlot.ToString();if(v.animator&&v.parameters.Contains(name))v.animator.SetTrigger(name);if(effects&&u.State.Kit!=null)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),1+(int)u.State.LastCastSlot);}
+                if(v.health>u.State.Health+.01f&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");v.health=u.State.Health;
             }
             removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){Return(pair.Value);removed.Add(pair.Key);}
             foreach(int id in removed)active.Remove(id);
