@@ -14,7 +14,8 @@ namespace Buklod.Empire {
         private Text title,summary,choice;
         private Button resume,start;
         private RectTransform commands;
-        private Text commandStatus,settingsText,bankText,marketText;
+        private Text commandStatus,settingsText,bankText,marketText,workerText;
+        private string workerId="lira";
         private VillageResourceKind marketResource=VillageResourceKind.Wood;
         private Button[] shop;
         private static readonly string[] GearIds={"blade","armor","boots","sealbreaker","withering_thorn","precision","fervor","renewal","wisdom","aegis","vitality","giantbane"};
@@ -89,7 +90,7 @@ namespace Buklod.Empire {
             resume.interactable=b!=null&&!finished&&b.Time>0;
         }
         private void Resume(){if(view.Battle==null||view.Battle.Finished)return;Close();}
-        private void StartNew(){var loadout=new CovenantLoadout(path,(CovenantTalent)first,(CovenantTalent)(second+3),(CovenantTalent)(third+6));view.StartMatch(selected,seed++,difficulty,loadout,tactic,autonomous);lastFinished=false;Close();}
+        private void StartNew(){var loadout=new CovenantLoadout(path,(CovenantTalent)first,(CovenantTalent)(second+3),(CovenantTalent)(third+6));view.StartMatch(selected,seed++,difficulty,loadout,tactic,autonomous);workerId="lira";if(workerText)workerText.text="LIRA";lastFinished=false;Close();}
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void CreateCommands(){
             commands=Rect("Command panel",canvas,Vector2.zero,Vector2.one);
@@ -101,26 +102,30 @@ namespace Buklod.Empire {
             for(int n=0;n<GearIds.Length;n++){string gear=GearIds[n];int col=n%4,row=n/4;float x=.05f+col*.225f,y=.74f-row*.075f;
                 shop[n]=ButtonAt("Shop "+gear,commands,new Vector2(x,y),new Vector2(x+.22f,y+.068f),gear,()=>ApplyGear(gear));}
             string[] names={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD"};
-            for(int n=0;n<names.Length;n++){int opt=n;float x=.05f+n*.15f;ButtonAt("Gather "+names[n],commands,new Vector2(x,.45f),new Vector2(x+.145f,.52f),names[n],()=>RunOrder(b=>b.OrderPlayerResource("lira",opt==0?(VillageResourceKind?)null:(VillageResourceKind)(opt-1))));}
+            for(int n=0;n<names.Length;n++){int opt=n;float x=.05f+n*.15f;ButtonAt("Gather "+names[n],commands,new Vector2(x,.45f),new Vector2(x+.145f,.52f),names[n],()=>RunOrder(b=>b.OrderPlayerResource(workerId,opt==0?(VillageResourceKind?)null:(VillageResourceKind)(opt-1))));}
             string[] orders={"RETURN","HOLD","GATHER","CANCEL BUILD"};
-            for(int n=0;n<orders.Length;n++){int opt=n;float x=.05f+n*.225f;ButtonAt(orders[n],commands,new Vector2(x,.36f),new Vector2(x+.22f,.43f),orders[n],()=>RunOrder(b=>opt==3?b.CancelPlayerConstruction():b.OrderPlayerWorker("lira",opt==0?VillageWorkerOrder.Return:opt==1?VillageWorkerOrder.Hold:VillageWorkerOrder.Gather)));}
-            var kinds=new[]{VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Farm,VillageBuildOrder.Barracks};
-            for(int n=0;n<kinds.Length;n++){var kind=kinds[n];float x=.05f+n*.225f;ButtonAt("Build "+kind,commands,new Vector2(x,.26f),new Vector2(x+.22f,.33f),kind.ToString().ToUpperInvariant(),()=>RunOrder(b=>b.OrderPlayerConstruction(kind,b.Player.Position)));}
+            for(int n=0;n<orders.Length;n++){int opt=n;float x=.05f+n*.225f;ButtonAt(orders[n],commands,new Vector2(x,.36f),new Vector2(x+.22f,.43f),orders[n],()=>RunOrder(b=>opt==3?b.CancelPlayerConstruction():b.OrderPlayerWorker(workerId,opt==0?VillageWorkerOrder.Return:opt==1?VillageWorkerOrder.Hold:VillageWorkerOrder.Gather)));}
+            var kinds=new[]{VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Farm,VillageBuildOrder.Barracks,VillageBuildOrder.House};
+            for(int n=0;n<kinds.Length;n++){var kind=kinds[n];float x=.05f+n*.18f;ButtonAt("Build "+kind,commands,new Vector2(x,.26f),new Vector2(x+.175f,.33f),kind.ToString().ToUpperInvariant(),()=>RunOrder(b=>b.OrderPlayerConstruction(kind,b.Player.Position)));}
             ButtonAt("Repair nearest",commands,new Vector2(.05f,.17f),new Vector2(.33f,.24f),"REPAIR DAMAGED",()=>RunOrder(b=>{var target=b.Units.Where(u=>u.Team==b.Player.Team&&u.Kind==BattleTargetKind.Structure&&!u.Temporary&&u.State.Alive&&u.State.Health<u.State.MaxHealth).OrderBy(u=>Vector2.Distance(u.Position,b.Player.Position)).ThenBy(u=>u.Id).FirstOrDefault();return target!=null&&b.OrderPlayerRepair(target.Id);}));
             var market=ButtonAt("Market resource",commands,new Vector2(.34f,.17f),new Vector2(.53f,.24f),"WOOD",()=>{marketResource=(VillageResourceKind)(((int)marketResource+1)%4);if(marketText)marketText.text=marketResource.ToString().ToUpperInvariant();});
             marketText=market.GetComponentInChildren<Text>();
             ButtonAt("Market buy",commands,new Vector2(.54f,.17f),new Vector2(.735f,.24f),"BUY 20 / 24G",()=>RunOrder(b=>b.ExchangePlayerResource(marketResource,true)));
             ButtonAt("Market sell",commands,new Vector2(.745f,.17f),new Vector2(.95f,.24f),"SELL 20 / 12G",()=>RunOrder(b=>b.ExchangePlayerResource(marketResource,false)));
-            Label("Hint",commands,new Vector2(.05f,.04f),new Vector2(.95f,.14f),"Build at current hero position on open friendly ground. Market requires a live nearby core/depot; 10s cooldown. Tap owned gear to sell.",20);
+            var worker=ButtonAt("Select worker",commands,new Vector2(.05f,.08f),new Vector2(.33f,.15f),"LIRA",CycleWorker);workerText=worker.GetComponentInChildren<Text>();
+            ButtonAt("Recruit gatherer",commands,new Vector2(.34f,.08f),new Vector2(.64f,.15f),"RECRUIT / 20W 30F",()=>RunOrder(b=>b.RecruitPlayerGatherer()));
+            ButtonAt("Cancel recruitment",commands,new Vector2(.65f,.08f),new Vector2(.95f,.15f),"CANCEL RECRUIT",()=>RunOrder(b=>b.CancelPlayerRecruitment()));
+            Label("Hint",commands,new Vector2(.05f,.015f),new Vector2(.95f,.07f),"Build at your hero's location. House adds population; recruit requires a living production site. Tap owned gear to sell.",18);
             commands.gameObject.SetActive(false);
         }
+        private void CycleWorker(){var b=view.Battle;if(b==null)return;var ids=b.Units.Where(u=>u.Team==b.Player.Team&&u.State.Alive&&u.Villager?.Job.Effect==VillageEffect.Gather).Select(u=>u.Villager.Job.Id).ToArray();if(ids.Length==0)return;int current=Array.IndexOf(ids,workerId);workerId=ids[(current+1)%ids.Length];workerText.text=workerId.ToUpperInvariant();}
         private void OpenCommands(){if(shown||commandOpen||view.Paused||view.Battle==null||view.Battle.Finished||view.Battle.AutonomousTraining)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);commandStatus.text="Choose an order. The match is paused.";RefreshCommands();}
         private void CloseCommands(){if(!commandOpen)return;commandOpen=false;commands.gameObject.SetActive(false);if(view.Battle!=null&&!view.Battle.Finished)view.SetPaused(false);}
         private void RunOrder(Func<OfflineBattle,bool> action){var b=view.Battle;if(!commandOpen||b==null||b.Finished||b.AutonomousTraining)return;bool ok=action(b);commandStatus.text=ok?"Order accepted.":"Unavailable: check worker, resources, position or existing order.";RefreshCommands();}
         private void ApplyGear(string gear)=>RunOrder(b=>b.Player.Gear.Contains(gear)?b.SellPlayer(gear):b.BuyPlayer(gear));
         private void RefreshCommands(){
             var b=view.Battle;if(b==null)return;var p=b.Player;var v=b.GetVillage(p.Team);
-            bankText.text=$"W {v.Wood:0}  S {v.Stone:0}  F {v.Food:0}  C {v.Crystal:0}  G {v.Gold:0}";
+            bankText.text=$"W {v.Wood:0} S {v.Stone:0} F {v.Food:0} C {v.Crystal:0} G {v.Gold:0} | Pop {b.PopulationUsed(p.Team)}/{b.PopulationCapacity(p.Team)}";
             if(!commandOpen)return;
             bool atBase=Vector2.Distance(p.Position,p.Spawn)<=12&&b.Units.Any(u=>u.Team==p.Team&&u.Core&&u.State.Alive);
             for(int n=0;n<shop.Length;n++){string gear=GearIds[n];bool owned=p.Gear.Contains(gear);int price=OfflineMatchRules.ShopPrice(gear);

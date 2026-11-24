@@ -6,7 +6,7 @@ namespace Buklod.Empire {
     public sealed class BattleVisualCatalog:ScriptableObject {
         [Serializable] public sealed class HeroVisual {public string id;public GameObject prefab;}
         [Serializable] public sealed class VillagerVisual {public string id;public GameObject prefab;}
-        [Serializable] public sealed class FactionVisual {public ArenaTeam team;public GameObject tower,core,depot,guardPost,farm,barracks;public GameObject[] minions=new GameObject[5];public VillagerVisual[] villagers=new VillagerVisual[6];}
+        [Serializable] public sealed class FactionVisual {public ArenaTeam team;public GameObject tower,core,depot,guardPost,farm,barracks,house;public GameObject[] minions=new GameObject[5];public VillagerVisual[] villagers=new VillagerVisual[6];}
         [Serializable] public sealed class ResourceVisual {public VillageResourceKind kind;public GameObject prefab;}
         [Serializable] public sealed class WildernessVisual {public WildernessKind kind;public GameObject prefab;}
         public ResourceVisual[] resources;
@@ -23,10 +23,10 @@ namespace Buklod.Empire {
                 if(unit.Kind==BattleTargetKind.Structure){
                     if(unit.Core)return f.core;
                     if(unit.IsDepot&&f.depot)return f.depot;if(unit.IsGuardPost&&f.guardPost)return f.guardPost;
-                    if(unit.IsFarm&&f.farm)return f.farm;if(unit.IsBarracks&&f.barracks)return f.barracks;
+                    if(unit.IsFarm&&f.farm)return f.farm;if(unit.IsBarracks&&f.barracks)return f.barracks;if(unit.IsHouse&&f.house)return f.house;
                     return f.tower; // review-only compatibility; production validation requires every building.
                 }
-                if(unit.Kind==BattleTargetKind.Villager){foreach(var v in f.villagers)if(v.id==unit.Villager.Job.Id)return v.prefab;break;}
+                if(unit.Kind==BattleTargetKind.Villager){foreach(var v in f.villagers)if(v.id==unit.Villager.VisualId)return v.prefab;break;}
                 return f.minions[(int)unit.Role];
             }
             throw new InvalidOperationException("Missing visual for unit "+unit.Id);
@@ -34,7 +34,7 @@ namespace Buklod.Empire {
         public GameObject ResolveResource(VillageResourceKind kind){if(resources!=null)foreach(var item in resources)if(item!=null&&item.kind==kind)return item.prefab;return null;}
         public GameObject ResolveWilderness(WildernessKind kind){if(wilderness!=null)foreach(var item in wilderness)if(item!=null&&item.kind==kind)return item.prefab;return null;}
         private void ValidateHybridVisuals(){
-            foreach(var f in factions){var set=new HashSet<GameObject>{f.core,f.tower,f.depot,f.guardPost,f.farm,f.barracks};if(set.Contains(null)||set.Count!=6)throw new InvalidOperationException("Six distinct faction structure prefabs required: "+f.team);}
+            foreach(var f in factions){var set=new HashSet<GameObject>{f.core,f.tower,f.depot,f.guardPost,f.farm,f.barracks,f.house};if(set.Contains(null)||set.Count!=7)throw new InvalidOperationException("Seven distinct faction structure prefabs required: "+f.team);}
             var resourceKinds=new HashSet<VillageResourceKind>();var resourceModels=new HashSet<GameObject>();
             if(resources==null)throw new InvalidOperationException("Resource visuals are missing.");
             foreach(var item in resources)if(item==null||!item.prefab||!Enum.IsDefined(typeof(VillageResourceKind),item.kind)||!resourceKinds.Add(item.kind)||!resourceModels.Add(item.prefab))throw new InvalidOperationException("Invalid or duplicate resource prefab.");
