@@ -22,8 +22,8 @@ BEGIN
  'Juan 1:1-14','exegetical');
  IF (r->>'request_id')::uuid<>v_id THEN
  RAISE EXCEPTION 'Duplicate topic created a second paid research job'; END IF;
- IF (SELECT count(*) FROM public.buklod_points_ledger WHERE user_id=auth.uid())<>10
- THEN RAISE EXCEPTION 'Opening/asking research created illegal points'; END IF;
+ -- Unauthorized members cannot inspect Points ledger; the final privileged
+ -- fixture audit verifies exactly 10 preexisting and 10 new reward events.
  BEGIN PERFORM public.saliksik_auto_lease_r4(v_id,auth.uid());
  EXCEPTION WHEN insufficient_privilege THEN denied:=true; END;
  IF NOT denied THEN RAISE EXCEPTION 'Member reached privileged generator lease'; END IF;
