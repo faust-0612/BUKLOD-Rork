@@ -35,6 +35,7 @@ namespace Buklod.Empire.Editor {
             var kinds=new[]{WildernessKind.AzureStag,WildernessKind.CrimsonWolf,WildernessKind.EmeraldSerpent,WildernessKind.GoldenScarab,WildernessKind.StoneGolem,WildernessKind.RiverSpirit,WildernessKind.WindFalcon,WildernessKind.AncientSentinel,WildernessKind.ColossalGuardian};
             c.wilderness=kinds.Select((kind,i)=>new BattleVisualCatalog.WildernessVisual{kind=kind,prefab=wildlife[ids[i]]}).ToArray();
             c.resources=Enum.GetValues(typeof(VillageResourceKind)).Cast<VillageResourceKind>().Select(kind=>new BattleVisualCatalog.ResourceVisual{kind=kind,prefab=wildlife[kind.ToString().ToLowerInvariant()]}).ToArray();
+            EconomyReviewImporter.Bind(c);
             c.ValidateEditorReview(); // deliberately no production receipt
             var catalogPath=Out+"/OfflineReviewCatalog.asset";
             var old=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(catalogPath);
