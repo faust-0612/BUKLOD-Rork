@@ -52,3 +52,11 @@ test('Marites reports real video and photo upload progress, while both feeds ret
   assert.match(tus, /method: 'HEAD'/);
   assert.match(tus, /method: 'PATCH'/);
 });
+
+
+test('Genesis Marites keeps generated video previews and post-commit recovery', () => {
+  assert.match(marites, /generateWallPreview: true/);
+  assert.match(marites, /media_size_bytes: 0, \.\.\.preview/);
+  assert.match(marites, /publishedVideoPreviewUrl/);
+  assert.match(marites, /if \(!createdPostId && uploaded\.length\)/);
+});
