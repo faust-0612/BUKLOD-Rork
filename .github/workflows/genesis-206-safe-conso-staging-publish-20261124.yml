@@ -39,7 +39,10 @@ jobs:
       BUKLOD_GENESIS_PRIVATE_FX: 'false'
       APK_SHA: f1bca8319113402caffe99bd78c7ed0e963f963f
       APK_PROOF_RUN: '45168699649'
-      RC_SHA: 7da090dfc73429ff7a1080d74249ae38c1067fbf
+      RC_SHA: 27bad448a4b205edfe5bfe0b6a428b0d3059dab6
+      PRIOR_RC_SHA: 7da090dfc73429ff7a1080d74249ae38c1067fbf
+      PRIOR_PUBLISH_SHA: 63e2575f3818a6cf08d33cbed2588a175fce9d12
+      PRIOR_GROUP: 12ab3a39-3ced-4cf5-82ad-3d4366328bff
       MAIN_SHA: 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04
       PUBLIC_CONTENT_SHA: 0ddcad334a1facabb10aa9913a86e3dee0421224
       CHANNEL: season2-genesis-library-206-preview
@@ -66,6 +69,8 @@ jobs:
           git merge-base --is-ancestor "$APK_SHA" "$RC_SHA"
           git merge-base --is-ancestor "$PUBLIC_CONTENT_SHA" "$RC_SHA"
           git merge-base --is-ancestor "$RC_SHA" HEAD
+          git merge-base --is-ancestor "$PRIOR_RC_SHA" "$RC_SHA"
+          git merge-base --is-ancestor "$PRIOR_PUBLISH_SHA" HEAD
           test "$(git diff --name-only "$RC_SHA" HEAD)" = '.github/workflows/genesis-206-safe-conso-staging-publish-20261124.yml'
           test -z "$(git diff --name-only "$APK_SHA" HEAD -- modules plugins android ios native-genesis app.config.js eas.json package.json package-lock.json)"
           test -z "$(git diff --name-only "$PUBLIC_CONTENT_SHA" HEAD -- godot scripts/build-empire-godot-pack.mjs scripts/genesis-prepare-godot-ota-pack.mjs scripts/genesis-import-verified-3d.mjs)"
@@ -73,11 +78,16 @@ jobs:
           const a=require('node:assert/strict'),fs=require('node:fs'),cp=require('node:child_process');
           const sh=(args)=>cp.execFileSync('git',args,{encoding:'utf8'}).trim();
           const m=JSON.parse(fs.readFileSync('.buklod/scopes/genesis-206-safe-conso-staging-20261124.json','utf8'));
+          const retirement=JSON.parse(fs.readFileSync('.buklod/scopes/genesis-main-home-no-empire-20261124.json','utf8'));
           const release=JSON.parse(fs.readFileSync('.buklod/releases/genesis-206-safe-conso-staging-20261124.json','utf8'));
           a.equal(m.contractVersion,2);
           a.equal(release.noProduction,true);a.equal(release.noSharedBackendMutation,true);
-          const changed=sh(['diff','--name-only',process.env.PUBLIC_CONTENT_SHA,process.env.RC_SHA]).split('\n').filter(Boolean);
-          a.deepEqual(changed.sort(),[...m.allowedPaths].sort(),'Unexpected source changes');
+          const changed=sh(['diff','--name-only',process.env.PUBLIC_CONTENT_SHA,process.env.PRIOR_RC_SHA]).split('\n').filter(Boolean);
+          a.deepEqual(changed.sort(),[...m.allowedPaths].sort(),'Unexpected previous source changes');
+          a.equal(retirement.contractVersion,2);a.equal(retirement.baseRef,process.env.PRIOR_RC_SHA);
+          const delta=sh(['diff','--name-only',process.env.PRIOR_RC_SHA,process.env.RC_SHA]).split('\n').filter(Boolean);
+          a.deepEqual(delta.sort(),[...retirement.allowedPaths].sort(),'Unexpected retirement source changes');
+          a.ok(delta.every(p=>p.startsWith('src/')||p.startsWith('tests/')||p===retirement.scopeManifestPath),'Retirement must be JS/source-only');
           const backend=sh(['diff','--name-only',process.env.APK_SHA,process.env.RC_SHA,'--','supabase']).split('\n').filter(Boolean);
           a.deepEqual(backend.sort(),release.mainBackendSourceParity.map(x=>x.path).sort());
           for(const path of backend){
@@ -115,15 +125,17 @@ jobs:
             a.ok(original&&original.name==='buklod-genesis-206-full-staging-godot-ota-original-signed-apk'&&!original.expired&&original.size_in_bytes>100000000);
             a.equal(original.digest,'sha256:0174f72bab0daa48bddf851f835f4fb96c1ee365d145f93f428265a42dfa3bde');
             const required=[
-              [45317957734,'Engineering Accountability'],
-              [45317957885,'BUKLOD Main - Report Door and Legacy Integration PR QA'],
-              [45317957593,'BUKLOD Live Motion R1 QA']
+              [45317957734,'Engineering Accountability',process.env.PRIOR_RC_SHA],
+              [45317957885,'BUKLOD Main - Report Door and Legacy Integration PR QA',process.env.PRIOR_RC_SHA],
+              [45317957593,'BUKLOD Live Motion R1 QA',process.env.PRIOR_RC_SHA],
+              [45341923189,'Engineering Accountability',process.env.RC_SHA],
+              [45341923254,'BUKLOD Main - Report Door and Legacy Integration PR QA',process.env.RC_SHA]
             ];
             let rows=[];
             for(let attempt=0;attempt<20;attempt++){
-              rows=await Promise.all(required.map(async ([id,name])=>{
+              rows=await Promise.all(required.map(async ([id,name,sha])=>{
                 const run=await get('/actions/runs/'+id);
-                a.equal(run.name,name);a.equal(run.head_sha,process.env.RC_SHA);
+                a.equal(run.name,name);a.equal(run.head_sha,sha);
                 if(run.status==='completed')a.equal(run.conclusion,'success','Required CI failed: '+name);
                 return {id,name,status:run.status,conclusion:run.conclusion};
               }));
@@ -151,7 +163,9 @@ jobs:
             tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs \
             tests/ad-dashboard-focus-performance-20261116.test.mjs \
             tests/dashboard-ad-navigation-prewarm-20261116.test.mjs \
-            tests/genesis-206-staging-points-readonly-20261124.test.mjs
+            tests/genesis-206-staging-points-readonly-20261124.test.mjs \
+            tests/genesis-main-home-no-empire-20261124.test.mjs \
+            tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs
           npm run release:gate
           npm run genesis:theme:gate
           npx tsc --noEmit
@@ -275,6 +289,8 @@ jobs:
           a.ok(Array.isArray(rows));
           const hits=rows.filter(x=>x.message==='BUKLOD_GENESIS_206_CONSO_'+process.env.GITHUB_SHA);
           a.ok(hits.length<=1,'Ambiguous earlier OTA');
+          a.ok(rows.length>0,'Missing prior verified staging update');
+          a.equal(rows[0].group,hits[0]?.group??process.env.PRIOR_GROUP,'Staging has advanced; stop rather than overwrite a newer update');
           fs.writeFileSync(d+'/group.txt',hits[0]?.group??'');
           NODE
           if [ ! -s "$EVIDENCE/group.txt" ]; then

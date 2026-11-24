@@ -179,9 +179,6 @@ export default function Index() {
     );
   }
 
-  return (
-    <Redirect
-      href={isGenesisPreviewBuild() ? '/buklod-map' : '/(tabs)/buklod'}
-    />
-  );
+  if (isGenesisPreviewBuild()) return <Redirect href="/(tabs)/hub" />;
+  return <Redirect href="/(tabs)/buklod" />;
 }

@@ -63,7 +63,7 @@ const BASE_ITEMS: NavItem[] = [
 ];
 
 function routeKey(pathname: string): NavKey | null {
-  if (pathname === '/hub' || pathname === '/buklod-map') return 'home';
+  if (pathname === '/hub') return 'home';
   if (pathname === '/clusters') return 'cluster';
   if (pathname === '/buklod' || pathname.startsWith('/post/')) return 'community';
   if (pathname === '/messages' || pathname.startsWith('/messages/')) return 'connect';

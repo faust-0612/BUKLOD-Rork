@@ -1,0 +1,88 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-main-home-no-empire-20261124.json",
+  "objective": "Owner-directed Genesis MAIN Android staging retirement of entry map, Arena, Kingdom and virtual house/land customization, using existing APK runtime only.",
+  "baseRef": "7da090dfc73429ff7a1080d74249ae38c1067fbf",
+  "productionBaselineEvidence": "MAIN 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 is the audited source recorded in Genesis 206 candidate; this PR targets the isolated staging source, not production. Live runtime readback remains independent.",
+  "chosenApproach": "Redirect retired routes to canonical Home; remove Genesis-visible menu/search/map doors while preserving the legacy non-Genesis games catalogue and route layout. Keep all account gates, earned data and native ABI intact.",
+  "selectionRationale": "JS-only routing is compatible with the installed native 2.0.6 runtime; no APK rebuild or backend release is required. Preserve production source behavior where applicable.",
+  "alternativeApproaches": [
+    "Rebuild native APK to delete bundled assets: deferred by owner.",
+    "Delete estate and reward server records: rejected for data preservation."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "auth-privacy",
+    "app-runtime",
+    "navigation-auth",
+    "kingdom-character"
+  ],
+  "preserveBehaviors": [
+    "Home first-view and mid-native ad slots, bottom navigation and account-scope gates remain intact.",
+    "Family tools, character progression, rewards, historical game and estate records remain intact; no shared backend writes.",
+    "Non-Genesis Kingdom catalogue and original game routes remain available; Genesis retires all game and estate entry paths."
+  ],
+  "acceptanceChecks": [
+    "Focused Node regression tests for staging and non-Genesis navigation, protected feature declarations and exact scope allowlist.",
+    "Exact runtime identity, AdMob and navigation regression, TypeScript/Metro, staging isolation, EAS publication receipt and readback before verified staging status."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-main-home-no-empire-20261124.json",
+    "src/app/(auth)/login.tsx",
+    "src/app/(tabs)/_layout.tsx",
+    "src/app/(tabs)/hub.tsx",
+    "src/app/buklod-map.tsx",
+    "src/app/community-village.tsx",
+    "src/app/games/_layout.tsx",
+    "src/app/index.tsx",
+    "src/app/season2/community-village.tsx",
+    "src/app/season2/my-world.tsx",
+    "src/components/BuklodAndroidDashboardTabs.tsx",
+    "src/components/BuklodFeatureFinder.tsx",
+    "src/components/BuklodNavSafeShell.tsx",
+    "src/components/BuklodNavigationSideMenu.tsx",
+    "src/components/BuklodPersistentBottomNav.tsx",
+    "src/features/season2/world/GuardedSeason2DevelopmentWorld.tsx",
+    "src/lib/buklodNavigationV2.ts",
+    "tests/genesis-main-home-no-empire-20261124.test.mjs",
+    "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-main-home-no-empire-20261124.test.mjs",
+    "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Owner-authorized JS-only retirement of Genesis virtual worlds without native or backend changes.",
+      "preservedBehaviors": [
+        "Existing Home ads, household tools and data ownership remain."
+      ],
+      "tests": [
+        "tests/genesis-main-home-no-empire-20261124.test.mjs",
+        "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Land Genesis authenticated startup on canonical Home while preserving original account checks and Season 1 Wall.",
+      "preservedBehaviors": [
+        "Existing login, maintenance, policy and scope isolation gates remain."
+      ],
+      "tests": [
+        "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Retire Genesis Kingdom and Arena route tree at its parent; preserve earned character data and non-Genesis games.",
+      "preservedBehaviors": [
+        "No game or estate server records, inventory or rewards are modified."
+      ],
+      "tests": [
+        "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_STAGING_OTA_GATE_PENDING"
+}
