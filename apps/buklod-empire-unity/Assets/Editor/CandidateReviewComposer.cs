@@ -28,9 +28,10 @@ namespace Buklod.Empire.Editor {
             var specs=new List<(string id,string path,string[] clips)>();
             foreach(var h in HeroKitCatalog.All)
                 specs.Add((h.Id,$"{Source}/heroes/{h.Id}.glb",HeroClips));
+            var factionPaths=FactionSources();
             foreach(var team in new[]{"lux","tenebra"}){
                 foreach(var id in Roles.Concat(team=="lux"?LuxVillagers:TenebraVillagers))
-                    specs.Add((team+"_"+id,$"{Source}/rigged-factions/{team}_{id}.glb",FactionClips));
+                    specs.Add((team+"_"+id,factionPaths[team+"_"+id],FactionClips));
             }
             var staticSpecs=new[]{"genesis_rift_candidate","lux_tower_candidate","lux_core_candidate","tenebra_tower_candidate","tenebra_core_candidate"};
             foreach(var id in staticSpecs)specs.Add((id,id=="genesis_rift_candidate"?EnvironmentSource():$"{Candidate}/{id.Replace("_candidate","_architecture_review")}.glb",Array.Empty<string>()));
@@ -59,6 +60,30 @@ namespace Buklod.Empire.Editor {
                 throw new InvalidOperationException("Review scene not saved.");
             AssetDatabase.SaveAssets();
             Debug.Log("35 candidate actor prefabs and 5 static prefabs imported; review scene saved outside production. Visual and deformation review remain required.");
+        }
+        [Serializable] private sealed class FactionReceipt {public string status;public FactionRow[] models;}
+        [Serializable] private sealed class FactionRow {public string id,file,sourceSha256,sha256;public int bytes,addedTriangles;}
+        static Dictionary<string,string> FactionSources(){
+            var map=new Dictionary<string,string>(StringComparer.Ordinal);
+            foreach(var team in new[]{"lux","tenebra"})foreach(var id in Roles.Concat(team=="lux"?LuxVillagers:TenebraVillagers))
+                map.Add(team+"_"+id,Source+"/rigged-factions/"+team+"_"+id+".glb");
+            string dir=Source+"/premium-factions",receipt=dir+"/manifest.json";
+            if(!Directory.Exists(dir))return map;
+            if(!File.Exists(receipt))throw new InvalidOperationException("Incomplete premium faction generation.");
+            var doc=JsonUtility.FromJson<FactionReceipt>(File.ReadAllText(receipt));
+            if(doc==null||doc.status!="REVIEW_ONLY"||doc.models==null||doc.models.Length!=map.Count)
+                throw new InvalidOperationException("Invalid premium faction manifest.");
+            var seen=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var row in doc.models){
+                if(row==null||string.IsNullOrEmpty(row.id)||!map.ContainsKey(row.id)||!seen.Add(row.id)||row.file!=row.id+".glb"||row.addedTriangles<200)
+                    throw new InvalidOperationException("Invalid faction identity.");
+                string path=dir+"/"+row.file;
+                if(!File.Exists(path)||!File.Exists(map[row.id])||new FileInfo(path).Length!=row.bytes||
+                   FileHash(path)!=row.sha256||FileHash(map[row.id])!=row.sourceSha256)
+                    throw new InvalidOperationException("Faction model hash mismatch: "+row.id);
+                map[row.id]=path;
+            }
+            return map;
         }
         [Serializable] private sealed class EnvironmentReceipt {public string status,sourceSha256,sha256;public int bytes;}
         static string FileHash(string path){
