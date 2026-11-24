@@ -4,5 +4,7 @@
   "sequence": 1,
   "sha256": "dd6be4ab018be44f812679954aa755dfd9795df85cc1fae9a8925b8892d3e597",
   "bytes": 250,
-  "requestedAt": "2026-11-24T06:21:19.482Z"
+  "requestedAt": "2026-11-24T06:21:19.482Z",
+  "retryReason": "Exact owner certificate verification diagnostics; same already verified canary, no key rotation",
+  "priorRun": 45339841288
 }

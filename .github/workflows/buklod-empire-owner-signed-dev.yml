@@ -76,13 +76,19 @@ jobs:
           unset KEYSTORE_B64
           export BUKLOD_EMPIRE_KEY_ALIAS=empire
           export BUKLOD_EMPIRE_KEY_PASSWORD="$BUKLOD_EMPIRE_KEYSTORE_PASSWORD"
+          expected="$(printf '%s' "$BUKLOD_EMPIRE_APK_CERT_SHA256" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          stored="$(keytool -exportcert -keystore "$BUKLOD_EMPIRE_KEYSTORE_FILE" -alias empire -storepass:env BUKLOD_EMPIRE_KEYSTORE_PASSWORD | sha256sum | cut -d' ' -f1)"
+          if [ "$stored" != "$expected" ]; then echo 'Stored keystore certificate differs from pinned owner certificate; refusing build' >&2; exit 1; fi
+          echo 'EMPIRE_OWNER_KEYSTORE_CERT_VERIFIED'
           gradle -p apps/buklod-empire :app:assembleRelease --no-daemon
           APK=apps/buklod-empire/app/build/outputs/apk/release/app-release.apk
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
           TOOLS="$(find "$SDK/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           "$TOOLS/apksigner" verify --print-certs "$APK" > build/buklod-empire/signing.txt
-          actual="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' build/buklod-empire/signing.txt)"
-          test "$actual" = "$BUKLOD_EMPIRE_APK_CERT_SHA256"
+          actual="$(awk 'tolower($0) ~ /^signer #1 certificate sha-256 digest:/ {sub(/^[^:]*:[[:space:]]*/, ""); print}' build/buklod-empire/signing.txt | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          if [[ ! "$actual" =~ ^[a-f0-9]{64}$ ]]; then echo 'APK signer digest missing or malformed' >&2; exit 1; fi
+          if [ "$actual" != "$expected" ]; then echo 'APK certificate does not match pinned owner certificate; refusing artifact' >&2; exit 1; fi
+          echo 'EMPIRE_APK_OWNER_CERT_VERIFIED'
           "$TOOLS/aapt" dump badging "$APK" > build/buklod-empire/apk-badging.txt
           grep -F "package: name='org.mzbministry.buklod.empire'" build/buklod-empire/apk-badging.txt
           unzip -Z1 "$APK" > build/buklod-empire/apk-entries.txt
