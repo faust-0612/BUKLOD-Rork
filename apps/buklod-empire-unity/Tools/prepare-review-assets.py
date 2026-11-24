@@ -24,7 +24,11 @@ def main():
     for row in heroes:
         data=(OUTPUT/"heroes"/row["file"]).read_bytes()
         assert hashlib.sha256(data).hexdigest()==row["sha256"]
-        assert len(verify_glb(data)["animations"])==9
+        doc=verify_glb(data)
+        assert len(doc["animations"])==12 and set(a["name"] for a in doc["animations"])==set(row["clips"])
+        from skill_motions import PROFILES, SLOTS
+        motions={a["name"]:a.get("extras",{}).get("canonicalSkill") for a in doc["animations"]}
+        assert all(motions[slot]==profile[0] for slot,profile in zip(SLOTS,PROFILES[row["id"]]))
     rig=json.loads((CANDIDATES/"Rigged/manifest.json").read_text())
     dest=OUTPUT/"rigged-factions";dest.mkdir(parents=True,exist_ok=True)
     count=0

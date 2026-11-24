@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Refine existing original procedural hero candidates, without modifying MAIN or approving them."""
 import copy, importlib.util, json, pathlib, hashlib
+from skill_motions import add_skill_motions
 from refine_surfaces import texture_glb
 root=pathlib.Path(__file__).resolve().parents[1]
 repo=root.parents[1]
@@ -67,10 +68,11 @@ def main():
         path=out/(hero_id+".glb")
         row=h.export(path)
         texture_glb(path)
+        row['clips']=add_skill_motions(path,hero_id)
         row['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
         row['bytes']=path.stat().st_size
         row['surfaceRevision']='original-procedural-pbr-v2'
-        assert h.stone_count==1 and len(row["clips"])==9 and row["bones"]>0
+        assert h.stone_count==1 and len(row["clips"])==12 and row["bones"]>0
         row["stone"]=stone_by[hero_id]["stone"]
         row["sourceGeneratorSha256"]=hashlib.sha256(source.read_bytes()).hexdigest()
         rows.append(row)

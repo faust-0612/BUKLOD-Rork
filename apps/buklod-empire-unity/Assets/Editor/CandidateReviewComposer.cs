@@ -14,7 +14,7 @@ namespace Buklod.Empire.Editor {
         const string Out="Assets/Generated/ReviewOnly";
         const string Source="Tools/ReviewOutput";
         const string Candidate="Tools/AssetCandidates";
-        static readonly string[] HeroClips={"Idle","Walk","Run","Attack","Skill","Ultimate","Hit","Death","Victory"};
+        static readonly string[] HeroClips={"Idle","Walk","Run","Attack","Skill","Primary","Secondary","Ultimate","LegacyUltimate","Hit","Death","Victory"};
         static readonly string[] FactionClips={"Idle","Walk","Attack","Work","Hit","Death"};
         static readonly string[] Roles={"infantry","siege","gunner","mage","healer"};
         static readonly string[] LuxVillagers={"aron","lira","daren","serah","kiel","miko"};
@@ -78,6 +78,7 @@ namespace Buklod.Empire.Editor {
                         if(candidates.Length!=1)throw new InvalidOperationException("Expected one imported clip: "+id+"/"+name);
                         string clipPath=$"{Out}/Clips/{id}_{name}.anim";
                         var clone=UnityEngine.Object.Instantiate(candidates[0]);clone.name=name;clone.legacy=false;
+                        var settings=AnimationUtility.GetAnimationClipSettings(clone);settings.loopTime=name=="Idle"||name=="Walk"||name=="Run";AnimationUtility.SetAnimationClipSettings(clone,settings);
                         var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
                         if(clip){EditorUtility.CopySerialized(clone,clip);UnityEngine.Object.DestroyImmediate(clone);}
                         else{AssetDatabase.CreateAsset(clone,clipPath);clip=clone;}
@@ -96,14 +97,6 @@ namespace Buklod.Empire.Editor {
                         var run=sm.AddState("Run");run.motion=runClip;
                         var fast=walk.AddTransition(run);fast.hasExitTime=false;fast.duration=.12f;fast.AddCondition(AnimatorConditionMode.Greater,4f,"Speed");
                         var slow=run.AddTransition(walk);slow.hasExitTime=false;slow.duration=.12f;slow.AddCondition(AnimatorConditionMode.Less,3.8f,"Speed");
-                    }
-                    if(clips.ContainsKey("Skill")){
-                        foreach(var action in new[]{"Primary","Secondary"}){
-                            controller.AddParameter(action,AnimatorControllerParameterType.Trigger);
-                            var state=sm.AddState(action);state.motion=clips["Skill"];
-                            var enter=sm.AddAnyStateTransition(state);enter.hasExitTime=false;enter.duration=.08f;enter.canTransitionToSelf=false;enter.AddCondition(AnimatorConditionMode.If,0,action);
-                            var exit=state.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;exit.duration=.1f;
-                        }
                     }
                     foreach(var pair in clips.Where(c=>c.Key!="Idle"&&c.Key!="Walk"&&c.Key!="Run")){
                         controller.AddParameter(pair.Key,AnimatorControllerParameterType.Trigger);
