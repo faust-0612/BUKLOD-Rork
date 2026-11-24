@@ -5,7 +5,9 @@
   "heroes": [
     {
       "id": "phan",
-      "portraits": [],
+      "portraits": [
+        "assets/images/characters/phan_r26.jpg"
+      ],
       "motion": [
         "assets/season2/arena/generated/fullbody/phan_attack-3ea6ca4b36a5.webp",
         "assets/season2/arena/generated/fullbody/phan_idle-7968c0b511d7.webp",
@@ -15,7 +17,9 @@
     },
     {
       "id": "quin",
-      "portraits": [],
+      "portraits": [
+        "assets/images/characters/quin_r26.jpg"
+      ],
       "motion": [
         "assets/season2/arena/generated/fullbody/quin_attack-de8f2bfa026c.webp",
         "assets/season2/arena/generated/fullbody/quin_idle-1e0a54b3801e.webp",
@@ -25,7 +29,9 @@
     },
     {
       "id": "van",
-      "portraits": [],
+      "portraits": [
+        "assets/images/characters/van_r26.jpg"
+      ],
       "motion": [
         "assets/season2/arena/generated/fullbody/van_attack-d4feff79d662.webp",
         "assets/season2/arena/generated/fullbody/van_idle-be582800a369.webp",
@@ -35,7 +41,9 @@
     },
     {
       "id": "christian",
-      "portraits": [],
+      "portraits": [
+        "assets/images/characters/christian_r26.jpg"
+      ],
       "motion": [
         "assets/season2/arena/generated/fullbody/christian_attack-db2198ff062c.webp",
         "assets/season2/arena/generated/fullbody/christian_idle-70572b185452.webp",
@@ -45,7 +53,9 @@
     },
     {
       "id": "lhen",
-      "portraits": [],
+      "portraits": [
+        "assets/images/characters/lhen_r26.jpg"
+      ],
       "motion": [
         "assets/season2/arena/generated/fullbody/lhen_attack-2378cf44d285.webp",
         "assets/season2/arena/generated/fullbody/lhen_idle-73b9ec672c55.webp",
@@ -1000,6 +1010,31 @@
       "path": "assets/sounds/kingdom-premium/victory.wav",
       "gitBlob": "4aa7f6599f0b3291308dc23b39eb555a85dee478",
       "bytes": 44238
+    },
+    {
+      "path": "assets/images/characters/phan_r26.jpg",
+      "gitBlob": "65b9926804d543c2ba80a92817dd3cc74b8acba0",
+      "bytes": 1032306
+    },
+    {
+      "path": "assets/images/characters/quin_r26.jpg",
+      "gitBlob": "45a2ae6dce381d1b75fd86a12fb4b92c3e4532be",
+      "bytes": 1315502
+    },
+    {
+      "path": "assets/images/characters/van_r26.jpg",
+      "gitBlob": "a9299036a67994cc997d05581ffa749f11cee73a",
+      "bytes": 1145380
+    },
+    {
+      "path": "assets/images/characters/christian_r26.jpg",
+      "gitBlob": "e494d63f0776aab49c5d516759794a58d5cc1157",
+      "bytes": 910700
+    },
+    {
+      "path": "assets/images/characters/lhen_r26.jpg",
+      "gitBlob": "a6fa4bbbcee20e2947d1d33f5fa7fb8d248e8ded",
+      "bytes": 1164562
     }
   ],
   "missing": [

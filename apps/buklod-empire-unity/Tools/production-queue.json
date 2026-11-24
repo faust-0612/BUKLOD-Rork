@@ -8,7 +8,9 @@
           "id": "phan",
           "reference": {
             "id": "phan",
-            "portraits": [],
+            "portraits": [
+              "assets/images/characters/phan_r26.jpg"
+            ],
             "motion": [
               "assets/season2/arena/generated/fullbody/phan_attack-3ea6ca4b36a5.webp",
               "assets/season2/arena/generated/fullbody/phan_idle-7968c0b511d7.webp",
@@ -29,7 +31,9 @@
           "id": "quin",
           "reference": {
             "id": "quin",
-            "portraits": [],
+            "portraits": [
+              "assets/images/characters/quin_r26.jpg"
+            ],
             "motion": [
               "assets/season2/arena/generated/fullbody/quin_attack-de8f2bfa026c.webp",
               "assets/season2/arena/generated/fullbody/quin_idle-1e0a54b3801e.webp",
@@ -50,7 +54,9 @@
           "id": "van",
           "reference": {
             "id": "van",
-            "portraits": [],
+            "portraits": [
+              "assets/images/characters/van_r26.jpg"
+            ],
             "motion": [
               "assets/season2/arena/generated/fullbody/van_attack-d4feff79d662.webp",
               "assets/season2/arena/generated/fullbody/van_idle-be582800a369.webp",
@@ -71,7 +77,9 @@
           "id": "christian",
           "reference": {
             "id": "christian",
-            "portraits": [],
+            "portraits": [
+              "assets/images/characters/christian_r26.jpg"
+            ],
             "motion": [
               "assets/season2/arena/generated/fullbody/christian_attack-db2198ff062c.webp",
               "assets/season2/arena/generated/fullbody/christian_idle-70572b185452.webp",
@@ -92,7 +100,9 @@
           "id": "lhen",
           "reference": {
             "id": "lhen",
-            "portraits": [],
+            "portraits": [
+              "assets/images/characters/lhen_r26.jpg"
+            ],
             "motion": [
               "assets/season2/arena/generated/fullbody/lhen_attack-2378cf44d285.webp",
               "assets/season2/arena/generated/fullbody/lhen_idle-73b9ec672c55.webp",
