@@ -19,6 +19,8 @@ namespace Buklod.Empire {
         private readonly Dictionary<string,(float strength,float until)> buffs=new Dictionary<string,(float,float)>();
         private readonly float[] last={float.NegativeInfinity,float.NegativeInfinity,float.NegativeInfinity};
         public SkillActor(string hero){Kit=HeroKitCatalog.Get(hero);}
+        internal SkillActor(float health){Health=MaxHealth=health;Mana=0;Level=0;}
+        internal void Respawn(){Health=MaxHealth;Mana=100;Shield=0;buffs.Clear();}
         public float Buff(string id,float now)=>buffs.TryGetValue(id,out var b)&&b.until>now?b.strength:0;
         public void Clear(string id)=>buffs.Remove(id);
         public void Set(string id,float strength,float until,float now){
@@ -35,7 +37,7 @@ namespace Buklod.Empire {
         }
         public float Remaining(SkillSlot slot,float now)=>Mathf.Max(0,Cooldown(slot,now)-(now-last[(int)slot]));
         public bool TryCast(IHeroSkillWorld world,SkillSlot slot,Vector2 aim,float now,bool active){
-            if(!active||!Alive||world==null||float.IsNaN(now)||float.IsInfinity(now)||now<0||Buff("stun",now)>0)return false;
+            if(!active||!Alive||Kit==null||world==null||float.IsNaN(now)||float.IsInfinity(now)||now<0||Buff("stun",now)>0)return false;
             if(slot!=SkillSlot.Primary&&slot!=SkillSlot.Secondary&&slot!=SkillSlot.Ultimate)return false;
             if(float.IsNaN(aim.x)||float.IsInfinity(aim.x)||float.IsNaN(aim.y)||float.IsInfinity(aim.y))return false;
             if(slot==SkillSlot.Secondary&&Level<3||slot==SkillSlot.Ultimate&&Level<6)return false;
@@ -44,7 +46,7 @@ namespace Buklod.Empire {
             if(!HeroSkillRules.Cast(world,this,Kit.Skill(slot).Id,aim,now))return false;
             Mana-=cost;last[(int)slot]=now;
             foreach(var e in world.Enemies(this,17.5f,Vector2.zero)){
-                if(e.Kit.Id!="trudice")continue;
+                if(e.Kit?.Id!="trudice")continue;
                 e.Set("insight",Mathf.Min(3,e.Buff("insight",now)+1),now+6,now);Set("revealed",1,now+2,now);
             }
             return true;
@@ -82,7 +84,7 @@ namespace Buklod.Empire {
                 case "echo_lance":return Hit(12,50,true);
                 case "conviction_dash":if(!Dash(5.5f,46,3.25f))return false;Buff(p,"guard",.25f,3);return true;
                 case "call_of_the_dawn":Area(14,49);foreach(var a in w.Allies(p,10)){a.Clear("slow");a.Clear("stun");}return true;
-                case "question_sigil":var t=Nearest(11,true);if(t==null||!w.Hit(p,t,18))return false;float resist=0;foreach(var a in w.Allies(t,8.75f))if(a.Kit.Id=="niel")resist=.2f;Buff(t,"stun",1,1-resist);return true;
+                case "question_sigil":var t=Nearest(11,true);if(t==null||!w.Hit(p,t,18))return false;float resist=0;foreach(var a in w.Allies(t,8.75f))if(a.Kit?.Id=="niel")resist=.2f;Buff(t,"stun",1,1-resist);return true;
                 case "turning_page":Buff(p,"guard",.4f,3);Buff(p,"reflect",.3f,3);return true;
                 case "grand_lesson":Allies(11,"guard",.1f,8);Allies(11,"cooldown",.2f,8);Enemies(11,"weaken",.15f,8);return true;
                 case "seed_turret":return w.Turret(p,dir,3,55*1.35f,8,11);
