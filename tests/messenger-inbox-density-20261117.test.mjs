@@ -25,7 +25,7 @@ test('Wall search/Notes rail comes before shortcuts while genuine ads remain', (
   assert.ok(rail >= 0 && rail < links && links < ad);
   assert.match(wall, /BuklodCommunitySponsoredAd|BuklodCommunityInlineAd/);
   const context = read('src/components/BuklodDashboardContextBar.tsx');
-  assert.match(context, /if \(messagesRoute \|\| communityRoute\) return null;/);
+  assert.match(context, /if \(messagesRoute \|\| communityRoute \|\| profileRoute \|\| homeRoute\) return null;/);
   assert.match(context, /BuklodPublicDailyMessageBar forceVisible/);
 });
 

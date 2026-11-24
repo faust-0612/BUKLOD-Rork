@@ -21,13 +21,15 @@
     "ads",
     "godot-content",
     "navigation-scroll",
-    "connect"
+    "connect",
+    "backend-security"
   ],
   "preserveBehaviors": [
     "Retain existing 2.0.6 signed native module, app identity, channel, package and Godot 4.7.2.",
     "Keep existing privacy/media scope, video preview metadata, no false call delivery, measured latest scroll, existing ad/navigation gates and lesson checker validation.",
     "Game remains local practice and cosmetic-only; never credit live BP, shards, rank or property.",
-    "Connect inbox newest-first and notification ownership, searchable GIF picker with Genesis photo/video preservation, bounded micro-motion with reduced-motion guard, staging Points read-only."
+    "Connect inbox newest-first and notification ownership, searchable GIF picker with Genesis photo/video preservation, bounded micro-motion with reduced-motion guard, staging Points read-only.",
+    "Seven backend/test files are byte-identical to already-audited MAIN; OTA shall not run any DB or Edge deploy command."
   ],
   "acceptanceChecks": [
     "Exact source and native diff, full TypeScript/Metro, focused Node and ad/navigation gates.",
@@ -111,7 +113,14 @@
     "__tests__/buklodMicroMotion.test.ts",
     "src/app/_layout.tsx",
     "src/components/points/BuklodPointsRewardsScreen.tsx",
-    "tests/genesis-206-staging-points-readonly-20261124.test.mjs"
+    "tests/genesis-206-staging-points-readonly-20261124.test.mjs",
+    "supabase/functions/buklod-ai-validate-response/index.ts",
+    "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
+    "supabase/migrations/20261121132000_mentor_report_catalog_titles_and_role_clarity.sql",
+    "supabase/migrations/20261121141000_admin_mentor_capability_review_audit_v1.sql",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql",
+    "supabase/tests/mentor_capability_release_guard_20261121.sql"
   ],
   "regressionTests": [
     "tests/bible-navigation.test.cjs",
@@ -147,7 +156,10 @@
     "tests/connect-inbox-realtime-staging-20261123.test.mjs",
     "tests/buklod-ads-rendering-baseline-20261123.test.mjs",
     "__tests__/buklodMicroMotion.test.ts",
-    "tests/genesis-206-staging-points-readonly-20261124.test.mjs"
+    "tests/genesis-206-staging-points-readonly-20261124.test.mjs",
+    "supabase/tests/admin_new_registration_security_20261119.sql",
+    "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql",
+    "supabase/tests/mentor_capability_release_guard_20261121.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -214,6 +226,20 @@
       "tests": [
         "tests/genesis-206-staging-points-readonly-20261124.test.mjs",
         "tests/buklod-ads-rendering-baseline-20261123.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Source-only parity with existing audited MAIN backend contracts, not a migration or Edge release.",
+      "preservedBehaviors": [
+        "Only exact existing MAIN blobs, never apply SQL, deploy functions, or modify any shared database."
+      ],
+      "tests": [
+        "tests/admin-registration-security-20261119.test.cjs",
+        "tests/formation-ai-timeout-recovery-20261123.test.mjs",
+        "supabase/tests/admin_new_registration_security_20261119.sql",
+        "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql",
+        "supabase/tests/mentor_capability_release_guard_20261121.sql"
       ]
     }
   ],

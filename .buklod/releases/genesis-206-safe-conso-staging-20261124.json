@@ -51,5 +51,42 @@
     "AdMob guard PR 1134",
     "App-wide micro motion: three exact matching base blobs and two root insertions",
     "Points read-only Genesis preview; functional claims and rewarded credits held"
+  ],
+  "mainBackendSourceParity": [
+    {
+      "path": "supabase/functions/buklod-ai-validate-response/index.ts",
+      "sha": "95dca22ae1d162d602bf19c7bf58798e5cd88b94",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
+      "sha": "109df32c7383166f99ea3f8cd799d65897f63b3c",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/migrations/20261121132000_mentor_report_catalog_titles_and_role_clarity.sql",
+      "sha": "5baa42626884469598fa4e1111631bb68494aa00",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/migrations/20261121141000_admin_mentor_capability_review_audit_v1.sql",
+      "sha": "aa76d9d475934131d7b867bd9abd29a0676290d2",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/tests/admin_new_registration_security_20261119.sql",
+      "sha": "17be4810666114bd05ea57a9a9bfe9cc0bd29b5f",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql",
+      "sha": "3d10fa1afde045c2bc1928de183b90443bd4565e",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/tests/mentor_capability_release_guard_20261121.sql",
+      "sha": "1ea07c529e5bd308d1de59665d1994ec4279502b",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    }
   ]
 }
