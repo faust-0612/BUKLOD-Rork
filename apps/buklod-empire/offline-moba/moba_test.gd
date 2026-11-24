@@ -79,7 +79,19 @@ func _run() -> void:
 		if not check(players.size()>0,"animation player "+id):return
 		for clip in record["clips"]:
 			if not check(players[0].has_animation(clip),"clip "+id+" "+str(clip)):return
-			if not check(players[0].get_animation(clip).get_track_count()>=16,"animated skeletal tracks "+id+" "+str(clip)):return
+			var animation: Animation=players[0].get_animation(clip)
+			var moving_tracks:=0
+			for track in range(animation.get_track_count()):
+				if animation.track_get_key_count(track)<2:continue
+				var initial: Variant=animation.track_get_key_value(track,0)
+				for key in range(1,animation.track_get_key_count(track)):
+					if animation.track_get_key_value(track,key)!=initial:
+						moving_tracks+=1
+						break
+			# glTF import strips constant joint tracks. Validate actual changing
+			# tracks, not the number of static channels in the authored file.
+			if not check(moving_tracks>=1 and animation.length>0.20,"moving skeletal tracks "+id+" "+str(clip)+" "+str(moving_tracks)):return
+			print("BUKLOD_HERO_CLIP "+id+" "+str(clip)+" moving="+str(moving_tracks))
 		hashes[record["meshHash"]]=true
 		var bytes=FileAccess.get_file_as_bytes("res://3d/buklod_heroes/"+id+".glb")
 		var hash:=HashingContext.new()

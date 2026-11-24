@@ -45,12 +45,37 @@ jobs:
           grep -F BUKLOD_OFFLINE_MOBA_RUNTIME_PASS build/empire-moba-test.log
           if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|MOBA_TEST_FAILED' build/empire-moba-test.log; then exit 1; fi
           rm build/empire-moba-candidate/scripts/moba_test.gd
+      - name: Render actual 13-model gallery with Godot GL
+        run: |
+          set -euo pipefail
+          GODOT="$(find /tmp/empire-godot -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          cp apps/buklod-empire/offline-moba/hero_gallery.gd build/empire-moba-candidate/scripts/hero_gallery.gd
+          export XDG_DATA_HOME="$RUNNER_TEMP/empire-hero-gallery"
+          mkdir -p "$XDG_DATA_HOME"
+          timeout 90s xvfb-run -a -s "-screen 0 1600x900x24" "$GODOT" --path build/empire-moba-candidate --rendering-method gl_compatibility --resolution 1600x900 --script res://scripts/hero_gallery.gd 2>&1 | tee build/empire-hero-gallery.log
+          PNG="$(find "$XDG_DATA_HOME" -name hero-roster.png -type f -print -quit)"
+          test -s "$PNG"
+          cp "$PNG" build/empire-hero-roster.png
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|HERO_GALLERY_.*FAILED|Program linking failed' build/empire-hero-gallery.log; then exit 1; fi
+          python3 -m pip install --disable-pip-version-check Pillow
+          python3 - <<'PY'
+          from PIL import Image
+          im=Image.open('build/empire-hero-roster.png').convert('RGB')
+          assert im.width>=1000 and im.height>=600
+          colors=im.resize((200,112)).getcolors(22400)
+          assert len(colors)>100,'Gallery blank or uniform'
+          assert max(c for c,_ in colors)<22400*.95,'Gallery nearly blank'
+          print('BUKLOD_3D_ROSTER_VISUAL_FRAME_PASS',im.size,len(colors))
+          PY
+          rm build/empire-moba-candidate/scripts/hero_gallery.gd
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: empire-offline-moba-test-log
           path: |
             build/empire-moba-test.log
+            build/empire-hero-gallery.log
+            build/empire-hero-roster.png
             build/empire-moba-candidate/3d/buklod_heroes/
           if-no-files-found: ignore
           retention-days: 7

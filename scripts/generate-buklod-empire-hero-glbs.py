@@ -79,7 +79,6 @@ class Hero:
     a,b,c,d=rows[row][i],rows[row+1][i],rows[row+1][k],rows[row][k]
     self.tri(mat,joint,[a,b,c]); self.tri(mat,joint,[a,c,d])
   for row,reverse in ((0,False),(-1,True)):
-   cy=add(center,(rings[row][0],0,0)) # replaced by exact cap center below
    cy=(center[0],center[1]+rings[row][0],center[2])
    for i in range(segments):
     p,q=rows[row][i],rows[row][(i+1)%segments]
@@ -93,6 +92,8 @@ class Hero:
    self.tri(mat,joint,[p[a],p[b],p[c]]);self.tri(mat,joint,[p[a],p[c],p[d]])
  def plate(self,mat,joint,center,outline,depth=.035):
   # Faceted extruded custom silhouette in the XY plane, with metallic edge.
+  # Canonical counter-clockwise front winding regardless of hand-authored outline.
+  if sum(outline[i][0]*outline[(i+1)%len(outline)][1]-outline[(i+1)%len(outline)][0]*outline[i][1] for i in range(len(outline)))<0:outline=list(reversed(outline))
   front=[add(center,(x,y,depth)) for x,y in outline]; back=[add(center,(x,y,-depth)) for x,y in outline]
   mid=add(center,(0,0,depth+.015))
   for i in range(len(front)):
