@@ -161,8 +161,8 @@ namespace Buklod.Empire {
             starting=true;view.SetPaused(true);panelGroup.interactable=false;
             title.text="PREPARING GENESIS RIFT";summary.text="Initializing local training match";
             title.color=BattleEffects.Accent(selected);feedback.text="";
+            // Yield a frame so the real initialization state can be displayed; no artificial progress.
             yield return null;
-            yield return new WaitForEndOfFrame();
             try{BeginMatch();}
             catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;Rebuild();feedback.text="Unable to initialize match. Check the local review assets.";}
             finally{starting=false;panelGroup.interactable=true;}
