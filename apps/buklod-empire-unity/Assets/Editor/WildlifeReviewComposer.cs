@@ -41,8 +41,9 @@ namespace Buklod.Empire.Editor {
             foreach(var dir in new[]{"Models","Prefabs","Controllers","Clips"})Directory.CreateDirectory(Out+"/"+dir);
             foreach(var row in manifest.models)File.Copy(Source+"/"+row.file,Out+"/Models/wildlife_"+row.file,true);
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            bool wildlifeHd=WildlifeMaterialReview.Prepare();
             var prefabs=new Dictionary<string,GameObject>();
-            foreach(var row in manifest.models)prefabs.Add(row.id,CandidateReviewComposer.MakePrefab("wildlife_"+row.id,Creatures.Contains(row.id)?Clips:Array.Empty<string>()));
+            foreach(var row in manifest.models)prefabs.Add(row.id,CandidateReviewComposer.MakePrefab("wildlife_"+row.id,Creatures.Contains(row.id)?Clips:Array.Empty<string>(),wildlifeHd:wildlifeHd&&Creatures.Contains(row.id)));
             AssetDatabase.SaveAssets();return prefabs;
         }
         [MenuItem("BUKLOD Empire/Assemble wildlife and resource review")]
