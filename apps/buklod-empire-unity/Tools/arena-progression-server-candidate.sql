@@ -151,7 +151,7 @@ begin
  if virtue not between 0 and 100 then raise exception 'Invalid virtue score'; end if;
  outcome:=facts->>'outcome'; conduct:=facts->>'conduct'; eligible:=(facts->>'eligible')::boolean;
  if outcome is null or outcome not in ('win','loss','draw') or conduct is null or conduct not in ('clean','intentional_afk','abuse','cheat','outage') then raise exception 'Invalid result'; end if;
- perform 1 from empire_stones.match where id=mid and state='completed' for share;
+ perform 1 from empire_stones.match where id=mid and state='completed' and mode in ('casual','ranked') for share;
  if not found then raise exception 'Not a completed authoritative match'; end if;
  select hero_id,team into h,team_no from empire_stones.match_action where match_id=mid and user_id=u and action='pick';
  if not found then raise exception 'Not a participant'; end if;
