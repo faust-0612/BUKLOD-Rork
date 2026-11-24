@@ -44,5 +44,12 @@ test('graded policy and role weights',()=>{
   assert.match(sql,/return old\.breakdown\|\|/);
   assert.doesNotMatch(sql,/^end \$;$/m);
   assert.doesNotMatch(sql,/as \$$/m);
-  assert.equal((sql.match(/\$\$/g)||[]).length%2,0);
+  assert.equal((sql.match(/\$\$/g)||[]).length,(sql.match(/^create function/gm)||[]).length*2);
+  assert.equal((sql.match(/^commit;$/gm)||[]).length,1);
+  assert.match(sql,/raise exception 'Invalid virtue evidence'/);
+  assert.match(sql,/virtue:=\(facts->>'virtue'\)::integer/);
+  assert.match(sql,/normalize_metric\(v\)/);
+  assert.match(sql,/70\*impact\+20\*efficiency\+10\*impact\*difficulty\/100/);
+  assert.match(sql,/if effective=0 then return 0/);
+  assert.match(sql,/'best_category',best_key,'next_category',next_key/);
 });
