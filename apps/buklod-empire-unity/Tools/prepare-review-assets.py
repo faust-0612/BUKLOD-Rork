@@ -29,6 +29,9 @@ def main():
         from skill_motions import PROFILES, SLOTS
         motions={a["name"]:a.get("extras",{}).get("canonicalSkill") for a in doc["animations"]}
         assert all(motions[slot]==profile[0] for slot,profile in zip(SLOTS,PROFILES[row["id"]]))
+    from validate_skill_motions import validate_roster
+    verified=validate_roster(OUTPUT/"heroes")
+    (OUTPUT/"heroes/skill-motion-verification.json").write_text(json.dumps(verified,indent=2)+"\n")
     rig=json.loads((CANDIDATES/"Rigged/manifest.json").read_text())
     dest=OUTPUT/"rigged-factions";dest.mkdir(parents=True,exist_ok=True)
     count=0
