@@ -5,6 +5,8 @@ import * as Crypto from 'expo-crypto';
 import {ARENA_STONES,stoneRecipe,type ArenaStoneId} from '@/lib/buklodArenaStoneCatalog';
 import {getArenaStones,actArenaStones,resolveArenaStoneRequest,type StoneSnapshot,type StoneAction} from '@/lib/buklodArenaStones';
 type Pending={action:StoneAction;args:Record<string,unknown>;id:string};
+// Shared across component remounts, not a wallet or local transaction authority.
+const pendingWrites=new Set<string>();
 export default function ArenaStoneTreasury({uid}:{uid:string|null}){
  const [state,setState]=useState<StoneSnapshot|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  const [selected,setSelected]=useState<ArenaStoneId>('phan'),[input,setInput]=useState<ArenaStoneId[]>([]),[peer,setPeer]=useState('');
@@ -39,8 +41,15 @@ export default function ArenaStoneTreasury({uid}:{uid:string|null}){
   finally{if(alive.current&&scope.current.generation===generation){lock.current=false;setBusy(false);}}
  }
  async function send(req:Pending){
-  if(!uid||!ready||lock.current)return;lock.current=true;setBusy(true);setPending(req);setNotice('');
+  if(!uid||!ready||lock.current||pendingWrites.has(key))return;
+  pendingWrites.add(key);lock.current=true;setBusy(true);setNotice('');
   try{
+   const previous=await AsyncStorage.getItem(key);
+   if(previous){const old=JSON.parse(previous) as Pending;if(old.id!==req.id){
+    if(alive.current&&scope.current.generation===generation){setPending(old);setNotice('Resolve the saved transaction first.');}return;
+   }}
+   if(!alive.current||scope.current.generation!==generation)return;
+   setPending(req);
    await AsyncStorage.setItem(key,JSON.stringify(req));
    const s=await actArenaStones(uid,req.action,req.args,req.id);
    if(!s)throw new Error('Stone service unavailable');
@@ -48,18 +57,23 @@ export default function ArenaStoneTreasury({uid}:{uid:string|null}){
    if(!alive.current||scope.current.generation!==generation)return;
    setState(s);setPending(null);setInput([]);setNotice('Confirmed by server.');
   }catch{if(alive.current&&scope.current.generation===generation)setNotice('Not confirmed. Retry the same request or refresh; no local debit was applied.');}
-  finally{if(alive.current&&scope.current.generation===generation){lock.current=false;setBusy(false);}}
+  finally{pendingWrites.delete(key);if(alive.current&&scope.current.generation===generation){lock.current=false;setBusy(false);}}
  }
  async function resolvePending(){
-  if(!uid||!ready||!pending||lock.current)return;lock.current=true;setBusy(true);
+  if(!uid||!ready||!pending||lock.current||pendingWrites.has(key))return;
+  pendingWrites.add(key);lock.current=true;setBusy(true);
   try{
+   const saved=await AsyncStorage.getItem(key);
+   if(saved){const old=JSON.parse(saved) as Pending;if(old.id!==pending.id){
+    if(alive.current&&scope.current.generation===generation)setPending(old);return;
+   }}
    const result=await resolveArenaStoneRequest(uid,pending.id);
    await AsyncStorage.removeItem(key);
    if(!alive.current||scope.current.generation!==generation)return;
    setState(result.snapshot);setPending(null);setInput([]);
    setNotice(result.state==='completed'?'Transaction was already confirmed by the server.':'Unconfirmed transaction cancelled safely.');
   }catch{if(alive.current&&scope.current.generation===generation)setNotice('Resolution unavailable. The same request remains saved.');}
-  finally{if(alive.current&&scope.current.generation===generation){lock.current=false;setBusy(false);}}
+  finally{pendingWrites.delete(key);if(alive.current&&scope.current.generation===generation){lock.current=false;setBusy(false);}}
  }
  const action=(a:StoneAction,args:Record<string,unknown>)=>{
   if(pending||!ready||busy)return;
