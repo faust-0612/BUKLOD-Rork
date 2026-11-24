@@ -64,7 +64,12 @@ namespace Buklod.Empire {
             var stripe=Rect("Sacred stone accent",r,new Vector2(0,.94f),Vector2.one).gameObject.AddComponent<Image>();stripe.color=accent;stripe.raycastTarget=false;
             var portrait=reviewPortraits?reviewPortraits.Find(kit.Id):null;
             float left=portrait ? .37f : .05f;
-            if(portrait){var pic=Rect("Captured portrait",r,new Vector2(.025f,.05f),new Vector2(.35f,.92f)).gameObject.AddComponent<RawImage>();pic.texture=portrait;pic.raycastTarget=false;}
+            if(portrait){
+                var holder=Rect("Portrait frame",r,new Vector2(.025f,.05f),new Vector2(.35f,.92f));
+                var pic=Rect("Captured portrait",holder,Vector2.zero,Vector2.one).gameObject.AddComponent<RawImage>();
+                pic.texture=portrait;pic.raycastTarget=false;
+                var fit=pic.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
+            }
             var name=Label("Hero name",r,new Vector2(left,.63f),new Vector2(.95f,.94f),(chosen?"✓ ":"")+kit.Name,27);name.color=accent;
             for(int j=0;j<3;j++){
                 if(!SkillCueCatalog.TryGet(kit.Skill((SkillSlot)j).Id,out var cue))continue;
