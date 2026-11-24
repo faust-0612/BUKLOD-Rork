@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import type { StyleProp, ViewStyle } from 'react-native';
 
 /**
@@ -22,6 +23,7 @@ export default function BuklodAndroidDashboardTabs({
 }) {
   return (
     <Tabs
+      initialRouteName={isGenesisPreviewBuild() ? 'hub' : 'buklod'}
       tabBar={() => null}
       backBehavior="history"
       detachInactiveScreens
