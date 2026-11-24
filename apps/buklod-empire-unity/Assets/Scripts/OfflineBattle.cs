@@ -15,7 +15,9 @@ namespace Buklod.Empire {
     }
     public sealed class VillageResourceNode {
         public readonly int Id,StructureId;
-        public readonly ArenaTeam Team;
+        private readonly ArenaTeam? homeTeam;
+        public readonly ResourceTerritory Territory;
+        public ArenaTeam? Team=>Territory!=null?Territory.Owner:homeTeam;
         public readonly Vector2 Position;
         public readonly VillageResourceKind Kind;
         public readonly double Capacity;
@@ -26,7 +28,7 @@ namespace Buklod.Empire {
         public double Crystal=>Kind==VillageResourceKind.Crystal?Stock:0;
         public double Food=>Kind==VillageResourceKind.Food?Stock:0;
         public double Gold=>Kind==VillageResourceKind.Gold?Stock:0;
-        internal VillageResourceNode(int id,ArenaTeam team,Vector2 position,VillageResourceKind kind,double capacity,int structureId=0){Id=id;Team=team;Position=position;Kind=kind;Capacity=capacity;Stock=capacity;StructureId=structureId;}
+        internal VillageResourceNode(int id,ArenaTeam? team,Vector2 position,VillageResourceKind kind,double capacity,int structureId=0,ResourceTerritory territory=null){Id=id;homeTeam=team;Territory=territory;Position=position;Kind=kind;Capacity=capacity;Stock=capacity;StructureId=structureId;}
     }
     public sealed class BattleUnit {
         public readonly int Id; public readonly ArenaTeam Team; public readonly BattleTargetKind Kind;
@@ -53,6 +55,7 @@ namespace Buklod.Empire {
         public double Cargo=>CargoWood+CargoStone+CargoCrystal+CargoFood+CargoGold;
         public VillageResourceKind? PreferredResource {get;internal set;}
         public int ResourceNodeId {get;internal set;}
+        public int PreferredTerritoryId {get;internal set;}
         internal int LastHarvestTick=-1;
         public bool RevivedMinion {get;internal set;}
         internal void ClearCargo(){CargoWood=CargoStone=CargoCrystal=CargoFood=CargoGold=0;ResourceNodeId=0;}
@@ -129,12 +132,39 @@ namespace Buklod.Empire {
             }
         }
         private int nextResourceId;
-        private VillageResourceNode AddNode(ArenaTeam team,Vector2 p,VillageResourceKind kind,double capacity,int structureId=0){
-            var n=new VillageResourceNode(++nextResourceId,team,p,kind,capacity,structureId);resourceNodes.Add(n);return n;
+        private readonly List<ResourceTerritory> territories=new List<ResourceTerritory>();
+        public IReadOnlyList<ResourceTerritory> Territories=>territories.AsReadOnly();
+        private VillageResourceNode AddNode(ArenaTeam? team,Vector2 p,VillageResourceKind kind,double capacity,int structureId=0,ResourceTerritory territory=null){
+            var n=new VillageResourceNode(++nextResourceId,team,p,kind,capacity,structureId,territory);resourceNodes.Add(n);return n;
+        }
+        private void AddTerritory(string name,Vector2 p,VillageResourceKind kind,double stock){
+            var territory=new ResourceTerritory(territories.Count+1,name,p);territories.Add(territory);AddNode(null,p,kind,stock,territory:territory);
+        }
+        private bool CanHarvestNode(VillageResourceNode n,ArenaTeam team)=>n.Team==team&&n.Stock>1e-6&&NodeOperational(n)&&(n.Territory==null||!n.Territory.Contested);
+        private bool InTerritory(BattleUnit u,ResourceTerritory t)=>u.State.Alive&&Vector2.Distance(u.Position,t.Position)<=ResourceTerritory.Radius&&ClearSight(u.Position,t.Position);
+        private void AdvanceTerritories(){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit||tick%5!=0)return;
+            foreach(var t in territories){
+                bool luxHero=false,tenHero=false,luxPresent=false,tenPresent=false;
+                foreach(var u in units){
+                    if((u.Kind!=BattleTargetKind.Hero&&(u.Kind!=BattleTargetKind.Minion||u.Role==MinionRole.Healer))||!InTerritory(u,t))continue;
+                    bool hero=u.Kind==BattleTargetKind.Hero&&u.State.CanCast(Time)&&!u.IsRecalling&&u.State.Buff("untargetable",Time)<=0;
+                    if(u.Team==ArenaTeam.Lux){luxPresent=true;luxHero|=hero;}else{tenPresent=true;tenHero|=hero;}
+                }
+                t.Advance(Time,Step*5,luxHero,tenHero,luxPresent,tenPresent);
+            }
+        }
+        public bool OrderPlayerTerritoryWorker(string workerId,int territoryId){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit)return false;
+            var u=PlayerGatherer(workerId);var node=resourceNodes.FirstOrDefault(n=>n.Territory?.Id==territoryId&&CanHarvestNode(n,Player.Team));
+            if(u==null||node==null)return false;
+            u.PreferredResource=node.Kind;u.PreferredTerritoryId=territoryId;u.ResourceNodeId=node.Id;
+            if(u.Cargo>1e-6){u.ResourceNodeId=0;u.WorkerOrder=VillageWorkerOrder.Return;}else u.WorkerOrder=VillageWorkerOrder.Gather;
+            return true;
         }
         private bool NodeOperational(VillageResourceNode n)=>n.StructureId==0||units.Any(u=>u.Id==n.StructureId&&u.IsFarm&&u.State.Alive);
         private VillageResourceNode WorkerNode(BattleUnit u){
-            var options=resourceNodes.Where(n=>n.Team==u.Team&&n.Stock>1e-6&&NodeOperational(n)&&(!u.PreferredResource.HasValue||n.Kind==u.PreferredResource.Value)).ToArray();
+            var options=resourceNodes.Where(n=>CanHarvestNode(n,u.Team)&&(!u.PreferredResource.HasValue||n.Kind==u.PreferredResource.Value)&&(u.PreferredTerritoryId==0||n.Territory?.Id==u.PreferredTerritoryId)).ToArray();
             var pinned=options.FirstOrDefault(n=>n.Id==u.ResourceNodeId);if(pinned!=null)return pinned;
             // Never mix resource types during a trip or silently discard undelivered cargo.
             if(u.Cargo>1e-6)return null;
@@ -154,7 +184,7 @@ namespace Buklod.Empire {
         }
         public bool OrderPlayerResource(string id,VillageResourceKind? resource){
             if(Finished||Time>=OfflineMatchRules.MatchLimit||resource.HasValue&&!Enum.IsDefined(typeof(VillageResourceKind),resource.Value))return false;
-            var worker=PlayerGatherer(id);if(worker==null)return false;worker.PreferredResource=resource;worker.ResourceNodeId=0;
+            var worker=PlayerGatherer(id);if(worker==null)return false;worker.PreferredResource=resource;worker.PreferredTerritoryId=0;worker.ResourceNodeId=0;
             worker.WorkerOrder=worker.Cargo>1e-6?VillageWorkerOrder.Return:VillageWorkerOrder.Gather;return true;
         }
         // Adapter calls are only valid during the canonical worker job's due window.
@@ -336,6 +366,9 @@ namespace Buklod.Empire {
                     var u=Add(team,BattleTargetKind.Villager,new SkillActor(200),pos,ArenaLane.Mid);u.Villager=member;
                 }
             }
+            AddTerritory("North Quarry",new Vector2(160,65),VillageResourceKind.Stone,600);
+            AddTerritory("Covenant Gold Mine",new Vector2(160,110),VillageResourceKind.Gold,450);
+            AddTerritory("South Crystal Mine",new Vector2(160,155),VillageResourceKind.Crystal,300);
         }
         private BattleUnit Add(ArenaTeam team,BattleTargetKind kind,SkillActor state,Vector2 p,ArenaLane lane,bool core=false,bool temporary=false,MinionRole role=MinionRole.Infantry){
             state.Clock=Time;var u=new BattleUnit(++nextId,team,kind,state,p,lane,core,temporary,role);units.Add(u);byState.Add(state,u);return u;
@@ -623,7 +656,7 @@ namespace Buklod.Empire {
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
             foreach(var u in units)u.State.Clock=Time;
             AdvanceWilderness();if(Finished)return;
-            AdvanceResourceNodes();AdvanceWorkers();AdvanceConstruction();AdvanceRecruitment();
+            AdvanceTerritories();AdvanceResourceNodes();AdvanceWorkers();AdvanceConstruction();AdvanceRecruitment();
             foreach(var village in villages)village.Advance(Step);
             foreach(var u in units)if(u.Villager!=null){
                 if(!u.State.Alive&&u.Villager.Alive){u.Position=u.Spawn;u.ClearCargo();u.WorkerOrder=VillageWorkerOrder.Gather;}
@@ -705,6 +738,10 @@ namespace Buklod.Empire {
             if(tick%decisionTicks==0)TrySupport(u);
             var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&v.Villager?.Job.Effect==VillageEffect.Gather?4:0)+(ClearSight(u.Position,v.Position)?3:0)).ThenBy(v=>v.Id).FirstOrDefault();
             if(t==null&&u.Jungler&&CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&a.Health/a.MaxHealth>.55f){
+                if(Time>=90&&(int)Difficulty>=(int)ArenaDifficulty.Advanced){
+                    var site=resourceNodes.Where(n=>n.Territory!=null&&n.Stock>1e-6&&n.Team!=u.Team&&!n.Territory.Contested&&Time>=n.Territory.LockedUntil&&Vector2.Distance(u.Position,n.Position)<50).OrderBy(n=>Vector2.Distance(u.Position,n.Position)).ThenBy(n=>n.Id).FirstOrDefault();
+                    if(site!=null){if(Vector2.Distance(u.Position,site.Position)>ResourceTerritory.Radius*.65f||!ClearSight(u.Position,site.Position))Steer(u,site.Position-u.Position,speed);return;}
+                }
                 var camp=wilderness.Camps.Where(c=>c.Alive&&(c.Boss?Vector2.Distance(u.Position,c.Position)<40:((u.Team==ArenaTeam.Lux)==(c.Position.x<Width/2)))&&(Time<180||Vector2.Distance(u.Position,c.Position)<35)).OrderBy(c=>Vector2.Distance(u.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
                 if(camp!=null){var dir=camp.Position-u.Position;if(dir.magnitude>a.Kit.BasicRange*.9f||!ClearSight(u.Position,camp.Position))Steer(u,dir,speed);else{if(camp.Health<=90)UseTactic(u,dir);Basic(u,dir,null,camp.Id);}return;}
             }
@@ -721,7 +758,7 @@ namespace Buklod.Empire {
         private void Minion(BattleUnit u){
             if(!u.State.CanAttack(Time)&&!u.State.CanMove(Time))return;
             var s=MinionCombatRules.Stats(u.Role);
-            var candidates=units.Where(v=>v!=u&&(v.Kind!=BattleTargetKind.Villager||!CoreAlive(v.Team)||Time>=OfflineMatchRules.MatchLimit)&&v.State.Alive&&Dist(u,v)<=s.RangeSourceUnits/40&&(v.Team==u.Team||IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))).Select(v=>new BattleTarget(v.Id,v.Team,v.Kind,Dist(u,v)*40,true,Attackable(v),v.State.MaxHealth-v.State.Health));
+            var candidates=units.Where(v=>v!=u&&(v.Kind!=BattleTargetKind.Villager||!CoreAlive(v.Team)||Time>=OfflineMatchRules.MatchLimit||territories.Any(site=>InTerritory(v,site)))&&v.State.Alive&&Dist(u,v)<=s.RangeSourceUnits/40&&(v.Team==u.Team||IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))).Select(v=>new BattleTarget(v.Id,v.Team,v.Kind,Dist(u,v)*40,true,Attackable(v),v.State.MaxHealth-v.State.Health));
             var target=MinionCombatRules.Select(u.Role,u.Team,candidates,s.RangeSourceUnits);
             if(target.HasValue&&u.State.CanAttack(Time)){
                 if(Time-u.LastAttack<s.Cooldown)return;

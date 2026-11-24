@@ -34,6 +34,15 @@ namespace Buklod.Empire.Tests {
             Assert.True(b.Hit(b.Player.State,summon.State,300));Assert.AreEqual(gold,b.Player.Gold);Assert.AreEqual(xp,b.Player.Xp);
             Assert.False(b.Dash(b.Player.State,Vector2.right,float.PositiveInfinity));
         }
+        [Test] public void NeutralTerritoryRequiresUncontestedHeroAndCannotGrantFreeResources(){
+            var b=new OfflineBattle("phan");
+            Assert.False(b.OrderPlayerTerritoryWorker("lira",1));
+            var site=b.Territories[0];var node=b.ResourceNodes.Single(n=>n.Territory==site);double stock=node.Stock;
+            Assert.IsNull(site.Owner);Assert.AreEqual(stock,node.Stock);
+            Assert.False(b.OrderPlayerTerritoryWorker("velin",1));
+            Assert.False(b.OrderPlayerTerritoryWorker("lira",999));
+            Assert.AreEqual(0,b.GetVillage(ArenaTeam.Lux).Stone);
+        }
         [Test] public void CanonicalWorkerSlotsAreReservedAndRecruitmentRequiresHousing(){
             var b=new OfflineBattle("phan");
             Assert.AreEqual(6,b.VillagePopulation(ArenaTeam.Lux));Assert.AreEqual(6,b.VillagePopulationCapacity(ArenaTeam.Lux));
@@ -60,9 +69,10 @@ namespace Buklod.Empire.Tests {
         }
         [Test] public void DistinctResourceNodesAreMirroredAndOnlyFoodRegrows(){
             var b=new OfflineBattle("phan");
-            Assert.AreEqual(10,b.ResourceNodes.Count);
+            Assert.AreEqual(13,b.ResourceNodes.Count);Assert.AreEqual(3,b.Territories.Count);
+            Assert.True(b.ResourceNodes.Where(n=>n.Territory!=null).All(n=>!n.Team.HasValue));
             foreach(var kind in System.Enum.GetValues(typeof(VillageResourceKind)).Cast<VillageResourceKind>()){
-                var pair=b.ResourceNodes.Where(n=>n.Kind==kind).ToArray();Assert.AreEqual(2,pair.Length);
+                var pair=b.ResourceNodes.Where(n=>n.Kind==kind&&n.Territory==null).ToArray();Assert.AreEqual(2,pair.Length);
                 Assert.AreEqual(pair[0].Capacity,pair[1].Capacity);
                 Assert.AreEqual(OfflineBattle.Width,pair[0].Position.x+pair[1].Position.x,.001f);
                 Assert.AreEqual(OfflineBattle.Height,pair[0].Position.y+pair[1].Position.y,.001f);

@@ -15,6 +15,7 @@ namespace Buklod.Empire {
         private int shopPage;
         private VillageResourceKind marketResource=VillageResourceKind.Wood;
         private string selectedWorker;
+        private int selectedTerritory=1;
         private Text marketStatus;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
@@ -118,15 +119,16 @@ namespace Buklod.Empire {
             Label("Village title",commands,new Vector2(.02f,.88f),new Vector2(.8f,.98f),"VILLAGE COMMAND",32);
             ButtonAt("Close village",commands,new Vector2(.81f,.89f),new Vector2(.98f,.98f),"CLOSE",CloseCommands);
             commandFeedback=Label("Command feedback",commands,new Vector2(.03f,.75f),new Vector2(.97f,.87f),"",24);
-            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD","MARKET TYPE","BUY LOT","SELL LOT","HOUSE","RECRUIT","CANCEL RECRUIT","NEXT WORKER"};
+            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD","MARKET TYPE","BUY LOT","SELL LOT","HOUSE","RECRUIT","CANCEL RECRUIT","NEXT WORKER","NEXT TERRITORY","GATHER SITE"};
             for(int i=0;i<labels.Length;i++){int action=i;int col=i%4,row=i/4;float x=.03f+col*.235f,y=.63f-row*.105f;ButtonAt(labels[i],commands,new Vector2(x,y),new Vector2(x+.22f,y+.092f),labels[i],()=>VillageCommand(action));}
             marketStatus=Label("Market quote",commands,new Vector2(.27f,.01f),new Vector2(.97f,.06f),"",18);
             RefreshMarketQuote();
             commands.gameObject.SetActive(false);
         }
-        private void OpenCommands(){if(shown||commandOpen||view.Battle==null||view.Battle.Finished||view.Paused)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);commandFeedback.text="Select worker or build at hero position. Recruit: 30 food + 15 wood.";}
+        private void OpenCommands(){if(shown||commandOpen||view.Battle==null||view.Battle.Finished||view.Paused)return;commandOpen=true;view.SetPaused(true);commands.gameObject.SetActive(true);ShowTerritory(view.Battle);}
         private void CloseCommands(){commandOpen=false;commands.gameObject.SetActive(false);if(!shown&&view.Battle!=null&&!view.Battle.Finished)view.SetPaused(false);}
         private void RefreshMarketQuote(){marketStatus.text=$"{marketResource} x10: buy {OfflineMatchRules.MarketGold(marketResource,true)} / sell {OfflineMatchRules.MarketGold(marketResource,false)} team gold";}
+        private void ShowTerritory(OfflineBattle b){var site=b.Territories[selectedTerritory-1];var delta=site.Position-b.Player.Position;commandFeedback.text=$"{site.Name} • {site.Owner?.ToString()??"Neutral"} • {(site.Contested?"Contested":site.Progress.ToString("0.0")+"/8s")} • delta {delta.x:0}, {delta.y:0}";}
         private void VillageCommand(int action){
             var b=view.Battle;if(!commandOpen||b==null||b.Finished)return;
             var workers=System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(System.Linq.Enumerable.Where(b.Units,u=>u.Team==b.Player.Team&&u.State.Alive&&u.Villager?.Job.Effect==VillageEffect.Gather),u=>u.Villager.Job.Id));
@@ -154,6 +156,8 @@ namespace Buklod.Empire {
                 case 18:ok=b.RecruitPlayerVillager();break;
                 case 19:ok=b.CancelPlayerRecruitment();break;
                 case 20:if(workers.Length>0){selectedWorker=workers[(Array.IndexOf(workers,selectedWorker)+1)%workers.Length];commandFeedback.text="Selected worker: "+selectedWorker;}else commandFeedback.text="No living gatherers.";return;
+                case 21:selectedTerritory=selectedTerritory%b.Territories.Count+1;ShowTerritory(b);return;
+                case 22:ok=b.OrderPlayerTerritoryWorker(worker,selectedTerritory);break;
             }
             commandFeedback.text=ok?"Order accepted. Resume to execute.":"Unavailable: check worker, resources, position, existing order or cutoff.";
         }

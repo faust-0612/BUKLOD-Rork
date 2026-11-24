@@ -31,7 +31,8 @@
     "Native offline command bindings, pre-match setup, shop, treasury, HUD, fog-filtered rendering",
     "Local-first Unity test preflight; no production or review bypass; original passive follow-up",
     "Match-local market exchange, finite summon inputs, no summon reward farming, bounded overtime draw",
-    "Bounded housing and permanent-loss recruited gatherers, reserved canonical workforce, validated resource charging"
+    "Bounded housing and permanent-loss recruited gatherers, reserved canonical workforce, validated resource charging",
+    "Neutral resource territory capture, contested access, no stock reset or free income, worker orders and AI"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",
@@ -63,7 +64,9 @@
     "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
     "apps/buklod-empire-unity/Tools/CLOUD_BUILD.md",
     "apps/buklod-empire-unity/Tools/local-apk-preflight.sh",
-    "apps/buklod-empire-unity/Assets/Scripts/BattleVisualCatalog.cs"
+    "apps/buklod-empire-unity/Assets/Scripts/BattleVisualCatalog.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ResourceTerritory.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ResourceTerritoryTests.cs"
   ],
   "regressionTests": [
     "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaDraftTests.cs",
