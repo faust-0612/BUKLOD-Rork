@@ -33,13 +33,22 @@ namespace Buklod.Empire.Tests {
         }
         [Test] public void DuplicateFutureAndMalformedInputsFailClosed(){
             var m=Match();Assert.False(m.Submit("unknown",new MatchInput(1,1,Vector2.zero)));
-            Assert.False(m.Submit("player0",new MatchInput(1,2,Vector2.zero)));
+            Assert.False(m.Submit("player0",new MatchInput(1,5,Vector2.zero)));
             Assert.False(m.Submit("player0",new MatchInput(1,1,new Vector2(float.NaN,0))));
             Assert.False(m.Submit("player0",new MatchInput(1,1,Vector2.right*2)));
             Assert.True(m.Submit("player0",new MatchInput(1,1,Vector2.right)));
             Assert.False(m.Submit("player0",new MatchInput(2,1,Vector2.left)));m.AdvanceTick();
             Assert.False(m.Submit("player0",new MatchInput(1,2,Vector2.zero)));
             Assert.AreEqual(1,m.Snapshot("player0").AppliedSequence);
+        }
+        [Test] public void BoundedLeadBuffersOnlyIncreasingTicks(){
+            var m=Match();
+            Assert.True(m.Submit("player0",new MatchInput(1,2,Vector2.right)));
+            Assert.False(m.Submit("player0",new MatchInput(2,1,Vector2.left)));
+            Assert.True(m.Submit("player0",new MatchInput(2,4,Vector2.zero)));
+            m.AdvanceTick();Assert.AreEqual(0,m.Snapshot("player0").AppliedSequence);
+            m.AdvanceTick();Assert.AreEqual(1,m.Snapshot("player0").AppliedSequence);
+            m.AdvanceTick();m.AdvanceTick();Assert.AreEqual(2,m.Snapshot("player0").AppliedSequence);
         }
         [Test] public void DisconnectClearsPendingAndDoesNotResetReplaySequence(){
             var m=Match();var start=Own(m.Snapshot("player0")).Position;

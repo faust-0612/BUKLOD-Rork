@@ -89,7 +89,7 @@ namespace Buklod.Empire {
         internal MatchSession(int slot){Slot=slot;}
     }
     public sealed class AuthoritativeMatch {
-        public const int ParticipantCount=10, MovementExpiryTicks=3;
+        public const int ParticipantCount=10, MovementExpiryTicks=3, MaxInputLead=4;
         private sealed class Slot {
             public MatchSession Session;
             public bool Connected=>Session!=null;
@@ -97,7 +97,8 @@ namespace Buklod.Empire {
             public bool Success;
             public int LastMoveTick;
             public Vector2 Move;
-            public MatchInput? Pending;
+            public readonly SortedDictionary<int,MatchInput> Pending=new SortedDictionary<int,MatchInput>();
+            public int LastScheduledTick;
         }
         readonly Dictionary<string,int> owners=new Dictionary<string,int>(StringComparer.Ordinal);
         readonly Slot[] slots=new Slot[ParticipantCount];
@@ -111,6 +112,7 @@ namespace Buklod.Empire {
             for(int i=0;i<ParticipantCount;i++){owners.Add(ordered[i].Player,i);slots[i]=new Slot();}
             battle=new OfflineBattle(ordered[0].Hero,navigation,seed,ArenaDifficulty.Normal,false,ordered);
         }
+        internal bool ContainsPlayer(string player)=>Find(player,out _);
         bool Find(string player,out int slot){slot=-1;return player!=null&&owners.TryGetValue(player,out slot);}
         // A session handle is an in-process capability, NOT a network credential. The
         // future authenticated transport must store it server-side and never deserialize it.
@@ -120,28 +122,27 @@ namespace Buklod.Empire {
         }
         public MatchSession OpenSession(string verifiedPlayer){
             if(!Find(verifiedPlayer,out int i))return null;
-            var s=slots[i];s.Pending=null;s.Move=Vector2.zero;s.LastMoveTick=0;
+            var s=slots[i];s.Pending.Clear();s.LastScheduledTick=Tick;s.Move=Vector2.zero;s.LastMoveTick=0;
             return s.Session=new MatchSession(i);
         }
         public bool CloseSession(MatchSession session){
             if(!SessionSlot(session,out int i))return false;
-            var s=slots[i];s.Session=null;s.Pending=null;s.Move=Vector2.zero;s.LastMoveTick=0;return true;
+            var s=slots[i];s.Session=null;s.Pending.Clear();s.LastScheduledTick=Tick;s.Move=Vector2.zero;s.LastMoveTick=0;return true;
         }
         public bool ConfigureLoadout(MatchSession session,ArenaTactic tactic,CovenantLoadout covenant)=>Tick==0&&SessionSlot(session,out int i)&&battle.ConfigureParticipant(i,tactic,covenant);
-        // Exactly one bounded frame per slot per next simulation tick. Reject duplicate,
-        // stale, far-future and disconnected submissions; sequence persists across reconnect.
+        // One frame per slot per tick within a bounded lead window; sequence and scheduled tick increase.
         public bool Submit(MatchSession session,MatchInput input){
-            if(Finished||!SessionSlot(session,out int i)||!input.Valid()||input.Tick!=Tick+1)return false;
-            var s=slots[i];if(!s.Connected||s.Pending.HasValue||input.Sequence<=s.Accepted)return false;
-            s.Accepted=input.Sequence;s.Pending=input;return true;
+            if(Finished||!SessionSlot(session,out int i)||!input.Valid()||input.Tick<=Tick||input.Tick>Tick+MaxInputLead)return false;
+            var s=slots[i];if(!s.Connected||s.Pending.Count>=MaxInputLead||input.Tick<=s.LastScheduledTick||input.Sequence<=s.Accepted)return false;
+            s.Accepted=input.Sequence;s.LastScheduledTick=input.Tick;s.Pending.Add(input.Tick,input);return true;
         }
         public bool AdvanceTick(){
             if(Finished)return false;
             int next=Tick+1;
             for(int offset=0;offset<slots.Length;offset++){
                 int i=(next-1+offset)%slots.Length; // deterministic rotation avoids permanent first-slot priority
-                var s=slots[i];if(s.Connected&&s.Pending.HasValue){
-                    var input=s.Pending.Value;s.Pending=null;s.Move=input.Movement;s.LastMoveTick=next;
+                var s=slots[i];if(s.Connected&&s.Pending.TryGetValue(next,out var input)){
+                    s.Pending.Remove(next);s.Move=input.Movement;s.LastMoveTick=next;
                     s.Success=!battle.Finished&&battle.ApplyParticipantAction(i,input);s.Applied=input.Sequence;
                 }
                 movement[i]=s.Connected&&next-s.LastMoveTick<MovementExpiryTicks?s.Move:Vector2.zero;
