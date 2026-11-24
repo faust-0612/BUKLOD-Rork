@@ -60,11 +60,27 @@ func _ready() -> void:
  rollback.text = "ROLLBACK"
  rollback.pressed.connect(func() -> void: ota.rollback())
  updates.add_child(rollback)
+ var restart := Button.new()
+ restart.text = "REOPEN TO APPLY"
+ restart.pressed.connect(func() -> void: get_tree().quit())
+ updates.add_child(restart)
+ var bar := ProgressBar.new()
+ bar.min_value = 0
+ bar.max_value = 1
+ bar.show_percentage = true
+ bar.custom_minimum_size = Vector2(120,0)
+ updates.add_child(bar)
  var refresh := func() -> void:
   update_status.text = ota.status
-  check.disabled = ota.busy
-  rollback.disabled = ota.busy or ota.state.active.is_empty()
+  check.disabled = ota.busy or ota.restart_required
+  rollback.disabled = ota.busy or ota.restart_required or ota.state.active.is_empty()
+  restart.visible = ota.restart_required
+  bar.visible = ota.busy and ota.progress >= 0
+  bar.value = maxf(0,ota.progress)
  ota.status_changed.connect(refresh)
+ tree_exiting.connect(func() -> void:
+  if ota.status_changed.is_connected(refresh):
+   ota.status_changed.disconnect(refresh))
  refresh.call()
  ota.check_once()
  await get_tree().process_frame

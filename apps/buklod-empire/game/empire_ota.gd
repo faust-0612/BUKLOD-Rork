@@ -19,6 +19,8 @@ var mounted: Dictionary = {}
 var next_check: int = 0
 var request: HTTPRequest
 var current_download := false
+var restart_required := false
+var last_progress_at: int = 0
 
 func _ready() -> void:
  var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string(CONFIG))
@@ -35,6 +37,37 @@ func _ready() -> void:
  request.timeout = 120.0
  add_child(request)
  set_process(false)
+
+func boot_into_menu() -> void:
+ if not mount_on_boot():
+  _show_recovery()
+  return
+ var scene: PackedScene = load("res://scenes/EmpireMenu.tscn")
+ if scene == null or get_tree().change_scene_to_packed(scene) != OK:
+  fail_current("Menu load failed")
+  _show_recovery()
+  return
+ await get_tree().scene_changed
+ await get_tree().process_frame
+ if DisplayServer.get_name() != "headless":
+  await RenderingServer.frame_post_draw
+ if get_tree().current_scene == null or get_tree().current_scene.name != "EmpireMenu":
+  fail_current("Menu readiness failed")
+  _show_recovery()
+  return
+ confirm_boot()
+
+func _show_recovery() -> void:
+ var label := Label.new()
+ label.text = "Update recovery saved. Close and reopen Empire."
+ label.position = Vector2(48,48)
+ label.add_theme_font_size_override("font_size",24)
+ get_tree().root.add_child(label)
+ var exit_button := Button.new()
+ exit_button.text = "EXIT EMPIRE"
+ exit_button.position = Vector2(48,110)
+ exit_button.pressed.connect(func() -> void: get_tree().quit())
+ get_tree().root.add_child(exit_button)
 
 func _set_status(message: String, amount: float = -1.0) -> void:
  status = message
@@ -95,7 +128,7 @@ func validate_envelope(envelope: Dictionary) -> Dictionary:
  var size: Variant = data.get("bytes",0)
  if not (sequence is int or sequence is float) or not (size is int or size is float):
   return {}
- if sequence != floor(sequence) or sequence < 1 or sequence > 2147483647 or size != floor(size) or size < 22 or size > MAX_BYTES:
+ if sequence != floor(float(sequence)) or sequence < 1 or sequence > 2147483647 or size != floor(float(size)) or size < 22 or size > MAX_BYTES:
   return {}
  if not data.get("sha256") is String or not _hex(data.sha256):
   return {}
@@ -206,17 +239,19 @@ func fail_current(reason: String) -> void:
   state.previous = {}
  state.pending = {}
  state.booting = ""
+ restart_required = true
  _save()
  _set_status(reason + " • reopen Empire to recover")
 
 func rollback() -> void:
- if busy or state.active.is_empty():
+ if busy or restart_required or state.active.is_empty():
   return
  state.active = state.previous
  state.previous = {}
  state.pending = {}
  state.booting = ""
  if _save():
+  restart_required = true
   _set_status("Rollback saved • close and reopen Empire")
 
 ## Used by network download and isolated signed-fixture tests. No external paths exposed.
@@ -239,6 +274,7 @@ func stage_verified(envelope: Dictionary, path: String) -> bool:
   state = before
   return false
  _remove_unreferenced()
+ restart_required = true
  _set_status("Content v"+str(int(data.sequence))+" downloaded • next launch")
  return true
 
@@ -256,13 +292,17 @@ func _origin() -> String:
  return "https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/empire-updates/"+str(config.channel)+"/"
 
 func _process(_delta: float) -> void:
- if current_download:
+ if current_download and Time.get_ticks_msec() - last_progress_at >= 250:
+  last_progress_at = Time.get_ticks_msec()
   var total := request.get_body_size()
   var bytes := request.get_downloaded_bytes()
   _set_status("Downloading game content • "+str(int(bytes/1024))+" KB",clampf(float(bytes)/float(total),0.0,1.0) if total > 0 else -1.0)
 
 func check_update() -> void:
  if busy:
+  return
+ if restart_required:
+  _set_status("Update or rollback saved • close and reopen Empire")
   return
  if not _enabled():
   _set_status("Update channel not configured")
@@ -288,7 +328,7 @@ func check_update() -> void:
   _set_status("No update available or connection interrupted")
   return
  var envelope: Variant = JSON.parse_string(result[3].get_string_from_utf8())
- var data := validate_envelope(envelope) if envelope is Dictionary else {}
+ var data: Dictionary = validate_envelope(envelope) if envelope is Dictionary else {}
  if data.is_empty():
   busy = false
   _set_status("Update rejected • signature or compatibility")

@@ -8,6 +8,9 @@ const ROUTES := {
 }
 var world_id: String = "kingdom"
 var transitioning := false
+func _ready() -> void:
+ # Android back is owned by this session; the engine default quits the process.
+ get_tree().quit_on_go_back = false
 func enter_world(world: String) -> void:
  if transitioning or not ROUTES.has(world):
   return

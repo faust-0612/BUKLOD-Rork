@@ -24,7 +24,8 @@
     "Exact independent APK identity and native ABIs",
     "Real Android emulator render and battle",
     "No backend write or MAIN deploy",
-    "Signed cumulative OTA delta, exact runtime/base/channel, immutable bootstrap, rollback and Android launch before release."
+    "Signed cumulative OTA delta, exact runtime/base/channel, immutable bootstrap, rollback and Android launch before release.",
+    "Real Godot engine validates signature and actual mounted resource, replay rejection, interrupted boot recovery and manual rollback."
   ],
   "allowedPaths": [
     ".buklod/releases/buklod-empire-standalone-dev-20261124.json",
@@ -42,12 +43,15 @@
     "apps/buklod-empire/game/empire_boot.gd",
     "apps/buklod-empire/game/empire_menu.gd",
     "apps/buklod-empire/game/empire_ota.gd",
+    "apps/buklod-empire/game/empire_ota_runtime_test.gd",
     "apps/buklod-empire/game/empire_session.gd",
     "apps/buklod-empire/gradle.properties",
     "apps/buklod-empire/settings.gradle",
     "scripts/build-buklod-empire-ota.mjs",
     "scripts/build-buklod-empire-standalone.mjs",
+    "scripts/prepare-buklod-empire-ota-fixture.mjs",
     "scripts/verify-buklod-empire-android.sh",
+    "scripts/verify-buklod-empire-ota-godot.sh",
     "tests/buklod-empire-ota.test.mjs",
     "tests/buklod-empire-standalone-contract.test.mjs"
   ],

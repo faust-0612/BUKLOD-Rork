@@ -12,11 +12,12 @@ on:
       - 'tests/buklod-empire-ota.test.mjs'
       - 'scripts/build-buklod-empire-ota.mjs'
       - 'scripts/verify-buklod-empire-ota-godot.sh'
+      - 'scripts/prepare-buklod-empire-ota-fixture.mjs'
 permissions:
   contents: read
 concurrency:
   group: buklod-empire-standalone-dev
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   native-empire:
     runs-on: ubuntu-latest
@@ -45,6 +46,21 @@ jobs:
           node --test tests/buklod-empire-standalone-contract.test.mjs tests/buklod-empire-ota.test.mjs
           node scripts/genesis-import-verified-3d.mjs
           node scripts/build-buklod-empire-standalone.mjs
+      - name: Real Godot engine signature, delta mount, interruption recovery and rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/empire-godot
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/empire-godot.zip
+          unzip -q /tmp/empire-godot.zip -d /tmp/empire-godot
+          GODOT="$(find /tmp/empire-godot -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          chmod +x "$GODOT"
+          "$GODOT" --version | grep -F '4.7.2'
+          bash scripts/verify-buklod-empire-ota-godot.sh "$GODOT"
+          # Verify the exact generated APK project parses and boots before Android compilation.
+          timeout 60s "$GODOT" --headless --path apps/buklod-empire/app/src/main/assets --quit-after 60 2>&1 | tee /tmp/empire-exact-boot.log
+          grep -F 'BUKLOD_EMPIRE_MENU_RENDERED' /tmp/empire-exact-boot.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error' /tmp/empire-exact-boot.log; then exit 1; fi
       - name: Native Gradle build and binary identity, no Expo or Vercel
         run: |
           set -euo pipefail
@@ -58,6 +74,9 @@ jobs:
           unzip -Z1 "$APK" > build/buklod-empire/apk-entries.txt
           grep -Fx 'assets/project.godot' build/buklod-empire/apk-entries.txt
           grep -Fx 'assets/scenes/EmpireMenu.tscn' build/buklod-empire/apk-entries.txt
+          grep -Fx 'assets/scenes/EmpireBoot.tscn' build/buklod-empire/apk-entries.txt
+          grep -Fx 'assets/scripts/empire_ota.gd' build/buklod-empire/apk-entries.txt
+          grep -Fx 'assets/empire-ota/config.json' build/buklod-empire/apk-entries.txt
           grep -E '^lib/arm64-v8a/.*godot.*\.so$' build/buklod-empire/apk-entries.txt
           grep -E '^lib/x86_64/.*godot.*\.so$' build/buklod-empire/apk-entries.txt
           if grep -E 'assets/index.android.bundle|lib/[^/]+/libhermes.so' build/buklod-empire/apk-entries.txt; then exit 1; fi

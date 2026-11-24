@@ -45,7 +45,14 @@ walk(contentRoot);
 for(const p of Object.keys(baseline.inventory))assert.ok(current[p],'Deleted resource requires new APK: '+p);
 const delta=Object.keys(current).filter(p=>current[p]!==baseline.inventory[p]).sort();
 assert.ok(delta.length>0&&delta.length<=4096,'No compatible delta');
-for(const p of delta)assert.ok(allow(p),'Immutable or unsupported resource requires new APK: '+p);
+let unpackedBytes=0;
+for(const p of delta){
+ assert.ok(allow(p),'Immutable or unsupported resource requires new APK: '+p);
+ const size=statSync(path.join(contentRoot,p)).size;
+ assert.ok(size<=64*1024*1024,'Individual resource too large: '+p);
+ unpackedBytes+=size;
+}
+assert.ok(unpackedBytes<=256*1024*1024,'Unpacked overlay exceeds cap');
 const tmp=mkdtempSync(path.join(os.tmpdir(),'empire-ota-'));
 try{
  for(const p of delta){const dest=path.join(tmp,p);mkdirSync(path.dirname(dest),{recursive:true});copyFileSync(path.join(contentRoot,p),dest);}
