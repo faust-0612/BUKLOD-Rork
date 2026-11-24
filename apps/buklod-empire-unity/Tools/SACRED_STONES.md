@@ -17,3 +17,6 @@ Offline training menu now includes a free practice counter button against the ne
 
 ## Unity integration
 Merged onto current Unity DEV, retaining existing base shop, offline menu, graphics and gameplay fixes. Hero cards now show Sacred Stone names and the selected hero's fixed recipe. Free training shows matching target stone, counter availability and active effect countdown. No local persistent inventory or real debit. Fixed malformed SQL function delimiters; backend remains a private candidate pending verified server/runtime and canonical BP ledger integration. No live endpoints or payments enabled.
+
+### Test handoff
+Additional Unity integration tests exercise actual counter effects through hero skill dispatch and invalid targets through the battle engine. `Tools/test_sacred_stones_server.sql` is a psql fixture for an empty disposable LOCAL PostgreSQL cluster, never a Supabase project. It covers BP exchange replay, recipe, trade replay, pick consumption, unused counter refund and private permissions using a mock BP ledger trigger. It does not certify live BP integration. Unity and PostgreSQL runtimes are required to execute these suites.
