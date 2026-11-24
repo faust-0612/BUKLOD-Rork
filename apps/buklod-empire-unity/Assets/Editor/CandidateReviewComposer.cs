@@ -43,7 +43,8 @@ namespace Buklod.Empire.Editor {
             HeroLodReviewImporter.CopyModels();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             var prefabs=new Dictionary<string,GameObject>();
-            foreach(var spec in specs)prefabs.Add(spec.id,MakePrefab(spec.id,spec.clips,factionHd&&factionPaths.ContainsKey(spec.id)));
+            bool environmentHd=EnvironmentMaterialReview.Prepare();
+            foreach(var spec in specs)prefabs.Add(spec.id,MakePrefab(spec.id,spec.clips,factionHd&&factionPaths.ContainsKey(spec.id),environmentHd:environmentHd&&staticSpecs.Contains(spec.id)));
 
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             var root=new GameObject("UNAPPROVED — ORIGINAL PROCEDURAL REVIEW");
@@ -102,7 +103,7 @@ namespace Buklod.Empire.Editor {
                 throw new InvalidOperationException("Premium map integrity mismatch. Regenerate from the current original map.");
             return premium;
         }
-        internal static GameObject MakePrefab(string id,string[] required,bool factionHd=false,bool wildlifeHd=false){
+        internal static GameObject MakePrefab(string id,string[] required,bool factionHd=false,bool wildlifeHd=false,bool environmentHd=false){
             string modelPath=$"{Out}/Models/{id}.glb";
             var model=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if(!model)throw new InvalidOperationException("glTFast GameObject import failed: "+id);
@@ -154,6 +155,7 @@ namespace Buklod.Empire.Editor {
                 }
                 if(factionHd)FactionMaterialReview.Apply(instance,id);
                 if(wildlifeHd)WildlifeMaterialReview.Apply(instance,id);
+                if(environmentHd)EnvironmentMaterialReview.Apply(instance,id);
                 if(HeroKitCatalog.All.Any(h=>h.Id==id))HeroLodReviewImporter.Attach(instance,id);
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);
