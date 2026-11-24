@@ -49,9 +49,9 @@ import { buildScopedWorkspacePath, isManagedCommunityScope } from '@/lib/buklodS
  * Community Wall must be the first route instead of the retired Public Home.
  * Organization/Cluster workspaces remain route-owned by /scope.
  */
-export const unstable_settings = {
-  initialRouteName: isGenesisPreviewBuild() ? 'hub' : 'buklod',
-};
+export const unstable_settings = isGenesisPreviewBuild()
+  ? { initialRouteName: 'hub' }
+  : { initialRouteName: 'buklod' };
 
 function SwipeDashboardHeader() {
   const pathname =

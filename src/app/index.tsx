@@ -179,9 +179,6 @@ export default function Index() {
     );
   }
 
-  return (
-    <Redirect
-      href={isGenesisPreviewBuild() ? '/(tabs)/hub' : '/(tabs)/buklod'}
-    />
-  );
+  if (isGenesisPreviewBuild()) return <Redirect href="/(tabs)/hub" />;
+  return <Redirect href="/(tabs)/buklod" />;
 }
