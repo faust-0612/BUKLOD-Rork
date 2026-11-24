@@ -1,0 +1,76 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const request=read('supabase/migrations/20261124051000_saliksik_r4_auto_research_corpus.sql');
+const master=read('supabase/migrations/20261124052000_saliksik_r4_independent_master_grade.sql');
+const edge=read('supabase/functions/saliksik-auto-v1/index.ts');
+const member=read('src/app/scope/saliksik.tsx');
+const lab=read('src/components/BuklodSaliksikResearchLab.tsx');
+const client=read('src/lib/saliksikClient.ts');
+const download=read('supabase/functions/saliksik-manuscript-v1/index.ts');
+const pg=read('tests/fixtures/saliksik_r4_auto_pg_integration.sql');
+
+test('member starts bounded canonical research automatically without an admin upload or Admin approval',()=>{
+ assert.match(lab,/saliksikRequestResearch\(scopeId,question,reference,method\)/);
+ assert.match(lab,/saliksikAutoAdvance\(requestId\)/);
+ assert.match(lab,/resumed\.current=true/);
+ assert.match(lab,/onPublished\(\)/);
+ assert.match(lab,/methods\.map/);
+ assert.match(request,/source_mode='CANONICAL_BIBLE_CORPUS'/);
+ assert.match(request,/public\.bible_verses/);
+ assert.match(request,/translation_code='KJV'/);
+ assert.match(request,/buklod_my_scopes_p0_v2/);
+ assert.match(request,/daily_research_request_limit/);
+ assert.match(client,/saliksikMyResearch/);
+ assert.match(member,/<BuklodSaliksikResearchLab scopeId=\{scopeId\} onPublished=\{load\}/);
+ assert.doesNotMatch(lab,/saliksikAdminPublish|saliksikUploadOriginal|is_system_admin/);
+});
+test('generated question content cannot publish without deterministic canonical-source evidence and independent model critic',()=>{
+ assert.match(edge,/validateResearchItem/);
+ assert.match(edge,/independent_source_question_review_rejected/);
+ assert.match(edge,/question_competency_coverage_invalid/);
+ assert.match(edge,/sourceText\.toLowerCase\(\)\.includes\(evidence\.toLowerCase\(\)\)/);
+ assert.match(request,/critic_approved/);
+ assert.match(request,/question_unverifiable_against_canonical_source/);
+ assert.match(request,/stale_auto_lease/);
+ assert.match(request,/saliksik_internal_service_r4/);
+ assert.match(request,/REVOKE ALL ON FUNCTION public/);
+ assert.match(request,/TO service_role/);
+ assert.doesNotMatch(request,/GRANT\s+INSERT\s+ON\s+public\.saliksik_question_keys\s+TO\s+authenticated/i);
+});
+test('written Master receives two independent evidence-grounded grading calls, server-settled only after accuracy and competency gates',()=>{
+ assert.match(edge,/Promise\.all\(\[/);
+ assert.match(edge,/ROLE: independent adversarial reviewer/);
+ assert.match(edge,/evidenceForEssays/);
+ assert.match(edge,/canonicalRefs/);
+ assert.match(master,/saliksik_auto_master_lease_r4/);
+ assert.match(master,/v_gap:=true/);
+ assert.match(master,/v_score>=80/);
+ assert.match(master,/v_grade_a->>'core_pass'/);
+ assert.match(master,/p_citations_verified/);
+ assert.match(master,/saliksik_research_academic_evidence/);
+ assert.match(master,/ON CONFLICT DO NOTHING/);
+ assert.match(member,/saliksikAutoAssessMaster\(receipt\.submission_id\)/);
+ assert.match(member,/REFRESH \/ RETRY AUTO VERIFICATION/);
+ assert.doesNotMatch(client,/buklod_points_ledger.*insert/);
+});
+test('full complete manuscript stays private, works for canonical corpus and requires all nine server completions',()=>{
+ assert.match(master,/CREATE OR REPLACE FUNCTION public\.saliksik_manuscript_access_v1/);
+ assert.match(master,/v_count<>9 OR v_completed<>9/);
+ assert.match(master,/c\.source_mode='ADMIN_MANUSCRIPT'/);
+ assert.match(master,/original_storage_path/);
+ assert.match(download,/saliksik_manuscript_access_v1/);
+ assert.match(download,/complete_study_manuscript/);
+ assert.match(member,/DOWNLOAD COMPLETE MANUSCRIPT/);
+ assert.match(pg,/Full automatic study manuscript not accessible/);
+ assert.match(pg,/Manual claim was bypassed/);
+ assert.match(pg,/zero Admin preparation/);
+});
+test('no fabricated University Credits, no over-eager production activation or unrelated native changes',()=>{
+ assert.match(master,/awaiting_authorized_registrar_policy/);
+ assert.doesNotMatch(master,/INSERT INTO .*university_credits/i);
+ assert.match(request,/member_enabled/);
+ assert.doesNotMatch(edge,/Deno\.env\.get\('EXPO_PUBLIC_/);
+ assert.doesNotMatch(lab,/import .*expo-file-system/);
+});

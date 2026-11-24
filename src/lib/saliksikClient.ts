@@ -13,7 +13,8 @@ export type SaliksikSource = {
 };
 export type SaliksikInvestigation = {
  id: string; collection_id: string; collection_title: string;
- title: string; summary: string; tier: 'discover'|'investigate';
+ source_mode?:'CANONICAL_BIBLE_CORPUS'|'ADMIN_MANUSCRIPT';
+ title: string; summary: string; tier: 'discover'|'investigate'|'master';
  points: number; scripture_refs: string[]; completed: boolean;
 };
 export type SaliksikDetail = {
@@ -222,4 +223,60 @@ export async function saliksikAdminSetOriginalDownloadRights(
   p_source_id:sourceId,p_allowed:allowed,p_basis:statement,
  });
  if(!out?.ok)throw new Error('Original manuscript rights change was not confirmed');
+}
+
+
+export type SaliksikResearchMethod =
+ |'exegetical'|'biblical_theology'|'systematic'|'historical'
+ |'comparative'|'practical'|'education'|'mission_leadership';
+export type SaliksikAutoResearchReceipt = {
+ ok:boolean;status:'queued'|'processing'|'ready'|'held';ready?:boolean;busy?:boolean;retry_seconds?:number;request_id?:string;
+ question?:string;scripture_anchor?:string;progress?:number;
+ collection_id?:string|null;error?:string|null;created_at?:string;
+};
+const SALIKSIK_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Research generation is requested by members; only the server may publish. */
+export async function saliksikRequestResearch(
+ scopeId:string,question:string,reference:string,method:SaliksikResearchMethod
+):Promise<SaliksikAutoResearchReceipt>{
+ const result=await rpc<SaliksikAutoResearchReceipt>('saliksik_research_request_r4',{
+  p_scope_id:scopeId,p_question:question.trim(),p_reference:reference.trim(),p_method:method,
+ });
+ if(!result?.ok)throw new Error('Automatic SALIKSIK request could not be saved');
+ return result;
+}
+export async function saliksikMyResearch(scopeId:string):Promise<SaliksikAutoResearchReceipt[]>{
+ return rpc<SaliksikAutoResearchReceipt[]>('saliksik_my_research_r4',{p_scope_id:scopeId});
+}
+export async function saliksikResearchStatus(requestId:string):Promise<SaliksikAutoResearchReceipt>{
+ if(!SALIKSIK_UUID.test(requestId))throw new Error('Invalid research request');
+ return rpc<SaliksikAutoResearchReceipt>('saliksik_research_status_r4',{p_request_id:requestId});
+}
+export async function saliksikAutoAdvance(requestId:string):Promise<SaliksikAutoResearchReceipt>{
+ if(!SALIKSIK_UUID.test(requestId))throw new Error('Invalid research request');
+ const {data,error}=await supabase.functions.invoke('saliksik-auto-v1',{
+  body:{action:'advance',request_id:requestId},
+ });
+ if(error)throw new Error(fail(error));
+ if(!data?.ok)throw new Error(String(data?.reason??'Automated research temporarily unavailable'));
+ return data as SaliksikAutoResearchReceipt;
+}
+export async function saliksikAutoAssessMaster(submissionId:string):Promise<{
+ ok:boolean;automatic?:boolean;receipt?:Record<string,unknown>;completed?:boolean;busy?:boolean;
+}>{
+ if(!SALIKSIK_UUID.test(submissionId))throw new Error('Invalid research submission');
+ const {data,error}=await supabase.functions.invoke('saliksik-auto-v1',{
+  body:{action:'assess',submission_id:submissionId},
+ });
+ if(error)throw new Error(fail(error));
+ if(!data?.ok)throw new Error(String(data?.reason??'Independent verifier temporarily unavailable'));
+ return data;
+}
+/** Records actual verified research only; this is NOT a University Credits award. */
+export async function saliksikResearchEvidenceReceipt(collectionId:string):Promise<{
+ academic_evidence_verified?:boolean;research_method?:string;scripture_anchor?:string;
+ verified_at?:string;university_credits?:string;
+}>{
+ if(!SALIKSIK_UUID.test(collectionId))throw new Error('Invalid research collection');
+ return rpc('saliksik_academic_evidence_receipt_r4',{p_collection_id:collectionId});
 }

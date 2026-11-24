@@ -4,9 +4,11 @@ import {
 } from 'react-native';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {router,useLocalSearchParams} from 'expo-router';
+import BuklodSaliksikResearchLab from '@/components/BuklodSaliksikResearchLab';
 import {
  saliksikCatalog,saliksikDetail,saliksikBegin,saliksikSubmit,
  saliksikMasterSubmit,saliksikMasterStatus,saliksikRequestCompleteManuscript,
+ saliksikAutoAssessMaster,
  type SaliksikMasterSubmission,
  type SaliksikInvestigation,type SaliksikDetail,
  type SaliksikSession,type SaliksikResult,
@@ -87,8 +89,13 @@ export default function SaliksikInvestigationScreen(){
   try{
    const receipt=await saliksikMasterSubmit(scopeId,detail.id,masterAnswers);
    if(!receipt?.pending&&!receipt?.completed)throw new Error('Submission not confirmed');
-   setMasterStatus(await saliksikMasterStatus(detail.id));
    setMasterAnswers(['','','']);
+   const sourceMode=catalog.find(x=>x.id===detail.id)?.source_mode;
+   if(receipt.pending&&receipt.submission_id&&sourceMode==='CANONICAL_BIBLE_CORPUS'){
+    try{await saliksikAutoAssessMaster(receipt.submission_id);}
+    catch{/* private submission stays pending and can be automatically retried */}
+   }
+   setMasterStatus(await saliksikMasterStatus(detail.id));
    await load();
   }catch(e){setError(errorText(e));}
   finally{setBusy(false);}
@@ -96,7 +103,15 @@ export default function SaliksikInvestigationScreen(){
  const refreshMaster=async()=>{
   if(!detail?.id||busy)return;
   setBusy(true);setError('');
-  try{setMasterStatus(await saliksikMasterStatus(detail.id));await load();}
+  try{
+   const existing=await saliksikMasterStatus(detail.id);
+   if(existing?.status==='pending'&&catalog.find(x=>x.id===detail.id)?.source_mode==='CANONICAL_BIBLE_CORPUS'){
+    try{await saliksikAutoAssessMaster(existing.id);}
+    catch{setError('Automatic verification unavailable. Submission remains saved for retry.');}
+   }
+   setMasterStatus(await saliksikMasterStatus(detail.id));
+   await load();
+  }
   catch(e){setError(errorText(e));}finally{setBusy(false);}
  };
  const close=()=>{setDetail(null);setSession(null);setResult(null);setMasterStatus(null);setMasterAnswers(['','','']);setAnswers([]);setError('');};
@@ -141,6 +156,7 @@ export default function SaliksikInvestigationScreen(){
     <Pressable onPress={()=>void load()}><Text style={styles.link}>RETRY</Text></Pressable></View>:null}
   {loading?<ActivityIndicator color={green}/>:null}
   {!detail?<View style={styles.stack}>
+    <BuklodSaliksikResearchLab scopeId={scopeId} onPublished={load}/>
    {!loading&&catalog.length===0?<View style={styles.card}>
      <MaterialCommunityIcons name="book-clock-outline" size={27} color={green}/>
      <Text style={styles.cardTitle}>Wala pang available na investigation.</Text>
@@ -185,14 +201,14 @@ export default function SaliksikInvestigationScreen(){
    <Text style={styles.small}>Earned rewards are pending until claimed through BUKLOD Points. No points for merely opening content or agreeing with the author.</Text>
    {detail.tier==='master'?<>
     <Text style={styles.cardTitle}>WRITTEN MASTER ASSESSMENT • +35 Points</Text>
-    <Text style={styles.small}>Unlock by passing all eight objective investigations. Write your own reasoning and specific Bible references. The System Admin checks citations and scores five competencies before any reward. No automated credit for essay length or mere agreement.</Text>
+    <Text style={styles.small}>Unlock by passing all eight objective investigations. Write your own reasoning and specific Bible references. For canonical-source research, two independent automatic assessors verify passages and score all five competencies. Unsupported or disputed research is returned for revision without credit.</Text>
     {masterStatus?<View style={styles.note}>
       <Text style={styles.noteText}>Last submission: {masterStatus.status.toUpperCase()}
       {masterStatus.score!==null?' • '+masterStatus.score+'/100':''}</Text>
       {masterStatus.feedback?<Text style={styles.noteText}>Reviewer feedback: {masterStatus.feedback}</Text>:null}
     </View>:null}
     {masterStatus?.status==='pending'||current?.completed?
-      <Text style={styles.hint}>{current?.completed?'Written mastery verified. Claim your earned points in BUKLOD Points.':'Submission received; waiting for source-based Admin assessment.'}</Text>:
+      <Text style={styles.hint}>{current?.completed?'Written mastery verified. Claim your earned points in BUKLOD Points.':'Submission saved; automatic verification can be retried.'}</Text>:
       <>
        {[
         '1. State your thesis and substantiate it with exact passages and their context.',
@@ -208,12 +224,12 @@ export default function SaliksikInvestigationScreen(){
        </View>)}
        <Pressable style={[styles.primary,(busy||masterAnswers.some(a=>a.trim().length<220))&&styles.disabled]}
         disabled={busy||masterAnswers.some(a=>a.trim().length<220)} onPress={()=>void submitMaster()}>
-         <Text style={styles.primaryText}>SUBMIT WRITTEN MASTERY FOR REVIEW</Text>
+         <Text style={styles.primaryText}>SUBMIT FOR AUTOMATIC SOURCE VERIFICATION</Text>
        </Pressable>
       </>
     }
     <Pressable style={styles.secondary} onPress={()=>void refreshMaster()}>
-      <Text style={styles.secondaryText}>REFRESH REVIEW STATUS</Text>
+      <Text style={styles.secondaryText}>REFRESH / RETRY AUTO VERIFICATION</Text>
     </Pressable>
    </>:null}
    {detail.tier!=='master'?<Pressable style={styles.primary} disabled={busy||current?.completed} onPress={()=>void start()}>
@@ -254,7 +270,7 @@ export default function SaliksikInvestigationScreen(){
      <Text style={styles.primaryText}>REVIEW AND TRY AGAIN</Text></Pressable>:null}
    <Pressable style={styles.secondary} onPress={close}><Text style={styles.secondaryText}>BACK TO INVESTIGATIONS</Text></Pressable>
   </View>:null}
-  <Text style={styles.footer}>Learning progress is personal. Exam keys are never returned to the app. Reward confirmation comes only from the BUKLOD server.</Text>
+  <Text style={styles.footer}>Learning progress is private. Exam keys remain server-only. Completed research is academic evidence; University Credits require separate Registrar policy. Points remain individually claimable.</Text>
  </ScrollView>;
 }
 const styles=StyleSheet.create({

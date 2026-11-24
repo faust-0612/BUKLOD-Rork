@@ -1,0 +1,99 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/saliksik-r4-automatic-e2e-conso-20261124.json",
+  "objective": "Complete all user-approved SALIKSIK in-session goals end-to-end in a standalone staging DEV candidate: zero mandatory Admin source preparation, member-sourced canonical Bible research methods, automatically generated and independently verified investigative assessments, two-blind-verifier Master, secure canonical pending BP, academic research evidence, and verified 9/9 complete manuscript download. Prepare only for later consolidated staging RC; production untouched.",
+  "baseRef": "9b1a113f6c57c5f7a65ab67d89a3ac53db8db54c",
+  "productionBaselineEvidence": "Authoritative GitHub main source last read 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 on 2026-11-24; R2 PR #806 and R3 PR #1158 unreleased DEV. R4 is additive on R3 HEAD 9b1a113, NOT production or current Genesis; exact live Android runtime/OTA fingerprints not attested. Supabase MAIN was consulted read-only for bible_canon_books, bible_verses, buklod_scopes schema; no live SQL/Edge changes made.",
+  "chosenApproach": "Reuse canonical existing KJV Bible corpus rather than mandatory Admin file; member request queue and resumable 2-investigation generator, independent source critic + strict SQL quote/citation checks; two blind AI rubric evaluators, deterministic 80%/70% core/independent score agreement, service-only atomic ledger settlement, source-less R3 manuscript entitlement and academic evidence. No additional mandatory lessons or duplicate University Credits.",
+  "selectionRationale": "Fails closed on missing evidence while eliminating routine Admin approvals, preserves privacy/Points, and keeps high-cost AI off first paint. Fresh cross-feature integration requires safe isolated backend because original production has no R1–R4 SALIKSIK schema.",
+  "alternativeApproaches": [
+    "Let LLM freely publish answer keys and points from the mobile client: rejected for hallucinations, abuse and privilege escalation.",
+    "Continue Admin manuscript uploads and human written rubric gating: rejected by owner as a default requirement.",
+    "Deploy R1–R4 directly to live MAIN backend for testing: rejected because it could mutate production, rewards, and source privacy.",
+    "Merge the divergent older staging branch wholesale into current main: rejected as unsafe to unrelated production/Genesis changes."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "backend-security",
+    "app-runtime",
+    "cluster-faith",
+    "ai-provenance",
+    "points-ledger",
+    "academic-integrity",
+    "storage-privacy",
+    "consolidated-staging-parity"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/saliksik-r4-automatic-e2e-conso-20261124.json",
+    ".github/workflows/saliksik-sql-qa.yml",
+    "docs/saliksik/BUKLOD_SALIKSIK_R4_CONSOLIDATED_STAGING_CONTRACT_20261124.md",
+    "supabase/migrations/20261124051000_saliksik_r4_auto_research_corpus.sql",
+    "supabase/migrations/20261124052000_saliksik_r4_independent_master_grade.sql",
+    "supabase/functions/saliksik-auto-v1/index.ts",
+    "src/components/BuklodSaliksikResearchLab.tsx",
+    "src/app/scope/saliksik.tsx",
+    "src/lib/saliksikClient.ts",
+    "tests/fixtures/saliksik_pg_seed.sql",
+    "tests/fixtures/saliksik_r4_auto_pg_integration.sql",
+    "tests/saliksik-auto-research-e2e-20261124.test.mjs",
+    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+    "supabase/tests/saliksik_auto_research_security_r4.sql"
+  ],
+  "regressionTests": [
+    "tests/saliksik-auto-research-e2e-20261124.test.mjs",
+    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+    "supabase/tests/saliksik_auto_research_security_r4.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Adds research lab within existing faith-gated SALIKSIK member screen with no native module, side effect on nav, or production change.",
+      "preservedBehaviors": [
+        "Home/Cluster first paint, Wall/video, AdMob display, instant tabs, KL/ABaKa, Connect, Profile, compact spacing, installed Android runtime remain unaffected."
+      ],
+      "tests": [
+        "tests/saliksik-auto-research-e2e-20261124.test.mjs",
+        "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "SALIKSIK research remains in only faith opted-in active Cluster; loads on door open and not dashboard paint.",
+      "preservedBehaviors": [
+        "Nonfaith Cluster users never see SALIKSIK; server membership and personal Show Faith gate remain enforced."
+      ],
+      "tests": [
+        "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Creates source-verified service-only AI question publication, independent Master grading, academic evidence and completion/rights entitlements.",
+      "preservedBehaviors": [
+        "No service-role secret on client, private answer keys and essays, cross-account RLS, point rule switches and pending manual claim; no Finance/QMP/Ads mutation."
+      ],
+      "tests": [
+        "supabase/tests/saliksik_auto_research_security_r4.sql"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Existing R1/R2/R3 canonical Points and reward events are idempotent; no Claim All, admin official member points, QMP, ad revenue changes.",
+    "Existing R2 private manuscript/Admin legacy remains optional, never a prerequisite for canonical-source member research.",
+    "Existing completed KL, ABaKa, Word, Daily Reading, Formation and University blueprint source histories remain immutable; no synthetic UC/academic credentials.",
+    "No production live backend migration, Supabase Edge deployment, OTA, Play, Vercel, staging-user OTA, or new APK from this DEV branch.",
+    "No fake offline points, uncontrolled LLM content, leaked private manuscripts or new required lessons."
+  ],
+  "acceptanceChecks": [
+    "Authenticated member chooses research topic/passage/method and creates bounded source-backed queue without Admin upload or approval.",
+    "Four resumable batches create 8 source-matched questions pairs with independent critic; single verified final Master published. Unsupported/hallucinated source, stale lease, duplicate, other-user access fail closed.",
+    "Objective grading and pending Points respected; two blind written reviewers with 80% weighted/70% core, accurate citations and divergence check settle once or return REWORK.",
+    "Exact source/collection/version 9/9 qualifies for full original if owner licensed it or complete derived private nine-chapter manuscript; no Points claim needed.",
+    "Academic evidence recorded exactly once for internal BUKLOD University Registrar, not silently credited UC or printed as recognized degree.",
+    "Full isolated PostgreSQL 17 R1->R2->R3->R4 member/admin/service role acceptance passes; Node focused tests, TypeScript/Web RC and automated gate pass at exact commit.",
+    "Run verified RC in safe isolated staging; user explicitly skips physical device tests, so log physical-runtime verification as skipped/unverified.",
+    "Reconcile latest main, Genesis/conso staging and protected AdMob/navigation/spacing critical gates before any staging OTA. Production unchanged until separate explicit permission."
+  ],
+  "releaseMode": "dev-only",
+  "releaseGate": "Consolidated staging RC HOLD until exact-source green CI, isolated backend validation and signed runtime compatibility; no production change or staging-user OTA authorized by this source change."
+}
