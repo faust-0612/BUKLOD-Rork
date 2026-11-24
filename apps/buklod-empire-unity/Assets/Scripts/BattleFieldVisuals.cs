@@ -18,6 +18,7 @@ namespace Buklod.Empire {
         private WorldInteractionEffects worldEffects;
         private readonly Dictionary<int,(int hit,int attack,int defeat)> campHistory=new Dictionary<int,(int,int,int)>();
         private readonly Dictionary<int,Animator> campAnimators=new Dictionary<int,Animator>();
+        private readonly Dictionary<int,float> campDeathUntil=new Dictionary<int,float>();
         private int pooled;
         private const int PoolLimit=48;
         public int ActiveCount=>active.Count;
@@ -118,8 +119,19 @@ namespace Buklod.Empire {
                 }
             }else if(review&&visible&&wasSeen&&c.DefeatSequence>prior.defeat&&active.TryGetValue(key,out var go)&&go){
                 // A real defeat, not a fog transition or the reinforcement cutoff.
+                campDeathUntil[c.Id]=bound.Time+1.2f;
+                var corpse=Present(6,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind),out var newCorpse);
+                if(corpse&&newCorpse){
+                    corpse.transform.rotation=go.transform.rotation;
+                    var deathAnimator=corpse.GetComponentInChildren<Animator>(true);
+                    if(deathAnimator)deathAnimator.SetTrigger("Death");
+                }
                 if(worldEffects)worldEffects.Emit(go.transform.position,c.Boss?WorldImpactKind.Core:WorldImpactKind.Unit,c.Id*397+c.DefeatSequence,CampTint(c.Kind));
                 if(battleEffects)battleEffects.Emit(go.transform.position,CampTint(c.Kind),c.Boss?3:1);
+            }
+            if(review&&campDeathUntil.TryGetValue(c.Id,out var until)){
+                if(!visible||c.Alive||bound.Time>=until)campDeathUntil.Remove(c.Id);
+                else if(active.ContainsKey((6,c.Id)))seen.Add((6,c.Id));
             }
             // Snapshot even when hidden: entering visibility never replays past combat.
             if(review)campHistory[c.Id]=(c.HitSequence,c.AttackSequence,c.DefeatSequence);
@@ -164,7 +176,7 @@ namespace Buklod.Empire {
         private void Clear(){
             foreach(var go in active.Values)if(go)Destroy(go);
             foreach(var pool in pools.Values)foreach(var go in pool)if(go)Destroy(go);
-            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();campHistory.Clear();campAnimators.Clear();pooled=0;
+            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();campHistory.Clear();campAnimators.Clear();campDeathUntil.Clear();pooled=0;
         }
         private void OnDestroy(){Clear();}
     }
