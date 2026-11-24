@@ -36,7 +36,8 @@ func _run() -> void:
 	if not check(sim._core_open("B"),"tower gate"):return
 	for i in range(45):sim.advance()
 	if not check(sim.state["units"].size()>0,"minion waves"):return
-	if not check(sim.actor("A1")["pos"]!=sim.actor("A1")["spawn"],"bot movement"):return
+	for id in ["A1","A2","A3","A4","B1","B2","B3","B4"]:
+		if not check(sim.actor(id)["pos"]!=sim.actor(id)["spawn"],"bot leaves spawn "+id):return
 	for i in range(4):sim._hit(p,core,300.0)
 	if not check(sim.state["status"]=="finished" and sim.state["winner"]=="A","core victory"):return
 	var world: Node=load("res://scenes/Moba3D.tscn").instantiate()

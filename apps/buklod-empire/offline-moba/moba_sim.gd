@@ -112,12 +112,16 @@ func _bots() -> void:
 		var offset := goal-pos
 		var basic: Dictionary = config["starter"].get(p["hero"],{}).get("basic",{})
 		var reach := float(basic.get("range",5.5))
-		if offset.length()>maxf(2.0,reach*0.82) or retreat:
-			# Substep rather than treating 0.4 sec as a single teleport.
-			for i in range(4):
-				if not _move(p,offset,6.0):
-					if not _move(p,offset.rotated(0.85),6.0):
-						_move(p,offset.rotated(-0.85),6.0)
+		# A lane waypoint is not a combat target. Using attack range to stop at
+		# the waypoint stranded ranged heroes a few units from their spawn lane.
+		var arrival: float = maxf(1.5,reach*0.82) if not target.is_empty() and not retreat else 1.0
+		for i in range(4):
+			var step_offset: Vector2 = goal-(p["pos"] as Vector2)
+			if step_offset.length()<=arrival:
+				break
+			if not _move(p,step_offset,6.0):
+				if not _move(p,step_offset.rotated(0.85),6.0):
+					_move(p,step_offset.rotated(-0.85),6.0)
 		if retreat:
 			if pos.distance_to(home)<12.0:
 				p["hp"]=minf(float(p["max_hp"]),float(p["hp"])+3.0)
