@@ -49,6 +49,9 @@ namespace Buklod.Empire.Editor {
             if(!(UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline is UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset))
                 throw new InvalidOperationException("Configure the local URP asset before review.");
             ValidateReceipt();
+            var bank=Resources.Load<TextAsset>("SkillAudioBank");
+            if(!bank)throw new InvalidOperationException("Missing committed 39-skill audio bank.");
+            SkillAudio.ValidateBank(bank.bytes);
             CandidateReviewComposer.Prepare();
             OfflineReviewComposer.Prepare();
             Debug.Log("Consolidated offline review assembled. Run EditMode/PlayMode and visual acceptance separately. No APK or production approval.");

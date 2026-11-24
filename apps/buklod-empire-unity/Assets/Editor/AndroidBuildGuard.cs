@@ -19,6 +19,9 @@ namespace Buklod.Empire.Editor
 
             if(Application.unityVersion!="6000.0.86f1")
                 throw new BuildFailedException("Use the pinned, security-patched Unity 6000.0.86f1 Editor.");
+            // Only the explicit local development entrypoint can authorize an isolated test build.
+            // All normal Android builds continue through the existing production checks.
+            if(OfflineReviewAndroidBuild.IsActive){OfflineReviewAndroidBuild.ValidateBuild(report);return;}
             var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(ArenaSceneComposer.CatalogPath);
             if(!catalog)throw new BuildFailedException("Production asset catalog is missing.");
             try{catalog.Validate();}catch(System.Exception ex){throw new BuildFailedException(ex.Message);}

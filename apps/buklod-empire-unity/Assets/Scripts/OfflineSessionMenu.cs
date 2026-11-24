@@ -100,7 +100,7 @@ namespace Buklod.Empire {
         private void Rebuild(){
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
-            title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):"OFFLINE TRAINING";
+            title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
             if(view.IsEditorReview&&showResult&&b!=null&&b.Finished){
                 bool won=b.Winner==p.Team,draw=!b.Winner.HasValue;

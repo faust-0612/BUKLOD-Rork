@@ -13,15 +13,19 @@ namespace Buklod.Empire {
         public OfflineBattle Battle {get;private set;}
         public bool Paused {get;private set;}
         public void SetPaused(bool value){Paused=value;if(input)input.enabled=!value;}
-#if UNITY_EDITOR
+        public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
         [SerializeField, HideInInspector] private bool editorReviewOnly;
+#if UNITY_EDITOR
         public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
+        public bool IsConfiguredReview=>editorReviewOnly;
 #endif
         internal bool IsEditorReview=>ReviewOnly;
         private bool ReviewOnly {
             get {
 #if UNITY_EDITOR
                 return editorReviewOnly;
+#elif BUKLOD_OFFLINE_REVIEW
+                return editorReviewOnly&&Application.identifier==OfflineTestApplicationId;
 #else
                 return false;
 #endif
@@ -60,8 +64,8 @@ namespace Buklod.Empire {
         }
         public void StartMatch(string hero,ArenaDifficulty difficulty=ArenaDifficulty.Normal,ArenaTactic tactic=ArenaTactic.Renew,CovenantLoadout? covenant=null,bool autonomous=false,int seed=1){
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
-#if UNITY_EDITOR
-            if(editorReviewOnly)visuals.ValidateEditorReview();else
+#if UNITY_EDITOR || BUKLOD_OFFLINE_REVIEW
+            if(ReviewOnly)visuals.ValidateOfflineReview();else
 #endif
             visuals.Validate();
             foreach(var v in active.Values)Return(v);active.Clear();

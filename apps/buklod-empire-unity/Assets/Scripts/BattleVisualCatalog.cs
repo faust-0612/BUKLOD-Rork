@@ -56,8 +56,14 @@ namespace Buklod.Empire {
             if(!fieldPickup||!relicPickup||fieldPickup==relicPickup)throw new InvalidOperationException("Distinct approved field and relic pickup models required.");
         }
 #if UNITY_EDITOR
-        // No provenance exemption exists in a player build.
         public void ValidateEditorReview(){ValidateStructure();}
+#endif
+#if UNITY_EDITOR || BUKLOD_OFFLINE_REVIEW
+        // Explicitly unapproved test assets; only the isolated package can use this path.
+        public void ValidateOfflineReview(){
+            if(provenanceReceipt)throw new InvalidOperationException("Offline test catalog must not assert production provenance.");
+            ValidateStructure();ValidateHybridAssets();
+        }
 #endif
         private void ValidateStructure(){
             if(!genesisRift||heroes==null||factions==null)throw new InvalidOperationException("Incomplete battle visuals.");
