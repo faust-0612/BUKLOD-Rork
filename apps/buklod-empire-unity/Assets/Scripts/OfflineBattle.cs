@@ -585,9 +585,10 @@ namespace Buklod.Empire {
             if(target==null){if(unitId!=0||kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;}
             else if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.LastAttack=Time;return true;
         }
+        public static float ExperienceThreshold(int level)=>65f*level+18f*level*level;
         private static void GainXp(BattleUnit u,float n){
             var a=u.State;if(a.Kit==null||!a.Alive)return;u.Xp+=n;
-            while(a.Level<15){float threshold=65*a.Level+18*a.Level*a.Level;if(u.Xp<threshold)break;u.Xp-=threshold;a.Level++;a.MaxHealth+=8;a.Heal(22);a.Mana=Mathf.Min(a.MaxMana,a.Mana+12);}
+            while(a.Level<15){float threshold=ExperienceThreshold(a.Level);if(u.Xp<threshold)break;u.Xp-=threshold;a.Level++;a.MaxHealth+=8;a.Heal(22);a.Mana=Mathf.Min(a.MaxMana,a.Mana+12);}
         }
         private int MinionCount(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.Kind==BattleTargetKind.Minion&&u.State.Alive);
         private BattleUnit ProductionSite(ArenaTeam team)=>units.Where(u=>u.Team==team&&u.State.Alive&&(u.IsBarracks||u.Core)).OrderBy(u=>u.Core?0:1).ThenBy(u=>u.Id).FirstOrDefault();
