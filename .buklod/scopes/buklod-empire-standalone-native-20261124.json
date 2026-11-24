@@ -55,8 +55,10 @@
     "scripts/build-buklod-empire-ota.mjs",
     "scripts/build-buklod-empire-standalone.mjs",
     "scripts/buklod-empire-storage.mjs",
+    "scripts/empire-storage-object-status.mjs",
     "scripts/prepare-buklod-empire-ota-fixture.mjs",
     "scripts/request-buklod-empire-owner-dev.sh",
+    "scripts/resume-buklod-empire-owner-dev.sh",
     "scripts/setup-buklod-empire-dev-trust.sh",
     "scripts/verify-buklod-empire-android.sh",
     "scripts/verify-buklod-empire-frame.py",
@@ -65,12 +67,14 @@
     "scripts/verify-buklod-empire-public-canary.mjs",
     "tests/buklod-empire-ota.test.mjs",
     "tests/buklod-empire-release-trust.test.mjs",
-    "tests/buklod-empire-standalone-contract.test.mjs"
+    "tests/buklod-empire-standalone-contract.test.mjs",
+    "tests/empire-storage-object-status.test.mjs"
   ],
   "regressionTests": [
     "tests/buklod-empire-standalone-contract.test.mjs",
     "tests/buklod-empire-ota.test.mjs",
-    "tests/buklod-empire-release-trust.test.mjs"
+    "tests/buklod-empire-release-trust.test.mjs",
+    "tests/empire-storage-object-status.test.mjs"
   ],
   "lockedFeatureChanges": [
     {

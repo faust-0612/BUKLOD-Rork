@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash,createPublicKey,verify} from 'node:crypto';
 import path from 'node:path';
+import {assertMissingObject} from './empire-storage-object-status.mjs';
 const origin='https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1';
 const bucket='empire-updates';
 const max=32*1024*1024;
@@ -70,19 +71,19 @@ else if(command==='publish-dev'){
  if(old.ok){
   const previous=verified(Buffer.from(await old.arrayBuffer()));
   assert.ok(d.sequence>previous.sequence||(d.sequence===previous.sequence&&d.sha256===previous.sha256),'Refusing downgrade or conflicting sequence');
- }else assert.equal(old.status,404,'Manifest read failed; never overwrite uncertain state');
+ }else await assertMissingObject(old,'Manifest read failed');
  const name=d.sha256+'.zip';
  const existing=await readAdmin(name);
  if(existing.ok)assert.equal(hash(Buffer.from(await existing.arrayBuffer())),d.sha256);
  else{
-  assert.equal(existing.status,404,'Existing content read uncertain');
-  const uploaded=await http('/object/'+prefix+name,{method:'POST',headers:{...auth,'Content-Type':'application/zip','Cache-Control':'31536000','x-upsert':'false'},body:zip});
+  await assertMissingObject(existing,'Existing content read uncertain');
+  const uploaded=await http('/object/'+prefix+name,{method:'POST',headers:{...auth,'Content-Type':'application/zip','Cache-Control':'max-age=31536000','x-upsert':'false'},body:zip});
   safeResult(uploaded,'Immutable pack upload');
  }
  const publicPack=safeResult(await readPublic(name),'Public pack readback');
  assert.equal(hash(Buffer.from(await publicPack.arrayBuffer())),d.sha256,'Public pack mismatch');
  // Single owner-controlled publisher; manifest is written only after verified immutable content.
- const written=await http('/object/'+prefix+'manifest.json',{method:'POST',headers:{...auth,'Content-Type':'application/json','Cache-Control':'0','x-upsert':'true'},body:manifest});
+ const written=await http('/object/'+prefix+'manifest.json',{method:'POST',headers:{...auth,'Content-Type':'application/json','Cache-Control':'max-age=0','x-upsert':old.ok?'true':'false'},body:manifest});
  safeResult(written,'DEV manifest publication');
  const receipt=verified(Buffer.from(await safeResult(await readPublic('manifest.json'),'Public manifest readback').arrayBuffer()));
  assert.equal(receipt.sequence,d.sequence);assert.equal(receipt.sha256,d.sha256);
