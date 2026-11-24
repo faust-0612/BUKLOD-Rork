@@ -18,6 +18,10 @@ namespace Buklod.Empire {
     }
     // Match-local Unity C# simulation. Original Genesis Rift size and cover. Rendering,
     // NavMesh and village adapter are separate integration tasks; no persistent economy.
+    public interface IBattleNavigation {
+        bool CanTraverse(Vector2 from,Vector2 to);
+        bool TryWaypoint(Vector2 from,Vector2 goal,out Vector2 waypoint);
+    }
     public sealed class OfflineBattle : IHeroSkillWorld {
         public const float Width=320, Height=220, Step=.1f;
         private static readonly float[] LaneY={Height*.19f,Height*.5f,Height*.81f};
@@ -29,12 +33,14 @@ namespace Buklod.Empire {
         private readonly List<(Vector2 position,float radius,float expires)> cover=new List<(Vector2,float,float)>();
         private readonly MinionWaveDirector waves=new MinionWaveDirector();
         private int nextId,tick; private double accumulator;
+        private readonly IBattleNavigation navigation;
         public IReadOnlyList<BattleUnit> Units {get;}
         public BattleUnit Player {get;}
         public float Time=>tick*Step;
         public bool Finished {get;private set;}
         public ArenaTeam? Winner {get;private set;}
-        public OfflineBattle(string hero){
+        public OfflineBattle(string hero,IBattleNavigation navigation=null){
+            this.navigation=navigation;
             HeroKitCatalog.Get(hero);
             Units=units.AsReadOnly();
             foreach(var c in OriginalCover)cover.Add((new Vector2(c.x*Width,c.y*Height),c.z*Height,float.PositiveInfinity));
@@ -66,7 +72,7 @@ namespace Buklod.Empire {
         private bool Move(BattleUnit u,Vector2 direction,float distance){
             if(Finished||u==null||!u.State.Alive||u.State.Buff("stun",Time)>0||!Finite(direction)||direction.sqrMagnitude<.0025f||distance<=0)return false;
             Vector2 p=u.Position,d=direction.normalized;int slices=Mathf.Max(1,Mathf.CeilToInt(distance/.35f));
-            for(int i=0;i<slices;i++){var at=p+d*(distance/slices);if(Blocked(at))break;p=at;}
+            for(int i=0;i<slices;i++){var at=p+d*(distance/slices);if(Blocked(at)||(navigation!=null&&!navigation.CanTraverse(p,at)))break;p=at;}
             if(p==u.Position)return false;u.Position=p;return true;
         }
         private static float Dist(BattleUnit a,BattleUnit b)=>Vector2.Distance(a.Position,b.Position);
@@ -165,6 +171,7 @@ namespace Buklod.Empire {
         private void Steer(BattleUnit u,Vector2 dir,float speed){
             if(dir.sqrMagnitude<1)return;float n=Mathf.Min(speed*Step,dir.magnitude);
             if(Move(u,dir,n))return;
+            if(navigation!=null&&navigation.TryWaypoint(u.Position,u.Position+dir,out var waypoint)&&Move(u,waypoint-u.Position,n))return;
             if(!Move(u,new Vector2(-dir.y,dir.x),n))Move(u,new Vector2(dir.y,-dir.x),n);
         }
         private void Bot(BattleUnit u,float speed){

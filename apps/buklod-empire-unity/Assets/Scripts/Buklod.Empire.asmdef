@@ -1,1 +1,8 @@
-{"name":"Buklod.Empire","rootNamespace":"Buklod.Empire"}
+{
+  "name": "Buklod.Empire",
+  "rootNamespace": "Buklod.Empire",
+  "references": [
+    "Unity.InputSystem",
+    "Unity.ugui"
+  ]
+}
