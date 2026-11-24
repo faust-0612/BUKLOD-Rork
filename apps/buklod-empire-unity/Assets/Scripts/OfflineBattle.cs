@@ -10,6 +10,8 @@ namespace Buklod.Empire {
     public sealed class VillageConstructionOrder {
         public readonly VillageBuildOrder Kind;public readonly Vector2 Position;public readonly int TargetId;
         public float Progress {get;internal set;}
+        public float Duration=>Kind==VillageBuildOrder.Repair?3:Kind==VillageBuildOrder.Depot?6:Kind==VillageBuildOrder.Farm?5:Kind==VillageBuildOrder.Barracks?9:Kind==VillageBuildOrder.House?5:8;
+        public float Completion=>Mathf.Clamp01(Progress/Duration);
         internal VillageConstructionOrder(VillageBuildOrder kind,Vector2 position,int targetId=0){Kind=kind;Position=position;TargetId=targetId;}
     }
     public sealed class VillageResourceNode {
@@ -220,7 +222,7 @@ namespace Buklod.Empire {
                 if(!builder.State.CanMove(Time)||!builder.State.CanCast(Time))continue;
                 if(Vector2.Distance(builder.Position,order.Position)>2.5f){Steer(builder,order.Position-builder.Position,4);continue;}
                 order.Progress+=Step;
-                float duration=order.Kind==VillageBuildOrder.Repair?3:order.Kind==VillageBuildOrder.Depot?6:order.Kind==VillageBuildOrder.Farm?5:order.Kind==VillageBuildOrder.Barracks?9:order.Kind==VillageBuildOrder.House?5:8;
+                float duration=order.Duration;
                 if(order.Progress+0.001f<duration)continue;
                 if(villages[(int)builder.Team].SpendConstruction(order.Kind)){
                     if(target!=null)target.State.Health=Mathf.Min(target.State.MaxHealth,target.State.Health+35);
