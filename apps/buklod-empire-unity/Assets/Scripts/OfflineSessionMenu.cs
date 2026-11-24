@@ -69,7 +69,7 @@ namespace Buklod.Empire {
             }
             settingsText=Label("Loadout",panel,new Vector2(.05f,.29f),new Vector2(.95f,.37f),"",22);
             for(int i=0;i<6;i++){int option=i;float x=.06f+i*.147f;ButtonAt("Setup "+i,panel,new Vector2(x,.21f),new Vector2(x+.14f,.28f),new[]{"DIFFICULTY","TACTIC","PATH","TALENT 1","TALENT 2","TALENT 3"}[i],()=>ChangeSetting(option));}
-            ButtonAt("AI training",panel,new Vector2(.32f,.145f),new Vector2(.68f,.205f),"TOGGLE AI / PLAYER",()=>{autonomous=!autonomous;UpdateSettings();});
+            ButtonAt("AI training",panel,new Vector2(.32f,.18f),new Vector2(.68f,.208f),"TOGGLE AI / PLAYER",()=>{autonomous=!autonomous;UpdateSettings();});
             resume=ButtonAt("Resume",panel,new Vector2(.08f,.06f),new Vector2(.46f,.17f),"RESUME",Resume);
             start=ButtonAt("Start",panel,new Vector2(.54f,.06f),new Vector2(.92f,.17f),"START NEW MATCH",StartNew);
             CreateCommands();Select(selected);UpdateSettings();Open();

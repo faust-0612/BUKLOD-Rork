@@ -132,7 +132,7 @@ namespace Buklod.Empire {
         }
         // Adapter calls are only valid during the canonical worker job's due window.
         bool IVillageLogistics.TryGather(ArenaTeam team,string workerId,double wood,double stone,double crystal){
-            if(Finished||Time>=OfflineMatchRules.MatchLimit||!ArenaDraftRules.ValidTeam(team))return false;
+            if(!ExecutingJob(team,VillageEffect.Gather))return false;
             var u=units.FirstOrDefault(x=>x.Team==team&&x.State.Alive&&x.Villager?.Alive==true&&x.Villager.Job.Id==workerId&&x.Villager.Job.Effect==VillageEffect.Gather);
             if(u==null||u.WorkerOrder!=VillageWorkerOrder.Gather||u.Villager.Remaining>0||u.LastHarvestTick==tick||!u.State.CanMove(Time)||!u.State.CanCast(Time))return false;
             var n=WorkerNode(u);if(n==null||Vector2.Distance(n.Position,u.Position)>2.5f)return false;
@@ -152,6 +152,9 @@ namespace Buklod.Empire {
         private BattleUnit Builder(ArenaTeam team)=>units.FirstOrDefault(u=>u.Team==team&&u.Villager?.Job.Effect==VillageEffect.Build&&u.State.Alive);
         private BattleUnit Depot(BattleUnit worker)=>units.Where(u=>u.Team==worker.Team&&u.State.Alive&&(u.Core||u.IsDepot)).OrderBy(u=>Dist(worker,u)).ThenBy(u=>u.Id).FirstOrDefault();
         public bool HasConstructionOrder(ArenaTeam team)=>Builder(team)?.Construction!=null;
+        private ArenaTeam? advancingVillage;
+        bool IVillageWorkGate.IsVillageTick(ArenaTeam team)=>advancingVillage==team;
+        private bool ExecutingJob(ArenaTeam team,VillageEffect effect)=>!Finished&&Time<OfflineMatchRules.MatchLimit&&ArenaDraftRules.ValidTeam(team)&&villages[(int)team]?.ActiveJob?.Job.Effect==effect;
         bool IVillageWorkGate.CanWork(ArenaTeam team,string workerId)=>!Finished&&Time<OfflineMatchRules.MatchLimit&&units.Any(u=>u.Team==team&&u.Villager?.Job.Id==workerId&&u.Villager.Alive&&u.State.CanCast(Time));
         private bool CanConstructAt(ArenaTeam team,VillageBuildOrder kind,Vector2 p){
             if(!Finite(p)||Blocked(p,2)||kind!=VillageBuildOrder.Depot&&kind!=VillageBuildOrder.GuardPost&&kind!=VillageBuildOrder.Farm&&kind!=VillageBuildOrder.Barracks)return false;
@@ -577,7 +580,7 @@ namespace Buklod.Empire {
             foreach(var u in units)u.State.Clock=Time;
             AdvanceWilderness();if(Finished)return;
             AdvanceResourceNodes();AdvanceWorkers();AdvanceConstruction();
-            foreach(var village in villages)village.Advance(Step);
+            foreach(var village in villages){if(Finished)break;advancingVillage=village.Team;try{village.Advance(Step);}finally{advancingVillage=null;}}
             foreach(var u in units)if(u.Villager!=null){
                 if(!u.State.Alive&&u.Villager.Alive){u.Position=u.Spawn;u.ClearCargo();u.WorkerOrder=VillageWorkerOrder.Gather;}
                 u.State.Health=u.Villager.Health;
@@ -692,12 +695,12 @@ namespace Buklod.Empire {
         private IEnumerable<BattleUnit> ActiveTowers(ArenaTeam team)=>units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&!u.IsVillageBuilding&&u.State.Alive);
         public int LowestTowerLevel(ArenaTeam team)=>ActiveTowers(team).Select(u=>u.TowerLevel).DefaultIfEmpty(0).Min();
         public bool UpgradeTower(ArenaTeam team,int expectedLevel,float hpFraction,float damageFraction){
-            if(Finished||!ArenaDraftRules.ValidTeam(team)||expectedLevel<1||expectedLevel>=5||hpFraction<0||damageFraction<0||float.IsNaN(hpFraction)||float.IsNaN(damageFraction)||float.IsInfinity(hpFraction)||float.IsInfinity(damageFraction))return false;
+            if(!ExecutingJob(team,VillageEffect.Build)||expectedLevel<1||expectedLevel>=5||hpFraction<0||damageFraction<0||float.IsNaN(hpFraction)||float.IsNaN(damageFraction)||float.IsInfinity(hpFraction)||float.IsInfinity(damageFraction))return false;
             var t=ActiveTowers(team).Where(u=>u.TowerLevel==expectedLevel).OrderBy(u=>u.Id).FirstOrDefault();
             if(t==null)return false;float gain=t.State.MaxHealth*hpFraction;t.State.MaxHealth+=gain;t.State.Health+=gain;t.TowerLevel++;t.TowerDamageMultiplier+=damageFraction;return true;
         }
         public bool Deploy(ArenaTeam team,ArenaLane lane,int count,float power){
-            if(Finished||Time>=OfflineMatchRules.MatchLimit||!ArenaDraftRules.ValidTeam(team)||!Enum.IsDefined(typeof(ArenaLane),lane)||count<1||count>2||power<=0||float.IsNaN(power)||float.IsInfinity(power)||MinionCount(team)+count>FactionMinionLimit)return false;
+            if(!ExecutingJob(team,VillageEffect.Train)||!Enum.IsDefined(typeof(ArenaLane),lane)||count<1||count>2||power<=0||float.IsNaN(power)||float.IsInfinity(power)||MinionCount(team)+count>FactionMinionLimit)return false;
             var site=ProductionSite(team);if(site==null)return false;
             var trainer=units.FirstOrDefault(u=>u.Team==team&&u.State.Alive&&u.Villager?.Alive==true&&u.Villager.Job.Effect==VillageEffect.Train);
             if(trainer==null||trainer.Villager.Remaining>0||!trainer.State.CanCast(Time))return false;
@@ -706,13 +709,13 @@ namespace Buklod.Empire {
             return true;
         }
         public bool HealNearBase(ArenaTeam team,float amount,float radiusSourceUnits){
-            if(Finished||!ArenaDraftRules.ValidTeam(team)||amount<=0||radiusSourceUnits<=0||float.IsNaN(amount)||float.IsInfinity(amount)||float.IsNaN(radiusSourceUnits)||float.IsInfinity(radiusSourceUnits))return false;
+            if(!ExecutingJob(team,VillageEffect.Heal)||amount<=0||radiusSourceUnits<=0||float.IsNaN(amount)||float.IsInfinity(amount)||float.IsNaN(radiusSourceUnits)||float.IsInfinity(radiusSourceUnits))return false;
             bool healed=false;
             foreach(var u in units)if(u.Team==team&&u.State.Alive&&(u.Kind==BattleTargetKind.Minion||u.Kind==BattleTargetKind.Structure)&&Vector2.Distance(u.Position,Base(team))*40<=radiusSourceUnits){float before=u.State.Health;u.State.Heal(amount);healed|=u.State.Health>before;}
             return healed;
         }
         public bool GiveItem(ArenaTeam team,VillageItem item,float power){
-            if(Finished||!ArenaDraftRules.ValidTeam(team)||power<=0||float.IsNaN(power)||float.IsInfinity(power))return false;bool given=false;
+            if(!ExecutingJob(team,VillageEffect.Supply)||power<=0||float.IsNaN(power)||float.IsInfinity(power))return false;bool given=false;
             foreach(var u in units)if(u.Team==team&&u.Kind==BattleTargetKind.Hero&&u.State.Alive){
                 var s=u.State;
                 switch(item){
@@ -725,7 +728,7 @@ namespace Buklod.Empire {
             return given;
         }
         public bool CraftAtFront(ArenaTeam team,VillageItem item){
-            if(Finished)return false;
+            if(!ExecutingJob(team,VillageEffect.Craft))return false;
             var front=units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Minion&&u.State.Alive).OrderByDescending(u=>team==ArenaTeam.Lux?u.Position.x:Width-u.Position.x).ThenBy(u=>u.Id).FirstOrDefault();
             if(front==null)return false;
             var foes=units.Where(u=>u.Team!=team&&u.Kind==BattleTargetKind.Minion&&Attackable(u)&&Dist(u,front)*40<=180&&ClearSight(front.Position,u.Position)).ToArray();bool applied=false;
@@ -739,7 +742,7 @@ namespace Buklod.Empire {
             return applied;
         }
         public int ReviveRecent(ArenaTeam team,int maxCount,float seconds,float healthFraction){
-            if(Finished||Time>=OfflineMatchRules.MatchLimit||!ArenaDraftRules.ValidTeam(team)||maxCount<=0||seconds<=0||float.IsNaN(seconds)||float.IsInfinity(seconds)||healthFraction<=0||healthFraction>1||float.IsNaN(healthFraction))return 0;
+            if(!ExecutingJob(team,VillageEffect.Revive)||maxCount<=0||seconds<=0||float.IsNaN(seconds)||float.IsInfinity(seconds)||healthFraction<=0||healthFraction>1||float.IsNaN(healthFraction))return 0;
             var reviver=units.FirstOrDefault(u=>u.Team==team&&u.State.Alive&&u.Villager?.Alive==true&&u.Villager.Job.Effect==VillageEffect.Revive);
             if(reviver==null||reviver.Villager.Remaining>0||!reviver.State.CanCast(Time))return 0;
             int count=0;int capacity=FactionMinionLimit-MinionCount(team);
@@ -780,9 +783,10 @@ namespace Buklod.Empire {
             foreach(var u in units){
                 if(u.Kind!=BattleTargetKind.Hero||!u.State.Alive||Vector2.Distance(u.Position,Base(u.Team))*40>700)continue;
                 var v=villages[(int)u.Team];var healer=v.Find("serah");var reviver=v.Find("mora");var builder=v.Find("aron")??v.Find("rogar");
-                if(healer?.Alive==true)u.State.Heal(2*healer.Power);
-                if(reviver?.Alive==true)u.State.Set("fury",.05f*reviver.Power,Time+1.5f,Time);
-                if(builder?.Alive==true)u.State.Set("guard",.05f*builder.Power,Time+1.5f,Time);
+                bool Able(VillageMember m)=>m!=null&&m.Alive&&units.Any(w=>w.Team==u.Team&&w.Villager==m&&w.State.CanCast(Time)&&Dist(w,u)<=17.5f);
+                if(Able(healer))u.State.Heal(2*healer.Power);
+                if(Able(reviver))u.State.Set("fury",.05f*reviver.Power,Time+1.5f,Time);
+                if(Able(builder))u.State.Set("guard",.05f*builder.Power,Time+1.5f,Time);
             }
         }
         private void Structure(BattleUnit u){

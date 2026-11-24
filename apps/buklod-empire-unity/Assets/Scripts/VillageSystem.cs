@@ -25,7 +25,7 @@ namespace Buklod.Empire {
         bool TryGather(ArenaTeam team,string workerId,double wood,double stone,double crystal);
     }
     public interface IVillageConstruction { bool HasConstructionOrder(ArenaTeam team); }
-    public interface IVillageWorkGate { bool CanWork(ArenaTeam team,string workerId); }
+    public interface IVillageWorkGate { bool CanWork(ArenaTeam team,string workerId); bool IsVillageTick(ArenaTeam team); }
     public sealed class VillageMember {
         public readonly VillageJob Job;
         public float Health { get; private set; }=200;
@@ -67,6 +67,7 @@ namespace Buklod.Empire {
         private readonly MinionWaveDirector waves;
         private readonly IVillageBattle battle;
         private int lane,supply,craft;
+        internal VillageMember ActiveJob {get;private set;}
         private double scavenged,accumulator;
         public ArenaTeam Team {get;}
         public IReadOnlyList<VillageMember> Members {get;}
@@ -113,7 +114,7 @@ namespace Buklod.Empire {
         // Fixed match-local steps: bounded by the 15-minute match; no reward settlement.
         public void Advance(double seconds) {
             if(double.IsNaN(seconds)||double.IsInfinity(seconds)||seconds<0)throw new ArgumentOutOfRangeException(nameof(seconds));
-            if(waves.Finished||Time>=OfflineMatchRules.MatchLimit)return;
+            if(waves.Finished||Time>=OfflineMatchRules.MatchLimit||(battle is IVillageWorkGate tickGate&&!tickGate.IsVillageTick(Team)))return;
             const double step=.25;
             accumulator=Math.Min(accumulator+seconds,OfflineMatchRules.MatchLimit-Time);
             while(accumulator+1e-9>=step&&Time+step<=OfflineMatchRules.MatchLimit) {
@@ -122,7 +123,9 @@ namespace Buklod.Empire {
                 foreach(var m in members) {
                     m.Tick(step,waves.CanReinforce(Team));
                     if(waves.Finished)break;
-                    if(m.Alive&&m.Remaining<=0&&(!(battle is IVillageWorkGate gate)||gate.CanWork(Team,m.Job.Id)))m.Complete(Run(m));
+                    if(m.Alive&&m.Remaining<=0&&(!(battle is IVillageWorkGate gate)||gate.CanWork(Team,m.Job.Id))){
+                        ActiveJob=m;try{m.Complete(Run(m));}finally{ActiveJob=null;}
+                    }
                 }
             }
         }

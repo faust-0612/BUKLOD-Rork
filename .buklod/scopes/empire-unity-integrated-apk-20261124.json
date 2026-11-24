@@ -24,7 +24,8 @@
     "All 13 graphics-only changed blobs and 24 hybrid-only changed blobs retained",
     "No conflicts or unrelated changes",
     "Native compile/EditMode/PlayMode and actual approved assets before APK",
-    "Native offline controls for setup, tactic, orders, economy and visibility; PlayMode test added, execution pending"
+    "Native offline controls for setup, tactic, orders, economy and visibility; PlayMode test added, execution pending",
+    "All village jobs require canonical active job and fixed match tick; no free adapter operations"
   ],
   "allowedPaths": [
     ".buklod/scopes/empire-unity-integrated-apk-20261124.json",
@@ -47,11 +48,16 @@
     "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
     "apps/buklod-empire-unity/Assets/Tests/PlayMode/RuntimeBattleSmokeTests.cs",
     "apps/buklod-empire-unity/Tools/ARENA_GAME_DESIGN_BLUEPRINT.md",
-    "apps/buklod-empire-unity/Tools/CLOUD_BUILD.md"
+    "apps/buklod-empire-unity/Tools/CLOUD_BUILD.md",
+    "apps/buklod-empire-unity/Assets/Scripts/VillageSystem.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/VillageBattleIntegrationTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineBattleTests.cs"
   ],
   "regressionTests": [
     "apps/buklod-empire-unity/Tools/test_faction_materials.py",
-    "apps/buklod-empire-unity/Assets/Tests/PlayMode/RuntimeBattleSmokeTests.cs"
+    "apps/buklod-empire-unity/Assets/Tests/PlayMode/RuntimeBattleSmokeTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/VillageBattleIntegrationTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineBattleTests.cs"
   ],
   "lockedFeatureChanges": []
 }
