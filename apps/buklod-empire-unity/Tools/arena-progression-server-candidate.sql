@@ -31,9 +31,20 @@ create table empire_rewards.stone_exchange (
 -- Trusted adapter supplies adjudicated facts ONLY; no client reward claims or amount arguments.
 -- A terminal match state alone is insufficient: adapter must establish competitive mode, server replay,
 -- account eligibility (including Official exclusion), opponent diversity and confirmed misconduct.
+-- Serialize with the canonical character-switch RPC so active-window checkpoints are never lost.
+create function empire_rewards.credit_character(u uuid,h text,amount integer) returns void
+language plpgsql set search_path='' as $
+begin
+ if u is null or amount is null or amount not between 1 and 1500 or not exists(select 1 from empire_stones.hero where id=h) then
+   raise exception 'Invalid character XP';
+ end if;
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('buklod_character_switch_v3'),pg_catalog.hashtext(u::text));
+ insert into private.buklod_character_progress_v3(user_id,character_id,earned_points) values(u,h,amount)
+ on conflict(user_id,character_id) do update set earned_points=private.buklod_character_progress_v3.earned_points+excluded.earned_points,updated_at=now();
+end $;
 create function empire_rewards.settle(mid uuid,u uuid,facts jsonb) returns jsonb
 language plpgsql set search_path='' as $$
-declare h text; old empire_rewards.settlement%rowtype; d date; n int; earned int; xp int:=0; bp int:=0;
+declare h text; old empire_rewards.settlement%rowtype; d date; n int; earned int; xp_amount int:=0; bp_amount int:=0; bonus_xp int:=0; match_count bigint; penalty_today int; milestone_row record;
  bal bigint; outcome text; conduct text; first_win boolean; eligible boolean; team_no int;
 begin
  if u is null or mid is null or facts is null or jsonb_typeof(facts)<>'object' then raise exception 'Invalid evidence'; end if;
@@ -52,7 +63,7 @@ begin
     (select count(*) from empire_stones.match_action where match_id=mid and action='pick' and team=team_no)<>5 then raise exception 'Invalid competitive roster'; end if;
  perform empire_stones.lock_users(array[u]);
  insert into empire_rewards.account(user_id) values(u) on conflict do nothing;
- select bp into bal from empire_rewards.account where user_id=u for update;
+ select a.bp into bal from empire_rewards.account a where a.user_id=u for update;
  select * into old from empire_rewards.settlement where match_id=mid and user_id=u;
  if found then
    if old.evidence is distinct from facts then raise exception 'Settlement conflict'; end if;
@@ -62,27 +73,59 @@ begin
  select count(*),coalesce(sum(greatest(bp_delta,0)),0) into n,earned from empire_rewards.settlement where user_id=u and day=d and xp>0;
  first_win:=not exists(select 1 from empire_rewards.settlement where user_id=u and day=d and xp>0 and evidence->>'outcome'='win');
  if conduct in ('intentional_afk','abuse','cheat') and eligible then
-   bp:=-least(bal,case conduct when 'intentional_afk' then 5 when 'abuse' then 10 else 20 end)::int;
+   select coalesce(sum(greatest(-bp_delta,0)),0) into penalty_today from empire_rewards.settlement where user_id=u and day=d;
+   bp_amount:=-least(bal,greatest(20-penalty_today,0),case conduct when 'intentional_afk' then 5 when 'abuse' then 10 else 20 end)::int;
  elsif conduct='clean' and eligible and n<5 then
-   xp:=20+case when outcome='win' then 30 else 0 end
+   xp_amount:=20+case when outcome='win' then 30 else 0 end
       +case when (facts->>'mvp')::boolean then 25 else 0 end
       +case when (facts->>'teamwork')::boolean then 15 else 0 end
       +case when (facts->>'objective')::boolean then 10 else 0 end
       +case when (facts->>'rescue')::boolean then 5 else 0 end
       +case when (facts->>'resource')::boolean then 15 else 0 end
       +case when outcome='win' and first_win then 50 else 0 end;
-   bp:=least(greatest(30-earned,0),3+case when outcome='win' then 2 else 0 end
+   bp_amount:=least(greatest(30-earned,0),3+case when outcome='win' then 2 else 0 end
       +case when (facts->>'teamwork')::boolean then 2 else 0 end
       +case when (facts->>'objective')::boolean then 1 else 0 end);
  end if;
- insert into empire_rewards.settlement(match_id,user_id,hero_id,day,evidence,xp,bp_delta) values(mid,u,h,d,facts,xp,bp);
- update empire_rewards.account set bp=empire_rewards.account.bp+settle.bp where user_id=u;
- if xp>0 then
-   insert into empire_rewards.mastery(user_id,hero_id,xp,matches,wins) values(u,h,xp,1,case when outcome='win' then 1 else 0 end)
+ insert into empire_rewards.settlement(match_id,user_id,hero_id,day,evidence,xp,bp_delta) values(mid,u,h,d,facts,xp_amount,bp_amount);
+ update empire_rewards.account set bp=empire_rewards.account.bp+bp_amount where user_id=u;
+ if xp_amount>0 then
+   insert into empire_rewards.mastery(user_id,hero_id,xp,matches,wins) values(u,h,xp_amount,1,case when outcome='win' then 1 else 0 end)
    on conflict(user_id,hero_id) do update set xp=empire_rewards.mastery.xp+excluded.xp,matches=empire_rewards.mastery.matches+1,wins=empire_rewards.mastery.wins+excluded.wins;
+   select matches into match_count from empire_rewards.mastery where user_id=u and hero_id=h;
+   for milestone_row in select * from (values (10,100),(25,250),(50,500)) as m(threshold,award) where threshold<=match_count loop
+     insert into empire_rewards.milestone(user_id,hero_id,event_key,xp) values(u,h,'mastery:'||milestone_row.threshold,milestone_row.award) on conflict do nothing;
+     if found then bonus_xp:=bonus_xp+milestone_row.award; end if;
+   end loop;
+   if bonus_xp>0 then
+     update empire_rewards.mastery set xp=empire_rewards.mastery.xp+bonus_xp where user_id=u and hero_id=h;
+     update empire_rewards.settlement set xp=xp_amount+bonus_xp where match_id=mid and user_id=u;
+   end if;
+   perform empire_rewards.credit_character(u,h,xp_amount+bonus_xp);
  end if;
- return jsonb_build_object('xp',xp,'bp_delta',bp,'duplicate',false);
+ return jsonb_build_object('xp',xp_amount+bonus_xp,'bp_delta',bp_amount,'duplicate',false);
 end $$;
+-- Mission tier grants are once per canonical hero and tier. The future trusted adapter must
+-- verify that the named community/Kingdom mission actually occurred and tier evidence is legitimate.
+create function empire_rewards.mission(u uuid,h text,tier integer,mission_key text) returns integer
+language plpgsql set search_path='' as $
+declare award integer;
+begin
+ if u is null or tier is null or tier not between 1 and 3 or mission_key is null or
+    not exists(select 1 from empire_stones.hero where id=h and (community_event=mission_key or kingdom_quest=mission_key)) then
+   raise exception 'Invalid mission evidence';
+ end if;
+ award:=case tier when 1 then 50 when 2 then 100 else 200 end;
+ perform empire_stones.lock_users(array[u]);
+ insert into empire_rewards.account(user_id) values(u) on conflict do nothing;
+ if tier>1 and not exists(select 1 from empire_rewards.milestone where user_id=u and hero_id=h and event_key='mission:'||(tier-1)) then
+   raise exception 'Prior mission tier required';
+ end if;
+ insert into empire_rewards.milestone(user_id,hero_id,event_key,xp) values(u,h,'mission:'||tier,award) on conflict do nothing;
+ if not found then return 0; end if;
+ perform empire_rewards.credit_character(u,h,award);
+ return award;
+end $;
 -- Game-only BP can buy exactly the same hero stone at 100 BP, not cash or ministry rank.
 create function empire_rewards.exchange(u uuid,h text,n integer,req uuid) returns void
 language plpgsql set search_path='' as $$
@@ -107,5 +150,5 @@ alter table empire_rewards.milestone enable row level security;
 alter table empire_rewards.stone_exchange enable row level security;
 revoke all on all tables in schema empire_rewards from public,anon,authenticated;
 revoke all on all functions in schema empire_rewards from public,anon,authenticated;
--- No exposed RPC or service-role grants. Pending server authority, mission/rank adapters, appeal/reversal, shared inventory review and tests.
+-- No exposed RPC or service-role grants. Pending server authority, mission evidence/rank adapters, appeal/reversal, shared inventory review and tests.
 commit;
