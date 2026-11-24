@@ -3,6 +3,23 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void WorkerMustReachNodeAndDeliverBeforeTeamCredit(){
+            var battle=new OfflineBattle("phan");
+            var worker=battle.Units.Single(u=>u.Villager?.Job.Id=="lira");
+            Assert.IsFalse(battle.TryGather(worker.Team,"lira",6,4,2));
+            Assert.IsFalse(battle.OrderPlayerWorker("velin",VillageWorkerOrder.Hold));
+            Assert.IsTrue(battle.OrderPlayerWorker("lira",VillageWorkerOrder.Hold));
+            for(int i=0;i<60;i++)battle.Advance(.1f,Vector2.zero);
+            Assert.AreEqual(0,worker.Cargo);
+            Assert.AreEqual(0,battle.GetVillage(worker.Team).Wood);
+            Assert.IsTrue(battle.OrderPlayerWorker("lira",VillageWorkerOrder.Gather));
+            for(int i=0;i<100;i++)battle.Advance(.1f,Vector2.zero);
+            Assert.Greater(worker.Cargo,0);
+            Assert.AreEqual(0,battle.GetVillage(worker.Team).Wood);
+            Assert.IsTrue(battle.OrderPlayerWorker("lira",VillageWorkerOrder.Return));
+            for(int i=0;i<100;i++)battle.Advance(.1f,Vector2.zero);
+            Assert.Greater(battle.GetVillage(worker.Team).Wood,0);
+        }
         [Test] public void QuinTrailRevealsAndHasCooldown(){
             var battle=new OfflineBattle("quin");
             var enemy=battle.Units.First(u=>u.Team!=battle.Player.Team&&u.Kind==BattleTargetKind.Hero);

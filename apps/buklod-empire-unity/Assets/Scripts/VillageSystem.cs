@@ -20,6 +20,10 @@ namespace Buklod.Empire {
         bool CraftAtFront(ArenaTeam team,VillageItem item);
         int ReviveRecent(ArenaTeam team,int maxCount,float seconds,float healthFraction);
     }
+    // Optional physical logistics adapter; standalone job tests may use the abstract economy.
+    public interface IVillageLogistics {
+        bool TryGather(ArenaTeam team,string workerId,double wood,double stone,double crystal);
+    }
     public sealed class VillageMember {
         public readonly VillageJob Job;
         public float Health { get; private set; }=200;
@@ -74,6 +78,11 @@ namespace Buklod.Empire {
             if(current<0)return 0;double added=Math.Max(0,Math.Min(amount,10000-current));
             if(resource=="wood")Wood+=added;else if(resource=="stone")Stone+=added;else Gold+=added;return added;
         }
+        internal bool DepositCargo(double wood,double stone,double crystal){
+            if(wood<0||stone<0||crystal<0||double.IsNaN(wood+stone+crystal)||double.IsInfinity(wood+stone+crystal))return false;
+            if(Wood+wood>10000||Stone+stone>10000||Crystal+crystal>10000)return false;
+            Wood+=wood;Stone+=stone;Crystal+=crystal;return true;
+        }
         public int ResearchTier {get;private set;}
         public int TowersUpgraded {get;private set;}
         public int ItemsCrafted {get;private set;}
@@ -116,6 +125,7 @@ namespace Buklod.Empire {
             switch(m.Job.Effect) {
                 case VillageEffect.Gather:
                     double rate=(lux?1:1.4)*(m.Level>=5?1.2:1);
+                    if(battle is IVillageLogistics logistics)return logistics.TryGather(Team,m.Job.Id,6*p*rate,4*p*rate,2*p*rate);
                     Wood=Math.Min(10000,Wood+6*p*rate);Stone=Math.Min(10000,Stone+4*p*rate);Crystal=Math.Min(10000,Crystal+2*p*rate);return true;
                 case VillageEffect.Build:
                     int level=battle.LowestTowerLevel(Team);
