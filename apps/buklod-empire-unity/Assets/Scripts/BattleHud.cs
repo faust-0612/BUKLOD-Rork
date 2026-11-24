@@ -52,7 +52,7 @@ namespace Buklod.Empire {
             for(int i=2;i<5;i++){var slot=(SkillSlot)(i-2);float remaining=s.Remaining(slot,b.Time);cooldown[i].fillAmount=slot==SkillSlot.Ultimate&&s.Level<6?1:Mathf.Clamp01(remaining/Mathf.Max(.01f,s.Cooldown(slot,b.Time)));labels[i].text=slot==SkillSlot.Ultimate&&s.Level<6?"LV 6":remaining>0?Mathf.CeilToInt(remaining).ToString():i==4?"ULT":"SKILL "+(i-1);}
             float tacticLeft=Mathf.Max(0,b.Player.TacticReadyAt-b.Time);cooldown[5].fillAmount=Mathf.Clamp01(tacticLeft/ArenaTacticalRules.Cooldown(b.Player.Tactic));labels[5].text=tacticLeft>0?Mathf.CeilToInt(tacticLeft).ToString():"TACTIC";
             int seconds=Mathf.FloorToInt(b.Time);status.text=b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):$"{seconds/60:00}:{seconds%60:00}   Lv {s.Level}   Gold {b.Player.Gold}   {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists}   L {b.RemainingUnits(ArenaTeam.Lux)} : T {b.RemainingUnits(ArenaTeam.Tenebra)}";
-            target.text=string.IsNullOrEmpty(view.TargetLabel)?"":"TARGET: "+view.TargetLabel;
+            target.text=b.Finished?ArenaProgression.TrainingResult(true):string.IsNullOrEmpty(view.TargetLabel)?"":"TARGET: "+view.TargetLabel;
             health.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),height*.018f);
             mana.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),height*.013f);
         }
