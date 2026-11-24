@@ -102,7 +102,7 @@ namespace Buklod.Empire.Editor {
                 throw new InvalidOperationException("Premium map integrity mismatch. Regenerate from the current original map.");
             return premium;
         }
-        internal static GameObject MakePrefab(string id,string[] required,bool factionHd=false){
+        internal static GameObject MakePrefab(string id,string[] required,bool factionHd=false,bool wildlifeHd=false){
             string modelPath=$"{Out}/Models/{id}.glb";
             var model=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if(!model)throw new InvalidOperationException("glTFast GameObject import failed: "+id);
@@ -153,6 +153,7 @@ namespace Buklod.Empire.Editor {
                     animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
                 }
                 if(factionHd)FactionMaterialReview.Apply(instance,id);
+                if(wildlifeHd)WildlifeMaterialReview.Apply(instance,id);
                 if(HeroKitCatalog.All.Any(h=>h.Id==id))HeroLodReviewImporter.Attach(instance,id);
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);
