@@ -14,10 +14,14 @@ namespace Buklod.Empire {
         private MaterialPropertyBlock block;
         private readonly Dictionary<(int,int),Color> appliedTints=new Dictionary<(int,int),Color>();
         private bool review;
+        private BattleEffects battleEffects;
+        private WorldInteractionEffects worldEffects;
+        private readonly Dictionary<int,(int hit,int attack,int defeat)> campHistory=new Dictionary<int,(int,int,int)>();
+        private readonly Dictionary<int,Animator> campAnimators=new Dictionary<int,Animator>();
         private int pooled;
         private const int PoolLimit=48;
         public int ActiveCount=>active.Count;
-        public void Bind(BattleView owner){Clear();view=owner;bound=owner.Battle;review=owner.IsEditorReview;}
+        public void Bind(BattleView owner){Clear();view=owner;bound=owner.Battle;review=owner.IsEditorReview;battleEffects=owner.GetComponent<BattleEffects>();worldEffects=owner.GetComponent<WorldInteractionEffects>();}
         private GameObject Present(int type,int id,Vector2 position,GameObject prefab,out bool fresh){
             fresh=false;if(!prefab)return null;
             var key=(type,id);seen.Add(key);
@@ -80,6 +84,46 @@ namespace Buklod.Empire {
             }
             return null;
         }
+        static Color CampTint(WildernessKind kind){
+            switch(kind){
+                case WildernessKind.AzureStag:return new Color(.24f,.65f,1);
+                case WildernessKind.CrimsonWolf:return new Color(1,.21f,.24f);
+                case WildernessKind.EmeraldSerpent:return new Color(.27f,.88f,.45f);
+                case WildernessKind.GoldenScarab:return new Color(1,.72f,.18f);
+                case WildernessKind.StoneGolem:return new Color(.63f,.68f,.74f);
+                case WildernessKind.RiverSpirit:return new Color(.25f,.86f,.91f);
+                case WildernessKind.WindFalcon:return new Color(.64f,.81f,1);
+                case WildernessKind.AncientSentinel:return new Color(1,.79f,.37f);
+                default:return new Color(.71f,.29f,1);
+            }
+        }
+        private void Camp(WildernessCamp c){
+            bool visible=Visible(c.Position),wasSeen=campHistory.TryGetValue(c.Id,out var prior);
+            var key=(1,c.Id);
+            if(c.Alive&&visible){
+                var go=Present(1,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind),out var fresh);
+                if(!review||!go)return;
+                if(fresh)campAnimators[c.Id]=go.GetComponentInChildren<Animator>(true);
+                if(!fresh&&wasSeen&&c.AttackSequence>prior.attack){
+                    Vector2 delta=c.LastAttackPosition-c.Position;
+                    if(delta.sqrMagnitude>.001f)go.transform.rotation=Quaternion.LookRotation(new Vector3(delta.x,0,delta.y));
+                    if(campAnimators.TryGetValue(c.Id,out var animator)&&animator)animator.SetTrigger("Attack");
+                    if(battleEffects){
+                        var forward=go.transform.forward;
+                        var cue=new SkillCue("neutral_"+c.Kind, c.Boss?SkillCueShape.Impact:SkillCueShape.Surge,c.Boss?4.2f:1.8f,c.Boss?.65f:.35f,-1);
+                        battleEffects.EmitSkill(go.transform.position,CampTint(c.Kind),cue,forward);
+                    }
+                }else if(!fresh&&wasSeen&&c.HitSequence>prior.hit){
+                    if(campAnimators.TryGetValue(c.Id,out var animator)&&animator)animator.SetTrigger("Hit");
+                }
+            }else if(review&&visible&&wasSeen&&c.DefeatSequence>prior.defeat&&active.TryGetValue(key,out var go)&&go){
+                // A real defeat, not a fog transition or the reinforcement cutoff.
+                if(worldEffects)worldEffects.Emit(go.transform.position,c.Boss?WorldImpactKind.Core:WorldImpactKind.Unit,c.Id*397+c.DefeatSequence,CampTint(c.Kind));
+                if(battleEffects)battleEffects.Emit(go.transform.position,CampTint(c.Kind),c.Boss?3:1);
+            }
+            // Snapshot even when hidden: entering visibility never replays past combat.
+            if(review)campHistory[c.Id]=(c.HitSequence,c.AttackSequence,c.DefeatSequence);
+        }
         public void Refresh(){
             if(!view||view.Battle==null)return;if(bound!=view.Battle){Clear();bound=view.Battle;}
             seen.Clear();
@@ -88,7 +132,7 @@ namespace Buklod.Empire {
                     var prefab=view.visuals.ResolveResource(n.Kind);var go=Present(0,n.Id,n.Position,prefab,out _);
                     if(go&&review){var scale=prefab.transform.localScale;scale.y*=StockScale(n.Stock,n.Capacity);go.transform.localScale=scale;}
                 }
-                foreach(var c in bound.Camps)if(c.Alive&&Visible(c.Position))Present(1,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind),out _);
+                foreach(var c in bound.Camps)Camp(c);
                 foreach(var d in bound.Drops)if(Visible(d.Position))Loot(2,d.Id,d.Position,view.visuals.fieldPickup,d.Item.Tier,d.SpawnedAt);
                 foreach(var d in bound.RelicDrops)if(Visible(d.Position))Loot(3,d.Id,d.Position,view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt);
                 if(review)foreach(var u in bound.Units){
@@ -110,7 +154,7 @@ namespace Buklod.Empire {
                 }
             }
             removed.Clear();foreach(var e in active)if(!seen.Contains(e.Key)){Return(e.Key,e.Value);removed.Add(e.Key);}
-            foreach(var key in removed){active.Remove(key);prefabs.Remove(key);appliedTints.Remove(key);}
+            foreach(var key in removed){active.Remove(key);prefabs.Remove(key);appliedTints.Remove(key);if(key.Item1==1)campAnimators.Remove(key.Item2);}
         }
         private void Return((int,int) key,GameObject go){
             if(!go)return;go.SetActive(false);
@@ -120,7 +164,7 @@ namespace Buklod.Empire {
         private void Clear(){
             foreach(var go in active.Values)if(go)Destroy(go);
             foreach(var pool in pools.Values)foreach(var go in pool)if(go)Destroy(go);
-            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();pooled=0;
+            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();campHistory.Clear();campAnimators.Clear();pooled=0;
         }
         private void OnDestroy(){Clear();}
     }
