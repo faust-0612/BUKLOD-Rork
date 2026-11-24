@@ -38,11 +38,12 @@ namespace Buklod.Empire.Editor {
             foreach(var spec in specs)if(!File.Exists(spec.path))
                 throw new FileNotFoundException("Run Tools/prepare-review-assets.py first.",spec.path);
             Directory.CreateDirectory(Out+"/Models");Directory.CreateDirectory(Out+"/Prefabs");Directory.CreateDirectory(Out+"/Controllers");Directory.CreateDirectory(Out+"/Clips");
+            bool factionHd=FactionMaterialReview.Prepare(factionPaths.Values.All(path=>path.StartsWith(Source+"/premium-factions/",StringComparison.Ordinal)));
             foreach(var spec in specs)File.Copy(spec.path,$"{Out}/Models/{spec.id}.glb",true);
             HeroLodReviewImporter.CopyModels();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             var prefabs=new Dictionary<string,GameObject>();
-            foreach(var spec in specs)prefabs.Add(spec.id,MakePrefab(spec.id,spec.clips));
+            foreach(var spec in specs)prefabs.Add(spec.id,MakePrefab(spec.id,spec.clips,factionHd&&factionPaths.ContainsKey(spec.id)));
 
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             var root=new GameObject("UNAPPROVED — ORIGINAL PROCEDURAL REVIEW");
@@ -101,7 +102,7 @@ namespace Buklod.Empire.Editor {
                 throw new InvalidOperationException("Premium map integrity mismatch. Regenerate from the current original map.");
             return premium;
         }
-        internal static GameObject MakePrefab(string id,string[] required){
+        internal static GameObject MakePrefab(string id,string[] required,bool factionHd=false){
             string modelPath=$"{Out}/Models/{id}.glb";
             var model=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if(!model)throw new InvalidOperationException("glTFast GameObject import failed: "+id);
@@ -151,6 +152,7 @@ namespace Buklod.Empire.Editor {
                     var animator=instance.GetComponent<Animator>();if(!animator)animator=instance.AddComponent<Animator>();
                     animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
                 }
+                if(factionHd)FactionMaterialReview.Apply(instance,id);
                 if(HeroKitCatalog.All.Any(h=>h.Id==id))HeroLodReviewImporter.Attach(instance,id);
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);
