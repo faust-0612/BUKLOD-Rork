@@ -13,7 +13,8 @@ export type SaliksikSource = {
 };
 export type SaliksikInvestigation = {
  id: string; collection_id: string; collection_title: string;
- title: string; summary: string; tier: 'discover'|'investigate';
+ source_mode?:'CANONICAL_BIBLE_CORPUS'|'ADMIN_MANUSCRIPT';
+ title: string; summary: string; tier: 'discover'|'investigate'|'master';
  points: number; scripture_refs: string[]; completed: boolean;
 };
 export type SaliksikDetail = {
