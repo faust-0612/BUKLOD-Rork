@@ -1,0 +1,88 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/word-bible-pressable-20261123.json",
+  "objective": "Make Word Scripture passage and key-verse references pressable and open the exact existing My Bible chapter/verse without changing Word content, ads, completion, or native runtime.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main SHA 7b224c39624827282c3cbf003060317045b0a73f is the inspected source baseline on Nov 23, 2026. Independently deployed production OTA fingerprint has not been verified; this is DEV/RC QA only.",
+  "chosenApproach": "Parse published Word bible_passage and key_verse locally using existing Bible book aliases; use accessible pressable links to /bible/read in my_bible mode, which highlights the requested verse.",
+  "selectionRationale": "The existing devotional screen renders references as plain text and the Bible reader already supports book/chapter/verse route params. Reusing My Bible avoids network work, new native dependencies, and accidentally invoking the guided Daily Reading mode.",
+  "acceptanceChecks": [
+    "Psalm 42:1–11 opens My Bible Psalm 42 at first verse; Psalm 42:5 opens exact highlighted verse.",
+    "Other validated Bible references including numbered books parse correctly; invalid references do not navigate to an incorrect chapter.",
+    "Word paraphrase, reflection, offline cache, auth, ads and existing buttons remain intact.",
+    "TypeScript, navigation, ads, compact spacing, and source QA must pass before any staging OTA.",
+    "No production release or OTA by merging this feature branch.",
+    "Bible navigation legacy regression assertions are aligned with their current extracted QuickLinks component and narration visibility while retaining all reader checks."
+  ],
+  "preserveBehaviors": [
+    "Devotionals are read account-scoped from their existing authorized online/offline sources.",
+    "Existing Bible reader translation, study/commentary, personal notes, narration, verse selection and completed-assignment protections.",
+    "Existing AdMob rendering, preload, offscreen lifecycle, navigation responsiveness, bottom tab and safe-area behavior.",
+    "Production APK/OTA, staging APK identity and native dependency lock stay unchanged."
+  ],
+  "alternativeApproaches": [
+    "Open a browser Bible URL (rejected: adds internet dependency and loses account-selected translation and existing My Bible functionality).",
+    "Change Daily Reading guided screen or backend RLS (rejected: unrelated and could incorrectly mark a lesson completed).",
+    "Embed full Bible verses in every Word card (rejected: duplicates and risks out-of-date translation content)."
+  ],
+  "riskAreas": [
+    "word-scripture-link",
+    "bible-reader-navigation",
+    "offline-reference-parsing",
+    "ads-navigation-regression",
+    "release-identity"
+  ],
+  "regressionTests": [
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-staging-ota-release-20261123.test.cjs",
+    "tests/bible-navigation.test.cjs"
+  ],
+  "allowedPaths": [
+    "src/app/devotional/[id].tsx",
+    "src/lib/buklodWordBibleReference.ts",
+    "tests/word-scripture-link-20261123.test.cjs",
+    ".buklod/scopes/word-bible-pressable-20261123.json",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    ".github/workflows/buklod-word-staging-ota-20261123.yml",
+    "tests/word-staging-ota-release-20261123.test.cjs",
+    "tests/bible-navigation.test.cjs"
+  ],
+  "publicationStatus": "PENDING_VERIFIED_STAGING_OTA",
+  "releaseMode": "staging-ota-candidate",
+  "releaseTarget": "Android staging-user runtime 1.3.2 only after immutable RC and all gates",
+  "physicalDeviceVerification": "NOT_PERFORMED",
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Use local parser and accessible Word Scripture links while preserving existing runtime, no native or backend operations.",
+      "preservedBehaviors": [
+        "All existing Word content, account-scoped offline retrieval, ad placement and reflection navigation remain unchanged."
+      ],
+      "tests": [
+        "tests/word-scripture-link-20261123.test.cjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Navigate from Word to full My Bible book, chapter, and verse without invoking Daily Reading assignment completion.",
+      "preservedBehaviors": [
+        "The existing Bible translations, passage highlight, personal study/notes, faith authorization, and Daily Reading completion remain intact."
+      ],
+      "tests": [
+        "tests/word-bible-navigation-20261123.test.cjs",
+        "tests/bible-navigation.test.cjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Guarded Android staging-only OTA keeps production unchanged and verifies native baseline, cumulative source parity, ads, navigation and served update.",
+      "preservedBehaviors": [
+        "Existing production package, production channel, backend and AdMob money remain untouched; staging current feature parity enforced."
+      ],
+      "tests": [
+        "tests/word-staging-ota-release-20261123.test.cjs"
+      ]
+    }
+  ]
+}
