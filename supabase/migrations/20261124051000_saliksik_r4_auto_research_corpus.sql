@@ -164,6 +164,25 @@ BEGIN
    'scripture_anchor',r.scripture_anchor,'error',CASE WHEN r.status='held' THEN r.last_error END);
 END $fn$;
 
+CREATE OR REPLACE FUNCTION public.saliksik_my_research_r4(p_scope_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
+BEGIN
+ IF auth.uid() IS NULL OR NOT public.buklod_user_is_active_scope_member(p_scope_id,auth.uid())
+ THEN RAISE EXCEPTION 'active_cluster_member_required' USING ERRCODE='42501'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.saliksik_rollout WHERE id AND member_enabled)
+ THEN RETURN '[]'::jsonb; END IF;
+ RETURN coalesce((
+ SELECT jsonb_agg(jsonb_build_object('request_id',r.id,'question',r.question,
+ 'status',r.status,'scripture_anchor',r.scripture_anchor,
+ 'progress',(SELECT count(*) FROM public.saliksik_investigations i
+   WHERE i.collection_id=r.collection_id AND i.tier<>'master'),
+ 'collection_id',CASE WHEN r.status='ready' THEN r.collection_id END,
+ 'created_at',r.created_at) ORDER BY r.created_at DESC)
+ FROM (SELECT * FROM public.saliksik_auto_requests
+ WHERE user_id=auth.uid() AND scope_id=p_scope_id
+ ORDER BY created_at DESC LIMIT 10) r),'[]'::jsonb);
+END $fn$;
+
 -- Only a verified Edge request can claim a short processing lease. No member
 -- can send privileged generated JSON directly to SQL through authenticated RPC.
 CREATE OR REPLACE FUNCTION public.saliksik_auto_lease_r4(p_request_id uuid,p_user_id uuid)
@@ -330,12 +349,12 @@ BEGIN
  FOR fn IN SELECT p.proname,pg_get_function_identity_arguments(p.oid) args
  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
  WHERE n.nspname='public' AND p.proname IN
- ('saliksik_research_request_r4','saliksik_research_status_r4',
+ ('saliksik_research_request_r4','saliksik_research_status_r4','saliksik_my_research_r4',
   'saliksik_auto_lease_r4','saliksik_auto_store_r4','saliksik_auto_hold_r4')
  LOOP
  EXECUTE format('REVOKE ALL ON FUNCTION public.%I(%s) FROM PUBLIC,anon,authenticated',
    fn.proname,fn.args);
- IF fn.proname IN('saliksik_research_request_r4','saliksik_research_status_r4') THEN
+ IF fn.proname IN('saliksik_research_request_r4','saliksik_research_status_r4','saliksik_my_research_r4') THEN
   EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I(%s) TO authenticated',fn.proname,fn.args);
  ELSE
   EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I(%s) TO service_role',fn.proname,fn.args);
