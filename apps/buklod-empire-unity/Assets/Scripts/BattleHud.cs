@@ -50,6 +50,7 @@ namespace Buklod.Empire {
             labels[1].text="ATTACK";cooldown[1].fillAmount=0;
             for(int i=2;i<5;i++){var slot=(SkillSlot)(i-2);float remaining=s.Remaining(slot,b.Time);cooldown[i].fillAmount=slot==SkillSlot.Ultimate&&s.Level<6?1:Mathf.Clamp01(remaining/Mathf.Max(.01f,s.Cooldown(slot,b.Time)));labels[i].text=slot==SkillSlot.Ultimate&&s.Level<6?"LV 6":remaining>0?Mathf.CeilToInt(remaining).ToString():i==4?"ULT":"SKILL "+(i-1);}
             int seconds=Mathf.FloorToInt(b.Time);status.text=b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):$"{seconds/60:00}:{seconds%60:00}  Lv {s.Level}  Gold {b.Player.Gold}  K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists}  Lux {b.RemainingUnits(ArenaTeam.Lux)} : {b.RemainingUnits(ArenaTeam.Tenebra)}";
+            if(b.Finished)status.text+=" • "+ArenaProgression.TrainingResult(true);
             health.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),height*.018f);
             mana.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),height*.013f);
         }

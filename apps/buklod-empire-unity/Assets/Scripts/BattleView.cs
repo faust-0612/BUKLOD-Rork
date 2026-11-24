@@ -15,6 +15,9 @@ namespace Buklod.Empire {
         public void SetPaused(bool value){Paused=value;if(input)input.enabled=!value;}
 #if UNITY_EDITOR
         [SerializeField, HideInInspector] private bool editorReviewOnly;
+        public static System.Func<string,string,GameObject> EditorPracticePrefab;
+        private string practiceReviewStyle="original";
+        public void SetPracticeReviewStyle(string style){practiceReviewStyle=editorReviewOnly&&ArenaCosmeticPractice.IsSkinStyle(style)?style:"original";}
         public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
 #endif
         private MobileBattleInput input;
@@ -131,7 +134,14 @@ namespace Buklod.Empire {
                 if(!BattleRenderBudget.RetainVisual(player,inView,existing,distanceSquared))continue;
                 seen.Add(u.Id);
                 if(!existing){
-                    v=Rent(visuals.Resolve(u));v.unit=u;active.Add(u.Id,v);
+                    var prefab=visuals.Resolve(u);
+#if UNITY_EDITOR
+                    if(editorReviewOnly&&player&&practiceReviewStyle!="original"&&EditorPracticePrefab!=null){
+                        var review=EditorPracticePrefab(u.State.Kit.Id,practiceReviewStyle);
+                        if(review)prefab=review;
+                    }
+#endif
+                    v=Rent(prefab);v.unit=u;active.Add(u.Id,v);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;v.villageActions=u.Villager?.Actions??0;
                 }

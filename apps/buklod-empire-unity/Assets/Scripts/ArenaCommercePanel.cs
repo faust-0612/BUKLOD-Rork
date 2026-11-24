@@ -13,6 +13,8 @@ namespace Buklod.Empire {
 #if UNITY_EDITOR
         public static Func<ArenaOffer,Texture> EditorReviewPreview;
         private float nextPreviewCheck;
+        private Func<ArenaOffer,bool> practiceSelected;
+        private Button practiceButton;
 #endif
         private ArenaPremiumPreviewMotion motion;
         private Font font;
@@ -30,12 +32,19 @@ namespace Buklod.Empire {
             t.font=font;t.text=value;t.fontSize=size;t.color=Color.white;t.alignment=TextAnchor.MiddleCenter;
             t.resizeTextForBestFit=true;t.resizeTextMinSize=12;t.resizeTextMaxSize=size;t.raycastTarget=false;return t;
         }
-        private void Button(string name,float x,float y,float w,float h,Action act){
+        private Button Button(string name,float x,float y,float w,float h,Action act){
             var r=Rect(name,root,x,y,w,h);var img=r.gameObject.AddComponent<Image>();img.color=new Color(.12f,.32f,.29f);
             var b=r.gameObject.AddComponent<Button>();b.targetGraphic=img;b.onClick.AddListener(()=>act());
-            Label("Label",r,0,0,1,1,name,24);
+            Label("Label",r,0,0,1,1,name,24);return b;
         }
-        public void Open(Transform parent,Action onClose){
+        public void Open(Transform parent,Action onClose
+#if UNITY_EDITOR
+            ,Func<ArenaOffer,bool> onPracticeSelect=null
+#endif
+        ){
+#if UNITY_EDITOR
+            practiceSelected=onPracticeSelect;
+#endif
             if(root){root.gameObject.SetActive(true);closed=onClose;root.SetAsLastSibling();Refresh();return;}
             closed=onClose;font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             offers=ArenaCommercePreview.Build().ToArray();
@@ -56,6 +65,9 @@ namespace Buklod.Empire {
             Button("NEXT",.73f,.42f,.23f,.12f,()=>Move(1));
             Button("NEXT CATEGORY",.06f,.035f,.40f,.09f,NextCategory);
             Button("BACK",.54f,.035f,.40f,.09f,Close);
+#if UNITY_EDITOR
+            practiceButton=Button("TRY IN TRAINING",.72f,.56f,.25f,.12f,TryPractice);
+#endif
             Refresh();
         }
         private void Move(int step){selected=(selected+step+offers.Length)%offers.Length;Refresh();}
@@ -108,8 +120,15 @@ namespace Buklod.Empire {
             bool available=preview!=null;
             modelPreview.texture=preview;modelPreview.gameObject.SetActive(available);swatch.gameObject.SetActive(!available);
             visualStatus.text=available?"3D MODEL THUMBNAIL • REVIEW ONLY":"CONCEPT EMBLEM • MODEL NOT DISPLAYED";
+#if UNITY_EDITOR
+            if(practiceButton)practiceButton.gameObject.SetActive(available&&practiceSelected!=null&&ArenaCosmeticPractice.IsSupported(offers[selected]));
+#endif
         }
 #if UNITY_EDITOR
+        private void TryPractice(){
+            if(practiceSelected!=null&&practiceSelected(offers[selected]))Close();
+            else detail.text="Select this hero in training first. No purchase or ownership granted.";
+        }
         private void Update(){
             if(!root||!root.gameObject.activeInHierarchy||modelPreview.gameObject.activeSelf||Time.unscaledTime<nextPreviewCheck)return;
             nextPreviewCheck=Time.unscaledTime+1f;RefreshPreview();

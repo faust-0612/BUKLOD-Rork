@@ -5,7 +5,7 @@ namespace Buklod.Empire.Editor {
     [InitializeOnLoad]
     public static class ArenaCommerceReviewPreview {
         const string Base=CandidateReviewComposer.Out;
-        static ArenaCommerceReviewPreview(){ArenaCommercePanel.EditorReviewPreview=Resolve;}
+        static ArenaCommerceReviewPreview(){ArenaCommercePanel.EditorReviewPreview=Resolve;BattleView.EditorPracticePrefab=ResolvePractice;}
         internal static string AssetPath(ArenaOffer o){
             if(o==null)return null;
             switch(o.Kind){
@@ -16,6 +16,13 @@ namespace Buklod.Empire.Editor {
                     return null;
                 default:return null;
             }
+        }
+        static GameObject ResolvePractice(string hero,string style){
+            if(!SacredStoneCatalog.TryGet(hero,out _)||!ArenaCosmeticPractice.IsSkinStyle(style)||style=="original")return null;
+            var obj=AssetDatabase.LoadAssetAtPath<GameObject>(Base+"/Prefabs/"+hero+"_"+style+".prefab");
+            if(!obj||!obj.GetComponentInChildren<SkinnedMeshRenderer>(true))return null;
+            var animator=obj.GetComponentInChildren<Animator>(true);
+            return animator&&animator.runtimeAnimatorController?obj:null;
         }
         static Texture Resolve(ArenaOffer offer){
             string path=AssetPath(offer);if(string.IsNullOrEmpty(path))return null;

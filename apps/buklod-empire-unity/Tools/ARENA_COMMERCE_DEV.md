@@ -15,3 +15,6 @@ Run BUKLOD Empire > Assemble transformation and battlefield themes after base an
 
 ## Reconciled review collection
 The latest hybrid RTS + Kingdom expedition source is preserved. The offline session has an isolated COLLECTION button. In Unity Editor only, imported hero skin, standalone relic and transformation prefabs may supply actual AssetPreview thumbnails; missing previews explicitly fall back to concept emblems. The Android runtime does not reference review-only assets. Relic import checks exact Git blob receipts, and regenerating refreshes the manifest. Preview cache is not a purchase or visual-approval authority.
+
+## Offline skin trial and progression reconciliation
+In an editor-review BattleView only, the collection can select an imported canonical hero skin for the next free practice match. Only the player visual prefab is replaced; the pool remains keyed by prefab, and simulation and hero stats are untouched. No review asset may ship in Android. Progression source and private graded BP/XP SQL are reconciled from integrated APK DEV. Reward candidate requires the Kingdom eligibility function, disabled-by-default release gate, and ranked completed match. No database migration or receipt API deployed. Other divergent integrated APK world-object and target-lock changes require separate compatibility work; no whole-branch merge claimed.

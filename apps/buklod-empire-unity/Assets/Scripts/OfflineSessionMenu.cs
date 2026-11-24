@@ -34,6 +34,9 @@ namespace Buklod.Empire {
         private GameObject ownedEventSystem;
         private string selected;
         private bool shown,lastFinished;
+#if UNITY_EDITOR
+        private string reviewStyle="original";
+#endif
         private Font font;
         private static readonly Color Navy=new Color(.055f,.09f,.13f,.97f);
         private RectTransform Rect(string name,Transform parent,Vector2 min,Vector2 max){
@@ -99,10 +102,22 @@ namespace Buklod.Empire {
         private void OpenCollection(){
             if(!shown||commandOpen)return;
             var collection=GetComponent<ArenaCommercePanel>();if(!collection)collection=gameObject.AddComponent<ArenaCommercePanel>();
-            collection.Open(canvas,Refresh);
+            collection.Open(canvas,Refresh
+#if UNITY_EDITOR
+                ,offer=>{
+                    if(offer.Subject!=selected)return false;
+                    if(!ArenaCosmeticPractice.IsSupported(offer))return false;
+                    reviewStyle=offer.Style;RefreshConfiguration();return true;
+                }
+#endif
+            );
         }
         private void Select(string hero){
-            selected=HeroKitCatalog.Get(hero).Id;SacredStoneCatalog.TryGet(selected,out var stone);choice.text=HeroKitCatalog.Get(hero).Name+" / "+(stone?.Name??"");
+            var next=HeroKitCatalog.Get(hero).Id;
+#if UNITY_EDITOR
+            if(next!=selected)reviewStyle="original";
+#endif
+            selected=next;SacredStoneCatalog.TryGet(selected,out var stone);choice.text=HeroKitCatalog.Get(hero).Name+" / "+(stone?.Name??"");
             var ingredients=ArenaStoneRules.Ingredients(selected);if(ingredients.Length==2&&SacredStoneCatalog.TryGet(ingredients[0],out var first)&&SacredStoneCatalog.TryGet(ingredients[1],out var second))choice.text+="\n"+first.Name+" + "+second.Name+" → "+(stone?.Name??"")+" • Training free";
         }
         private void Open(){
@@ -113,11 +128,16 @@ namespace Buklod.Empire {
         private void Refresh(){
             var b=view.Battle;bool finished=b!=null&&b.Finished;
             title.text=finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):"OFFLINE TRAINING";
-            summary.text=finished?$"{b.EndReason} • K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists} • Damage {b.Player.DamageDealt:0} • No permanent rewards":"5v5 • No internet or persistent rewards";
+            summary.text=finished?$"{b.EndReason} • K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists} • Damage {b.Player.DamageDealt:0} • "+ArenaProgression.TrainingResult(true):"5v5 • No internet or persistent rewards";
             resume.interactable=b!=null&&!finished&&b.Time>0;
         }
         private void Resume(){if(view.Battle==null||view.Battle.Finished)return;Close();}
-        private void StartNew(){view.StartConfiguredMatch(selected,difficulty,new CovenantLoadout(path,first,second,third),tactic);lastFinished=false;Close();}
+        private void StartNew(){
+#if UNITY_EDITOR
+            view.SetPracticeReviewStyle(reviewStyle);
+#endif
+            view.StartConfiguredMatch(selected,difficulty,new CovenantLoadout(path,first,second,third),tactic);lastFinished=false;Close();
+        }
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void CycleSetup(int index){
             switch(index){
@@ -129,7 +149,12 @@ namespace Buklod.Empire {
                 case 5:third=(CovenantTalent)(6+((int)third-6+1)%3);break;
             }RefreshConfiguration();
         }
-        private void RefreshConfiguration(){configuration.text=$"{difficulty} • {tactic} • {path} • {first} / {second} / {third}";}
+        private void RefreshConfiguration(){
+            configuration.text=$"{difficulty} • {tactic} • {path} • {first} / {second} / {third}";
+#if UNITY_EDITOR
+            configuration.text+=" • REVIEW SKIN: "+reviewStyle;
+#endif
+        }
         private bool LiveAction(Func<OfflineBattle,bool> action)=>!shown&&!commandOpen&&!view.Paused&&view.Battle!=null&&!view.Battle.Finished&&action(view.Battle);
         private void TradeGear(string gear){LiveAction(b=>b.Player.Gear.Contains(gear)?b.SellPlayer(gear):b.BuyPlayer(gear));}
         private void CreateCommands(){
