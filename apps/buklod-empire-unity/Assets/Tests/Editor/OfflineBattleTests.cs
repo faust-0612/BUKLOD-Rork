@@ -3,6 +3,14 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void AutonomousTrainingAndTargetLockUseNormalRules(){
+            var b=new OfflineBattle("phan",seed:9,difficulty:ArenaDifficulty.Expert,autonomousTraining:true);
+            var start=b.Player.Position;Assert.AreEqual(ArenaDifficulty.Expert,b.Difficulty);Assert.True(b.AutonomousTraining);
+            var foe=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            Assert.False(b.PlayerAttackUnit(foe.Id));Assert.False(b.PlayerAttackUnit(b.Player.Id));Assert.False(b.PlayerAttackUnit(-1));
+            for(int i=0;i<30;i++)b.Advance(.1f,Vector2.zero);
+            Assert.Greater(Vector2.Distance(start,b.Player.Position),0);Assert.False(b.Finished);
+        }
         [Test] public void ConstructionRejectsUnfundedInvalidAndEnemyOrders(){
             var b=new OfflineBattle("phan");var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Structure);
             Assert.False(b.OrderPlayerConstruction(VillageBuildOrder.Depot,new Vector2(22,100)));

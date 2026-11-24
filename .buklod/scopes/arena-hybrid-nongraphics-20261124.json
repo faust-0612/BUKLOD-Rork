@@ -24,7 +24,8 @@
     "300 canonical pickups, 260 relics and 104 consumables; match-local only",
     "Hero skill/passive, tactics, draft, vision, neutral camps and economy regression coverage",
     "Unity compile, NUnit and Android runtime acceptance still required",
-    "Physical builder orders, atomic completion cost, alternate depots and full-elimination inclusion"
+    "Physical builder orders, atomic completion cost, alternate depots and full-elimination inclusion",
+    "Exact target lock, legal tactical AI and autonomous offline training"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",
