@@ -83,6 +83,15 @@ namespace Buklod.Empire {
             double added=Math.Max(0,Math.Min(amount,ResourceCap-ResourceBalance(kind)));
             switch(kind){case VillageResourceKind.Wood:Wood+=added;break;case VillageResourceKind.Stone:Stone+=added;break;case VillageResourceKind.Crystal:Crystal+=added;break;case VillageResourceKind.Food:Food+=added;break;case VillageResourceKind.Gold:Gold+=added;break;}return added;
         }
+        public const double MarketLot=10,MarketBuyGold=15,MarketSellGold=6;
+        internal bool TryMarketTrade(VillageResourceKind kind,bool buy){
+            if(!Enum.IsDefined(typeof(VillageResourceKind),kind)||kind==VillageResourceKind.Gold)return false;
+            double balance=ResourceBalance(kind);
+            if(buy){if(Gold<MarketBuyGold||balance+MarketLot>ResourceCap)return false;Gold-=MarketBuyGold;DepositResource(kind,MarketLot);return true;}
+            if(balance<MarketLot||Gold+MarketSellGold>ResourceCap)return false;
+            switch(kind){case VillageResourceKind.Wood:Wood-=MarketLot;break;case VillageResourceKind.Stone:Stone-=MarketLot;break;case VillageResourceKind.Food:Food-=MarketLot;break;case VillageResourceKind.Crystal:Crystal-=MarketLot;break;}
+            Gold+=MarketSellGold;return true;
+        }
         internal double CreditPickup(string resource,double amount){
             if(double.IsNaN(amount)||double.IsInfinity(amount)||amount<=0)return 0;
             double current=resource=="wood"?Wood:resource=="stone"?Stone:resource=="gold"?Gold:-1;
@@ -128,7 +137,7 @@ namespace Buklod.Empire {
         }
         private bool CanPay(double w,double s,double c)=>Wood>=w&&Stone>=s&&Crystal>=c;
         private static bool ConstructionCost(VillageBuildOrder kind,out double wood,out double stone){
-            wood=stone=0;switch(kind){case VillageBuildOrder.Depot:wood=35;stone=20;return true;case VillageBuildOrder.GuardPost:wood=55;stone=40;return true;case VillageBuildOrder.Repair:wood=10;stone=5;return true;case VillageBuildOrder.Farm:wood=25;stone=5;return true;case VillageBuildOrder.Barracks:wood=60;stone=35;return true;default:return false;}
+            wood=stone=0;switch(kind){case VillageBuildOrder.Depot:wood=35;stone=20;return true;case VillageBuildOrder.GuardPost:wood=55;stone=40;return true;case VillageBuildOrder.Repair:wood=10;stone=5;return true;case VillageBuildOrder.Farm:wood=25;stone=5;return true;case VillageBuildOrder.Barracks:wood=60;stone=35;return true;case VillageBuildOrder.Market:wood=45;stone=25;return true;case VillageBuildOrder.House:wood=20;stone=10;return true;default:return false;}
         }
         internal bool CanFundConstruction(VillageBuildOrder kind)=>ConstructionCost(kind,out double w,out double s)&&CanPay(w,s,0);
         internal bool SpendConstruction(VillageBuildOrder kind){if(!ConstructionCost(kind,out double w,out double s)||!CanPay(w,s,0))return false;Pay(w,s,0);return true;}

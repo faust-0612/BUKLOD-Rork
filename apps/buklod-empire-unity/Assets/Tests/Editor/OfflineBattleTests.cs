@@ -3,6 +3,12 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void NoMarketTradeOrConstructionWithoutInfrastructureAndResources(){
+            var b=new OfflineBattle("phan");Assert.AreEqual(6,b.PaidTroopCapacity(ArenaTeam.Lux));Assert.AreEqual(0,b.PaidTroops(ArenaTeam.Lux));
+            Assert.False(b.TradePlayerResource(VillageResourceKind.Food,true));Assert.False(b.TradePlayerResource(VillageResourceKind.Gold,false));
+            Assert.False(b.OrderPlayerConstructionNearBase(VillageBuildOrder.House));Assert.False(b.OrderPlayerConstructionNearBase(VillageBuildOrder.Market));
+            Assert.False(b.OrderPlayerRepairMostDamaged());Assert.True(b.CanShopPlayer);
+        }
         [Test] public void CovenantLoadoutIsFreeMatchLocalAndCannotStackOnReselect(){
             var b=new OfflineBattle("phan");var pick=new CovenantLoadout(CovenantPath.Courage,CovenantTalent.Fortitude,CovenantTalent.Resolve,CovenantTalent.Sustenance);
             Assert.True(b.SelectPlayerCovenant(pick));Assert.AreEqual(185,b.Player.State.MaxHealth);Assert.AreEqual(120,b.Player.Gold);
