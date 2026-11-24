@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;
+        private Image panelBackground;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -34,7 +34,7 @@ namespace Buklod.Empire {
             var btn=ButtonAt(text,body,new Vector2(x+.008f,y+.015f),new Vector2(x+1f/cols-.008f,y+1f/rows-.015f),text,action);btn.interactable=enabled;
         }
         private void Awake(){
-            view=GetComponent<BattleView>();font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");selected=view.selectedHero;
+            view=GetComponent<BattleView>();reviewPortraits=view.IsEditorReview?GetComponent<ReviewPortraits>():null;font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");selected=view.selectedHero;
             if(!EventSystem.current)ownedEventSystem=new GameObject("Offline UI EventSystem",typeof(EventSystem),typeof(InputSystemUIInputModule));
             canvas=Rect("Offline session UI",transform,Vector2.zero,Vector2.one);
             var c=canvas.gameObject.AddComponent<Canvas>();c.renderMode=RenderMode.ScreenSpaceOverlay;c.sortingOrder=100;
@@ -62,13 +62,16 @@ namespace Buklod.Empire {
             var bg=r.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,chosen?.31f:.12f);
             var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;btn.onClick.AddListener(()=>{selected=kit.Id;Rebuild();});
             var stripe=Rect("Sacred stone accent",r,new Vector2(0,.94f),Vector2.one).gameObject.AddComponent<Image>();stripe.color=accent;stripe.raycastTarget=false;
-            var name=Label("Hero name",r,new Vector2(.05f,.63f),new Vector2(.95f,.94f),(chosen?"✓ ":"")+kit.Name,27);name.color=accent;
+            var portrait=reviewPortraits?reviewPortraits.Find(kit.Id):null;
+            float left=portrait ? .37f : .05f;
+            if(portrait){var pic=Rect("Captured portrait",r,new Vector2(.025f,.05f),new Vector2(.35f,.92f)).gameObject.AddComponent<RawImage>();pic.texture=portrait;pic.raycastTarget=false;}
+            var name=Label("Hero name",r,new Vector2(left,.63f),new Vector2(.95f,.94f),(chosen?"✓ ":"")+kit.Name,27);name.color=accent;
             for(int j=0;j<3;j++){
                 if(!SkillCueCatalog.TryGet(kit.Skill((SkillSlot)j).Id,out var cue))continue;
-                var symbol=Rect("Skill "+j,r,new Vector2(.10f+j*.28f,.23f),new Vector2(.34f+j*.28f,.61f)).gameObject.AddComponent<ReviewSkillGlyph>();
+                var symbol=Rect("Skill "+j,r,new Vector2(left+(1-left)*(.05f+j*.30f),.23f),new Vector2(left+(1-left)*(.30f+j*.30f),.61f)).gameObject.AddComponent<ReviewSkillGlyph>();
                 symbol.raycastTarget=false;symbol.SetCue(cue,accent);
             }
-            Label("Combat range",r,new Vector2(.03f,.02f),new Vector2(.97f,.22f),$"ATK {kit.BasicDamage:0}  •  RNG {kit.BasicRange:0.#}",16);
+            Label("Combat range",r,new Vector2(left,.02f),new Vector2(.97f,.22f),$"ATK {kit.BasicDamage:0}  •  RNG {kit.BasicRange:0.#}",16);
         }
         private void RelicInventory(OfflineBattle battle){
             var p=battle.Player;
