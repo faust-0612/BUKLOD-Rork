@@ -36,12 +36,14 @@
     "tests/fixtures/saliksik_pg_seed.sql",
     "tests/fixtures/saliksik_r4_auto_pg_integration.sql",
     "tests/saliksik-auto-research-e2e-20261124.test.mjs",
-    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs"
+    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+    "supabase/tests/saliksik_auto_research_security_r4.sql"
   ],
   "regressionTests": [
     "tests/saliksik-auto-research-e2e-20261124.test.mjs",
     "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
-    "tests/fixtures/saliksik_r4_auto_pg_integration.sql"
+    "tests/fixtures/saliksik_r4_auto_pg_integration.sql",
+    "supabase/tests/saliksik_auto_research_security_r4.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -72,8 +74,7 @@
         "No service-role secret on client, private answer keys and essays, cross-account RLS, point rule switches and pending manual claim; no Finance/QMP/Ads mutation."
       ],
       "tests": [
-        "tests/saliksik-auto-research-e2e-20261124.test.mjs",
-        "tests/fixtures/saliksik_r4_auto_pg_integration.sql"
+        "supabase/tests/saliksik_auto_research_security_r4.sql"
       ]
     }
   ],
