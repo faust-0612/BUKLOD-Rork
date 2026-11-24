@@ -119,18 +119,18 @@ namespace Buklod.Empire {
                 }else if(!fresh&&wasSeen&&c.HitSequence>prior.hit){
                     if(campAnimators.TryGetValue(c.Id,out var animator)&&animator)animator.SetTrigger("Hit");
                 }
-            }else if(review&&visible&&wasSeen&&c.DefeatSequence>prior.defeat&&active.TryGetValue(key,out var go)&&go){
+            }else if(review&&visible&&wasSeen&&c.DefeatSequence>prior.defeat&&active.TryGetValue(key,out var defeatedVisual)&&defeatedVisual){
                 // A real defeat, not a fog transition or the reinforcement cutoff.
-                if(presentationAudio)presentationAudio.Creature(c.Kind,true,go.transform.position);
+                if(presentationAudio)presentationAudio.Creature(c.Kind,true,defeatedVisual.transform.position);
                 campDeathUntil[c.Id]=bound.Time+1.2f;
                 var corpse=Present(6,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind),out var newCorpse);
                 if(corpse&&newCorpse){
-                    corpse.transform.rotation=go.transform.rotation;
+                    corpse.transform.rotation=defeatedVisual.transform.rotation;
                     var deathAnimator=corpse.GetComponentInChildren<Animator>(true);
                     if(deathAnimator)deathAnimator.SetTrigger("Death");
                 }
-                if(worldEffects)worldEffects.Emit(go.transform.position,c.Boss?WorldImpactKind.Core:WorldImpactKind.Unit,c.Id*397+c.DefeatSequence,CampTint(c.Kind));
-                if(battleEffects)battleEffects.Emit(go.transform.position,CampTint(c.Kind),c.Boss?3:1);
+                if(worldEffects)worldEffects.Emit(defeatedVisual.transform.position,c.Boss?WorldImpactKind.Core:WorldImpactKind.Unit,c.Id*397+c.DefeatSequence,CampTint(c.Kind));
+                if(battleEffects)battleEffects.Emit(defeatedVisual.transform.position,CampTint(c.Kind),c.Boss?3:1);
             }
             if(review&&campDeathUntil.TryGetValue(c.Id,out var until)){
                 if(!visible||c.Alive||bound.Time>=until)campDeathUntil.Remove(c.Id);
