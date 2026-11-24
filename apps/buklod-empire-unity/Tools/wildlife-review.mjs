@@ -1,6 +1,65 @@
 // Original procedural wildlife and resource review candidates. Node 18+, zero dependencies.
 import {mkdirSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+function wildlifeRotation(type,clip,j,t){
+ const profiles={stag:[.82,.43,.82,.17,.95],wolf:[1.28,.62,.65,.29,1.16],serpent:[.91,.38,.43,.40,.76],scarab:[1.60,.34,.34,.19,.62],golem:[.62,.28,.54,.12,.52],spirit:[.73,.31,.46,.32,.72],falcon:[1.45,.70,.42,.21,.90],sentinel:[.48,.35,.75,.15,.85],guardian:[.40,.39,1.05,.18,1.12]};
+ const [cadence,step,strike,sway,roar]=profiles[type];const a=2*Math.PI*t,w=Math.sin(a),p=Math.sin(Math.PI*t),side=j===3||j===5?-1:1,front=j===3||j===4,limb=j>=3&&j<=6;
+ let x=0,y=0,z=0;
+ if(clip==="Idle"){
+  if(j===1){x=.035*cadence*w;z=.025*sway*Math.sin(a*2)}
+  if(j===2){x=.055*roar*Math.sin(a+.4);y=.035*cadence*w}
+  if(j===7)y=sway*.55*w;
+  if(type==="falcon"&&limb&&front)z=side*.12*w;
+  if(type==="serpent"&&j===7)y=sway*.95*w;
+ }else if(clip==="Walk"){
+  if(type==="stag"||type==="wolf"){
+   if(limb)x=step*(j===3||j===6?1:-1)*w;
+   if(j===1)x=.045*cadence*Math.sin(a*2);
+   if(j===2)x=-.07*cadence*w;
+   if(j===7)y=sway*w;
+  }else if(type==="falcon"){
+   if(limb&&front){z=side*step*Math.sin(a);x=.12*Math.sin(a+.7)}
+   if(j===1)x=.08*w;
+   if(j===7)x=.22*w;
+  }else if(type==="serpent"){
+   if(j===1)y=.27*w;if(j===2)y=-.40*Math.sin(a+.5);if(j===7)y=.43*Math.sin(a-1);
+  }else if(type==="spirit"){
+   if(j===1)z=.15*w;if(j===2)y=.14*w;if(limb&&front)z=side*.24*Math.sin(a+.5);
+  }else if(type==="scarab"){
+   if(limb){y=side*step*Math.sin(a+(front?0:Math.PI));z=side*.10*Math.cos(a)}
+   if(j===1)z=.04*w;if(j===2)x=.06*w;
+  }else{
+   if(limb)x=step*(j===3||j===6?1:-1)*w*(front?.7:1);
+   if(j===1)z=.08*cadence*w;if(j===2)x=.05*w;
+  }
+ }else if(clip==="Attack"){
+  const wind=Math.sin(Math.PI*Math.min(1,t/.32)),impact=Math.sin(Math.PI*Math.max(0,(t-.24)/.76)),swing=-.28*wind+strike*impact;
+  if(type==="stag"||type==="wolf"){if(j===2)x=-swing;if(j===1)x=-swing*.28;if(limb&&front)x=swing*.22;}
+  else if(type==="falcon"){if(limb&&front)z=side*(.25*wind-.85*impact);if(j===2)x=-swing;if(j===1)x=-swing*.35;}
+  else if(type==="serpent"){if(j===2){x=-swing;y=.17*impact;}if(j===1)x=-swing*.30;if(j===7)y=.22*impact;}
+  else if(type==="scarab"){if(j===2)x=-swing;if(limb&&front)y=side*swing*.55;}
+  else if(type==="spirit"){if(j===1)y=swing*.35;if(limb&&front){z=side*swing;y=side*.20*impact;}}
+  else{if(j===1){x=-swing*.23;y=type==="guardian"?swing*.30:0;}if(j===2)x=-swing*.35;if(limb&&front){x=-swing*(type==="sentinel"&&j===3?.35:1);z=side*.20*impact;}}
+ }else if(clip==="Hit"){
+  if(j===1){x=(.15+.12*strike)*p;z=sway*.24*p;}
+  if(j===2)x=.20*roar*p;
+  if(limb&&front)z=side*.08*cadence*p;
+ }else if(clip==="Death"){
+  const ease=t*t*(3-2*t);
+  if(j===0){z=(type==="serpent"?.42:type==="spirit"?.78:1.38)*ease;x=.12*strike*ease;}
+  if(j===2)x=.24*roar*ease;
+  if(limb&&front)x=-.20*step*ease;
+  if(j===7)y=sway*.45*ease;
+ }else if(clip==="Roar"){
+  if(j===2){x=-.45*roar*p;y=.10*sway*Math.sin(a);}
+  if(j===1)x=-.15*strike*p;
+  if(limb&&front)z=side*.20*roar*p;
+  if(j===7)y=sway*.65*p;
+ }
+ const sx=Math.sin(x/2),cx=Math.cos(x/2),sy=Math.sin(y/2),cy=Math.cos(y/2),sz=Math.sin(z/2),cz=Math.cos(z/2);
+ const q=[sx*cy*cz-cx*sy*sz,cx*sy*cz+sx*cy*sz,cx*cy*sz-sx*sy*cz,cx*cy*cz+sx*sy*sz],length=Math.hypot(...q);
+ return q.map(v=>v/length);
+}
 export function generateWildlife(){
  const creatures=[
  ["azure_stag","stag",[.13,.43,.72],1.0],["crimson_wolf","wolf",[.55,.08,.11],.85],["emerald_serpent","serpent",[.10,.48,.25],.95],["golden_scarab","scarab",[.77,.48,.09],.8],["stone_golem","golem",[.36,.40,.43],1.25],["river_spirit","spirit",[.13,.55,.66],1.1],["wind_falcon","falcon",[.47,.63,.77],.8],["ancient_sentinel","sentinel",[.40,.47,.48],1.65],["colossal_guardian","guardian",[.34,.20,.46],2.15]];
@@ -68,9 +127,9 @@ export function generateWildlife(){
   const chunks=[],views=[],accessors=[];let offset=0;
   function acc(values,width,type="VEC"+width,short=false,bounds=false){let pad=(4-offset%4)%4;if(pad){chunks.push(new Uint8Array(pad));offset+=pad}const bytes=new Uint8Array(values.length*(short?2:4)),d=new DataView(bytes.buffer);for(let i=0;i<values.length;i++)short?d.setUint16(i*2,values[i],true):d.setFloat32(i*4,values[i],true);views.push({buffer:0,byteOffset:offset,byteLength:bytes.length});offset+=bytes.length;chunks.push(bytes);let a={bufferView:views.length-1,componentType:short?5123:5126,count:values.length/width,type};if(bounds){a.min=Array(width).fill(Infinity);a.max=Array(width).fill(-Infinity);for(let i=0;i<values.length;i++){let v=d.getFloat32(i*4,true);a.min[i%width]=Math.min(a.min[i%width],v);a.max[i%width]=Math.max(a.max[i%width],v)}}accessors.push(a);return accessors.length-1}
   let primitives=[],triangles=0;geo.forEach((g,i)=>{if(!g.p.length)return;triangles+=g.p.length/9;let attributes={POSITION:acc(g.p,3,"VEC3",false,true),NORMAL:acc(g.n,3),TEXCOORD_0:acc(g.uv,2)};if(rigged){attributes.JOINTS_0=acc(g.j,4,"VEC4",true);attributes.WEIGHTS_0=acc(g.w,4)}primitives.push({material:i,mode:4,attributes})});
-  let doc={asset:{version:"2.0",generator:"BUKLOD original wildlife candidate"},scene:0,scenes:[{nodes:[]}],nodes:rigged?nodes:[],meshes:[{name:id,primitives}],materials,bufferViews:views,accessors,buffers:[{byteLength:0}],extras:{id,reviewOnly:true,source:"original procedural candidate",gameplayCollider:false}};
+  let doc={asset:{version:"2.0",generator:"BUKLOD original wildlife candidate"},scene:0,scenes:[{nodes:[]}],nodes:rigged?nodes:[],meshes:[{name:id,primitives}],materials,bufferViews:views,accessors,buffers:[{byteLength:0}],extras:{id,reviewOnly:true,source:"original procedural candidate",motionRevision:"species-motion-v2",gameplayCollider:false}};
   if(rigged){let matrices=rests.flatMap(([x,y,z])=>[1,0,0,0,0,1,0,0,0,0,1,0,-x*scale,-y*scale,-z*scale,1]);doc.skins=[{joints:rests.map((_,i)=>i),skeleton:root,inverseBindMatrices:acc(matrices,16,"MAT4")}];doc.nodes.push({name:id,mesh:0,skin:0});doc.scenes[0].nodes=[0,doc.nodes.length-1];doc.animations=[];
-   for(const [name,duration] of [["Idle",2],["Walk",.8],["Attack",.9],["Hit",.35],["Death",1.2],["Roar",1.5]]){let times=acc(Array.from({length:13},(_,i)=>duration*i/12),1,"SCALAR",false,true),samplers=[],channels=[];for(let j=0;j<rests.length;j++){let values=[];for(let k=0;k<13;k++){let t=k/12,w=Math.sin(t*2*Math.PI),p=Math.sin(t*Math.PI),angle=0,axis=0;if(name==="Idle")angle=j===body?.045*w:j===tail?.14*w:0;if(name==="Walk")angle=limbs.includes(j)?(j%2?1:-1)*.5*w:j===tail?.25*w:0;if(type==="falcon"&&limbs.includes(j)&&(name==="Walk"||name==="Attack")){axis=2;angle=(j%2?1:-1)*.65*w}if(name==="Attack"&&(j===head||j===body))angle=-.48*p;if(name==="Hit"&&j===body)angle=.23*p;if(name==="Death"&&j===root){axis=2;angle=1.42*t}if(name==="Roar"&&j===head)angle=-.35*p;let q=[0,0,0,Math.cos(angle/2)];q[axis]=Math.sin(angle/2);values.push(...q)}let output=acc(values,4);samplers.push({input:times,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:j,path:"rotation"}})}doc.animations.push({name,samplers,channels})}
+   for(const [name,duration] of [["Idle",2],["Walk",.8],["Attack",.9],["Hit",.35],["Death",1.2],["Roar",1.5]]){let times=acc(Array.from({length:13},(_,i)=>duration*i/12),1,"SCALAR",false,true),samplers=[],channels=[];for(let j=0;j<rests.length;j++){let values=[];for(let k=0;k<13;k++){let t=k/12,q=wildlifeRotation(type,name,j,t);values.push(...q)}let output=acc(values,4);samplers.push({input:times,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:j,path:"rotation"}})}doc.animations.push({name,samplers,channels})}
   }else{doc.nodes=[{name:id,mesh:0}];doc.scenes[0].nodes=[0]}
   doc.buffers[0].byteLength=offset;const js=JSON.stringify(doc),len=js.length+(4-js.length%4)%4,out=new Uint8Array(28+len+offset),d=new DataView(out.buffer);[0x46546c67,2,out.length,len,0x4e4f534a].forEach((x,i)=>d.setUint32(i*4,x,true));for(let i=0;i<len;i++)out[20+i]=i<js.length?js.charCodeAt(i):32;d.setUint32(20+len,offset,true);d.setUint32(24+len,0x004e4942,true);let at=28+len;for(const c of chunks){out.set(c,at);at+=c.length}return {id,kind:rigged?"creature":"resource",bytes:out,triangles,bones:rigged?rests.length:0,clips:rigged?6:0}
  }
