@@ -3,6 +3,14 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void CovenantLoadoutIsFreeMatchLocalAndCannotStackOnReselect(){
+            var b=new OfflineBattle("phan");var pick=new CovenantLoadout(CovenantPath.Courage,CovenantTalent.Fortitude,CovenantTalent.Resolve,CovenantTalent.Sustenance);
+            Assert.True(b.SelectPlayerCovenant(pick));Assert.AreEqual(185,b.Player.State.MaxHealth);Assert.AreEqual(120,b.Player.Gold);
+            Assert.True(b.SelectPlayerCovenant(pick));Assert.AreEqual(185,b.Player.State.MaxHealth);
+            Assert.True(b.Units.Where(x=>x.Kind==BattleTargetKind.Hero).All(x=>x.Covenant.HasValue));
+            Assert.False(b.SelectPlayerCovenant(new CovenantLoadout(CovenantPath.Courage,CovenantTalent.Focus,CovenantTalent.Focus,CovenantTalent.Sustenance)));
+            b.Advance(.1f,Vector2.zero);Assert.False(b.SelectPlayerCovenant(pick));Assert.IsNull(new OfflineBattle("phan").Player.Covenant);
+        }
         [Test] public void AutonomousTrainingAndTargetLockUseNormalRules(){
             var b=new OfflineBattle("phan",seed:9,difficulty:ArenaDifficulty.Expert,autonomousTraining:true);
             var start=b.Player.Position;Assert.AreEqual(ArenaDifficulty.Expert,b.Difficulty);Assert.True(b.AutonomousTraining);

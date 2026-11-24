@@ -25,7 +25,8 @@
     "Hero skill/passive, tactics, draft, vision, neutral camps and economy regression coverage",
     "Unity compile, NUnit and Android runtime acceptance still required",
     "Physical builder orders, atomic completion cost, alternate depots and full-elimination inclusion",
-    "Exact target lock, legal tactical AI and autonomous offline training"
+    "Exact target lock, legal tactical AI and autonomous offline training",
+    "Free match-local Covenant Paths with nonstacking pre-match selection"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",
@@ -50,7 +51,8 @@
     "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineMatchRulesTests.cs",
     "apps/buklod-empire-unity/Assets/Tests/Editor/VillageSystemTests.cs",
     "apps/buklod-empire-unity/Tools/ARENA_GAME_DESIGN_BLUEPRINT.md",
-    "tests/arena-hybrid-unity-catalog.test.mjs"
+    "tests/arena-hybrid-unity-catalog.test.mjs",
+    "apps/buklod-empire-unity/Assets/Scripts/CovenantPaths.cs"
   ],
   "regressionTests": [
     "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaDraftTests.cs",

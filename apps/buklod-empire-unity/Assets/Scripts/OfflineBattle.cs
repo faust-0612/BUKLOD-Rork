@@ -52,6 +52,8 @@ namespace Buklod.Empire {
         internal readonly Dictionary<string,ArenaRelicDefinition> RelicSlots=new Dictionary<string,ArenaRelicDefinition>();
         public IReadOnlyDictionary<string,ArenaRelicDefinition> Relics {get;}
         internal ArenaRelicStats RelicStats;
+        public CovenantLoadout? Covenant {get;internal set;}
+        internal CovenantStats CovenantBonus;
         internal readonly Dictionary<int,int> HeroKillHistory=new Dictionary<int,int>();
         internal BattleUnit(int id,ArenaTeam team,BattleTargetKind kind,SkillActor state,Vector2 pos,ArenaLane lane,bool core=false,bool temporary=false,MinionRole role=MinionRole.Infantry){
             Id=id;Team=team;Kind=kind;State=state;Spawn=Position=pos;Lane=lane;Core=core;Temporary=temporary;Role=role;Relics=new System.Collections.ObjectModel.ReadOnlyDictionary<string,ArenaRelicDefinition>(RelicSlots);
@@ -278,7 +280,8 @@ namespace Buklod.Empire {
             if(basic&&a.Gear.Contains("precision")&&combatRandom.NextDouble()<.2)n*=1.5f;
             if(basic&&a.Gear.Contains("giantbane")&&t.Kind==BattleTargetKind.Hero)n+=Mathf.Min(20,t.State.MaxHealth*.035f);
             if(t.Gear.Contains("aegis")&&n>=50)n*=.8f;
-            n*=1-Mathf.Clamp(t.RelicStats.Block+t.RelicStats.Mitigation,0,.42f);
+            n*=1-Mathf.Clamp(t.RelicStats.Block+t.RelicStats.Mitigation+t.CovenantBonus.Mitigation,0,.42f);
+            n*=1+a.CovenantBonus.Damage;
             n*=1-Mathf.Clamp(actor.Buff("weaken",Time),0,.3f);n*=1+Mathf.Clamp(actor.Buff("fury",Time),0,.3f);
             n*=1-Mathf.Clamp(target.Buff("guard",Time),0,.4f);n*=1+Mathf.Clamp(target.Buff("vulnerable",Time),0,.2f);
             if(target.Kit?.Id=="phan")n*=1-.04f*t.ResolveStacks;
@@ -295,7 +298,7 @@ namespace Buklod.Empire {
             else target.Health=Mathf.Max(0,target.Health-actual);
             float hpDamage=Mathf.Max(0,priorHp-target.Health);a.DamageDealt+=hpDamage;t.DamageTaken+=hpDamage;
             if(hpDamage>0&&a.Gear.Contains("withering_thorn")&&t.Kind==BattleTargetKind.Hero)target.Set("antiheal",.35f,Time+4,Time);
-            if(basic&&a.Gear.Contains("renewal")&&t.Kind!=BattleTargetKind.Structure&&t.Kind!=BattleTargetKind.Villager)actor.Heal(hpDamage*.15f);
+            if(basic&&t.Kind!=BattleTargetKind.Structure&&t.Kind!=BattleTargetKind.Villager)actor.Heal(hpDamage*((a.Gear.Contains("renewal")?.15f:0)+a.CovenantBonus.Lifesteal));
             if(actor.Kit?.Id=="mitch")target.Set("vulnerable",.1f,Time+3,Time);
             if(actor.Kit?.Id=="quin"&&Time>=a.TrailReady&&n>0){target.Set("revealed",1,Time+6,Time);a.TrailReady=Time+8;}
             if(actor.Kit?.Id=="jawo"&&n>0&&Time-a.RhythmAt>=.39f){a.RhythmStacks=Time-a.RhythmAt>4?1:Math.Min(5,a.RhythmStacks+1);a.RhythmAt=Time;}
@@ -344,7 +347,7 @@ namespace Buklod.Empire {
             if(Finished||hero==null||!hero.State.Alive||hero.State.Kit==null||camp==null||!ClearSight(hero.Position,camp.Position)||!wilderness.TryHit(camp.Id,hero.Id,hero.Position,range,damage,out bool defeated))return false;
             hero.RecallEnds=0;hero.State.Set("revealed",1,Time+2,Time);
             if(defeated){
-                var a=hero.State;hero.Gold=Mathf.Min(9999,hero.Gold+(camp.Boss?90:30));GainXp(hero,camp.Boss?90:35);
+                var a=hero.State;hero.Gold=Mathf.Min(9999,hero.Gold+Mathf.RoundToInt((camp.Boss?90:30)*(1+hero.CovenantBonus.NeutralReward)));GainXp(hero,(camp.Boss?90:35)*(1+hero.CovenantBonus.NeutralReward));
                 switch(camp.Kind){
                     case WildernessKind.AzureStag:a.Mana=Mathf.Min(a.MaxMana,a.Mana+25);a.Set("cooldown",.15f,Time+45,Time);break;
                     case WildernessKind.CrimsonWolf:a.Set("fury",.12f,Time+45,Time);break;
@@ -432,6 +435,18 @@ namespace Buklod.Empire {
         public bool PlayerAttackUnit(int unitId)=>unitId>0&&Basic(Player,Vector2.zero,null,0,unitId);
         public bool RecallPlayer()=>BeginRecall(Player);
         private bool BeginRecall(BattleUnit u){if(Finished||!u.State.CanMove(Time)||!u.State.CanCast(Time)||!CanRespawn(u.Team)||u.IsRecalling||Vector2.Distance(u.Position,u.Spawn)<10)return false;u.RecallEnds=Time+4;return true;}
+        private void ApplyCovenant(BattleUnit u,CovenantLoadout loadout,CovenantStats bonus){
+            var old=u.CovenantBonus;u.Covenant=loadout;u.CovenantBonus=bonus;var a=u.State;
+            a.MaxHealth+=bonus.Health-old.Health;a.Health=Mathf.Clamp(a.Health+bonus.Health-old.Health,1,a.MaxHealth);
+            a.MaxMana+=bonus.Mana-old.Mana;a.Mana=Mathf.Clamp(a.Mana+bonus.Mana-old.Mana,0,a.MaxMana);
+            a.TalentCooldown=bonus.Cooldown;a.TalentRecovery=bonus.Recovery;
+        }
+        public bool SelectPlayerCovenant(CovenantLoadout loadout){
+            if(Finished||Time!=0||!Player.State.Alive||Player.State.CastSequence!=0||Player.Kills!=0||Player.Deaths!=0||!CovenantPaths.TryResolve(loadout,out var stats))return false;
+            ApplyCovenant(Player,loadout,stats);
+            foreach(var u in units.Where(x=>x!=Player&&x.Kind==BattleTargetKind.Hero&&!x.Covenant.HasValue)){var bot=CovenantPaths.DefaultFor(u.State.Kit.Id);if(CovenantPaths.TryResolve(bot,out var bonus))ApplyCovenant(u,bot,bonus);}
+            return true;
+        }
         public bool SelectPlayerTactic(ArenaTactic tactic){if(Finished||Time!=0||Player.TacticReadyAt>0||ArenaTacticalRules.Cooldown(tactic)<0)return false;Player.Tactic=tactic;return true;}
         public bool UsePlayerTactic(Vector2 aim)=>UseTactic(Player,aim);
         private bool UseTactic(BattleUnit u,Vector2 aim){
@@ -463,7 +478,7 @@ namespace Buklod.Empire {
         private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,true);return ok;}
         private bool Sell(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TrySell(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,false);return ok;}
         private bool Basic(BattleUnit u,Vector2 aim,BattleTargetKind? kind=null,int campId=0,int unitId=0){
-            var a=u.State;var k=a.Kit;float speed=1+(u.Gear.Contains("fervor")?.2f:0)+Mathf.Clamp(a.Buff("attack_speed",Time),0,.25f);
+            var a=u.State;var k=a.Kit;float speed=1+(u.Gear.Contains("fervor")?.2f:0)+u.CovenantBonus.AttackSpeed+Mathf.Clamp(a.Buff("attack_speed",Time),0,.25f);
             if(Finished||!a.CanAttack(Time)||k==null||!Finite(aim)||Time-u.LastAttack<k.BasicCooldown/speed)return false;
             if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
             var target=Enemies(a,k.BasicRange,aim).FirstOrDefault(e=>(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
@@ -517,7 +532,7 @@ namespace Buklod.Empire {
                     a.Mana=Mathf.Min(a.MaxMana,a.Mana+((u.Gear.Contains("wisdom")?1.4f:0)+u.RelicStats.Regen)*Step);
                     if(tick%10==0){u.Gold=Mathf.Min(9999,u.Gold+2);GainXp(u,3);}
                     if(CanRespawn(u.Team)&&Vector2.Distance(u.Position,u.Spawn)<10){a.Heal(.8f);a.Mana=Mathf.Min(a.MaxMana,a.Mana+.8f);}
-                    float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+u.RelicStats.Speed)*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
+                    float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+u.RelicStats.Speed+u.CovenantBonus.Speed)*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
                     if(a.Kit.Id=="jawo"&&Time-u.RhythmAt<=4)speed*=1+.02f*u.RhythmStacks;
                     if(units.Any(v=>v.Team==u.Team&&v.State.Alive&&v.State.Kit?.Id=="ellusur"&&Dist(u,v)<=8.75f))speed*=1.1f;
                     if(u==Player&&!AutonomousTraining){Move(u,move,speed*move.magnitude*Step);CollectNearby(u);continue;}

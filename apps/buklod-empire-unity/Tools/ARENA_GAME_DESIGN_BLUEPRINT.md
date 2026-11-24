@@ -82,3 +82,6 @@ The live named builder can now accept one match-local order at a time: depot (35
 
 ### Tactical bot and exact target controls
 Five selectable offline decision cadences, support casts based on actual allied wounds, expert ranged spacing, advanced priority for exposed gatherers, line-of-sight approach and explicit unit-ID basic attack lock. Optional autonomous training runs all ten heroes through the existing rules for balance/testing, without rewards or extra stats. No forced wins, hidden vision (except already documented elimination reveal), free casts or paid inference. These are initial tactical behaviors, not a verified full team-commander AI. Unity runtime tests and real full-match balance remain pending.
+
+### Covenant Paths source integration
+Seven free primary paths and nine talents (three choices at each of three tiers) are now resolved into actual match-local HP, mana, speed, basic/skill damage, mitigation, cooldown, recovery, attack speed, lifesteal and neutral-objective income. A valid pre-match selection assigns equal-access default paths to bots. Re-selection replaces rather than stacks statistics; after match start no change. Default unconfigured practice remains baseline-compatible. These are provisional tunings, not balance-certified competitive values. No permanent player inventory, purchase or paid power.
