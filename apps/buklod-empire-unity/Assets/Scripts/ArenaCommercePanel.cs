@@ -127,7 +127,7 @@ namespace Buklod.Empire {
 #if UNITY_EDITOR
         private void TryPractice(){
             if(practiceSelected!=null&&practiceSelected(offers[selected]))Close();
-            else detail.text="Select this hero in training first. No purchase or ownership granted.";
+            else detail.text="Select the matching hero first. No purchase or ownership granted.";
         }
         private void Update(){
             if(!root||!root.gameObject.activeInHierarchy||modelPreview.gameObject.activeSelf||Time.unscaledTime<nextPreviewCheck)return;

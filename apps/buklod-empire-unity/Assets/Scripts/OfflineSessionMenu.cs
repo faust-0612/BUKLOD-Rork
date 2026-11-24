@@ -104,11 +104,11 @@ namespace Buklod.Empire {
             var collection=GetComponent<ArenaCommercePanel>();if(!collection)collection=gameObject.AddComponent<ArenaCommercePanel>();
             collection.Open(canvas,Refresh
 #if UNITY_EDITOR
-                ,offer=>{
+                ,view.CanTryReviewCosmetics?(System.Func<ArenaOffer,bool>)(offer=>{
                     if(offer.Subject!=selected)return false;
                     if(!ArenaCosmeticPractice.IsSupported(offer))return false;
                     reviewStyle=offer.Style;RefreshConfiguration();return true;
-                }
+                }):null
 #endif
             );
         }
@@ -119,6 +119,7 @@ namespace Buklod.Empire {
 #endif
             selected=next;SacredStoneCatalog.TryGet(selected,out var stone);choice.text=HeroKitCatalog.Get(hero).Name+" / "+(stone?.Name??"");
             var ingredients=ArenaStoneRules.Ingredients(selected);if(ingredients.Length==2&&SacredStoneCatalog.TryGet(ingredients[0],out var first)&&SacredStoneCatalog.TryGet(ingredients[1],out var second))choice.text+="\n"+first.Name+" + "+second.Name+" → "+(stone?.Name??"")+" • Training free";
+            RefreshConfiguration();
         }
         private void Open(){
             commandOpen=false;if(commands)commands.gameObject.SetActive(false);if(armyPanel)armyPanel.gameObject.SetActive(false);
@@ -152,7 +153,7 @@ namespace Buklod.Empire {
         private void RefreshConfiguration(){
             configuration.text=$"{difficulty} • {tactic} • {path} • {first} / {second} / {third}";
 #if UNITY_EDITOR
-            configuration.text+=" • REVIEW SKIN: "+reviewStyle;
+            if(view.CanTryReviewCosmetics)configuration.text+=" • REVIEW SKIN: "+reviewStyle;
 #endif
         }
         private bool LiveAction(Func<OfflineBattle,bool> action)=>!shown&&!commandOpen&&!view.Paused&&view.Battle!=null&&!view.Battle.Finished&&action(view.Battle);

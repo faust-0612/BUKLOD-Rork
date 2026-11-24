@@ -17,6 +17,7 @@ namespace Buklod.Empire {
         [SerializeField, HideInInspector] private bool editorReviewOnly;
         public static System.Func<string,string,GameObject> EditorPracticePrefab;
         private string practiceReviewStyle="original";
+        public bool CanTryReviewCosmetics=>editorReviewOnly;
         public void SetPracticeReviewStyle(string style){practiceReviewStyle=editorReviewOnly&&ArenaCosmeticPractice.IsSkinStyle(style)?style:"original";}
         public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
 #endif
