@@ -11,7 +11,7 @@ jobs:
   exact-apk-runtime:
     if: github.repository == 'faust-0612/BUKLOD-Rork' && startsWith(github.event.head_commit.message, 'GENESIS_206_ANDROID_DIAGNOSIS:')
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 23
     env:
       BUKLOD_GENESIS_PREMIUM_3D: 'true'
     steps:
@@ -50,19 +50,29 @@ jobs:
           ref: ${{ github.sha }}
           path: diagnostic-harness
           persist-credentials: false
-      - name: Enable KVM for disposable emulator
+      - name: Select supported Android emulator acceleration (bounded fallback)
+        id: accel
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-          test -w /dev/kvm
+          set -euo pipefail
+          options="-no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none"
+          if test -c /dev/kvm; then
+            sudo chmod a+rw /dev/kvm
+          fi
+          if test -w /dev/kvm && "$ANDROID_HOME/emulator/emulator" -accel-check; then
+            echo "KVM available"
+            echo "options=$options" >> "$GITHUB_OUTPUT"
+          else
+            echo "KVM unavailable: single capped software-emulation diagnosis"
+            echo "options=$options -accel off" >> "$GITHUB_OUTPUT"
+          fi
       - name: Native Android release runtime and exact OTA pack reproduction
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
           target: default
           arch: x86_64
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: ${{ steps.accel.outputs.options }}
+          emulator-boot-timeout: 600
           disable-animations: true
           script: bash diagnostic-harness/scripts/genesis-206-offline-android-engine-diagnosis.sh
       - name: Preserve Android logcat and screenshots even on failure
