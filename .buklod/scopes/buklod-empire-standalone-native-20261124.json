@@ -27,10 +27,12 @@
     "Signed cumulative OTA delta, exact runtime/base/channel, immutable bootstrap, rollback and Android launch before release.",
     "Real Godot engine validates signature and actual mounted resource, replay rejection, interrupted boot recovery and manual rollback.",
     "Android screenshots must contain real nonblank colored scene pixels and no shader-linking failure; no log-only rendering claim.",
-    "Protected owner signing and immutable channel/base prefix; dedicated public Storage API, no client write authorization; actual remote canary after install."
+    "Protected owner signing and immutable channel/base prefix; dedicated public Storage API, no client write authorization; actual remote canary after install.",
+    "Owner-signed workflow triggered by dedicated nonsecret request file, actual public signed canary readback and Android next-launch activation before artifact."
   ],
   "allowedPaths": [
     ".buklod/releases/buklod-empire-standalone-dev-20261124.json",
+    ".buklod/requests/buklod-empire-owner-signed-dev.json",
     ".buklod/scopes/buklod-empire-standalone-native-20261124.json",
     ".github/workflows/buklod-empire-owner-signed-dev.yml",
     ".github/workflows/buklod-empire-standalone-native-dev.yml",
@@ -54,10 +56,13 @@
     "scripts/build-buklod-empire-standalone.mjs",
     "scripts/buklod-empire-storage.mjs",
     "scripts/prepare-buklod-empire-ota-fixture.mjs",
+    "scripts/request-buklod-empire-owner-dev.sh",
     "scripts/setup-buklod-empire-dev-trust.sh",
     "scripts/verify-buklod-empire-android.sh",
     "scripts/verify-buklod-empire-frame.py",
     "scripts/verify-buklod-empire-ota-godot.sh",
+    "scripts/verify-buklod-empire-owner-android.sh",
+    "scripts/verify-buklod-empire-public-canary.mjs",
     "tests/buklod-empire-ota.test.mjs",
     "tests/buklod-empire-release-trust.test.mjs",
     "tests/buklod-empire-standalone-contract.test.mjs"

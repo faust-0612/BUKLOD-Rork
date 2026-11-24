@@ -1,5 +1,10 @@
 name: BUKLOD Empire — protected owner-signed DEV APK
 on:
+  push:
+    branches:
+      - dev/buklod-empire-standalone-native-20261124
+    paths:
+      - '.buklod/requests/buklod-empire-owner-signed-dev.json'
   workflow_dispatch:
 permissions:
   contents: read
@@ -66,6 +71,8 @@ jobs:
           GODOT="$(find /tmp/empire-godot -type f -name 'Godot_*linux.x86_64' -print -quit)"
           chmod +x "$GODOT"
           bash scripts/verify-buklod-empire-ota-godot.sh "$GODOT"
+      - name: Verify signed canary on exact APK baseline before native build
+        run: node scripts/verify-buklod-empire-public-canary.mjs
       - name: Owner-signed native APK — exact certificate and trust root
         env:
           KEYSTORE_B64: ${{ secrets.BUKLOD_EMPIRE_KEYSTORE_B64 }}
@@ -120,8 +127,8 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swangle -noaudio -no-boot-anim -no-snapshot
-          script: bash scripts/verify-buklod-empire-android.sh
-      - name: Owner-signed DEV candidate — remote OTA canary still required
+          script: bash scripts/verify-buklod-empire-owner-android.sh
+      - name: Owner-signed DEV candidate — remote OTA canary still required before this artifact; verified above
         uses: actions/upload-artifact@v4
         with:
           name: BUKLOD-Empire-owner-signed-DEV-candidate
@@ -134,5 +141,7 @@ jobs:
             build/buklod-empire/apk-badging.txt
             build/buklod-empire/apk-bytes.txt
             build/buklod-empire/android-qa/
+            build/buklod-empire/remote-canary.json
+            build/buklod-empire/remote-ota-qa/
           retention-days: 7
           if-no-files-found: error

@@ -1,5 +1,5 @@
 {
-  "status": "DEV_TRUST_PROVISIONING_PREPARED_OWNER_CREDENTIALS_REQUIRED",
+  "status": "DEV_TRUST_PROVISIONING_PREPARED_BUCKET_VERIFIED_OWNER_CREDENTIALS_REQUIRED",
   "package": "org.mzbministry.buklod.empire",
   "version": "0.1.2-dev",
   "base": "05ac6bce40f13d8a8e38887ce3d43cf411117635",
@@ -16,7 +16,9 @@
   "otaProtocol": 1,
   "otaPublished": false,
   "trustKey": "Owner-controlled setup prepared; not configured",
-  "storage": "Dedicated API-only bucket setup prepared; not created",
-  "remoteCanary": "NOT_PERFORMED",
-  "previousQA": "45332721553 launcher ANR blocked frame gate; Empire menu visible"
+  "storage": "CREATED_AND_VERIFIED existing MAIN empire-updates; public read; 33554432-byte cap; JSON/ZIP only; no objects or new client write policy",
+  "remoteCanary": "NOT_PERFORMED_OWNER_KEY_REQUIRED",
+  "previousQA": "45332721553 launcher ANR blocked frame gate; Empire menu visible",
+  "storageVerified": true,
+  "ownerWorkflow": "buklod-empire-owner-signed-dev.yml protected env + isolated request file"
 }
