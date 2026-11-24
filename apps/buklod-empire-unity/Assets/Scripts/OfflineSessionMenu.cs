@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -11,7 +12,7 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private float resultRevealAt=-1;private bool showResult;
+        private Image panelBackground;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -40,7 +41,7 @@ namespace Buklod.Empire {
             var scaler=canvas.gameObject.AddComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1280,720);scaler.matchWidthOrHeight=.5f;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             ButtonAt("Menu",canvas,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
-            panel=Rect("Session panel",canvas,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;
+            panel=Rect("Session panel",canvas,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;panelGroup=panel.gameObject.AddComponent<CanvasGroup>();
             title=Label("Title",panel,new Vector2(.08f,.88f),new Vector2(.92f,.98f),"OFFLINE TRAINING",36);
             summary=Label("Summary",panel,new Vector2(.04f,.80f),new Vector2(.96f,.88f),"",21);
             string[] tabs=view.IsEditorReview?new[]{"HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD"};
@@ -51,7 +52,7 @@ namespace Buklod.Empire {
             ButtonAt("Start",panel,new Vector2(.54f,.015f),new Vector2(.94f,.10f),"START NEW MATCH",StartNew);
             Open();
         }
-        private void Open(){shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
+        private void Open(){if(starting)return;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
         private bool Active=>view.Battle!=null&&!view.Battle.Finished;
         private void Reply(bool ok,string success){feedback.text=ok?success:"Not available: check eligibility, funds, distance or cooldown.";Rebuild();}
         private void HeroCard(int i,HeroKit kit){
@@ -152,11 +153,27 @@ namespace Buklod.Empire {
         }
         private void Resume(){if(Active)Close();}
         private void StartNew(){
+            if(starting)return;
+            if(view.IsEditorReview){StartCoroutine(PrepareReviewMatch());return;}
+            BeginMatch();
+        }
+        private IEnumerator PrepareReviewMatch(){
+            starting=true;view.SetPaused(true);panelGroup.interactable=false;
+            title.text="PREPARING GENESIS RIFT";summary.text="Initializing local training match";
+            title.color=BattleEffects.Accent(selected);feedback.text="";
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            try{BeginMatch();}
+            catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;Rebuild();feedback.text="Unable to initialize match. Check the local review assets.";}
+            finally{starting=false;panelGroup.interactable=true;}
+        }
+        private void BeginMatch(){
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
             view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;Close();
         }
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void Update(){
+            if(starting)return;
             bool finished=view.Battle!=null&&view.Battle.Finished;
             if(finished&&!lastFinished&&view.IsEditorReview){showResult=true;resultRevealAt=Time.unscaledTime;}
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();lastFinished=finished;
