@@ -4,6 +4,12 @@ using System.Linq;
 using UnityEngine;
 namespace Buklod.Empire {
     public enum VillageWorkerOrder { Gather, Return, Hold }
+    public enum VillageBuildOrder { Depot, GuardPost, Repair }
+    public sealed class VillageConstructionOrder {
+        public readonly VillageBuildOrder Kind;public readonly Vector2 Position;public readonly int TargetId;
+        public float Progress {get;internal set;}
+        internal VillageConstructionOrder(VillageBuildOrder kind,Vector2 position,int targetId=0){Kind=kind;Position=position;TargetId=targetId;}
+    }
     public sealed class VillageResourceNode {
         public readonly ArenaTeam Team;
         public readonly Vector2 Position;
@@ -16,6 +22,8 @@ namespace Buklod.Empire {
         public readonly int Id; public readonly ArenaTeam Team; public readonly BattleTargetKind Kind;
         public readonly SkillActor State; public readonly ArenaLane Lane;
         public readonly bool Core, Temporary; public readonly MinionRole Role;
+        public bool IsDepot {get;internal set;} public bool IsGuardPost {get;internal set;}
+        public VillageConstructionOrder Construction {get;internal set;}
         public readonly Vector2 Spawn; public Vector2 Position {get;internal set;}
         public float Power=1, AttackDamage=18, Expires=float.PositiveInfinity, RespawnAt, Xp;
         public int Gold=120, TowerLevel=1;
@@ -54,7 +62,7 @@ namespace Buklod.Empire {
         bool CanTraverse(Vector2 from,Vector2 to);
         bool TryWaypoint(Vector2 from,Vector2 goal,out Vector2 waypoint);
     }
-    public sealed class OfflineBattle : IHeroSkillWorld, IVillageBattle, IVillageLogistics {
+    public sealed class OfflineBattle : IHeroSkillWorld, IVillageBattle, IVillageLogistics, IVillageConstruction {
         public const float Width=320, Height=220, Step=.1f;
         private static readonly float[] LaneY={Height*.19f,Height*.5f,Height*.81f};
         private static readonly Vector3[] OriginalCover={
@@ -89,15 +97,69 @@ namespace Buklod.Empire {
             if(u.Cargo>=CargoLimit-.001||n.Wood+n.Stone+n.Crystal<=0)u.WorkerOrder=VillageWorkerOrder.Return;
             return true;
         }
+        private BattleUnit Builder(ArenaTeam team)=>units.FirstOrDefault(u=>u.Team==team&&u.Villager?.Job.Effect==VillageEffect.Build&&u.State.Alive);
+        private BattleUnit Depot(BattleUnit worker)=>units.Where(u=>u.Team==worker.Team&&u.State.Alive&&(u.Core||u.IsDepot)).OrderBy(u=>Dist(worker,u)).ThenBy(u=>u.Id).FirstOrDefault();
+        public bool HasConstructionOrder(ArenaTeam team)=>Builder(team)?.Construction!=null;
+        private bool CanConstructAt(ArenaTeam team,VillageBuildOrder kind,Vector2 p){
+            if(!Finite(p)||Blocked(p,2)||kind!=VillageBuildOrder.Depot&&kind!=VillageBuildOrder.GuardPost)return false;
+            if((team==ArenaTeam.Lux?p.x>Width*.48f:p.x<Width*.52f)||Vector2.Distance(Base(team),p)>65)return false;
+            if(units.Any(u=>u.Kind==BattleTargetKind.Structure&&u.State.Alive&&Vector2.Distance(u.Position,p)<5))return false;
+            if(resourceNodes.Any(n=>Vector2.Distance(n.Position,p)<4))return false;
+            return units.Count(u=>u.Team==team&&u.State.Alive&&(kind==VillageBuildOrder.Depot?u.IsDepot:u.IsGuardPost))<2;
+        }
+        private bool QueueConstruction(ArenaTeam team,VillageBuildOrder kind,Vector2 p,int targetId=0){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit)return false;
+            var builder=Builder(team);if(builder==null||builder.Construction!=null)return false;
+            if(kind==VillageBuildOrder.Repair){
+                var target=units.FirstOrDefault(u=>u.Id==targetId&&u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Temporary&&u.State.Alive&&u.State.Health<u.State.MaxHealth);
+                if(target==null)return false;p=target.Position;
+            }else if(!CanConstructAt(team,kind,p))return false;
+            if(!villages[(int)team].CanFundConstruction(kind))return false;
+            builder.Construction=new VillageConstructionOrder(kind,p,targetId);return true;
+        }
+        public bool OrderPlayerConstruction(VillageBuildOrder kind,Vector2 position)=>kind!=VillageBuildOrder.Repair&&QueueConstruction(Player.Team,kind,position);
+        public bool OrderPlayerRepair(int structureId)=>QueueConstruction(Player.Team,VillageBuildOrder.Repair,Vector2.zero,structureId);
+        public bool CancelPlayerConstruction(){var builder=Builder(Player.Team);if(Finished||builder?.Construction==null)return false;builder.Construction=null;return true;}
+        private void AdvanceConstruction(){
+            if(Time>=OfflineMatchRules.MatchLimit){foreach(var u in units)if(u.Construction!=null)u.Construction=null;return;}
+            // Defensive RTS bot: one queued job at a time; never spends without a completed action.
+            if(tick%20==0){
+                var bot=Builder(ArenaTeam.Tenebra);
+                if(bot!=null&&bot.Construction==null){
+                    var damaged=units.Where(u=>u.Team==bot.Team&&u.Kind==BattleTargetKind.Structure&&!u.Temporary&&u.State.Alive&&u.State.Health<u.State.MaxHealth*.75f).OrderBy(u=>u.State.Health/u.State.MaxHealth).ThenBy(u=>u.Id).FirstOrDefault();
+                    if(damaged!=null)QueueConstruction(bot.Team,VillageBuildOrder.Repair,damaged.Position,damaged.Id);
+                    else if(!CoreAlive(bot.Team)&&Depot(bot)==null)QueueConstruction(bot.Team,VillageBuildOrder.Depot,Base(bot.Team)+new Vector2(-8,-8));
+                }
+            }
+            foreach(var builder in units.Where(u=>u.Construction!=null).ToArray()){
+                var order=builder.Construction;
+                if(!builder.State.Alive){builder.Construction=null;continue;}
+                BattleUnit target=null;
+                if(order.Kind==VillageBuildOrder.Repair){
+                    target=units.FirstOrDefault(u=>u.Id==order.TargetId&&u.Team==builder.Team&&u.State.Alive&&u.State.Health<u.State.MaxHealth);
+                    if(target==null){builder.Construction=null;continue;}
+                }else if(!CanConstructAt(builder.Team,order.Kind,order.Position)){builder.Construction=null;continue;}
+                if(!builder.State.CanMove(Time)||!builder.State.CanCast(Time))continue;
+                if(Vector2.Distance(builder.Position,order.Position)>2.5f){Steer(builder,order.Position-builder.Position,4);continue;}
+                order.Progress+=Step;
+                float duration=order.Kind==VillageBuildOrder.Repair?3:order.Kind==VillageBuildOrder.Depot?6:8;
+                if(order.Progress+0.001f<duration)continue;
+                if(villages[(int)builder.Team].SpendConstruction(order.Kind)){
+                    if(target!=null)target.State.Health=Mathf.Min(target.State.MaxHealth,target.State.Health+35);
+                    else {var structure=Add(builder.Team,BattleTargetKind.Structure,new SkillActor(order.Kind==VillageBuildOrder.Depot?180:220),order.Position,ArenaLane.Mid);structure.IsDepot=order.Kind==VillageBuildOrder.Depot;structure.IsGuardPost=!structure.IsDepot;structure.AttackDamage=structure.IsDepot?0:14;}
+                }
+                builder.Construction=null;
+            }
+        }
         private void AdvanceWorkers(){
             foreach(var u in units){
                 if(u.Villager?.Job.Effect!=VillageEffect.Gather||!u.State.Alive||Time>=OfflineMatchRules.MatchLimit)continue;
                 if(u.WorkerOrder==VillageWorkerOrder.Hold)continue;
                 if(u.WorkerOrder==VillageWorkerOrder.Return){
-                    var depot=Base(u.Team);
-                    if(Vector2.Distance(u.Position,depot)>2.5f){Steer(u,depot-u.Position,4);continue;}
-                    // Resource delivery needs a surviving friendly depot/core.
-                    if(CoreAlive(u.Team)&&villages[(int)u.Team].DepositCargo(u.CargoWood,u.CargoStone,u.CargoCrystal)){
+                    var depot=Depot(u);if(depot==null)continue;
+                    if(Dist(u,depot)>2.5f){Steer(u,depot.Position-u.Position,4);continue;}
+                    // Alternative depots store resources but never restore core respawns or wave production.
+                    if(villages[(int)u.Team].DepositCargo(u.CargoWood,u.CargoStone,u.CargoCrystal)){
                         u.CargoWood=u.CargoStone=u.CargoCrystal=0;u.WorkerOrder=VillageWorkerOrder.Gather;
                     }
                     continue;
@@ -159,7 +221,7 @@ namespace Buklod.Empire {
             state.Clock=Time;var u=new BattleUnit(++nextId,team,kind,state,p,lane,core,temporary,role);units.Add(u);byState.Add(state,u);return u;
         }
         private BattleUnit Find(SkillActor a)=>a!=null&&byState.TryGetValue(a,out var u)?u:null;
-        private bool CoreOpen(ArenaTeam team)=>OfflineMatchRules.CoreOpen(units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary).Select(u=>u.State.Alive));
+        private bool CoreOpen(ArenaTeam team)=>OfflineMatchRules.CoreOpen(units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&!u.IsDepot&&!u.IsGuardPost).Select(u=>u.State.Alive));
         private bool Attackable(BattleUnit u)=>u.State.Alive&&u.State.Buff("untargetable",Time)<=0&&(!u.Core||CoreOpen(u.Team));
         private static bool Finite(Vector2 v)=>!float.IsNaN(v.x)&&!float.IsInfinity(v.x)&&!float.IsNaN(v.y)&&!float.IsInfinity(v.y);
         private bool Blocked(Vector2 p,float radius=1){
@@ -224,7 +286,7 @@ namespace Buklod.Empire {
                 foreach(var tower in ActiveTowers(t.Team))if(Dist(tower,t)<=10&&Dist(tower,a)<=10){tower.AggressorId=a.Id;tower.AggroUntil=Time+3;}
             }
             if(t.Villager!=null){t.Villager.Damage(actual);target.Health=t.Villager.Health;
-                if(!target.Alive){t.CargoWood=t.CargoStone=t.CargoCrystal=0;t.WorkerOrder=VillageWorkerOrder.Gather;}
+                if(!target.Alive){t.CargoWood=t.CargoStone=t.CargoCrystal=0;t.WorkerOrder=VillageWorkerOrder.Gather;t.Construction=null;}
             }
             else target.Health=Mathf.Max(0,target.Health-actual);
             float hpDamage=Mathf.Max(0,priorHp-target.Health);a.DamageDealt+=hpDamage;t.DamageTaken+=hpDamage;
@@ -253,7 +315,7 @@ namespace Buklod.Empire {
                 if(t.Kind==BattleTargetKind.Minion||t.Kind==BattleTargetKind.Structure&&!t.Temporary)
                     villages[(int)a.Team]?.EnemyDefeated(t.Kind==BattleTargetKind.Structure);
                 if(t.Core)waves.CoreDestroyed(t.Team);
-                else if(t.Kind==BattleTargetKind.Structure&&!t.Temporary)waves.TowerDestroyed(t.Team);
+                else if(t.Kind==BattleTargetKind.Structure&&!t.Temporary&&!t.IsDepot&&!t.IsGuardPost)waves.TowerDestroyed(t.Team);
                 if(a.Kind==BattleTargetKind.Hero&&!t.Temporary&&t.Kind!=BattleTargetKind.Villager)RollDrop(a,t);
                 CheckElimination();
             }
@@ -412,7 +474,7 @@ namespace Buklod.Empire {
             var stats=MinionCombatRules.Stats(m.Role);
             var u=Add(m.Team,BattleTargetKind.Minion,new SkillActor(stats.Health*m.Power),new Vector2(m.Team==ArenaTeam.Lux?19:Width-19,LaneY[(int)m.Lane]),m.Lane,role:m.Role);u.Power=m.Power;return true;
         }
-        private int Towers(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&u.State.Alive);
+        private int Towers(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&!u.IsDepot&&!u.IsGuardPost&&u.State.Alive);
         public void Advance(float seconds,Vector2 playerMove){
             if(Finished||float.IsNaN(seconds)||float.IsInfinity(seconds)||seconds<0)return;
             accumulator+=Math.Min(seconds,.5f);
@@ -424,7 +486,7 @@ namespace Buklod.Empire {
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
             foreach(var u in units)u.State.Clock=Time;
             AdvanceWilderness();if(Finished)return;
-            AdvanceWorkers();
+            AdvanceWorkers();AdvanceConstruction();
             foreach(var village in villages)village.Advance(Step);
             foreach(var u in units)if(u.Villager!=null){
                 if(!u.State.Alive&&u.Villager.Alive){u.Position=u.Spawn;u.WorkerOrder=VillageWorkerOrder.Gather;}
@@ -461,7 +523,7 @@ namespace Buklod.Empire {
             for(int i=units.Count-1;i>=0;i--){var u=units[i];if(!u.State.Alive&&(u.Kind==BattleTargetKind.Minion||u.Temporary)){byState.Remove(u.State);units.RemoveAt(i);}}
             CheckElimination();
             // 15 minutes is reinforcement cutoff, not an arbitrary winner. If neither faction can move/attack, draw rather than award a false victory.
-            if(!Finished&&Time>=OfflineMatchRules.MatchLimit&&!units.Any(u=>u.State.Alive&&(u.Temporary||u.Kind==BattleTargetKind.Hero||u.Kind==BattleTargetKind.Minion&&u.Role!=MinionRole.Healer))&&!units.Any(u=>u.Kind==BattleTargetKind.Structure&&u.State.Alive&&units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&ClearSight(u.Position,v.Position)))){Finished=true;Winner=null;waves.EndMatch(null);drops.Clear();relicDrops.Clear();}
+            if(!Finished&&Time>=OfflineMatchRules.MatchLimit&&!units.Any(u=>u.State.Alive&&(u.Temporary||u.Kind==BattleTargetKind.Hero||u.Kind==BattleTargetKind.Minion&&u.Role!=MinionRole.Healer))&&!units.Any(u=>u.Kind==BattleTargetKind.Structure&&!u.IsDepot&&u.State.Alive&&units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&ClearSight(u.Position,v.Position)))){Finished=true;Winner=null;waves.EndMatch(null);drops.Clear();relicDrops.Clear();}
         }
         // Classic conquest: surviving towers before core health ratio; an exact tie stays a draw.
         public static ArenaTeam? ResolveTimeout(int luxTowers,int tenebraTowers,float luxCoreRatio,float tenebraCoreRatio){
@@ -518,7 +580,7 @@ namespace Buklod.Empire {
             if(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit){var enemy=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();if(enemy!=null)goal=enemy.Position;}
             Steer(u,goal-u.Position,s.SpeedSourceUnits/40*(1+u.State.Buff("haste",Time))*(1-Mathf.Clamp(u.State.Buff("slow",Time),0,.45f)));
         }
-        private IEnumerable<BattleUnit> ActiveTowers(ArenaTeam team)=>units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&u.State.Alive);
+        private IEnumerable<BattleUnit> ActiveTowers(ArenaTeam team)=>units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&!u.IsDepot&&!u.IsGuardPost&&u.State.Alive);
         public int LowestTowerLevel(ArenaTeam team)=>ActiveTowers(team).Select(u=>u.TowerLevel).DefaultIfEmpty(0).Min();
         public bool UpgradeTower(ArenaTeam team,int expectedLevel,float hpFraction,float damageFraction){
             if(Finished||expectedLevel<1||hpFraction<0||damageFraction<0||float.IsNaN(hpFraction)||float.IsNaN(damageFraction)||float.IsInfinity(hpFraction)||float.IsInfinity(damageFraction))return false;
@@ -604,7 +666,7 @@ namespace Buklod.Empire {
             }
         }
         private void Structure(BattleUnit u){
-            if(Time-u.LastAttack<1)return;
+            if(u.IsDepot||Time-u.LastAttack<1)return;
             bool guardian=!u.Core&&!u.Temporary;
             var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))
                 .OrderBy(v=>OfflineMatchRules.TowerPriority(v.Kind,guardian&&v.Id==u.AggressorId&&Time<u.AggroUntil))

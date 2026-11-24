@@ -3,6 +3,13 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void ConstructionRejectsUnfundedInvalidAndEnemyOrders(){
+            var b=new OfflineBattle("phan");var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Structure);
+            Assert.False(b.OrderPlayerConstruction(VillageBuildOrder.Depot,new Vector2(22,100)));
+            Assert.False(b.OrderPlayerConstruction(VillageBuildOrder.GuardPost,new Vector2(float.NaN,100)));
+            Assert.False(b.OrderPlayerRepair(enemy.Id));Assert.False(b.CancelPlayerConstruction());
+            Assert.AreEqual(15,b.RemainingUnits(ArenaTeam.Lux));
+        }
         [Test] public void WorkerMustReachNodeAndDeliverBeforeTeamCredit(){
             var battle=new OfflineBattle("phan");
             var worker=battle.Units.Single(u=>u.Villager?.Job.Id=="lira");

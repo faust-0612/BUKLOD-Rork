@@ -4,7 +4,7 @@
   "baseRef": "063fb0a001a4416163d440e4025b062fdd24f694",
   "productionBaselineEvidence": "MAIN and production unchanged; no actual runtime verification.",
   "objective": "Reconcile owner hybrid rules and earlier offline combat patch on newest Unity DEV",
-  "chosenApproach": "Cumulative Unity DEV simulation reconciliation: original hero kits, physical gathering, elimination, canonical MU loot, tactics/draft and neutral camps.",
+  "chosenApproach": "Cumulative Unity DEV simulation reconciliation: original hero kits, physical gathering, elimination, canonical MU loot, tactics/draft and neutral camps. Add physical construction and repair in existing worker loop.",
   "selectionRationale": "Existing gameplay and art preserved; no duplicate engine or catalog",
   "alternativeApproaches": [
     "ML-only core victory conflicts with owner rule",
@@ -23,7 +23,8 @@
     "Finite resource nodes, worker cargo and delivery, dead workers do not act",
     "300 canonical pickups, 260 relics and 104 consumables; match-local only",
     "Hero skill/passive, tactics, draft, vision, neutral camps and economy regression coverage",
-    "Unity compile, NUnit and Android runtime acceptance still required"
+    "Unity compile, NUnit and Android runtime acceptance still required",
+    "Physical builder orders, atomic completion cost, alternate depots and full-elimination inclusion"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",

@@ -24,6 +24,7 @@ namespace Buklod.Empire {
     public interface IVillageLogistics {
         bool TryGather(ArenaTeam team,string workerId,double wood,double stone,double crystal);
     }
+    public interface IVillageConstruction { bool HasConstructionOrder(ArenaTeam team); }
     public sealed class VillageMember {
         public readonly VillageJob Job;
         public float Health { get; private set; }=200;
@@ -115,6 +116,11 @@ namespace Buklod.Empire {
             }
         }
         private bool CanPay(double w,double s,double c)=>Wood>=w&&Stone>=s&&Crystal>=c;
+        private static bool ConstructionCost(VillageBuildOrder kind,out double wood,out double stone){
+            wood=stone=0;switch(kind){case VillageBuildOrder.Depot:wood=35;stone=20;return true;case VillageBuildOrder.GuardPost:wood=55;stone=40;return true;case VillageBuildOrder.Repair:wood=10;stone=5;return true;default:return false;}
+        }
+        internal bool CanFundConstruction(VillageBuildOrder kind)=>ConstructionCost(kind,out double w,out double s)&&CanPay(w,s,0);
+        internal bool SpendConstruction(VillageBuildOrder kind){if(!ConstructionCost(kind,out double w,out double s)||!CanPay(w,s,0))return false;Pay(w,s,0);return true;}
         private void Pay(double w,double s,double c){Wood-=w;Stone-=s;Crystal-=c;}
         private bool FundJob(double gold,double wood,double stone,double crystal,Func<bool> action){
             bool useGold=Gold>=gold;if(!useGold&&!CanPay(wood,stone,crystal))return false;
@@ -128,6 +134,7 @@ namespace Buklod.Empire {
                     if(battle is IVillageLogistics logistics)return logistics.TryGather(Team,m.Job.Id,6*p*rate,4*p*rate,2*p*rate);
                     Wood=Math.Min(10000,Wood+6*p*rate);Stone=Math.Min(10000,Stone+4*p*rate);Crystal=Math.Min(10000,Crystal+2*p*rate);return true;
                 case VillageEffect.Build:
+                    if(battle is IVillageConstruction construction&&construction.HasConstructionOrder(Team))return false;
                     int level=battle.LowestTowerLevel(Team);
                     if(level<1||!CanPay(40d*level,30d*level,0))return false;
                     if(!battle.UpgradeTower(Team,level,(lux ? .15f : .05f)*p,(lux ? .05f : .15f)*p))return false;
