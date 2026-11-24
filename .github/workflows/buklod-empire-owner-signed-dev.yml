@@ -40,18 +40,7 @@ jobs:
           test -n "$KEYSTORE_B64"
           test -n "$KEYSTORE_PASSWORD"
           [[ "$BUKLOD_EMPIRE_APK_CERT_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          # Missing initial manifest is expected; a nonexistent bucket is not.
-          python3 - <<'PY'
-          import urllib.request, urllib.error
-          url='https://yhanxndaqbmuzbdqlblu.supabase.co/storage/v1/object/public/empire-updates/dev/preflight-does-not-exist'
-          try:
-              urllib.request.urlopen(url,timeout=20)
-          except urllib.error.HTTPError as e:
-              body=e.read(8192).decode(errors='replace').lower()
-              if 'bucket not found' in body or not ('object not found' in body or 'not_found' in body):
-                  raise SystemExit('Dedicated storage not verified: HTTP '+str(e.code))
-              print('Dedicated public bucket endpoint reachable')
-          PY
+          # The exact public signed canary and storage endpoint are verified against the built baseline before Gradle.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
