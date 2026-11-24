@@ -4504,6 +4504,20 @@ return (
                       : 'Gallery'}
                   </Text>
                 </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Browse GIF library for this community"
+                  disabled={busy || wallVideoBusy}
+                  onPress={() => setCommunityGifPickerOpen(true)}
+                  style={styles.mediaButton}
+                >
+                  <MaterialCommunityIcons
+                    name="file-gif-box"
+                    size={19}
+                    color={colors.greenDark}
+                  />
+                  <Text style={styles.mediaButtonText}>GIFs</Text>
+                </Pressable>
               </>
             ) : (
               <>

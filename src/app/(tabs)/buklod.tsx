@@ -5801,6 +5801,16 @@ const communityFeedRows =
         : 'Gallery'}
       </Text>
      </Pressable>
+     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Browse GIF library for Community post"
+      disabled={busy || videoBusy186O}
+      style={({ pressed }) => [s.tool, pressed && { opacity: 0.8 }]}
+      onPress={() => setCommunityGifPickerOpen(true)}
+     >
+      <MaterialCommunityIcons name="file-gif-box" size={18} color={colors.greenDark}/>
+      <Text style={s.toolText}>GIFs</Text>
+     </Pressable>
 </View>
     <BuklodPostMusicPicker visible={composerMusicPickerOpen}
       selectedTrack={composerMusicTrack}

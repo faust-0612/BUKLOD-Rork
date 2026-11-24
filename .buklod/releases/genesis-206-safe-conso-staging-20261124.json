@@ -30,7 +30,7 @@
     "ranked multiplayer/live wallet/property",
     "Expo-free native app and native GIF/splash changes",
     "private vendor 3D/FX",
-    "additional pending Connect inbox, GIF, visual prestige, AI optimization ports and integrated CI"
+    "Rank badge visual parity, full individual activity claims and ad bonus credit, appwide AI cost work, music mixing and other incomplete/backend-dependent deltas."
   ],
   "noProduction": true,
   "noSharedBackendMutation": true,
@@ -44,5 +44,12 @@
     "Godot public pack hash and smoke",
     "EAS remote staging/production branch separation",
     "publish receipt/readback"
+  ],
+  "addedIntakes": [
+    "Connect inbox PR 1153 exact 22 hunks, preserve latest and call lifecycle",
+    "GIF PR 1141 exact-context hunks with preserved image/video provider imports",
+    "AdMob guard PR 1134",
+    "App-wide micro motion: three exact matching base blobs and two root insertions",
+    "Points read-only Genesis preview; functional claims and rewarded credits held"
   ]
 }

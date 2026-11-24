@@ -62,6 +62,7 @@ import {
 } from '@/lib/streamVideoSdk';
 import { supabase } from '@/lib/supabase';
 import { notifyConnectRead } from '@/lib/connectReadSync';
+import { notifyConnectInboxChanged } from '@/lib/connectInboxSignal';
 import { playBuklodCue, setBuklodActiveMessageThread } from '@/lib/buklodSounds';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { useNetwork } from '@/providers/NetworkProvider';
@@ -3012,6 +3013,8 @@ const [
 
   const markLocalMessageSent =
     (localId: string) => {
+      // Only a successful insert elevates the conversation in the inbox.
+      if (profileId) notifyConnectInboxChanged(profileId);
       setMessages(
         current =>
           current.map(
@@ -3642,6 +3645,7 @@ const [
                     : item
               )
           );
+          if (profileId) notifyConnectInboxChanged(profileId);
           void playBuklodCue('message_sent');
         }
         catch {
@@ -3930,6 +3934,7 @@ const [
                       : item
                 )
             );
+            if (profileId) notifyConnectInboxChanged(profileId);
             void playBuklodCue('message_sent');
           }
           catch (e: any) {

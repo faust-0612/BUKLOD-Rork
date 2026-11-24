@@ -8,6 +8,9 @@ import {
   View,
 } from 'react-native';
 
+import { emitBuklodMicroMotion } from '@/lib/buklodMicroMotion';
+import { buklodTouchPagePoint } from '@/lib/buklodTouch';
+
 import {
   type ConnectThemeRoles,
 } from '@/lib/connectTheme';
@@ -170,7 +173,16 @@ export function ConnectReactionPicker({
               key={option.key}
               accessibilityRole="button"
               accessibilityLabel={option.label}
-              onPressIn={() => onSelect(option.key)}
+              onPressIn={event => {
+                onSelect(option.key);
+                const point = buklodTouchPagePoint(event);
+                emitBuklodMicroMotion({
+                  kind: option.selected ? 'tap' : 'reaction',
+                  pageX: point.x,
+                  pageY: point.y,
+                  emoji: option.emoji,
+                });
+              }}
               style={({ pressed }) => [
                 styles.option,
                 option.selected && styles.optionSelected,

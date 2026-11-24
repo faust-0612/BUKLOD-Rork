@@ -4,7 +4,7 @@
   "objective": "Consolidate owner-authorized existing-APK 2.0.6 Godot content and compatible source changes for Android staging; no production, new native APK or shared backend mutations.",
   "baseRef": "0ddcad334a1facabb10aa9913a86e3dee0421224",
   "productionBaselineEvidence": "MAIN 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 audited in fe3c4e5d19e2161531a980cfc1f51491ee19866a; compare from 206 public content shows only three runtime source paths differ; port all three, combining latest-message and global call ownership in ConnectThread by one exact hunk. No production release markers, migrations or Edge functions copied.",
-  "chosenApproach": "Use the existing signed 2.0.6 Android bridge f1bca8319113402caffe99bd78c7ed0e963f963f; base verified public 3D content branch 0ddcad334a1facabb10aa9913a86e3dee0421224; overlay nonoverlapping source/test changes from 205 safe intake; retain native identity and public licensed asset provenance.",
+  "chosenApproach": "Use the existing signed 2.0.6 Android bridge f1bca8319113402caffe99bd78c7ed0e963f963f; base verified public 3D content branch 0ddcad334a1facabb10aa9913a86e3dee0421224; overlay nonoverlapping source/test changes from 205 safe intake; retain native identity and public licensed asset provenance. Port Connect inbox and shared GIF using exact-context hunks; preserve Genesis video and picker logic; import micro motion with minimal layout insertion; use read-only staging points guard rather than overwrite Genesis Points UI.",
   "selectionRationale": "Existing 2.0.6 native bridge enables Godot content OTA; original signed Android artifact is verified in GitHub build 45168699649. Distinct Expo-free app is not compatible and needs independent local native completion.",
   "alternativeApproaches": [
     "No full native migration via OTA.",
@@ -24,7 +24,8 @@
   "preserveBehaviors": [
     "Retain existing 2.0.6 signed native module, app identity, channel, package and Godot 4.7.2.",
     "Keep existing privacy/media scope, video preview metadata, no false call delivery, measured latest scroll, existing ad/navigation gates and lesson checker validation.",
-    "Game remains local practice and cosmetic-only; never credit live BP, shards, rank or property."
+    "Game remains local practice and cosmetic-only; never credit live BP, shards, rank or property.",
+    "Connect inbox newest-first and notification ownership, searchable GIF picker with Genesis photo/video preservation, bounded micro-motion with reduced-motion guard, staging Points read-only."
   ],
   "acceptanceChecks": [
     "Exact source and native diff, full TypeScript/Metro, focused Node and ad/navigation gates.",
@@ -79,7 +80,36 @@
     "tests/admin-registration-security-20261119.test.cjs",
     "tests/buklod-cluster-home-checkin-review.test.cjs",
     "tests/mentor-report-selector-access-20261121.test.mjs",
-    "tests/ota-restart-safe-area.test.cjs"
+    "tests/ota-restart-safe-area.test.cjs",
+    "src/app/(tabs)/messages.tsx",
+    "src/hooks/useBuklodConnectUnread.ts",
+    "src/providers/NotificationProvider.tsx",
+    "src/lib/connectInboxActivity.ts",
+    "src/lib/connectInboxSearch.ts",
+    "src/lib/connectInboxSignal.ts",
+    "__tests__/connectInboxActivity.test.ts",
+    "__tests__/connectInboxSearch.test.ts",
+    "__tests__/connectInboxSignal.test.ts",
+    "src/lib/buklodConnectGifCatalog.ts",
+    "src/components/BuklodCommunityGifPicker.tsx",
+    "tests/shared-gif-library-20261123.test.mjs",
+    "tests/shared-gif-navigation-scope-connect-20261123.test.mjs",
+    "tests/messenger-inbox-density-20261117.test.mjs",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/connect-inbox-ads-guard-20261123.test.mjs",
+    "tests/connect-inbox-notification-navigation-20261123.test.mjs",
+    "tests/connect-inbox-realtime-staging-20261123.test.mjs",
+    "tests/buklod-ads-rendering-baseline-20261123.test.mjs",
+    "src/components/BuklodPressable.tsx",
+    "src/components/BuklodReactionAction.tsx",
+    "src/components/connect/ConnectReactionPicker.tsx",
+    "src/components/motion/BuklodMicroMotionHost.tsx",
+    "src/lib/buklodMicroMotion.ts",
+    "__tests__/buklodMicroMotion.test.ts",
+    "src/app/_layout.tsx",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "tests/genesis-206-staging-points-readonly-20261124.test.mjs"
   ],
   "regressionTests": [
     "tests/bible-navigation.test.cjs",
@@ -101,7 +131,21 @@
     "tests/admin-registration-security-20261119.test.cjs",
     "tests/buklod-cluster-home-checkin-review.test.cjs",
     "tests/mentor-report-selector-access-20261121.test.mjs",
-    "tests/ota-restart-safe-area.test.cjs"
+    "tests/ota-restart-safe-area.test.cjs",
+    "__tests__/connectInboxActivity.test.ts",
+    "__tests__/connectInboxSearch.test.ts",
+    "__tests__/connectInboxSignal.test.ts",
+    "tests/shared-gif-library-20261123.test.mjs",
+    "tests/shared-gif-navigation-scope-connect-20261123.test.mjs",
+    "tests/messenger-inbox-density-20261117.test.mjs",
+    "tests/ad-dashboard-focus-performance-20261116.test.mjs",
+    "tests/buklod-ads-appwide-permanent-lock-20261111.test.mjs",
+    "tests/connect-inbox-ads-guard-20261123.test.mjs",
+    "tests/connect-inbox-notification-navigation-20261123.test.mjs",
+    "tests/connect-inbox-realtime-staging-20261123.test.mjs",
+    "tests/buklod-ads-rendering-baseline-20261123.test.mjs",
+    "__tests__/buklodMicroMotion.test.ts",
+    "tests/genesis-206-staging-points-readonly-20261124.test.mjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -157,6 +201,17 @@
       "tests": [
         "tests/word-bible-navigation-20261123.test.cjs",
         "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Make staging Points pending preview read-only, preserve existing ads and add permanent ad regression lock.",
+      "preservedBehaviors": [
+        "No claim-all button or claim request in staging; existing live ledger unchanged; preserve normal ad placements and first-view lifecycle."
+      ],
+      "tests": [
+        "tests/genesis-206-staging-points-readonly-20261124.test.mjs",
+        "tests/buklod-ads-rendering-baseline-20261123.test.mjs"
       ]
     }
   ],

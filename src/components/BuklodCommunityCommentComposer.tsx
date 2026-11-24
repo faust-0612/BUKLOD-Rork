@@ -1,12 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -14,7 +12,6 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BuklodMentionField from '@/components/BuklodMentionField';
 import {
@@ -30,10 +27,8 @@ import {
 import {
   pickCommunityPhotos,
 } from '@/lib/buklodPickCommunityPhotos';
-import {
-  CONNECT_GIF_CATALOG,
-  type ConnectGifCatalogItem,
-} from '@/lib/buklodConnectGifCatalog';
+import { type ConnectGifCatalogItem } from '@/lib/buklodConnectGifCatalog';
+import { BuklodCommunityGifPicker } from '@/components/BuklodCommunityGifPicker';
 import {
   useBuklodDrawerBottomInset,
 } from '@/lib/buklodSafeArea';
@@ -79,7 +74,6 @@ export default function BuklodCommunityCommentComposer({
   onMediaChange,
   onSend,
 }: Props) {
-  const insets = useSafeAreaInsets();
   const { fontScale, height } = useWindowDimensions();
   const inputSize = buklodComposerHeightLimits(fontScale, height, 'comment');
   const genesisAndroidPreview = getGenesisNativeFoundation().cosmeticHaptics;
@@ -195,36 +189,11 @@ export default function BuklodCommunityCommentComposer({
     setReactionOpen(false);
   };
 
-  const pickGifFromPhone = async () => {
-    if (pickingPhoto || busy) return;
-    setPickingPhoto(true);
-    try {
-      const [photo] = await pickCommunityPhotos({
-        remaining: 1, maxPhotos: 1, preserveAnimation: true,
-      });
-      if (!photo?.uri) return;
-      if (!isPickedGif(photo)) {
-        Alert.alert('GIF', 'Select an animated .gif file from your phone.');
-        return;
-      }
-      onMediaChange({ kind: 'gif', ref: photo.uri }, photo.uri);
-      setGifOpen(false);
-      setReactionOpen(false);
-    } catch (error: any) {
-      Alert.alert('GIF', error?.message ?? 'Could not select this GIF.');
-    } finally {
-      setPickingPhoto(false);
-    }
-  };
 
   // The parent sheet owns keyboard avoidance; padding the composer by the
   // keyboard height a second time moves its controls behind the IME.
   const bottomPad = drawerBottomInset;
 
-  const gifItems = useMemo(
-    () => CONNECT_GIF_CATALOG.slice(0, 48),
-    [],
-  );
 
   const mediaButtons = (
     <>
@@ -404,69 +373,16 @@ export default function BuklodCommunityCommentComposer({
         </View>
       )}
 
-      <Modal
+      <BuklodCommunityGifPicker
         visible={gifOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setGifOpen(false)}
-      >
-        <View style={styles.gifModalRoot}>
-          <Pressable
-            style={styles.gifBackdrop}
-            onPress={() => setGifOpen(false)}
-          />
-          <View
-            style={[
-              styles.gifSheet,
-              { paddingBottom: Math.max(insets.bottom, 12) + 8 },
-            ]}
-          >
-          <View style={styles.gifHead}>
-            <Text style={styles.gifTitle}>Add a GIF</Text>
-            <Pressable onPress={() => setGifOpen(false)} hitSlop={8}>
-              <MaterialCommunityIcons name="close" size={22} color={colors.text} />
-            </Pressable>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Choose GIF from phone gallery"
-            disabled={busy || pickingPhoto}
-            onPress={() => void pickGifFromPhone()}
-            style={{
-              marginHorizontal: 14, marginBottom: 10, padding: 12,
-              borderRadius: 12, flexDirection: 'row',
-              alignItems: 'center', gap: 8, backgroundColor: '#E8F5EE',
-            }}
-          >
-            {pickingPhoto ? <ActivityIndicator size="small" color={colors.green} /> :
-              <MaterialCommunityIcons name="cellphone" size={20} color={colors.green} />}
-            <Text style={{ color: colors.green, fontWeight: '800' }}>Choose GIF from phone</Text>
-          </Pressable>
-          <FlatList
-            data={gifItems}
-            keyExtractor={item => item.id}
-            numColumns={3}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.gifGrid}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => pickGif(item)}
-                style={styles.gifCard}
-              >
-                <ExpoImage
-                  source={{ uri: item.previewUri || item.url }}
-                  style={styles.gifImage}
-                  contentFit="cover"
-                />
-                <Text numberOfLines={1} style={styles.gifLabel}>
-                  {item.label}
-                </Text>
-              </Pressable>
-            )}
-          />
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setGifOpen(false)}
+        onPickRemote={pickGif}
+        onPick={file => {
+          onMediaChange({ kind: 'gif', ref: file.uri }, file.uri);
+          setGifOpen(false);
+          setReactionOpen(false);
+        }}
+      />
     </View>
   );
 }
@@ -590,58 +506,5 @@ const styles = StyleSheet.create({
   sendDisabled: {
     opacity: 0.4,
   },
-  gifModalRoot: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  gifBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.28)',
-  },
-  gifSheet: {
-    maxHeight: '58%',
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingTop: 10,
-  },
-  gifHead: {
-    paddingHorizontal: 14,
-    paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  gifTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  gifGrid: {
-    paddingHorizontal: 10,
-    paddingBottom: 12,
-    gap: 8,
-  },
-  gifCard: {
-    flex: 1,
-    margin: 4,
-    minWidth: '30%',
-    maxWidth: '32%',
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  gifImage: {
-    width: '100%',
-    height: 78,
-  },
-  gifLabel: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.muted,
-  },
+
 });
