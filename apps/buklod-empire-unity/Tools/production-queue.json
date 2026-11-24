@@ -368,5 +368,10 @@
     "audio": 70,
     "gdScripts": 31,
     "privateThirdPartyModelsIncluded": 0
+  },
+  "sacredStoneCatalog": {
+    "path": "Assets/Resources/SacredStones.json",
+    "heroJoinKey": "heroId",
+    "usage": "Use each hero's stone as an identifiable accessory or emblem and its color as a secondary accent; preserve approved hero likenesses and all existing gameplay. Cosmetic and lore only."
   }
 }
