@@ -19,7 +19,9 @@
     "connect-ptt-calls",
     "cluster-faith",
     "ads",
-    "godot-content"
+    "godot-content",
+    "navigation-scroll",
+    "connect"
   ],
   "preserveBehaviors": [
     "Retain existing 2.0.6 signed native module, app identity, channel, package and Godot 4.7.2.",
