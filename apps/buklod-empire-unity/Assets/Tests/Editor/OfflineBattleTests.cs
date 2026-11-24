@@ -34,6 +34,13 @@ namespace Buklod.Empire.Tests {
             Assert.True(b.Hit(b.Player.State,summon.State,300));Assert.AreEqual(gold,b.Player.Gold);Assert.AreEqual(xp,b.Player.Xp);
             Assert.False(b.Dash(b.Player.State,Vector2.right,float.PositiveInfinity));
         }
+        [Test] public void CaravanModeIsOwnedWorkerOnlyAndDoesNotCreateCargo(){
+            var b=new OfflineBattle("phan");var worker=b.Units.Single(u=>u.Villager?.Job.Id=="lira");
+            Assert.True(worker.CaravanEnabled);Assert.False(b.TogglePlayerCaravan("velin"));Assert.False(b.TogglePlayerCaravan("unknown"));
+            Assert.True(b.TogglePlayerCaravan("lira"));Assert.False(worker.CaravanEnabled);
+            Assert.True(b.TogglePlayerCaravan("lira"));Assert.True(worker.CaravanEnabled);
+            Assert.AreEqual(0,b.ActiveCaravans(ArenaTeam.Lux));Assert.AreEqual(0,b.CaravanDeliveredResources(ArenaTeam.Lux));Assert.AreEqual(0,b.CaravanLostResources(ArenaTeam.Lux));
+        }
         [Test] public void TechnologyStartsAtZeroAndRejectsUnfundedOrders(){
             var b=new OfflineBattle("phan");var bank=b.GetVillage(ArenaTeam.Lux);
             foreach(VillageTechnology tech in System.Enum.GetValues(typeof(VillageTechnology))){

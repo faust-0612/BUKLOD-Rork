@@ -120,7 +120,7 @@ namespace Buklod.Empire {
             Label("Village title",commands,new Vector2(.02f,.88f),new Vector2(.8f,.98f),"VILLAGE COMMAND",32);
             ButtonAt("Close village",commands,new Vector2(.81f,.89f),new Vector2(.98f,.98f),"CLOSE",CloseCommands);
             commandFeedback=Label("Command feedback",commands,new Vector2(.03f,.75f),new Vector2(.97f,.87f),"",24);
-            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD","MARKET TYPE","BUY LOT","SELL LOT","HOUSE","RECRUIT","CANCEL RECRUIT","NEXT WORKER","NEXT TERRITORY","GATHER SITE","TECH TYPE","RESEARCH","CANCEL TECH"};
+            string[] labels={"AUTO","WOOD","STONE","FOOD","CRYSTAL","GOLD","RETURN","HOLD","DEPOT","GUARD POST","FARM","BARRACKS","REPAIR NEAREST","CANCEL BUILD","MARKET TYPE","BUY LOT","SELL LOT","HOUSE","RECRUIT","CANCEL RECRUIT","NEXT WORKER","NEXT TERRITORY","GATHER SITE","TECH TYPE","RESEARCH","CANCEL TECH","CARAVAN MODE","CONVOY STATUS"};
             for(int i=0;i<labels.Length;i++){int action=i;int col=i%4,row=i/4;float x=.03f+col*.235f,y=.65f-row*.095f;ButtonAt(labels[i],commands,new Vector2(x,y),new Vector2(x+.22f,y+.083f),labels[i],()=>VillageCommand(action));}
             marketStatus=Label("Market quote",commands,new Vector2(.27f,.01f),new Vector2(.97f,.06f),"",18);
             RefreshMarketQuote();
@@ -167,6 +167,8 @@ namespace Buklod.Empire {
                 case 23:selectedTech=(VillageTechnology)(((int)selectedTech+1)%5);ShowTechnology(b);return;
                 case 24:ok=b.ResearchPlayerTechnology(selectedTech);break;
                 case 25:ok=b.CancelPlayerTechnology();break;
+                case 26:ok=b.TogglePlayerCaravan(worker);if(ok){var w=System.Linq.Enumerable.First(b.Units,u=>u.Villager?.Job.Id==worker&&u.Team==b.Player.Team);commandFeedback.text=worker+": caravan "+(w.CaravanEnabled?"enabled":"disabled");return;}break;
+                case 27:commandFeedback.text=$"Convoys {b.ActiveCaravans(b.Player.Team)}/2 • Delivered {b.CaravanDeliveredResources(b.Player.Team):0.0} • Lost {b.CaravanLostResources(b.Player.Team):0.0}";return;
             }
             commandFeedback.text=ok?"Order accepted. Resume to execute.":"Unavailable: check worker, resources, position, existing order or cutoff.";
         }

@@ -33,7 +33,8 @@
     "Match-local market exchange, finite summon inputs, no summon reward farming, bounded overtime draw",
     "Bounded housing and permanent-loss recruited gatherers, reserved canonical workforce, validated resource charging",
     "Neutral resource territory capture, contested access, no stock reset or free income, worker orders and AI",
-    "Five symmetric technology branches, sequential paid tiers, exclusive live specialist, real bounded economy modifiers"
+    "Five symmetric technology branches, sequential paid tiers, exclusive live specialist, real bounded economy modifiers",
+    "Physical caravan cargo transfer, interception, bounded capacity, escort AI and approved production visual gate"
   ],
   "allowedPaths": [
     ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",

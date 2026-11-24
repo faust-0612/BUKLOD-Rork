@@ -58,6 +58,9 @@ namespace Buklod.Empire {
         public int PreferredTerritoryId {get;internal set;}
         internal int LastHarvestTick=-1;
         public bool RevivedMinion {get;internal set;}
+        public bool IsCaravan {get;internal set;}
+        public bool CaravanDelivered {get;internal set;}
+        public bool CaravanEnabled {get;internal set;}=true;
         internal void ClearCargo(){CargoWood=CargoStone=CargoCrystal=CargoFood=CargoGold=0;ResourceNodeId=0;}
         internal void AddCargo(VillageResourceKind kind,double amount){switch(kind){case VillageResourceKind.Wood:CargoWood+=amount;break;case VillageResourceKind.Stone:CargoStone+=amount;break;case VillageResourceKind.Crystal:CargoCrystal+=amount;break;case VillageResourceKind.Food:CargoFood+=amount;break;case VillageResourceKind.Gold:CargoGold+=amount;break;}}
         public bool Retreat; public float LastAttack=float.NegativeInfinity;
@@ -311,20 +314,52 @@ namespace Buklod.Empire {
                 builder.Construction=null;
             }
         }
-        private void AdvanceWorkers(){
+        public const int CaravanLimit=2;
+        public const float CaravanMinDistance=32;
+        public const double CaravanMinCargo=12;
+        private readonly double[] caravanDelivered=new double[2],caravanLost=new double[2];
+        public double CaravanDeliveredResources(ArenaTeam team)=>ArenaDraftRules.ValidTeam(team)?caravanDelivered[(int)team]:0;
+        public double CaravanLostResources(ArenaTeam team)=>ArenaDraftRules.ValidTeam(team)?caravanLost[(int)team]:0;
+        public int ActiveCaravans(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.IsCaravan&&u.State.Alive);
+        public bool TogglePlayerCaravan(string workerId){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit)return false;var u=PlayerGatherer(workerId);if(u==null)return false;
+            u.CaravanEnabled=!u.CaravanEnabled;return true;
+        }
+        private bool DispatchCaravan(BattleUnit worker,BattleUnit depot){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit||!worker.CaravanEnabled||!worker.State.Alive||!worker.State.CanMove(Time)||!worker.State.CanCast(Time)||worker.Villager?.Job.Effect!=VillageEffect.Gather||worker.WorkerOrder!=VillageWorkerOrder.Return||worker.Cargo<CaravanMinCargo||Dist(worker,depot)<CaravanMinDistance||ActiveCaravans(worker.Team)>=CaravanLimit||Blocked(worker.Position))return false;
+            var wagon=Add(worker.Team,BattleTargetKind.Villager,new SkillActor(140),worker.Position,ArenaLane.Mid);
+            wagon.IsCaravan=true;
+            wagon.CargoWood=worker.CargoWood;wagon.CargoStone=worker.CargoStone;wagon.CargoFood=worker.CargoFood;wagon.CargoCrystal=worker.CargoCrystal;wagon.CargoGold=worker.CargoGold;
+            worker.ClearCargo();worker.WorkerOrder=VillageWorkerOrder.Gather;return true;
+        }
+        private double DeliverCargo(BattleUnit u){
+            var bank=villages[(int)u.Team];double before=u.Cargo;
+            u.CargoWood-=bank.DepositResource(VillageResourceKind.Wood,u.CargoWood);
+            u.CargoStone-=bank.DepositResource(VillageResourceKind.Stone,u.CargoStone);
+            u.CargoCrystal-=bank.DepositResource(VillageResourceKind.Crystal,u.CargoCrystal);
+            u.CargoFood-=bank.DepositResource(VillageResourceKind.Food,u.CargoFood);
+            u.CargoGold-=bank.DepositResource(VillageResourceKind.Gold,u.CargoGold);
+            return Math.Max(0,before-u.Cargo);
+        }
+        private void AdvanceCaravans(){
+            if(Finished||Time>=OfflineMatchRules.MatchLimit)return;
             foreach(var u in units){
-                if(u.Villager?.Job.Effect!=VillageEffect.Gather||!u.Villager.Alive||!u.State.CanMove(Time)||!u.State.CanCast(Time)||Time>=OfflineMatchRules.MatchLimit)continue;
+                if(!u.IsCaravan||!u.State.Alive||!u.State.CanMove(Time)||!u.State.CanCast(Time))continue;
+                var depot=Depot(u);if(depot==null)continue;
+                if(Dist(u,depot)>2.5f){Steer(u,depot.Position-u.Position,VillageTechnologyRules.WorkerSpeed(villages[(int)u.Team].TechnologyTier(VillageTechnology.Logistics))*1.2f);continue;}
+                caravanDelivered[(int)u.Team]+=DeliverCargo(u);
+                if(u.Cargo<=1e-6){u.ClearCargo();u.CaravanDelivered=true;u.State.Health=0;}
+            }
+        }
+        private void AdvanceWorkers(){
+            foreach(var u in units.Where(x=>x.Villager?.Job.Effect==VillageEffect.Gather).ToArray()){
+                if(!u.Villager.Alive||!u.State.CanMove(Time)||!u.State.CanCast(Time)||Time>=OfflineMatchRules.MatchLimit)continue;
                 if(u.WorkerOrder==VillageWorkerOrder.Hold)continue;
                 if(u.WorkerOrder==VillageWorkerOrder.Return){
                     var depot=Depot(u);if(depot==null)continue;
+                    if(DispatchCaravan(u,depot))continue;
                     if(Dist(u,depot)>2.5f){Steer(u,depot.Position-u.Position,VillageTechnologyRules.WorkerSpeed(villages[(int)u.Team].TechnologyTier(VillageTechnology.Logistics)));continue;}
-                    // Alternative depots store resources but never restore core respawns or wave production.
-                    var bank=villages[(int)u.Team];
-                    u.CargoWood-=bank.DepositResource(VillageResourceKind.Wood,u.CargoWood);
-                    u.CargoStone-=bank.DepositResource(VillageResourceKind.Stone,u.CargoStone);
-                    u.CargoCrystal-=bank.DepositResource(VillageResourceKind.Crystal,u.CargoCrystal);
-                    u.CargoFood-=bank.DepositResource(VillageResourceKind.Food,u.CargoFood);
-                    u.CargoGold-=bank.DepositResource(VillageResourceKind.Gold,u.CargoGold);
+                    DeliverCargo(u);
                     if(u.Cargo<=1e-6){u.ClearCargo();u.WorkerOrder=VillageWorkerOrder.Gather;}
                     continue;
                 }
@@ -487,6 +522,7 @@ namespace Buklod.Empire {
             if(actor.Kit?.Id=="jawo"&&n>0&&Time-a.RhythmAt>=.39f){a.RhythmStacks=Time-a.RhythmAt>4?1:Math.Min(5,a.RhythmStacks+1);a.RhythmAt=Time;}
             if(target.Kit?.Id=="trudice"&&hpDamage>0)actor.Health=Mathf.Max(1,actor.Health-hpDamage*Mathf.Clamp(target.Buff("reflect",Time),0,.3f));
             if(!target.Alive){
+                if(t.IsCaravan){caravanLost[(int)t.Team]+=t.Cargo;t.ClearCargo();}
                 if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager&&!t.RevivedMinion&&!t.Temporary){a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?OfflineMatchRules.KillGold(t.ConsecutiveDeaths,t.KillStreak):t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16);}
                 if(t.Kind==BattleTargetKind.Hero){
                     t.Deaths++;t.ConsecutiveDeaths++;t.KillStreak=0;t.RespawnAt=Time+OfflineMatchRules.RespawnDelay(Time);
@@ -692,7 +728,7 @@ namespace Buklod.Empire {
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
             foreach(var u in units)u.State.Clock=Time;
             AdvanceWilderness();if(Finished)return;
-            AdvanceTerritories();AdvanceResourceNodes();AdvanceWorkers();AdvanceConstruction();AdvanceRecruitment();AdvanceTechnology();
+            AdvanceTerritories();AdvanceResourceNodes();AdvanceWorkers();AdvanceCaravans();AdvanceConstruction();AdvanceRecruitment();AdvanceTechnology();
             foreach(var village in villages)village.Advance(Step);
             foreach(var u in units)if(u.Villager!=null){
                 if(!u.State.Alive&&u.Villager.Alive){u.Position=u.Spawn;u.ClearCargo();u.WorkerOrder=VillageWorkerOrder.Gather;}
@@ -702,7 +738,7 @@ namespace Buklod.Empire {
             HeroPassives();
             var copy=units.ToArray();
             foreach(var u in copy){
-                if(Finished)break;var a=u.State;if(u.Villager!=null)continue;
+                if(Finished)break;var a=u.State;if(u.Villager!=null||u.IsCaravan)continue;
                 if(u.Temporary&&u.Expires<=Time)a.Health=0;
                 if(!a.Alive){
                     if(u.Kind==BattleTargetKind.Hero&&CanRespawn(u.Team)&&Time>=u.RespawnAt){a.Respawn();u.Position=u.Spawn;u.Retreat=false;}
@@ -726,7 +762,7 @@ namespace Buklod.Empire {
                 }else if(u.Kind==BattleTargetKind.Minion)Minion(u);
                 else Structure(u);
             }
-            for(int i=units.Count-1;i>=0;i--){var u=units[i];if(!u.State.Alive&&(u.Kind==BattleTargetKind.Minion||u.Temporary||u.Villager?.Recruited==true)){if(u.Villager?.Recruited==true)villages[(int)u.Team].RemoveDeadRecruit(u.Villager);byState.Remove(u.State);units.RemoveAt(i);}}
+            for(int i=units.Count-1;i>=0;i--){var u=units[i];if(!u.State.Alive&&(u.Kind==BattleTargetKind.Minion||u.Temporary||u.IsCaravan||u.Villager?.Recruited==true)){if(u.Villager?.Recruited==true)villages[(int)u.Team].RemoveDeadRecruit(u.Villager);byState.Remove(u.State);units.RemoveAt(i);}}
             CheckElimination();
             // 15 minutes is reinforcement cutoff, not an arbitrary winner. If neither faction can move/attack, draw rather than award a false victory.
             if(!Finished&&Time>=OfflineMatchRules.MatchLimit&&!units.Any(u=>u.State.Alive&&(u.Temporary||u.Kind==BattleTargetKind.Hero||u.Kind==BattleTargetKind.Minion&&u.Role!=MinionRole.Healer))&&!units.Any(u=>u.IsCombatStructure&&u.State.Alive&&units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&ClearSight(u.Position,v.Position))))EndMatch(null,MatchEndReason.NoCombatants);
@@ -772,7 +808,13 @@ namespace Buklod.Empire {
             if(u.Retreat){if(a.Health/a.MaxHealth<.45f)UseTactic(u,Vector2.zero);if(!units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<15)&&BeginRecall(u))return;Steer(u,u.Spawn-u.Position,speed);return;}
             int decisionTicks=Difficulty==ArenaDifficulty.Beginner?10:Difficulty==ArenaDifficulty.Normal?6:Difficulty==ArenaDifficulty.Advanced?4:Difficulty==ArenaDifficulty.Expert?3:2;
             if(tick%decisionTicks==0)TrySupport(u);
-            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&v.Villager?.Job.Effect==VillageEffect.Gather?4:0)+(ClearSight(u.Position,v.Position)?3:0)).ThenBy(v=>v.Id).FirstOrDefault();
+            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&(v.IsCaravan||v.Villager?.Job.Effect==VillageEffect.Gather)?(v.IsCaravan?6:4):0)+(ClearSight(u.Position,v.Position)?3:0)).ThenBy(v=>v.Id).FirstOrDefault();
+            if(t==null&&!u.Jungler&&Time<OfflineMatchRules.MatchLimit&&(int)Difficulty>=(int)ArenaDifficulty.Advanced){
+                var wagon=units.Where(v=>v.Team==u.Team&&v.IsCaravan&&v.State.Alive&&Dist(u,v)<24).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
+                if(wagon!=null&&units.Where(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&!v.Jungler&&!v.Retreat&&(v!=Player||AutonomousTraining)).OrderBy(v=>Dist(v,wagon)).ThenBy(v=>v.Id).FirstOrDefault()==u){
+                    if(Dist(u,wagon)>5)Steer(u,wagon.Position-u.Position,speed);return;
+                }
+            }
             if(t==null&&u.Jungler&&CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&a.Health/a.MaxHealth>.55f){
                 if(Time>=90&&(int)Difficulty>=(int)ArenaDifficulty.Advanced){
                     var site=resourceNodes.Where(n=>n.Territory!=null&&n.Stock>1e-6&&n.Team!=u.Team&&!n.Territory.Contested&&Time>=n.Territory.LockedUntil&&Vector2.Distance(u.Position,n.Position)<50).OrderBy(n=>Vector2.Distance(u.Position,n.Position)).ThenBy(n=>n.Id).FirstOrDefault();
@@ -794,7 +836,7 @@ namespace Buklod.Empire {
         private void Minion(BattleUnit u){
             if(!u.State.CanAttack(Time)&&!u.State.CanMove(Time))return;
             var s=MinionCombatRules.Stats(u.Role);
-            var candidates=units.Where(v=>v!=u&&(v.Kind!=BattleTargetKind.Villager||!CoreAlive(v.Team)||Time>=OfflineMatchRules.MatchLimit||territories.Any(site=>InTerritory(v,site)))&&v.State.Alive&&Dist(u,v)<=s.RangeSourceUnits/40&&(v.Team==u.Team||IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))).Select(v=>new BattleTarget(v.Id,v.Team,v.Kind,Dist(u,v)*40,true,Attackable(v),v.State.MaxHealth-v.State.Health));
+            var candidates=units.Where(v=>v!=u&&(v.Kind!=BattleTargetKind.Villager||v.IsCaravan||!CoreAlive(v.Team)||Time>=OfflineMatchRules.MatchLimit||territories.Any(site=>InTerritory(v,site)))&&v.State.Alive&&Dist(u,v)<=s.RangeSourceUnits/40&&(v.Team==u.Team||IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))).Select(v=>new BattleTarget(v.Id,v.Team,v.Kind,Dist(u,v)*40,true,Attackable(v),v.State.MaxHealth-v.State.Health));
             var target=MinionCombatRules.Select(u.Role,u.Team,candidates,s.RangeSourceUnits);
             if(target.HasValue&&u.State.CanAttack(Time)){
                 if(Time-u.LastAttack<s.Cooldown)return;

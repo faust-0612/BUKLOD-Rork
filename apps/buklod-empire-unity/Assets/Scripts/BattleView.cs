@@ -186,7 +186,7 @@ namespace Buklod.Empire {
                 var v=pair.Value;var u=v.unit;
                 // Retain the unit reference even if the simulation removed a dead minion this tick.
                 // Culling an alive unit or expiring a temporary structure never emits a death effect.
-                if(!immediate&&worldEffects&&u!=null&&!u.State.Alive&&!u.Temporary&&IsInView(u)){
+                if(!immediate&&worldEffects&&u!=null&&!u.State.Alive&&!u.Temporary&&!u.CaravanDelivered&&IsInView(u)){
                     var kind=u.Core?WorldImpactKind.Core:u.Kind==BattleTargetKind.Structure?WorldImpactKind.Structure:WorldImpactKind.Unit;
                     var tint=u.Team==ArenaTeam.Lux?new Color(.55f,.69f,.82f):new Color(.48f,.25f,.28f);
                     worldEffects.Emit(Ground(u.Position),kind,unchecked(u.Id*397+(int)(Battle.Time*10)),tint);
