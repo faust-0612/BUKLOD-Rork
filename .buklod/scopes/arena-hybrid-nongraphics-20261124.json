@@ -4,7 +4,7 @@
   "baseRef": "063fb0a001a4416163d440e4025b062fdd24f694",
   "productionBaselineEvidence": "MAIN and production unchanged; no actual runtime verification.",
   "objective": "Reconcile owner hybrid rules and earlier offline combat patch on newest Unity DEV",
-  "chosenApproach": "Port canonical pickups, eliminate core-only victory, gate reinforcements and workers in existing simulation",
+  "chosenApproach": "Cumulative Unity DEV simulation reconciliation: original hero kits, physical gathering, elimination, canonical MU loot, tactics/draft and neutral camps.",
   "selectionRationale": "Existing gameplay and art preserved; no duplicate engine or catalog",
   "alternativeApproaches": [
     "ML-only core victory conflicts with owner rule",
@@ -19,32 +19,48 @@
     "Canonical hero and faction identities, existing visual assets, existing permanent economy and backend unchanged"
   ],
   "acceptanceChecks": [
-    "Core loss is not match end; all units eliminated",
-    "No respawn or wave production after core loss; no dead worker actions",
-    "300 canonical drops, seeded, range and eligibility, match-local only",
-    "Unity runtime and Android acceptance still required"
+    "Full enemy faction elimination, not core-only win; no core-loss respawn",
+    "Finite resource nodes, worker cargo and delivery, dead workers do not act",
+    "300 canonical pickups, 260 relics and 104 consumables; match-local only",
+    "Hero skill/passive, tactics, draft, vision, neutral camps and economy regression coverage",
+    "Unity compile, NUnit and Android runtime acceptance still required"
   ],
   "allowedPaths": [
+    ".buklod/scopes/arena-hybrid-nongraphics-20261124.json",
+    "apps/buklod-empire-unity/Assets/Scripts/ArenaDraftRules.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ArenaPickupCatalog.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ArenaRelicCatalog.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ArenaTacticalRules.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/HeroSkillRules.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/MinionWaveDirector.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/NeutralObjectiveDirector.cs",
     "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
     "apps/buklod-empire-unity/Assets/Scripts/OfflineMatchRules.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/StoneEconomy.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/VillageSystem.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaDraftTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaPickupTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaRelicTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/HeroSkillTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/MinionWaveDirectorTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/NeutralObjectiveTests.cs",
     "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineBattleTests.cs",
     "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineMatchRulesTests.cs",
-    "apps/buklod-empire-unity/Assets/Scripts/VillageSystem.cs",
-    "apps/buklod-empire-unity/Assets/Scripts/MinionWaveDirector.cs",
-    "apps/buklod-empire-unity/Assets/Scripts/HeroSkillRules.cs",
     "apps/buklod-empire-unity/Assets/Tests/Editor/VillageSystemTests.cs",
-    "apps/buklod-empire-unity/Assets/Tests/Editor/MinionWaveDirectorTests.cs",
-    "apps/buklod-empire-unity/Assets/Scripts/ArenaPickupCatalog.cs",
-    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaPickupTests.cs",
     "apps/buklod-empire-unity/Tools/ARENA_GAME_DESIGN_BLUEPRINT.md",
-    ".buklod/scopes/arena-hybrid-nongraphics-20261124.json"
+    "tests/arena-hybrid-unity-catalog.test.mjs"
   ],
   "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaDraftTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaPickupTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaRelicTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/HeroSkillTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/MinionWaveDirectorTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/NeutralObjectiveTests.cs",
     "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineBattleTests.cs",
     "apps/buklod-empire-unity/Assets/Tests/Editor/OfflineMatchRulesTests.cs",
     "apps/buklod-empire-unity/Assets/Tests/Editor/VillageSystemTests.cs",
-    "apps/buklod-empire-unity/Assets/Tests/Editor/MinionWaveDirectorTests.cs",
-    "apps/buklod-empire-unity/Assets/Tests/Editor/ArenaPickupTests.cs"
+    "tests/arena-hybrid-unity-catalog.test.mjs"
   ],
   "lockedFeatureChanges": []
 }
