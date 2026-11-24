@@ -66,7 +66,9 @@ DECLARE
 BEGIN
  IF v_user IS NULL OR NOT public.buklod_user_is_active_scope_member(p_scope_id,v_user)
  OR NOT EXISTS(SELECT 1 FROM public.buklod_scopes s WHERE s.id=p_scope_id
-    AND s.scope_type='CLUSTER' AND s.status='ACTIVE' AND s.show_faith_content=true)
+    AND s.scope_type='CLUSTER' AND s.status='ACTIVE')
+ OR NOT EXISTS(SELECT 1 FROM public.buklod_my_scopes_p0_v2() own
+     WHERE own.scope_id=p_scope_id AND own.show_faith_content IS TRUE)
  THEN RAISE EXCEPTION 'active_faith_cluster_required' USING ERRCODE='42501'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.saliksik_rollout WHERE id AND member_enabled)
  THEN RAISE EXCEPTION 'saliksik_not_released' USING ERRCODE='42501'; END IF;
@@ -101,6 +103,11 @@ BEGIN
  AND x.translation_code='KJV' AND x.verse_no BETWEEN v_first AND v_last;
  IF v_count<3 OR length(coalesce(v_source,'')) NOT BETWEEN 150 AND 12000
  THEN RAISE EXCEPTION 'canonical_passage_not_available_or_too_short'; END IF;
+ IF (SELECT max(x.verse_no)-min(x.verse_no)+1
+     FROM public.bible_verses x WHERE x.book_no=v_book_row.book_no
+     AND x.chapter_no=v_chapter AND x.translation_code='KJV'
+     AND x.verse_no BETWEEN v_first AND v_last)<>v_count
+ THEN RAISE EXCEPTION 'noncontiguous_canonical_passage'; END IF;
  v_last:=v_first+v_count-1;
  IF NOT EXISTS(SELECT 1 FROM public.bible_verses x
    WHERE x.book_no=v_book_row.book_no AND x.chapter_no=v_chapter
@@ -202,11 +209,23 @@ BEGIN
  IF NOT FOUND OR r.status<>'processing' OR r.lease_token IS DISTINCT FROM p_token
   OR r.lease_expires_at<=now() THEN RAISE EXCEPTION 'stale_auto_lease'; END IF;
  IF md5(r.source_text)<>r.source_checksum THEN RAISE EXCEPTION 'source_hash_mismatch'; END IF;
- IF jsonb_typeof(p_payload->'investigations')<>'array'
+ IF jsonb_typeof(p_payload->'verification')<>'object'
+  OR (p_payload->'verification'->>'critic_approved') IS DISTINCT FROM 'true'
+  OR length(coalesce(p_payload->'verification'->>'critic_model',''))<3
+  OR jsonb_typeof(p_payload->'investigations')<>'array'
   OR jsonb_array_length(p_payload->'investigations')<>2
  THEN RAISE EXCEPTION 'two_investigations_required'; END IF;
  SELECT id INTO c FROM public.saliksik_collections
   WHERE topic_key=r.topic_key AND status IN ('draft','published') FOR UPDATE;
+ IF c IS NOT NULL AND c.status='published' THEN
+   UPDATE public.saliksik_auto_requests SET status='ready',collection_id=c,
+     lease_token=NULL,lease_expires_at=NULL,updated_at=now() WHERE id=r.id;
+   RETURN jsonb_build_object('ok',true,'status','ready','collection_id',c,'progress',8);
+ END IF;
+ IF c IS NOT NULL AND EXISTS(
+    SELECT 1 FROM public.saliksik_auto_requests other
+    WHERE other.collection_id=c AND other.id<>r.id
+ ) THEN RAISE EXCEPTION 'another_research_request_owns_draft'; END IF;
  IF c IS NULL THEN
    INSERT INTO public.saliksik_collections(
      source_id,title,source_mode,topic_key,research_method,scripture_anchor,
