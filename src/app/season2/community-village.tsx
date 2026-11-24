@@ -1,3 +1,6 @@
-import React from 'react';
-import GuardedSeason2DevelopmentWorld from '@/features/season2/world/GuardedSeason2DevelopmentWorld';
-export default function CommunityVillage(){return <GuardedSeason2DevelopmentWorld world="village"/>;}
+import { Redirect } from 'expo-router';
+
+/** MAIN: retired virtual community estate construction workshop. */
+export default function CommunityVillage() {
+  return <Redirect href="/(tabs)/hub" />;
+}
