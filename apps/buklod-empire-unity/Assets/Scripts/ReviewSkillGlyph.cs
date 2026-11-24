@@ -26,7 +26,8 @@ namespace Buklod.Empire {
                 case SkillCueShape.Heal:Stroke(-.7f,0,.7f,0);Stroke(0,-.7f,0,.7f);break;
                 case SkillCueShape.Shield:Stroke(-.7f,.7f,.7f,.7f);Stroke(.7f,.7f,.5f,-.3f);Stroke(.5f,-.3f,0,-.8f);Stroke(0,-.8f,-.5f,-.3f);Stroke(-.5f,-.3f,-.7f,.7f);break;
                 case SkillCueShape.Wall:for(int i=-1;i<=1;i++){Stroke(i*.53f,-.7f,i*.53f,.7f);}Stroke(-.85f,-.7f,.85f,-.7f);break;
-                case SkillCueShape.Dash:case SkillCueShape.Surge:for(int i=-1;i<=1;i++){float x=i*.42f;Stroke(x-.3f,-.48f,x+.25f,0);Stroke(x+.25f,0,x-.3f,.48f);}break;
+                case SkillCueShape.Surge:Stroke(-.8f,-.45f,.8f,-.45f);Stroke(-.8f,.45f,.8f,.45f);Stroke(.1f,-.75f,.8f,0);Stroke(.8f,0,.1f,.75f);break;
+                case SkillCueShape.Dash:for(int i=-1;i<=1;i++){float x=i*.42f;Stroke(x-.3f,-.48f,x+.25f,0);Stroke(x+.25f,0,x-.3f,.48f);}break;
                 case SkillCueShape.Bolt:Stroke(.35f,.85f,-.35f,.05f);Stroke(-.35f,.05f,.35f,.05f);Stroke(.35f,.05f,-.35f,-.85f);break;
                 case SkillCueShape.Mark:Ring(4,.85f);Ring(4,.32f);break;
                 case SkillCueShape.Snare:Ring(8,.75f);Stroke(-.55f,-.55f,.55f,.55f);Stroke(-.55f,.55f,.55f,-.55f);break;
