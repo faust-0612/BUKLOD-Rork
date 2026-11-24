@@ -42,6 +42,7 @@ namespace Buklod.Empire {
             if(float.IsNaN(value)||float.IsInfinity(value)||value<0) throw new ArgumentOutOfRangeException(nameof(value));
             research[Index(team)]=value;
         }
+        internal void EmpowerSiege(ArenaTeam team,int count){if(CanReinforce(team))superLeft[Index(team)]=Math.Max(superLeft[Index(team)],Math.Min(3,Math.Max(0,count)));}
         public void TowerDestroyed(ArenaTeam defendingTeam) {
             int i=Index(defendingTeam);
             if(!Finished) superLeft[1-i]=SuperWaves;

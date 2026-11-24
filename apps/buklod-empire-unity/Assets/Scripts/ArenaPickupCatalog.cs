@@ -323,8 +323,8 @@ namespace Buklod.Empire {
         public static bool Eligible(ArenaFieldDrop d,string hero,int level,ArenaTeam team,Vector2 pos,float now){
             return d!=null&&hero!=null&&level>=d.Item.MinLevel&&(d.Item.Hero==null||d.Item.Hero==hero)&&now>=d.SpawnedAt&&now-d.SpawnedAt<Lifetime&&(team==d.Team||now-d.SpawnedAt>=TeamLock)&&Vector2.Distance(pos,d.Position)<=Radius;
         }
-        internal static ArenaPickupDefinition Roll(string hero,int level,Func<double> random){
-            double r=random();int tier=level>=9&&r<.15?3:level>=4&&r<.47?2:1;
+        internal static ArenaPickupDefinition Roll(string hero,int level,Func<double> random,bool boss=false){
+            double r=random(),bonus=boss?.09:0;int tier=level>=9&&r<.15+bonus?3:level>=4&&r<.47+bonus?2:1;
             bool exclusive=hero!=null&&random()<.44;
             var list=items.Where(x=>x.Tier==tier&&(exclusive?x.Hero==hero:x.Hero==null)).ToArray();
             if(list.Length==0)list=items.Where(x=>x.Tier==tier&&x.Hero==null).ToArray();

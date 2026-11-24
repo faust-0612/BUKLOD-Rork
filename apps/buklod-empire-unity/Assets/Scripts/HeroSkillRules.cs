@@ -53,9 +53,10 @@ namespace Buklod.Empire {
         }
         public void Heal(float value){if(Alive&&!float.IsNaN(value)&&!float.IsInfinity(value))Health=Mathf.Min(MaxHealth,Health+Mathf.Max(0,value)*(1-Mathf.Clamp(Buff("antiheal",Clock),0,.5f)));}
         public void AddShield(float value,float cap=105){if(Alive)Shield=Mathf.Min(cap,Shield+Mathf.Max(0,value));}
-        internal void AddTemporaryShield(float value,float until,float now){
-            if(!Alive)return;if(temporaryShieldUntil<=now)temporaryShield=0;
-            temporaryShield=Mathf.Min(Mathf.Max(0,105-Shield),temporaryShield+Mathf.Max(0,value));temporaryShieldUntil=Mathf.Max(temporaryShieldUntil,until);
+        internal float AddTemporaryShield(float value,float until,float now){
+            if(!Alive)return 0;if(temporaryShieldUntil<=now)temporaryShield=0;
+            float before=temporaryShield;temporaryShield=Mathf.Min(Mathf.Max(0,105-Shield),temporaryShield+Mathf.Max(0,value));
+            if(temporaryShield>before)temporaryShieldUntil=Mathf.Max(temporaryShieldUntil,until);return Mathf.Max(0,temporaryShield-before);
         }
         internal float Absorb(float incoming,float now){
             if(temporaryShieldUntil<=now)temporaryShield=0;
