@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
@@ -32,7 +33,7 @@ namespace Buklod.Empire.Editor {
                     specs.Add((team+"_"+id,$"{Source}/rigged-factions/{team}_{id}.glb",FactionClips));
             }
             var staticSpecs=new[]{"genesis_rift_candidate","lux_tower_candidate","lux_core_candidate","tenebra_tower_candidate","tenebra_core_candidate"};
-            foreach(var id in staticSpecs)specs.Add((id,$"{Candidate}/{(id=="genesis_rift_candidate"?"genesis_rift_environment_review":id.Replace("_candidate","_architecture_review"))}.glb",Array.Empty<string>()));
+            foreach(var id in staticSpecs)specs.Add((id,id=="genesis_rift_candidate"?EnvironmentSource():$"{Candidate}/{id.Replace("_candidate","_architecture_review")}.glb",Array.Empty<string>()));
             foreach(var spec in specs)if(!File.Exists(spec.path))
                 throw new FileNotFoundException("Run Tools/prepare-review-assets.py first.",spec.path);
             Directory.CreateDirectory(Out+"/Models");Directory.CreateDirectory(Out+"/Prefabs");Directory.CreateDirectory(Out+"/Controllers");Directory.CreateDirectory(Out+"/Clips");
@@ -58,6 +59,22 @@ namespace Buklod.Empire.Editor {
                 throw new InvalidOperationException("Review scene not saved.");
             AssetDatabase.SaveAssets();
             Debug.Log("35 candidate actor prefabs and 5 static prefabs imported; review scene saved outside production. Visual and deformation review remain required.");
+        }
+        [Serializable] private sealed class EnvironmentReceipt {public string status,sourceSha256,sha256;public int bytes;}
+        static string FileHash(string path){
+            using(var stream=File.OpenRead(path))using(var sha=SHA256.Create())
+                return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","").ToLowerInvariant();
+        }
+        static string EnvironmentSource(){
+            string original=Candidate+"/genesis_rift_environment_review.glb";
+            string premium=Source+"/environment/genesis_rift_premium_review.glb";
+            string receipt=Source+"/environment/manifest.json";
+            if(!File.Exists(premium)&&!File.Exists(receipt))return original;
+            if(!File.Exists(premium)||!File.Exists(receipt))throw new InvalidOperationException("Incomplete premium map. Regenerate premium-environment-review.mjs.");
+            var row=JsonUtility.FromJson<EnvironmentReceipt>(File.ReadAllText(receipt));
+            if(row==null||row.status!="REVIEW_ONLY"||row.bytes!=new FileInfo(premium).Length||FileHash(premium)!=row.sha256||FileHash(original)!=row.sourceSha256)
+                throw new InvalidOperationException("Premium map integrity mismatch. Regenerate from the current original map.");
+            return premium;
         }
         internal static GameObject MakePrefab(string id,string[] required){
             string modelPath=$"{Out}/Models/{id}.glb";
