@@ -27,6 +27,15 @@ namespace Buklod.Empire.Tests {
             var next=new OfflineBattle("phan");Assert.AreEqual(0,next.GetVillage(ArenaTeam.Lux).Gold);Assert.AreEqual(6,next.PaidTroopCapacity(ArenaTeam.Lux));Assert.AreEqual(ArenaTactic.Renew,next.Player.Tactic);
             yield return null;
         }
+        [UnityTest] public IEnumerator AutonomousEarlyMatchMaintainsBoundedEconomyAndUnits(){
+            var b=new OfflineBattle("phan",seed:19,difficulty:ArenaDifficulty.Advanced,autonomousTraining:true);
+            for(int i=0;i<1200&&!b.Finished;i++){
+                b.Advance(.1f,Vector2.zero);
+                if(i%100==0){foreach(var team in new[]{ArenaTeam.Lux,ArenaTeam.Tenebra}){var v=b.GetVillage(team);Assert.That(v.Wood,Is.InRange(0,10000));Assert.That(v.Food,Is.InRange(0,10000));Assert.That(b.Units.Count(u=>u.Team==team&&u.Kind==BattleTargetKind.Minion&&u.State.Alive),Is.LessThanOrEqualTo(OfflineBattle.FactionMinionLimit));}
+                    Assert.That(b.Drops.Count,Is.LessThanOrEqualTo(ArenaPickupCatalog.Limit));Assert.That(b.RelicDrops.Count,Is.LessThanOrEqualTo(ArenaRelicCatalog.GroundLimit));yield return null;}
+            }
+            if(b.Finished&&b.Winner.HasValue)Assert.AreEqual(0,b.RemainingUnits(b.Winner.Value==ArenaTeam.Lux?ArenaTeam.Tenebra:ArenaTeam.Lux));
+        }
         [UnityTest] public IEnumerator RejectedSkillAndInvalidMovementStaySafe(){
             var battle=new OfflineBattle("phan");
             var before=battle.Player.Position;

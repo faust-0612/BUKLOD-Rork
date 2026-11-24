@@ -268,9 +268,12 @@ namespace Buklod.Empire {
         public int RemainingUnits(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.State.Alive);
         private bool CoreAlive(ArenaTeam team)=>units.Any(u=>u.Team==team&&u.Core&&u.State.Alive);
         private bool CanRespawn(ArenaTeam team)=>Time<OfflineMatchRules.MatchLimit&&CoreAlive(team);
+        public string EndReason {get;private set;}
+        private float lastFactionDamage;
+        private void Finish(ArenaTeam? winner,string reason){if(Finished)return;Winner=winner;EndReason=reason;Finished=true;waves.EndMatch(winner);drops.Clear();relicDrops.Clear();foreach(var u in units){u.Construction=null;u.RecallEnds=0;}}
         private void CheckElimination(){
             if(Finished)return;int lux=RemainingUnits(ArenaTeam.Lux),ten=RemainingUnits(ArenaTeam.Tenebra);
-            if(lux==0||ten==0){Winner=lux==ten?(ArenaTeam?)null:lux==0?ArenaTeam.Tenebra:ArenaTeam.Lux;Finished=true;waves.EndMatch(Winner);drops.Clear();relicDrops.Clear();}
+            if(lux==0||ten==0)Finish(lux==ten?(ArenaTeam?)null:lux==0?ArenaTeam.Tenebra:ArenaTeam.Lux,"elimination");
         }
         private readonly IBattleNavigation navigation;
         public IReadOnlyList<BattleUnit> Units {get;}
@@ -384,7 +387,7 @@ namespace Buklod.Empire {
                 if(!target.Alive){t.ClearCargo();t.WorkerOrder=VillageWorkerOrder.Gather;t.Construction=null;}
             }
             else target.Health=Mathf.Max(0,target.Health-actual);
-            float hpDamage=Mathf.Max(0,priorHp-target.Health);a.DamageDealt+=hpDamage;t.DamageTaken+=hpDamage;
+            float hpDamage=Mathf.Max(0,priorHp-target.Health);a.DamageDealt+=hpDamage;t.DamageTaken+=hpDamage;if(hpDamage>0)lastFactionDamage=Time;
             if(hpDamage>0&&a.Gear.Contains("withering_thorn")&&t.Kind==BattleTargetKind.Hero)target.Set("antiheal",.35f,Time+4,Time);
             if(basic&&t.Kind!=BattleTargetKind.Structure&&t.Kind!=BattleTargetKind.Villager)actor.Heal(hpDamage*((a.Gear.Contains("renewal")?.15f:0)+a.CovenantBonus.Lifesteal));
             if(actor.Kit?.Id=="mitch")target.Set("vulnerable",.1f,Time+3,Time);
@@ -513,7 +516,7 @@ namespace Buklod.Empire {
             cover.Add((p,radius,Time+duration));return true;
         }
         public bool Turret(SkillActor actor,Vector2 dir,float distance,float health,float duration,float damage){
-            var a=Find(actor);if(Finished||a==null||!actor.Alive||!Finite(dir)||units.Count(u=>u.Team==a.Team&&u.Temporary&&u.State.Alive)>=3)return false;
+            var a=Find(actor);if(Finished||a==null||!actor.Alive||!Finite(dir)||!Finite(new Vector2(distance,health))||!Finite(new Vector2(duration,damage))||distance<0||distance>30||health<=0||health>1000||duration<=0||duration>120||damage<=0||damage>300||units.Count(u=>u.Team==a.Team&&u.Temporary&&u.State.Alive)>=3)return false;
             Vector2 p=a.Position+dir.normalized*distance;if(Blocked(p,1.6f))return false;
             var t=Add(a.Team,BattleTargetKind.Structure,new SkillActor(health),p,a.Lane,temporary:true);t.Expires=Time+duration;t.AttackDamage=damage;return true;
         }
@@ -621,7 +624,7 @@ namespace Buklod.Empire {
                     }
                     a.Heal(a.Buff("regen",Time)*Step);
                     a.Mana=Mathf.Min(a.MaxMana,a.Mana+((u.Gear.Contains("wisdom")?1.4f:0)+u.RelicStats.Regen)*Step);
-                    if(tick%10==0){u.Gold=Mathf.Min(9999,u.Gold+2);GainXp(u,3);}
+                    if(tick%10==0&&Time<OfflineMatchRules.MatchLimit){u.Gold=Mathf.Min(9999,u.Gold+2);GainXp(u,3);}
                     if(CanRespawn(u.Team)&&Vector2.Distance(u.Position,u.Spawn)<10){a.Heal(.8f);a.Mana=Mathf.Min(a.MaxMana,a.Mana+.8f);}
                     float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+u.RelicStats.Speed+u.CovenantBonus.Speed)*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
                     if(a.Kit.Id=="jawo"&&Time-u.RhythmAt<=4)speed*=1+.02f*u.RhythmStacks;
@@ -634,7 +637,13 @@ namespace Buklod.Empire {
             for(int i=units.Count-1;i>=0;i--){var u=units[i];if(!u.State.Alive&&(u.Kind==BattleTargetKind.Minion||u.Temporary)){byState.Remove(u.State);units.RemoveAt(i);}}
             CheckElimination();
             // 15 minutes is reinforcement cutoff, not an arbitrary winner. If neither faction can move/attack, draw rather than award a false victory.
-            if(!Finished&&Time>=OfflineMatchRules.MatchLimit&&!units.Any(u=>u.State.Alive&&(u.Temporary||u.Kind==BattleTargetKind.Hero||u.Kind==BattleTargetKind.Minion&&u.Role!=MinionRole.Healer))&&!units.Any(u=>u.IsCombatStructure&&u.State.Alive&&units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&ClearSight(u.Position,v.Position)))){Finished=true;Winner=null;waves.EndMatch(null);drops.Clear();relicDrops.Clear();}
+            if(!Finished&&Time>=OfflineMatchRules.MatchLimit){
+                bool mobile=units.Any(u=>u.State.Alive&&(u.Temporary||u.Kind==BattleTargetKind.Hero||u.Kind==BattleTargetKind.Minion&&u.Role!=MinionRole.Healer));
+                bool activeDefense=units.Any(u=>u.IsCombatStructure&&u.State.Alive&&units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&ClearSight(u.Position,v.Position)));
+                if(!mobile&&!activeDefense)Finish(null,"no-combatants");
+                else if(Time-Mathf.Max(lastFactionDamage,OfflineMatchRules.MatchLimit)>=180)Finish(null,"overtime-inactivity");
+                else if(Time>=1800)Finish(null,"overtime-safety-limit");
+            }
         }
         // Classic conquest: surviving towers before core health ratio; an exact tie stays a draw.
         public static ArenaTeam? ResolveTimeout(int luxTowers,int tenebraTowers,float luxCoreRatio,float tenebraCoreRatio){
@@ -800,10 +809,12 @@ namespace Buklod.Empire {
         private void VillageAuras(){
             foreach(var u in units){
                 if(u.Kind!=BattleTargetKind.Hero||!u.State.Alive||Vector2.Distance(u.Position,Base(u.Team))*40>700)continue;
-                var v=villages[(int)u.Team];var healer=v.Find("serah");var reviver=v.Find("mora");var builder=v.Find("aron")??v.Find("rogar");
-                if(healer?.Alive==true)u.State.Heal(2*healer.Power);
-                if(reviver?.Alive==true)u.State.Set("fury",.05f*reviver.Power,Time+1.5f,Time);
-                if(builder?.Alive==true)u.State.Set("guard",.05f*builder.Power,Time+1.5f,Time);
+                var workers=units.Where(v=>v.Team==u.Team&&v.Villager?.Alive==true&&v.State.CanCast(Time)&&Dist(u,v)<=17.5f);
+                foreach(var worker in workers){var m=worker.Villager;
+                    if(m.Job.Effect==VillageEffect.Heal)u.State.Heal(2*m.Power);
+                    else if(m.Job.Effect==VillageEffect.Revive)u.State.Set("fury",.05f*m.Power,Time+1.5f,Time);
+                    else if(m.Job.Effect==VillageEffect.Build&&worker.Construction==null)u.State.Set("guard",.05f*m.Power,Time+1.5f,Time);
+                }
             }
         }
         private void Structure(BattleUnit u){
