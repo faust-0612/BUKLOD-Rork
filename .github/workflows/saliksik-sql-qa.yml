@@ -5,6 +5,12 @@ on:
       - "supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql"
       - "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql"
       - "supabase/migrations/20261124035000_saliksik_complete_manuscript_unlock_r3.sql"
+      - "supabase/migrations/20261124051000_saliksik_r4_auto_research_corpus.sql"
+      - "supabase/migrations/20261124052000_saliksik_r4_independent_master_grade.sql"
+      - "supabase/functions/saliksik-auto-v1/**"
+      - "src/components/BuklodSaliksikResearchLab.tsx"
+      - "tests/saliksik-auto-research-e2e-20261124.test.mjs"
+      - "tests/fixtures/saliksik_r4_auto_pg_integration.sql"
       - "supabase/functions/saliksik-manuscript-v1/**"
       - "supabase/tests/saliksik_written_master_r2.sql"
       - "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql"
@@ -44,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify member download source contracts
-        run: node --test tests/saliksik-manuscript-unlock-20261124.test.mjs tests/saliksik-cluster-faith-manuscript-20261124.test.mjs
+        run: node --test tests/saliksik-manuscript-unlock-20261124.test.mjs tests/saliksik-cluster-faith-manuscript-20261124.test.mjs tests/saliksik-auto-research-e2e-20261124.test.mjs
       - name: Seed isolated BUKLOD contract
         run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/saliksik_pg_seed.sql
       - name: Apply unchanged SALIKSIK release migration
@@ -61,3 +67,9 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261124035000_saliksik_complete_manuscript_unlock_r3.sql
       - name: Test member entitlement, rights gates, original privacy and no changed Points
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/saliksik_complete_manuscript_unlock_r3.sql
+      - name: Apply R4 canonical corpus research migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261124051000_saliksik_r4_auto_research_corpus.sql
+      - name: Apply R4 independent written Master / academic evidence migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261124052000_saliksik_r4_independent_master_grade.sql
+      - name: Run member-to-research-to-automatic-Master-to-manuscript E2E
+        run: psql -v ON_ERROR_STOP=1 -f tests/fixtures/saliksik_r4_auto_pg_integration.sql
