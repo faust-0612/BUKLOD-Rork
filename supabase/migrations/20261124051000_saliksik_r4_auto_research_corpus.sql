@@ -52,6 +52,37 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY INVOKER SET search_path='' AS $fn$
  SELECT coalesce(current_setting('request.jwt.claim.role',true),'')='service_role';
 $fn$;
 
+-- The existing member catalog now identifies source mode and uses the
+-- same personal faith opt-in gate as the Cluster Home doorway.
+CREATE OR REPLACE FUNCTION public.saliksik_catalog_v1(p_scope_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
+DECLARE v_user uuid:=auth.uid();
+BEGIN
+ IF v_user IS NULL OR NOT public.buklod_user_is_active_scope_member(p_scope_id,v_user)
+ OR NOT EXISTS(SELECT 1 FROM public.buklod_scopes s WHERE s.id=p_scope_id
+   AND s.scope_type='CLUSTER' AND s.status='ACTIVE')
+ OR NOT EXISTS(SELECT 1 FROM public.buklod_my_scopes_p0_v2() own
+    WHERE own.scope_id=p_scope_id AND own.show_faith_content IS TRUE)
+ THEN RAISE EXCEPTION 'active_faith_cluster_required' USING ERRCODE='42501'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.saliksik_rollout WHERE id AND member_enabled)
+ THEN RETURN '[]'::jsonb; END IF;
+ RETURN coalesce((
+ SELECT jsonb_agg(jsonb_build_object(
+   'id',i.id,'collection_id',i.collection_id,
+   'collection_title',c.title,'source_mode',c.source_mode,
+   'research_method',c.research_method,'title',i.title,'summary',i.summary,
+   'tier',i.tier,'points',CASE i.tier WHEN 'discover' THEN 10
+     WHEN 'investigate' THEN 20 ELSE 35 END,
+   'scripture_refs',i.scripture_refs,
+   'completed',EXISTS(SELECT 1 FROM public.saliksik_mastery m
+      WHERE m.user_id=v_user AND m.investigation_id=i.id AND m.version=i.version))
+   ORDER BY c.published_at,i.sequence)
+ FROM public.saliksik_investigations i
+ JOIN public.saliksik_collections c ON c.id=i.collection_id
+ WHERE c.status='published' AND i.status='published'
+ ),'[]'::jsonb);
+END $fn$;
+
 -- A research QUESTION + selected canonical reference, not a new lesson.
 -- Member never uploads a source, approves a generated question or spends points.
 CREATE OR REPLACE FUNCTION public.saliksik_research_request_r4(
