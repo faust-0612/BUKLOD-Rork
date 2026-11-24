@@ -14,6 +14,7 @@ namespace Buklod.Empire {
 #endif
         private MobileBattleInput input;
         private BattleEffects effects;
+        private SkillAudio skillAudio;
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
         private readonly Dictionary<GameObject,Stack<GameObject>> pool=new Dictionary<GameObject,Stack<GameObject>>();
         private readonly HashSet<int> seen=new HashSet<int>();
@@ -42,6 +43,7 @@ namespace Buklod.Empire {
             visuals.Validate();
             foreach(var v in active.Values)Return(v);active.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
+            skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale));
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
@@ -83,7 +85,11 @@ namespace Buklod.Empire {
                 if(flat.sqrMagnitude>.0001f)t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
                 if(v.animator&&v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
                 if(u.LastAttack>v.attack){v.attack=u.LastAttack;if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");if(effects&&u.Kind==BattleTargetKind.Hero)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),0);}
-                if(u.State.LastCastAt>v.cast){v.cast=u.State.LastCastAt;var name=u.State.LastCastSlot.ToString();if(v.animator&&v.parameters.Contains(name))v.animator.SetTrigger(name);if(effects&&u.State.Kit!=null)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),1+(int)u.State.LastCastSlot);}
+                if(u.State.LastCastAt>v.cast){v.cast=u.State.LastCastAt;var name=u.State.LastCastSlot.ToString();if(v.animator&&v.parameters.Contains(name))v.animator.SetTrigger(name);if(u.State.Kit!=null&&SkillCueCatalog.TryGet(u.State.Kit.Skill(u.State.LastCastSlot).Id,out var cue)){
+                    var aim=u.State.LastCastAim;var forward=aim.sqrMagnitude>.0025f?new Vector3(aim.x,0,aim.y):t.forward;
+                    if(effects)effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward);
+                    if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
+                }}
                 if(v.health>u.State.Health+.01f&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");v.health=u.State.Health;
             }
             removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){Return(pair.Value);removed.Add(pair.Key);}

@@ -18,6 +18,7 @@ namespace Buklod.Empire {
         public int Level=3;
         public float LastCastAt {get;private set;}=float.NegativeInfinity;
         public SkillSlot LastCastSlot {get;private set;}
+        public Vector2 LastCastAim {get;private set;}
         public bool Alive=>Health>0;
         private readonly Dictionary<string,(float strength,float until)> buffs=new Dictionary<string,(float,float)>();
         private readonly float[] last={float.NegativeInfinity,float.NegativeInfinity,float.NegativeInfinity};
@@ -56,7 +57,7 @@ namespace Buklod.Empire {
             float cost=slot==SkillSlot.Primary?18:slot==SkillSlot.Secondary?14:55;
             if(Mana<cost||Remaining(slot,now)>0)return false;
             if(!HeroSkillRules.Cast(world,this,Kit.Skill(slot).Id,aim,now))return false;
-            Mana-=cost;last[(int)slot]=now;LastCastAt=now;LastCastSlot=slot;
+            Mana-=cost;last[(int)slot]=now;LastCastAt=now;LastCastSlot=slot;LastCastAim=aim;
             foreach(var e in world.Enemies(this,17.5f,Vector2.zero)){
                 if(e.Kit?.Id!="trudice")continue;
                 e.Set("insight",Mathf.Min(3,e.Buff("insight",now)+1),now+6,now);Set("revealed",1,now+2,now);
