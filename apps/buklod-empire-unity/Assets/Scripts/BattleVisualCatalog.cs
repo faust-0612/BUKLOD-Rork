@@ -22,9 +22,17 @@ namespace Buklod.Empire {
             throw new InvalidOperationException("Missing visual for unit "+unit.Id);
         }
         public void Validate(){
-            if(!genesisRift||!provenanceReceipt||heroes==null||factions==null)throw new InvalidOperationException("Production map, hero/faction catalog and provenance are mandatory.");
+            if(!provenanceReceipt)throw new InvalidOperationException("Production provenance is mandatory.");
             var receipt=JsonUtility.FromJson<Provenance>(provenanceReceipt.text);
             if(receipt==null||!receipt.rightsVerified||!receipt.originalArtReviewed||string.IsNullOrWhiteSpace(receipt.evidence))throw new InvalidOperationException("Verified rights and original-art review evidence are required; do not mark pending assets as approved.");
+            ValidateStructure();
+        }
+#if UNITY_EDITOR
+        // No provenance exemption exists in a player build.
+        public void ValidateEditorReview(){ValidateStructure();}
+#endif
+        private void ValidateStructure(){
+            if(!genesisRift||heroes==null||factions==null)throw new InvalidOperationException("Incomplete battle visuals.");
             var ids=new HashSet<string>();var meshes=new HashSet<Mesh>();
             foreach(var h in heroes){
                 if(h==null||!h.prefab||!ids.Add(h.id))throw new InvalidOperationException("Missing or duplicate hero prefab.");
@@ -35,6 +43,10 @@ namespace Buklod.Empire {
                 var motions=new HashSet<AnimationClip>();
                 foreach(var clip in rig.runtimeAnimatorController.animationClips)if(clip&&clip.length>0)motions.Add(clip);
                 if(motions.Count<9)throw new InvalidOperationException("Nine distinct motion clips required: "+h.id);
+                foreach(var slot in new[]{"Primary","Secondary","Ultimate"}){
+                    int count=0;foreach(var motion in motions)if(motion.name==slot)count++;
+                    if(count!=1)throw new InvalidOperationException("Distinct named skill clip required: "+h.id+"/"+slot);
+                }
                 var parameters=new Dictionary<string,AnimatorControllerParameterType>();
                 foreach(var parameter in rig.parameters)parameters[parameter.name]=parameter.type;
                 if(!parameters.TryGetValue("Speed",out var speed)||speed!=AnimatorControllerParameterType.Float)throw new InvalidOperationException("Missing Speed float: "+h.id);

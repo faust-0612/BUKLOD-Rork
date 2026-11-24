@@ -8,6 +8,10 @@ namespace Buklod.Empire {
         public string selectedHero="phan";
         public float worldScale=1, cameraHeight=23;
         public OfflineBattle Battle {get;private set;}
+#if UNITY_EDITOR
+        [SerializeField, HideInInspector] private bool editorReviewOnly;
+        public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
+#endif
         private MobileBattleInput input;
         private BattleEffects effects;
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
@@ -32,6 +36,9 @@ namespace Buklod.Empire {
         }
         public void StartMatch(string hero){
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
+#if UNITY_EDITOR
+            if(editorReviewOnly)visuals.ValidateEditorReview();else
+#endif
             visuals.Validate();
             foreach(var v in active.Values)Return(v);active.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();

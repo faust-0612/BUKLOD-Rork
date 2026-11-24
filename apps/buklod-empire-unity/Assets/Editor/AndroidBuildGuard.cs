@@ -30,6 +30,11 @@ namespace Buklod.Empire.Editor
             if (scenes.Length == 0 || scenes.Any(scene => AssetDatabase.LoadAssetAtPath<SceneAsset>(scene.path) == null))
                 throw new BuildFailedException("BUKLOD Empire requires valid enabled Unity scenes before Android compilation.");
 
+            foreach(var scene in scenes){
+                if(scene.path.StartsWith("Assets/Generated/",System.StringComparison.OrdinalIgnoreCase)||
+                   AssetDatabase.GetDependencies(scene.path,true).Any(path=>path.StartsWith("Assets/Generated/ReviewOnly/",System.StringComparison.OrdinalIgnoreCase)))
+                    throw new BuildFailedException("Unapproved review scene or dependency cannot enter an Android build: "+scene.path);
+            }
             Debug.Log("BUKLOD Empire Android identity and scene preflight passed. This is not a visual or gameplay acceptance result.");
         }
     }

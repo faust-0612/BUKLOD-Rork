@@ -11,14 +11,14 @@ using UnityEngine.SceneManagement;
 namespace Buklod.Empire.Editor {
     /// <summary>Editor-only art review; never sets build scenes, production catalog or approval.</summary>
     public static class CandidateReviewComposer {
-        const string Out="Assets/Generated/ReviewOnly";
+        internal const string Out="Assets/Generated/ReviewOnly";
         const string Source="Tools/ReviewOutput";
         const string Candidate="Tools/AssetCandidates";
         static readonly string[] HeroClips={"Idle","Walk","Run","Attack","Skill","Primary","Secondary","Ultimate","LegacyUltimate","Hit","Death","Victory"};
         static readonly string[] FactionClips={"Idle","Walk","Attack","Work","Hit","Death"};
-        static readonly string[] Roles={"infantry","siege","gunner","mage","healer"};
-        static readonly string[] LuxVillagers={"aron","lira","daren","serah","kiel","miko"};
-        static readonly string[] TenebraVillagers={"rogar","velin","kael","mora","zed","taro"};
+        internal static readonly string[] Roles={"infantry","siege","gunner","mage","healer"};
+        internal static readonly string[] LuxVillagers={"aron","lira","daren","serah","kiel","miko"};
+        internal static readonly string[] TenebraVillagers={"rogar","velin","kael","mora","zed","taro"};
 
         [MenuItem("BUKLOD Empire/Assemble unapproved 3D review scene")]
         public static void Prepare(){
