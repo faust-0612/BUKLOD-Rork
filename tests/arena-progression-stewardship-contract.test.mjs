@@ -32,3 +32,17 @@ test('canonical character XP and milestone contracts, thirteen identities',()=>{
   assert.match(read('Assets/Scripts/BattleHud.cs'),/ArenaProgression.TrainingResult\(true\)/);
   assert.match(read('Assets/Scripts/ArenaProgression.cs'),/0 BP \/ 0 permanent XP/);
 });
+
+test('graded policy and role weights',()=>{
+  const profiles=[...sql.matchAll(/when '([a-z]+)' then array\[([\d,]+)\]/g)];
+  assert.equal(profiles.length,13);
+  for(const [,hero,values] of profiles){const w=values.split(',').map(Number);assert.equal(w.length,8,hero);assert.equal(w.reduce((a,b)=>a+b,0),100,hero);}
+  assert.match(sql,/least\(raw_xp,300\)/);
+  assert.match(sql,/covered<60/);
+  assert.match(sql,/grade_bp\(overall\)/);
+  assert.match(sql,/bp_raw:=3\+case when outcome='win' then 2 else 0 end/);
+  assert.match(sql,/return old\.breakdown\|\|/);
+  assert.doesNotMatch(sql,/^end \$;$/m);
+  assert.doesNotMatch(sql,/as \$$/m);
+  assert.equal((sql.match(/\$\$/g)||[]).length%2,0);
+});
