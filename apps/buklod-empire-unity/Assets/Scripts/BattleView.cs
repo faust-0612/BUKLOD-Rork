@@ -28,6 +28,7 @@ namespace Buklod.Empire {
         }
         private MobileBattleInput input;
         private BattleFieldVisuals fieldVisuals;
+        private WorldInteractionEffects worldEffects;
         private BattleEffects effects;
         private SkillAudio skillAudio;
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
@@ -38,7 +39,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence,villageActions;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public BattleUnit unit;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,health;public int castSequence,villageActions;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -62,6 +63,7 @@ namespace Buklod.Empire {
             visuals.Validate();
             foreach(var v in active.Values)Return(v);active.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
+            worldEffects=GetComponent<WorldInteractionEffects>();if(worldEffects)worldEffects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
             if(!Battle.SelectPlayerTactic(tactic)||covenant.HasValue&&!Battle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
@@ -139,7 +141,7 @@ namespace Buklod.Empire {
                 if(!BattleRenderBudget.RetainVisual(player,inView,existing,distanceSquared))continue;
                 seen.Add(u.Id);
                 if(!existing){
-                    v=Rent(visuals.Resolve(u,ReviewOnly));active.Add(u.Id,v);
+                    v=Rent(visuals.Resolve(u,ReviewOnly));v.unit=u;active.Add(u.Id,v);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;v.villageActions=u.Villager?.Actions??0;
                 }
@@ -182,12 +184,26 @@ namespace Buklod.Empire {
                 bool tookHit=v.health>u.State.Health+.01f;
                 if(u.Villager!=null&&u.Villager.Actions>v.villageActions){
                     v.villageActions=u.Villager.Actions;
-                    if(!tookHit&&v.animator&&v.parameters.Contains("Work"))v.animator.SetTrigger("Work");
+                    if(!tookHit){
+                        if(v.animator&&v.parameters.Contains("Work"))v.animator.SetTrigger("Work");
+                        if(worldEffects&&inView)worldEffects.Emit(t.position,WorldImpactKind.Work,unchecked(u.Id*397+v.villageActions),new Color(.68f,.54f,.28f));
+                    }
                 }
                 if(!castThisFrame&&tookHit&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");
                 v.health=u.State.Health;
             }
-            removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){Return(pair.Value);removed.Add(pair.Key);}
+            removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){
+                var v=pair.Value;var u=v.unit;
+                // Retain the unit reference even if the simulation removed a dead minion this tick.
+                // Culling an alive unit or expiring a temporary structure never emits a death effect.
+                if(!immediate&&worldEffects&&u!=null&&!u.State.Alive&&!u.Temporary&&GeometryUtility.TestPlanesAABB(frustum,new Bounds(v.instance.transform.position,Vector3.one*Mathf.Max(2,worldScale*8)))){
+                    var kind=u.Core?WorldImpactKind.Core:u.Kind==BattleTargetKind.Structure?WorldImpactKind.Structure:WorldImpactKind.Unit;
+                    var tint=u.Team==ArenaTeam.Lux?new Color(.55f,.69f,.82f):new Color(.48f,.25f,.28f);
+                    worldEffects.Emit(v.instance.transform.position,kind,unchecked(u.Id*397+(int)(Battle.Time*10)),tint);
+                    if(effects)effects.Emit(v.instance.transform.position,tint,u.Core?3:u.Kind==BattleTargetKind.Structure?2:1);
+                }
+                Return(v);removed.Add(pair.Key);
+            }
             foreach(int id in removed)active.Remove(id);
         }
         private void Follow(bool immediate){

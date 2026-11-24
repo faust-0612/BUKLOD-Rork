@@ -78,13 +78,20 @@ namespace Buklod.Empire.Editor {
             sun.type=LightType.Directional;sun.color=new Color(1,.93f,.82f);sun.intensity=1.35f;sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(48,-35,0);
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.44f,.53f,.65f);RenderSettings.ambientEquatorColor=new Color(.34f,.38f,.4f);RenderSettings.ambientGroundColor=new Color(.21f,.24f,.19f);
             EnvironmentReviewLook.Apply(map,camera);
-            var root=new GameObject("UNAPPROVED EDITOR OFFLINE MATCH",typeof(BattleView),typeof(BattleEffects));
+            var root=new GameObject("UNAPPROVED EDITOR OFFLINE MATCH",typeof(BattleView),typeof(BattleEffects),typeof(WorldInteractionEffects));
             var view=root.GetComponent<BattleView>();view.visuals=c;view.battleCamera=camera;view.ConfigureEditorReview();
             var shader=Shader.Find("BUKLOD/CombatPulse");if(!shader)throw new InvalidOperationException("Combat shader missing.");
             var mat=AssetDatabase.LoadAssetAtPath<Material>(Out+"/ReviewPulse.mat");
             if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,Out+"/ReviewPulse.mat");}
             root.GetComponent<BattleEffects>().pulseMaterial=mat;
             root.GetComponent<BattleEffects>().skillParticleMaterial=SkillParticleMaterial.Get(Out+"/ReviewSkillParticles.mat");
+            var fragmentShader=Shader.Find("BUKLOD/Review/WorldFragments");
+            if(!fragmentShader||!fragmentShader.isSupported)throw new InvalidOperationException("World fragment review shader unavailable.");
+            var fragmentPath=Out+"/ReviewWorldFragments.mat";
+            var fragmentMaterial=AssetDatabase.LoadAssetAtPath<Material>(fragmentPath);
+            if(!fragmentMaterial){fragmentMaterial=new Material(fragmentShader);AssetDatabase.CreateAsset(fragmentMaterial,fragmentPath);}
+            else if(fragmentMaterial.shader!=fragmentShader){fragmentMaterial.shader=fragmentShader;EditorUtility.SetDirty(fragmentMaterial);}
+            root.GetComponent<WorldInteractionEffects>().debrisMaterial=fragmentMaterial;
             if(!EditorSceneManager.SaveScene(scene,ScenePath))throw new InvalidOperationException("Failed to save offline review scene.");
             AssetDatabase.SaveAssets();
             Debug.Log("Editor-only offline match scene assembled. Three lanes and both base routes verified. No production approval or Android build.");
