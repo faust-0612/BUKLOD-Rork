@@ -87,6 +87,20 @@ function collect(dir, prefix = '') {
   }
 }
 collect(project);
+// A separate APK-resident bootstrap project; OTA content retains the normal
+// game project. Only the native APK can select the startup script.
+if (process.argv.includes('--native-bootstrap')) {
+  const projectEntry = entries.find(entry => entry.name === 'project.godot');
+  assert.ok(projectEntry);
+  const original = projectEntry.bytes.toString('utf8');
+  assert.ok(original.includes('run/main_scene="res://scenes/Arena.tscn"'));
+  projectEntry.bytes = Buffer.from(original.replace(
+    'run/main_scene="res://scenes/Arena.tscn"',
+    'run/main_scene="res://scenes/NativeBootstrap.tscn"') +
+    '\n[autoload]\nBuklodNativeBootstrap="*res://scripts/native_bootstrap.gd"\n');
+  for (const name of ['scenes/NativeBootstrap.tscn', 'scripts/native_bootstrap.gd'])
+    assert.ok(entries.some(entry => entry.name === name), 'Missing trusted bootstrap '+name);
+}
 
 // Optional real glTF 3D content: release-controlled, provenance-verified and
 // strictly capped. Existing 2D packs remain supported if this flag is off.

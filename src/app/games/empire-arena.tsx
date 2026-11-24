@@ -21,7 +21,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useCompliance } from '@/providers/ComplianceProvider';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
-import { openBundledEmpireArena } from '../../../modules/buklod-genesis-godot';
+import { getGenesisLaunchStatus, openBundledEmpireArena } from '../../../modules/buklod-genesis-godot';
 import {
   CHARACTER_DISPLAY_NAME, getCachedBuklodCharacterSelectionV2, getMyBuklodCharacterSelectionV2,
   type BuklodCharacterId,
@@ -928,6 +928,7 @@ const GODOT_ARENA_PENDING_KEY = '@buklod/genesis-godot-v205/launch-pending';
 function NativeGodotArenaPrimary() {
   const [stage, setStage] = useState<'launching' | 'opened' | 'returned' | 'failed' | 'recovery'>('launching');
   const [showPractice, setShowPractice] = useState(false);
+  const [nativeReceipt,setNativeReceipt]=useState('');
   const launching = useRef(false);
   const wasBackgrounded = useRef(false);
   const alive = useRef(true);
@@ -963,8 +964,11 @@ function NativeGodotArenaPrimary() {
       if (state !== 'active') wasBackgrounded.current = true;
       else if (wasBackgrounded.current) {
         wasBackgrounded.current = false;
-        // Godot returned or its isolated Activity was destroyed.
-        void AsyncStorage.removeItem(GODOT_ARENA_PENDING_KEY);
+        // Activity acceptance is not engine readiness. Keep crash marker on unknown/failed launch.
+        void getGenesisLaunchStatus().then(receipt=>{
+          if(alive.current)setNativeReceipt(receipt.state+(receipt.pack?' • '+receipt.pack.slice(0,12):'')+(receipt.reason?' • '+receipt.reason:''));
+          if(receipt.state==='ready')void AsyncStorage.removeItem(GODOT_ARENA_PENDING_KEY);
+        });
         if (alive.current) setStage(s =>
           s === 'opened' || s === 'launching' ? 'returned' : s);
       }
@@ -977,11 +981,12 @@ function NativeGodotArenaPrimary() {
     <Text style={{fontSize:23,fontWeight:'900',color:'#FFE4AA'}}>BUKLOD EMPIRE • ARENA</Text>
     <Text style={{color:'#CDE7E4',fontSize:15,lineHeight:22}}>
       {stage === 'launching' ? 'Binubuksan ang native Godot Arena…'
-        : stage === 'opened' ? 'Native Godot Arena is running.'
+        : stage === 'opened' ? 'Native launch requested. Engine readiness is checked separately.'
         : stage === 'returned' ? 'Bumalik mula sa Godot Arena.'
         : stage === 'recovery' ? 'Natigil ang nakaraang Godot launch. Hindi ito awtomatikong uulitin para maiwasan ang crash loop.'
         : 'Hindi nabuksan ang Godot Arena. Ligtas pa rin ang BUKLOD app.'}
     </Text>
+    {nativeReceipt?<Text style={{color:'#CDE7E4',fontSize:13}}>Engine: {nativeReceipt}</Text>:null}
     {stage !== 'launching' && stage !== 'opened' ?
       <Pressable accessibilityRole="button" accessibilityLabel="Retry native Godot Arena"
         onPress={() => void launch(true)} style={{padding:14,borderRadius:11,backgroundColor:'#37795F'}}>

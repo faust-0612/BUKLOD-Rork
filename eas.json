@@ -254,6 +254,18 @@
         "EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED": "false",
         "EXPO_PUBLIC_BUKLOD_GENESIS_SHARED_BACKEND_REVIEW": "true"
       }
+    },
+    "season2-genesis-bootstrap-native-staging": {
+      "extends": "season2-genesis-godot-ota-native-staging",
+      "channel": "season2-genesis-library-207-preview",
+      "autoIncrement": false,
+      "android": {
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V207": "true",
+        "EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED": "false"
+      }
     }
   },
   "submit": {

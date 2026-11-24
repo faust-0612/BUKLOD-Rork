@@ -1,6 +1,5 @@
 package expo.modules.buklodgenesisgodot
 
-import android.content.Intent
 import android.net.Uri
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
@@ -98,8 +97,7 @@ class BuklodGenesisGodotModule : Module() {
                 if (activity.isFinishing || activity.isDestroyed) {
                   promise.resolve(false)
                 } else {
-                  activity.startActivity(Intent(activity, GenesisGodotActivity::class.java)
-                    .putExtra(GenesisGodotActivity.EXTRA_BUNDLED_ARENA, true))
+                  activity.startActivity(GenesisGodotActivity.launchIntent(activity, "arena", null))
                   promise.resolve(true)
                 }
               } catch (_: Exception) {
@@ -129,9 +127,7 @@ class BuklodGenesisGodotModule : Module() {
               if (activity.isFinishing || activity.isDestroyed) {
                 promise.resolve(false)
               } else {
-                activity.startActivity(Intent(activity, GenesisGodotActivity::class.java)
-                  .putExtra(GenesisGodotActivity.EXTRA_APPROVED_PACK, approved.absolutePath)
-                  .putExtra(GenesisGodotActivity.EXTRA_BUNDLED_WORLD, world))
+                activity.startActivity(GenesisGodotActivity.launchIntent(activity, world, approved))
                 promise.resolve(true)
               }
             } catch (_: Exception) { promise.resolve(false) }
@@ -140,8 +136,32 @@ class BuklodGenesisGodotModule : Module() {
       }
     }
     AsyncFunction("getGodotCapabilities") { promise: Promise ->
-      promise.resolve(mapOf("engine" to "4.7.2", "format" to "zip",
+      promise.resolve(mapOf("engine" to "4.7.2", "format" to "zip", "bootstrapProtocol" to 1,
         "packUpdate" to true, "worlds" to listOf("arena", "kingdom", "community", "house")))
+    }
+    AsyncFunction("getGodotLaunchStatus") { promise: Promise ->
+      val activity = appContext.currentActivity
+      if (activity == null || activity.packageName != "org.mzbministry.buklod.staging") {
+        promise.resolve(mapOf("state" to "unavailable"))
+      } else {
+        try {
+          val token = activity.getSharedPreferences("buklod-genesis-launch", android.content.Context.MODE_PRIVATE).getString("latest", null)
+          if (token == null || !Regex("^[0-9a-f-]{36}$").matches(token)) {
+            promise.resolve(mapOf("state" to "not_started"))
+          } else {
+            val file = File(File(activity.filesDir, GenesisGodotActivity.RECEIPT_DIR), "$token.json")
+            if (!file.isFile || file.length() !in 1L..4096L) {
+              promise.resolve(mapOf("state" to "requested"))
+            } else {
+              val receipt = org.json.JSONObject(file.readText())
+              if (receipt.optString("token") != token) error("Stale receipt")
+              promise.resolve(mapOf("state" to receipt.optString("state"),
+                "world" to receipt.optString("world"), "pack" to receipt.optString("pack"),
+                "reason" to receipt.optString("reason"), "token" to token))
+            }
+          }
+        } catch (_: Exception) { promise.resolve(mapOf("state" to "unavailable")) }
+      }
     }
     // Preview worlds are selected only through a fixed native enum. Any
     // untrusted scope/profile/ledger values stay outside this engine process.
@@ -162,8 +182,7 @@ class BuklodGenesisGodotModule : Module() {
                 if (activity.isFinishing || activity.isDestroyed) {
                   promise.resolve(false)
                 } else {
-                  activity.startActivity(Intent(activity, GenesisGodotActivity::class.java)
-                    .putExtra(GenesisGodotActivity.EXTRA_BUNDLED_WORLD, world))
+                  activity.startActivity(GenesisGodotActivity.launchIntent(activity, world, null))
                   promise.resolve(true)
                 }
               } catch (_: Exception) {
@@ -191,8 +210,7 @@ class BuklodGenesisGodotModule : Module() {
               if (activity.isFinishing || activity.isDestroyed) {
                 promise.resolve(false)
               } else {
-                activity.startActivity(Intent(activity, GenesisGodotActivity::class.java)
-                  .putExtra(GenesisGodotActivity.EXTRA_APPROVED_PACK, approved.absolutePath))
+                activity.startActivity(GenesisGodotActivity.launchIntent(activity, "kingdom", approved))
                 promise.resolve(true)
               }
             } catch (_: Exception) {

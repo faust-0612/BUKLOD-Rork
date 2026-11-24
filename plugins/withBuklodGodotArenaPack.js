@@ -22,7 +22,7 @@ module.exports = function withBuklodGodotArenaPack(config) {
       const output = path.resolve(mod.modRequest.platformProjectRoot,
         'app/src/main/assets/godot/empire-arena.zip');
       const script = path.join(root, 'scripts/build-empire-godot-pack.mjs');
-      execFileSync(process.execPath, [script, '--out=' + output], {
+      execFileSync(process.execPath, [script, '--out=' + output, '--native-bootstrap'], {
         cwd: root, stdio: 'inherit', timeout: 30000,
         env: { ...process.env, EXPO_PUBLIC_BUKLOD_ARENA_RANKED_ENABLED: 'false' }
       });

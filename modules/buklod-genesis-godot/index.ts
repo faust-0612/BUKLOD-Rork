@@ -7,11 +7,21 @@ type GodotWorld = 'arena' | 'kingdom' | 'community' | 'house';
 type GodotNative = {
   openApprovedPack: (privateFileUri: string, expectedSha256: string) => Promise<boolean>;
   openApprovedWorldPack?: (privateFileUri: string, expectedSha256: string, world: GodotWorld) => Promise<boolean>;
-  getGodotCapabilities?: () => Promise<{ engine: string; format: string; packUpdate: boolean; worlds: string[] }>;
+  getGodotCapabilities?: () => Promise<{ engine: string; format: string; packUpdate: boolean; bootstrapProtocol?: number; worlds: string[] }>;
+  getGodotLaunchStatus?: () => Promise<GenesisLaunchStatus>;
   openBundledArena: () => Promise<boolean>;
   openBundledWorld: (world: string) => Promise<boolean>;
 };
 
+export type GenesisLaunchStatus = { state: string; world?: string; pack?: string; reason?: string; token?: string };
+export async function getGenesisLaunchStatus(): Promise<GenesisLaunchStatus> {
+  try { return (await nativeApi()?.getGodotLaunchStatus?.()) ?? {state:'unavailable'}; }
+  catch { return {state:'unavailable'}; }
+}
+export function isGenesisBootstrapEnabled(): boolean {
+  return nativeGodotEnabled() && process.env.EXPO_PUBLIC_BUKLOD_GENESIS_GODOT_V207 === 'true' &&
+    process.env.EXPO_PUBLIC_APP_ENV === 'staging';
+}
 function nativeGodotEnabled(): boolean {
   return Platform.OS === 'android' &&
     process.env.EXPO_PUBLIC_BUKLOD_SEASON2_GENESIS_PREVIEW === 'true' &&
@@ -33,7 +43,7 @@ async function tryOtaMainPack(world: GodotWorld, api: GodotNative): Promise<bool
       GENESIS_GODOT_OTA_PACK.bytes > 256 * 1024 * 1024) return false;
   try {
     const capability = await api.getGodotCapabilities();
-    if (capability.engine !== GENESIS_GODOT_OTA_PACK.engine ||
+    if (capability.bootstrapProtocol !== 1 || capability.engine !== GENESIS_GODOT_OTA_PACK.engine ||
         capability.format !== 'zip' || capability.packUpdate !== true ||
         !capability.worlds.includes(world)) return false;
     // Statically packaged, release-controlled binary asset from this OTA update.
@@ -47,7 +57,7 @@ async function tryOtaMainPack(world: GodotWorld, api: GodotNative): Promise<bool
 }
 
 export async function openVerifiedGenesisKingdomPack(privateFileUri: string, expectedSha256: string): Promise<boolean> {
-  if (!nativeGodotEnabled() || !/^file:\/\//.test(privateFileUri) ||
+  if (!isGenesisBootstrapEnabled() || !/^file:\/\//.test(privateFileUri) ||
       !/^[a-f0-9]{64}$/.test(expectedSha256)) return false;
   try { return (await nativeApi()?.openApprovedPack(privateFileUri, expectedSha256)) ?? false; }
   catch { return false; }
