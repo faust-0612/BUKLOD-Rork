@@ -43,8 +43,8 @@ namespace Buklod.Empire {
             panel=Rect("Session panel",canvas,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;
             title=Label("Title",panel,new Vector2(.08f,.88f),new Vector2(.92f,.98f),"OFFLINE TRAINING",36);
             summary=Label("Summary",panel,new Vector2(.04f,.80f),new Vector2(.96f,.88f),"",21);
-            string[] tabs={"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD"};
-            for(int i=0;i<tabs.Length;i++){int tab=i;ButtonAt(tabs[i],panel,new Vector2(.035f+i*.155f,.72f),new Vector2(.18f+i*.155f,.79f),tabs[i],()=>{showResult=false;page=tab;feedback.text="";Rebuild();});}
+            string[] tabs=view.IsEditorReview?new[]{"HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD"};
+            for(int i=0;i<tabs.Length;i++){int tab=i;float step=.93f/tabs.Length;ButtonAt(tabs[i],panel,new Vector2(.035f+i*step,.72f),new Vector2(.035f+(i+1)*step-.01f,.79f),tabs[i],()=>{showResult=false;page=tab;feedback.text="";Rebuild();});}
             body=Rect("Commands",panel,new Vector2(.035f,.18f),new Vector2(.965f,.71f));
             feedback=Label("Feedback",panel,new Vector2(.03f,.10f),new Vector2(.97f,.18f),"",20);
             ButtonAt("Resume",panel,new Vector2(.06f,.015f),new Vector2(.46f,.10f),"RESUME",Resume);
@@ -54,6 +54,40 @@ namespace Buklod.Empire {
         private void Open(){shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
         private bool Active=>view.Battle!=null&&!view.Battle.Finished;
         private void Reply(bool ok,string success){feedback.text=ok?success:"Not available: check eligibility, funds, distance or cooldown.";Rebuild();}
+        private void HeroCard(int i,HeroKit kit){
+            float x=(i%5)/5f,y=1-(i/5+1)/3f;
+            var r=Rect(kit.Id,body,new Vector2(x+.008f,y+.015f),new Vector2(x+.192f,y+1f/3-.015f));
+            var accent=BattleEffects.Accent(kit.Id);bool chosen=kit.Id==selected;
+            var bg=r.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,chosen?.31f:.12f);
+            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;btn.onClick.AddListener(()=>{selected=kit.Id;Rebuild();});
+            var stripe=Rect("Sacred stone accent",r,new Vector2(0,.94f),Vector2.one).gameObject.AddComponent<Image>();stripe.color=accent;stripe.raycastTarget=false;
+            var name=Label("Hero name",r,new Vector2(.05f,.63f),new Vector2(.95f,.94f),(chosen?"✓ ":"")+kit.Name,27);name.color=accent;
+            for(int j=0;j<3;j++){
+                if(!SkillCueCatalog.TryGet(kit.Skill((SkillSlot)j).Id,out var cue))continue;
+                var symbol=Rect("Skill "+j,r,new Vector2(.10f+j*.28f,.23f),new Vector2(.34f+j*.28f,.61f)).gameObject.AddComponent<ReviewSkillGlyph>();
+                symbol.raycastTarget=false;symbol.SetCue(cue,accent);
+            }
+            Label("Combat range",r,new Vector2(.03f,.02f),new Vector2(.97f,.22f),$"ATK {kit.BasicDamage:0}  •  RNG {kit.BasicRange:0.#}",16);
+        }
+        private void RelicInventory(OfflineBattle battle){
+            var p=battle.Player;
+            var list=p.Relics.Values.OrderBy(x=>x.Slot,StringComparer.Ordinal).ToArray();
+            summary.text=$"Match-local equipment  •  {list.Length} relics  •  {p.Gear.Count}/6 shop items";
+            int row=0;
+            foreach(string slot in new[]{"weapon","shield","armor","boots","jewel"}){
+                var relic=list.FirstOrDefault(x=>x.Slot==slot);float top=1-row*.18f;
+                var r=Rect("Relic "+slot,body,new Vector2(.02f,top-.16f),new Vector2(.98f,top-.015f));
+                var background=r.gameObject.AddComponent<Image>();background.raycastTarget=false;background.color=new Color(.10f,.18f,.21f,.95f);
+                var category=Label("Slot",r,new Vector2(.02f,.05f),new Vector2(.22f,.95f),slot.ToUpperInvariant(),20);
+                category.color=relic==null?new Color(.58f,.67f,.69f):BattleFieldVisuals.TierColor(relic.Tier);
+                var item=Label("Item",r,new Vector2(.23f,.05f),new Vector2(.78f,.95f),relic==null?"Empty":relic.Name,23);
+                item.color=relic==null?new Color(.58f,.67f,.69f):Color.white;
+                var tier=Label("Tier",r,new Vector2(.79f,.05f),new Vector2(.98f,.95f),relic==null?"—":"TIER "+relic.Tier,19);
+                if(relic!=null)tier.color=BattleFieldVisuals.TierColor(relic.Tier);
+                row++;
+            }
+            Label("Relic policy",body,new Vector2(.02f,.01f),new Vector2(.98f,.09f),"Practice inventory only • No persistent rewards",17);
+        }
         private void Rebuild(){
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
@@ -70,7 +104,8 @@ namespace Buklod.Empire {
             }
             title.color=Color.white;panelBackground.color=Navy;title.rectTransform.localScale=Vector3.one;
             if(page==0){
-                for(int i=0;i<HeroKitCatalog.All.Count;i++){var kit=HeroKitCatalog.All[i];Cell(i,5,3,(selected==kit.Id?"✓ ":"")+kit.Name,()=>{selected=kit.Id;Rebuild();});}
+                for(int i=0;i<HeroKitCatalog.All.Count;i++){var kit=HeroKitCatalog.All[i];if(view.IsEditorReview)HeroCard(i,kit);else Cell(i,5,3,(selected==kit.Id?"✓ ":"")+kit.Name,()=>{selected=kit.Id;Rebuild();});}
+                if(view.IsEditorReview){var kit=HeroKitCatalog.Get(selected);summary.text=kit.Name+"  •  "+kit.Passive.Replace('_',' ')+"  •  "+string.Join(" / ",new[]{kit.Primary.Id,kit.Secondary.Id,kit.Ultimate.Id}.Select(x=>x.Replace('_',' ')));}
                 Cell(13,5,3,"AI: "+difficulty,()=>{difficulty=(ArenaDifficulty)(((int)difficulty+1)%5);Rebuild();});
                 Cell(14,5,3,autoTraining?"AI vs AI":"Play hero",()=>{autoTraining=!autoTraining;Rebuild();});
             }else if(page==1){
@@ -103,6 +138,8 @@ namespace Buklod.Empire {
             }else if(page==4&&b!=null){
                 var bank=b.GetVillage(p.Team);summary.text=$"Village gold {bank.Gold:0}  •  Buy 10 units / 15 gold  •  Sell 10 units / 6 gold  •  Living market required";
                 int i=0;foreach(var kind in new[]{VillageResourceKind.Wood,VillageResourceKind.Stone,VillageResourceKind.Food,VillageResourceKind.Crystal}){var k=kind;Cell(i++,4,2,"Buy "+k,()=>Reply(b.TradePlayerResource(k,true),"Trade complete"),active);Cell(i++,4,2,"Sell "+k,()=>Reply(b.TradePlayerResource(k,false),"Trade complete"),active);}
+            }else if(page==6&&b!=null&&view.IsEditorReview){
+                RelicInventory(b);
             }else if(page==5&&b!=null){
                 summary.text=$"Damage {p.DamageDealt:0} dealt / {p.DamageTaken:0} taken • Relics {p.Relics.Count} • Nearest visible field targets";
                 int i=0;
