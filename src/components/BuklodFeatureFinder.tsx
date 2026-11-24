@@ -130,7 +130,7 @@ export default function BuklodFeatureFinder({ autoFocus = false, showSuggestions
     .filter((item): item is BuklodFeatureLink => Boolean(item)), [recent, pinned]);
   const searching = query.trim().length >= 2;
   const suggestions = useMemo(() => (
-    ['bible', 'stories', 'wall', 'connect', 'drawer', 'contribution', 'health', 'support', 'kingdom']
+    ['bible', 'stories', 'wall', 'connect', 'drawer', 'contribution', 'health', 'support']
       .map(id => BUKLOD_FEATURE_LINKS.find(item => item.id === id))
       .filter((item): item is BuklodFeatureLink => Boolean(item))
   ), []);

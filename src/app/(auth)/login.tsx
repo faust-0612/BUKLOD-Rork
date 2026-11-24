@@ -20,6 +20,7 @@ import {
 } from '@/lib/buklodTouch';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1352,7 +1353,7 @@ const chooseSuggestedLogin =
      * and remains the Public Community Wall.
      */
     router.replace(
-      '/(tabs)/buklod'
+      isGenesisPreviewBuild() ? '/(tabs)/hub' : '/(tabs)/buklod'
     );
 
 
