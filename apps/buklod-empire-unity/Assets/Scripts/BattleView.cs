@@ -11,6 +11,8 @@ namespace Buklod.Empire {
         [Tooltip("Preserve full-detail hero geometry and visible hero shadows. Disable only for an explicit lower-quality mode.")]
         public bool premiumVisuals=true;
         public OfflineBattle Battle {get;private set;}
+        public bool Paused {get;private set;}
+        public void SetPaused(bool value){Paused=value;if(input)input.enabled=!value;}
 #if UNITY_EDITOR
         [SerializeField, HideInInspector] private bool editorReviewOnly;
         public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
@@ -52,22 +54,28 @@ namespace Buklod.Empire {
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale));
-            input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);
+            selectedHero=hero;Paused=false;
+            input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=true;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
             Follow(true);Sync(true);
         }
-        private void Start(){if(Battle==null)StartMatch(selectedHero);}
+        private void Start(){
+            if(Battle==null)StartMatch(selectedHero);
+            if(!GetComponent<OfflineSessionMenu>())gameObject.AddComponent<OfflineSessionMenu>();
+        }
+        private void OnApplicationPause(bool paused){if(paused&&Battle!=null&&!Battle.Finished)SetPaused(true);}
+        private void OnApplicationFocus(bool focused){if(!focused&&Battle!=null&&!Battle.Finished)SetPaused(true);}
         private Vector2 ToWorld(Vector2 screen){
             Vector3 right=battleCamera.transform.right,forward=battleCamera.transform.forward;
             var r=new Vector2(right.x,right.z).normalized;var f=new Vector2(forward.x,forward.z).normalized;
             return Vector2.ClampMagnitude(r*screen.x+f*screen.y,1);
         }
         public bool Cast(int button,Vector2 aim){
-            if(Battle==null||Battle.Finished||button<1||button>4)return false;
+            if(Battle==null||Paused||Battle.Finished||button<1||button>4)return false;
             var direction=ToWorld(aim);
             return button==1?Battle.PlayerAttack(direction):Battle.CastPlayer((SkillSlot)(button-2),direction);
         }
-        private void Update(){if(Battle==null)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));Sync(false);}
+        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));Sync(false);}
         private void LateUpdate(){if(Battle!=null)Follow(false);}
         private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}
         private Visual Rent(GameObject prefab){
