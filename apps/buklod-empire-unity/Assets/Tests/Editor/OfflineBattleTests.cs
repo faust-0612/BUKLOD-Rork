@@ -3,6 +3,18 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void HeroDeathAndAssistSettleOnce(){
+            var b=new OfflineBattle("phan");
+            var ally=b.Units.First(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Hero&&u!=b.Player);
+            var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            int gold=ally.Gold;
+            Assert.True(b.Hit(ally.State,enemy.State,10));
+            Assert.True(b.Hit(b.Player.State,enemy.State,300));
+            Assert.AreEqual(1,b.Player.Kills);Assert.AreEqual(1,enemy.Deaths);Assert.AreEqual(1,ally.Assists);
+            Assert.AreEqual(gold+OfflineMatchRules.AssistGold,ally.Gold);
+            Assert.False(b.Hit(b.Player.State,enemy.State,300));Assert.AreEqual(1,ally.Assists);
+            Assert.AreEqual(0,new OfflineBattle("phan").Player.Kills);
+        }
         [Test] public void EveryHeroCanBePickedWithoutDuplicatingTeammates(){
             foreach(var kit in HeroKitCatalog.All){
                 var b=new OfflineBattle(kit.Id);
@@ -27,7 +39,7 @@ namespace Buklod.Empire.Tests {
             Assert.IsEmpty(next.Player.Gear);
             Assert.AreEqual(0,next.Time);
         }
-        [Test] public void StartsFiveVersusFiveAndProtectsCores(){
+        [Test] public void StartsFiveVersusFiveAndRequiresFullElimination(){
             var b=new OfflineBattle("phan");
             Assert.AreEqual(5,b.Units.Count(u=>u.Kind==BattleTargetKind.Hero&&u.Team==ArenaTeam.Lux));
             Assert.AreEqual(5,b.Units.Count(u=>u.Kind==BattleTargetKind.Hero&&u.Team==ArenaTeam.Tenebra));
@@ -36,8 +48,23 @@ namespace Buklod.Empire.Tests {
             var tower=b.Units.First(u=>u.Kind==BattleTargetKind.Structure&&u.Team==ArenaTeam.Tenebra&&!u.Core);
             Assert.True(b.Hit(b.Player.State,tower.State,300));Assert.True(b.Hit(b.Player.State,tower.State,100));
             Assert.True(b.Hit(b.Player.State,core.State,300));Assert.True(b.Hit(b.Player.State,core.State,300));
-            Assert.True(b.Finished);Assert.AreEqual(ArenaTeam.Lux,b.Winner);
+            Assert.False(b.Finished);Assert.IsNull(b.Winner);
+            foreach(var unit in b.Units.Where(u=>u.Team==ArenaTeam.Tenebra&&u.State.Alive).ToArray()){
+                for(int i=0;i<10&&unit.State.Alive;i++)Assert.True(b.Hit(b.Player.State,unit.State,300));
+            }
+            Assert.True(b.Finished);Assert.AreEqual(ArenaTeam.Lux,b.Winner);Assert.AreEqual(0,b.RemainingUnits(ArenaTeam.Tenebra));
             Assert.False(b.PlayerAttack(Vector2.right));
+        }
+        [Test] public void CoreLossStopsRespawnButNotRemainingEnemy(){
+            var b=new OfflineBattle("phan");var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            Assert.True(b.Hit(b.Player.State,enemy.State,300));Assert.False(enemy.State.Alive);Assert.AreEqual(1,b.Drops.Count);
+            Assert.False(b.CollectPlayerPickup(b.Drops[0].Id));
+            var tower=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Structure&&!u.Core);
+            var core=b.Units.Single(u=>u.Team==ArenaTeam.Tenebra&&u.Core);
+            foreach(var u in new[]{tower,core})while(u.State.Alive)Assert.True(b.Hit(b.Player.State,u.State,300));
+            for(int i=0;i<90;i++)b.Advance(.1f,Vector2.zero);
+            Assert.False(enemy.State.Alive);Assert.False(b.Finished);Assert.Greater(b.RemainingUnits(ArenaTeam.Tenebra),0);
+            Assert.False(b.Units.Any(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Minion));
         }
         [Test] public void WavesAndMovementAreDrivenByMatchClock(){
             var b=new OfflineBattle("phan");var start=b.Player.Position;

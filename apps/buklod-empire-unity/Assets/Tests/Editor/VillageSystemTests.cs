@@ -39,13 +39,18 @@ namespace Buklod.Empire.Tests {
             Assert.That(t.Wood,Is.EqualTo(33.6).Within(.001));
             Assert.That(l.Find("lira").Level,Is.EqualTo(2));
         }
-        [Test] public void DownedGathererSlowsAndRespawnsAtHalfHealth() {
+        [Test] public void DownedGathererDoesNotWorkAndRespawnsAtHalfHealth() {
             var w=new MinionWaveDirector();var b=new Battle{Accept=false};
             var l=new VillageSystem(ArenaTeam.Lux,w,b);
             var m=l.Find("lira");m.Damage(200);
             l.Advance(5);Assert.That(l.Wood,Is.Zero);
-            l.Advance(15);Assert.That(l.Wood,Is.EqualTo(6));
+            l.Advance(15);Assert.That(l.Wood,Is.Zero);
             l.Advance(40);Assert.That(m.Alive,Is.True);Assert.That(m.Health,Is.EqualTo(100));
+        }
+        [Test] public void CoreLossPreventsWorkerRespawn(){
+            var w=new MinionWaveDirector();var v=new VillageSystem(ArenaTeam.Lux,w,new Battle{Accept=false});
+            w.CoreDestroyed(ArenaTeam.Lux);v.Find("lira").Damage(200);v.Advance(90);
+            Assert.False(v.Find("lira").Alive);Assert.That(v.Wood,Is.Zero);
         }
         [Test] public void FailedSceneOperationsDoNotSpendResources() {
             var w=new MinionWaveDirector();
@@ -69,7 +74,7 @@ namespace Buklod.Empire.Tests {
             Assert.That(v.Wood,Is.EqualTo(28.4).Within(.001));
             v.Find("taro").Damage(200);v.EnemyDefeated(true);
             v.Advance(6);Assert.That(v.Wood,Is.EqualTo(36.8).Within(.001));
-            w.CoreDestroyed(ArenaTeam.Lux);
+            w.EndMatch(ArenaTeam.Tenebra);
             var before=v.Wood;v.Advance(100);Assert.That(v.Wood,Is.EqualTo(before));
             Assert.Throws<ArgumentOutOfRangeException>(()=>v.Advance(double.NaN));
         }

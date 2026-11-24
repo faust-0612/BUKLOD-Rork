@@ -54,6 +54,14 @@ namespace Buklod.Empire {
             float t=Mathf.Min(temporaryShield,incoming);temporaryShield-=t;incoming-=t;
             float s=Mathf.Min(Shield,incoming);Shield-=s;return incoming-s;
         }
+        internal float PickupShield(float value,float now){
+            if(temporaryShieldUntil<=now)temporaryShield=0;
+            float gain=Mathf.Max(0,Mathf.Min(value,105-Shield-temporaryShield));if(Alive)Shield+=gain;else gain=0;return gain;
+        }
+        internal float ReduceActiveCooldowns(float seconds,float now){
+            if(!Alive||Kit==null||seconds<=0)return 0;float total=0;
+            for(int i=0;i<3;i++){float n=Mathf.Min(seconds,Remaining((SkillSlot)i,now));if(n>0){last[i]-=n;total+=n;}}return total;
+        }
         public float Cooldown(SkillSlot slot,float now){
             var v=Kit.Skill(slot).Cooldown*(1-Mathf.Clamp(Buff("cooldown",now),0,.25f));
             if(Kit.Id=="angel")v*=.9f;

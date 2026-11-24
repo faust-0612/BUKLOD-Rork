@@ -24,12 +24,16 @@ namespace Buklod.Empire {
         public const double FirstWave=5, Interval=30, MidStart=180, SiegeStart=480, Stagger=.6;
         public const int SiegeEvery=6, SuperWaves=3;
         private readonly int[] superLeft=new int[2];
+        private readonly bool[] coreLost=new bool[2];
+        private bool ended;
         private readonly float[] research=new float[2];
         private readonly List<MinionSpawn> pending=new List<MinionSpawn>();
         public double Time { get; private set; }
         public int Wave { get; private set; }
         public ArenaTeam? Winner { get; private set; }
-        public bool Finished => Winner.HasValue || Time>=OfflineMatchRules.MatchLimit;
+        public bool Finished => ended || Time>=OfflineMatchRules.MatchLimit;
+        public bool CanReinforce(ArenaTeam team)=>!Finished&&!coreLost[Index(team)];
+        public void EndMatch(ArenaTeam? winner){if(ended)return;ended=true;Winner=winner;pending.Clear();}
         private static int Index(ArenaTeam team) {
             if(team!=ArenaTeam.Lux && team!=ArenaTeam.Tenebra) throw new ArgumentOutOfRangeException(nameof(team));
             return (int)team;
@@ -45,8 +49,8 @@ namespace Buklod.Empire {
         public void CoreDestroyed(ArenaTeam defendingTeam) {
             int i=Index(defendingTeam);
             if(Finished) return;
-            Winner=(ArenaTeam)(1-i);
-            pending.Clear();
+            coreLost[i]=true;
+            pending.RemoveAll(s=>s.Team==defendingTeam);
         }
         public IReadOnlyList<MinionSpawn> Advance(double seconds, int luxTowers, int tenebraTowers) {
             if(double.IsNaN(seconds)||double.IsInfinity(seconds)||seconds<0||luxTowers<0||tenebraTowers<0)
@@ -78,6 +82,7 @@ namespace Buklod.Empire {
         }
         private void Schedule(ArenaTeam team,double at,bool siege,bool behind) {
             int i=Index(team);
+            if(coreLost[i])return;
             bool super=superLeft[i]>0;
             float power=1f+.04f*(float)(at/60)+research[i]+(super?.25f:0f)+(behind?.10f:0f);
             var roles=new List<MinionRole>{MinionRole.Infantry,MinionRole.Infantry};

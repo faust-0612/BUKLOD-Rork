@@ -32,7 +32,9 @@ namespace Buklod.Empire.Tests {
             var d=new MinionWaveDirector();
             d.Advance(5,3,3);
             d.CoreDestroyed(ArenaTeam.Tenebra);
-            Assert.That(d.Winner,Is.EqualTo(ArenaTeam.Lux));
+            Assert.That(d.Winner,Is.Null);
+            Assert.That(d.Advance(1.3,3,3).All(x=>x.Team==ArenaTeam.Lux),Is.True);
+            d.EndMatch(ArenaTeam.Lux);
             Assert.That(d.Advance(900,3,3),Is.Empty);
             d.CoreDestroyed(ArenaTeam.Lux);
             Assert.That(d.Winner,Is.EqualTo(ArenaTeam.Lux));

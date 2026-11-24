@@ -36,9 +36,10 @@ namespace Buklod.Empire {
             Health=Math.Max(0,Health-amount);
             if(!Alive)Respawn=60;
         }
-        internal void Tick(double dt) {
-            Remaining-=dt*(Alive?1:.25);
-            if(!Alive) { Respawn-=dt; if(Respawn<=0){Health=100;Respawn=0;} }
+        internal void Tick(double dt,bool canRespawn) {
+            if(Alive){Remaining-=dt;return;}
+            if(!canRespawn)return;
+            Respawn-=dt;if(Respawn<=0){Health=100;Respawn=0;}
         }
         internal void Complete(bool success) {
             Remaining=Job.Interval/Power;
@@ -66,6 +67,13 @@ namespace Buklod.Empire {
         public double Wood {get;private set;}
         public double Stone {get;private set;}
         public double Crystal {get;private set;}
+        public double Gold {get;private set;}
+        internal double CreditPickup(string resource,double amount){
+            if(double.IsNaN(amount)||double.IsInfinity(amount)||amount<=0)return 0;
+            double current=resource=="wood"?Wood:resource=="stone"?Stone:resource=="gold"?Gold:-1;
+            if(current<0)return 0;double added=Math.Max(0,Math.Min(amount,10000-current));
+            if(resource=="wood")Wood+=added;else if(resource=="stone")Stone+=added;else Gold+=added;return added;
+        }
         public int ResearchTier {get;private set;}
         public int TowersUpgraded {get;private set;}
         public int ItemsCrafted {get;private set;}
@@ -92,8 +100,8 @@ namespace Buklod.Empire {
                 accumulator-=step;Time+=step;
                 if(Time>=OfflineMatchRules.MatchLimit)break;
                 foreach(var m in members) {
-                    m.Tick(step);
-                    if(m.Remaining<=0)m.Complete(Run(m));
+                    m.Tick(step,waves.CanReinforce(Team));
+                    if(m.Alive&&m.Remaining<=0)m.Complete(Run(m));
                 }
             }
         }
@@ -104,7 +112,7 @@ namespace Buklod.Empire {
             switch(m.Job.Effect) {
                 case VillageEffect.Gather:
                     double rate=(lux?1:1.4)*(m.Level>=5?1.2:1);
-                    Wood+=6*p*rate;Stone+=4*p*rate;Crystal+=2*p*rate;return true;
+                    Wood=Math.Min(10000,Wood+6*p*rate);Stone=Math.Min(10000,Stone+4*p*rate);Crystal=Math.Min(10000,Crystal+2*p*rate);return true;
                 case VillageEffect.Build:
                     int level=battle.LowestTowerLevel(Team);
                     if(level<1||!CanPay(40d*level,30d*level,0))return false;
@@ -128,7 +136,7 @@ namespace Buklod.Empire {
                 case VillageEffect.Revive:return battle.ReviveRecent(Team,2,25,.6f)>0;
                 case VillageEffect.Scavenge:
                     if(scavenged<=0)return false;
-                    Wood+=scavenged*.5;Stone+=scavenged*.3;Crystal+=scavenged*.2;scavenged=0;return true;
+                    Wood=Math.Min(10000,Wood+scavenged*.5);Stone=Math.Min(10000,Stone+scavenged*.3);Crystal=Math.Min(10000,Crystal+scavenged*.2);scavenged=0;return true;
                 default:return false;
             }
         }
