@@ -45,9 +45,13 @@ namespace Buklod.Empire.Editor {
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
             if(!profile){profile=ScriptableObject.CreateInstance<VolumeProfile>();AssetDatabase.CreateAsset(profile,path);}
             var bloom=Get<Bloom>(profile);
-            bloom.threshold.Override(1.15f);bloom.intensity.Override(.22f);bloom.scatter.Override(.55f);
+            bloom.threshold.Override(1.25f);bloom.intensity.Override(.24f);bloom.scatter.Override(.58f);
             var grading=Get<ColorAdjustments>(profile);
-            grading.postExposure.Override(.08f);grading.contrast.Override(9f);grading.saturation.Override(5f);
+            grading.postExposure.Override(.06f);grading.contrast.Override(10f);grading.saturation.Override(4f);
+            var balance=Get<WhiteBalance>(profile);balance.temperature.Override(-4f);balance.tint.Override(2f);
+            var vignette=Get<Vignette>(profile);vignette.intensity.Override(.10f);vignette.smoothness.Override(.72f);
+            vignette.color.Override(new Color(.08f,.12f,.17f));
+            EditorUtility.SetDirty(balance);EditorUtility.SetDirty(vignette);
             var tone=Get<Tonemapping>(profile);tone.mode.Override(TonemappingMode.Neutral);
             EditorUtility.SetDirty(profile);EditorUtility.SetDirty(bloom);EditorUtility.SetDirty(grading);EditorUtility.SetDirty(tone);
             var volume=new GameObject("Review atmospheric grade",typeof(Volume)).GetComponent<Volume>();
@@ -58,12 +62,13 @@ namespace Buklod.Empire.Editor {
             data.volumeLayerMask=data.volumeLayerMask.value|(1<<volume.gameObject.layer);
             camera.allowHDR=true;
             var cube=ReviewSkyReflection();
+            river.SetTexture("_ReviewSkyCube",cube);river.SetFloat("_ReflectionStrength",.38f);EditorUtility.SetDirty(river);
             RenderSettings.defaultReflectionMode=DefaultReflectionMode.Custom;
             RenderSettings.customReflectionTexture=cube;
             RenderSettings.reflectionIntensity=1.05f;
             // Far haze; do not obscure nearby actors, targeting or the HUD.
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;
-            RenderSettings.fogColor=new Color(.31f,.42f,.49f);RenderSettings.fogStartDistance=45;RenderSettings.fogEndDistance=120;
+            RenderSettings.fogColor=new Color(.35f,.46f,.55f);RenderSettings.fogStartDistance=52;RenderSettings.fogEndDistance=145;
             Debug.Log("Review environment water, animated foliage and cinematic grade configured. Verify on device before approving.");
         }
         // Original environment reflection, no downloaded HDRI and no per-frame capture.
