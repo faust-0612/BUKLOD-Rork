@@ -17,7 +17,17 @@ namespace Buklod.Empire {
         [SerializeField, HideInInspector] private bool editorReviewOnly;
         public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
 #endif
+        private bool ReviewOnly {
+            get {
+#if UNITY_EDITOR
+                return editorReviewOnly;
+#else
+                return false;
+#endif
+            }
+        }
         private MobileBattleInput input;
+        private BattleFieldVisuals fieldVisuals;
         private BattleEffects effects;
         private SkillAudio skillAudio;
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
@@ -58,7 +68,8 @@ namespace Buklod.Empire {
             selectedHero=hero;Paused=false;
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=true;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
-            Follow(true);Sync(true);
+            fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
+            Follow(true);Sync(true);fieldVisuals.Refresh();
         }
         private void Start(){
             if(Battle==null)StartMatch(selectedHero);
@@ -76,8 +87,9 @@ namespace Buklod.Empire {
             var direction=ToWorld(aim);
             switch(button){case 1:return Battle.PlayerAttack(direction);case 5:return Battle.UsePlayerTactic(direction);case 6:return Battle.RecallPlayer();case 7:return Battle.PlayerAttackTarget(BattleTargetKind.Minion,direction);case 8:return Battle.PlayerAttackTarget(BattleTargetKind.Structure,direction);default:return Battle.CastPlayer((SkillSlot)(button-2),direction);}
         }
-        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));Sync(false);}
+        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
         private void LateUpdate(){if(Battle!=null)Follow(false);}
+        public Vector3 FieldPosition(Vector2 p)=>Ground(p);
         private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}
         private Visual Rent(GameObject prefab){
             if(!pool.TryGetValue(prefab,out var stack)){stack=new Stack<GameObject>();pool[prefab]=stack;}
@@ -127,7 +139,7 @@ namespace Buklod.Empire {
                 if(!BattleRenderBudget.RetainVisual(player,inView,existing,distanceSquared))continue;
                 seen.Add(u.Id);
                 if(!existing){
-                    v=Rent(visuals.Resolve(u));active.Add(u.Id,v);
+                    v=Rent(visuals.Resolve(u,ReviewOnly));active.Add(u.Id,v);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;v.villageActions=u.Villager?.Actions??0;
                 }

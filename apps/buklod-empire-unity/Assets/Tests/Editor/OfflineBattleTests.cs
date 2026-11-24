@@ -3,6 +3,16 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void HybridAssetContractNeverMistakesBaseTowerForFarm(){
+            var catalog=ScriptableObject.CreateInstance<BattleVisualCatalog>();var tower=new GameObject("Test tower");var farm=new GameObject("Test farm");
+            try{
+                catalog.factions=new[]{new BattleVisualCatalog.FactionVisual{team=ArenaTeam.Lux,tower=tower,farm=farm}};
+                var b=new OfflineBattle("phan");var unit=b.Units.First(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Structure&&!u.Core);
+                Assert.AreSame(tower,catalog.Resolve(unit));
+                // Internal test visibility is not needed: missing production evidence always fails closed.
+                Assert.Throws<System.InvalidOperationException>(()=>catalog.Validate());Assert.IsNull(catalog.ResolveCamp(WildernessKind.AzureStag));
+            }finally{Object.DestroyImmediate(tower);Object.DestroyImmediate(farm);Object.DestroyImmediate(catalog);}
+        }
         [Test] public void NoMarketTradeOrConstructionWithoutInfrastructureAndResources(){
             var b=new OfflineBattle("phan");Assert.AreEqual(6,b.PaidTroopCapacity(ArenaTeam.Lux));Assert.AreEqual(0,b.PaidTroops(ArenaTeam.Lux));
             Assert.False(b.TradePlayerResource(VillageResourceKind.Food,true));Assert.False(b.TradePlayerResource(VillageResourceKind.Gold,false));
