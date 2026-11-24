@@ -7,7 +7,8 @@ create table empire_stones.release_gate (
  enabled boolean not null default false,
  bp_exchange_enabled boolean not null default false,
  discovery_enabled boolean not null default false,
- world_discovery_enabled boolean not null default false
+ world_discovery_enabled boolean not null default false,
+ expedition_enabled boolean not null default false
 );
 insert into empire_stones.release_gate(singleton) values(true);
 create table empire_stones.kingdom_mastery_map (
@@ -129,7 +130,7 @@ end $$;
 create function empire_stones.snapshot(u uuid) returns jsonb
 language sql stable set search_path='' as $$
  select jsonb_build_object('version',1,'enabled',true,'owner',u,
- 'bp_exchange_enabled',g.bp_exchange_enabled,'discovery_enabled',g.discovery_enabled,
+ 'bp_exchange_enabled',g.bp_exchange_enabled,'discovery_enabled',g.discovery_enabled,'expedition_enabled',g.expedition_enabled and g.world_discovery_enabled,
  'spendable_bp',greatest(coalesce((select available_points from public.buklod_user_points_balances where user_id=u),0)
  -public.buklod_points_cash_reserved_for(u),0),
  'stones',(select jsonb_agg(jsonb_build_object('hero_id',h.id,'balance',coalesce(w.balance,0),

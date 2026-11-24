@@ -67,6 +67,7 @@ create table private.buklod_kingdom_mastery_attempts_v1(id uuid primary key defa
 \ir sacred-stones-server-candidate.sql
 \ir sacred-stones-kingdom-candidate.sql
 \ir sacred-stones-discovery-candidate.sql
+\ir sacred-stones-expedition-candidate.sql
 begin;
 do $$
 declare
@@ -131,6 +132,37 @@ begin
  perform empire_stones.open_world_discovery('30000000-0000-0000-0000-000000000001',a,'quin');
  if empire_stones.record_world_discovery('30000000-0000-0000-0000-000000000001','treasure-1','treasure_discovery')<>'daily_cap' then raise exception 'Shared cap failed'; end if;
  if empire_stones.record_world_discovery('30000000-0000-0000-0000-000000000001','treasure-1','treasure_discovery')<>'daily_cap' then raise exception 'World event replay failed'; end if;
+ -- New authoritative route: one per day, no answer key, replay and cross-account checks.
+ update empire_stones.release_gate set expedition_enabled=true;
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ declare exid uuid; answer integer; turn_id uuid:='40000000-0000-0000-0000-000000000001'; blocked boolean:=false;
+ begin
+  result:=public.start_my_empire_expedition_v1('phan');exid:=(result->>'id')::uuid;
+  if (result->'question') ? 'answer' or public.start_my_empire_expedition_v1('quin')->>'id'<>exid::text then raise exception 'Expedition reroll or answer leaked'; end if;
+  select (puzzles->'0'->>'answer')::integer into answer from empire_stones.expedition where id=exid;
+  result:=public.step_my_empire_expedition_v1(exid,0,'solve',answer,turn_id);
+  if result->>'stage'<>'1' or result->>'version'<>'1' then raise exception 'Pickup stage failed'; end if;
+  result:=public.step_my_empire_expedition_v1(exid,0,'solve',answer,turn_id);
+  if result->>'version'<>'1' then raise exception 'Expedition replay duplicated'; end if;
+  perform set_config('request.jwt.claim.sub',a::text,true);
+  begin perform public.step_my_empire_expedition_v1(exid,1,'strike',null,gen_random_uuid());exception when others then blocked:=true;end;
+  if not blocked then raise exception 'Cross-account expedition accepted';end if;
+  perform set_config('request.jwt.claim.sub',b::text,true);
+  -- Simulate elapsed turns inside a single fixture transaction.
+  for i in 1..5 loop
+   update empire_stones.expedition set next_action_at=now()-interval '1 second' where id=exid;
+   result:=public.step_my_empire_expedition_v1(exid,(result->>'version')::integer,case when i%2=1 then 'strike' else 'guard' end,null,gen_random_uuid());
+  end loop;
+  if result->>'stage'<>'2' or result->>'health'<>'5' then raise exception 'Monster encounter progression failed';end if;
+  for i in 2..3 loop
+   update empire_stones.expedition set next_action_at=now()-interval '1 second' where id=exid;
+   select (puzzles->i::text->>'answer')::integer into answer from empire_stones.expedition where id=exid;
+   result:=public.step_my_empire_expedition_v1(exid,(result->>'version')::integer,'solve',answer,gen_random_uuid());
+  end loop;
+  update empire_stones.expedition set next_action_at=now()-interval '1 second' where id=exid;
+  result:=public.step_my_empire_expedition_v1(exid,(result->>'version')::integer,'finish',null,gen_random_uuid());
+  if result->>'state'<>'complete' or jsonb_array_length(result->'results')<>5 or (select balance from empire_stones.wallet where user_id=b and hero_id='phan') is distinct from 1::bigint then raise exception 'Expedition settlement or shared cap failed';end if;
+ end;
  if has_function_privilege('authenticated','empire_stones.record_world_discovery(uuid,text,text)','EXECUTE') then raise exception 'World hook exposed'; end if;
  if has_function_privilege('authenticated','empire_stones.grant_verified(uuid,text,integer,text,text,text)','EXECUTE') or
  has_function_privilege('anon','public.get_my_empire_stones_v1()','EXECUTE') or

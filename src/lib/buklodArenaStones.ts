@@ -3,7 +3,7 @@ import { ARENA_STONE_IDS, type ArenaStoneId } from './buklodArenaStoneCatalog';
 export type StoneRow = {hero_id:ArenaStoneId;balance:number;mastery_count:number;quest_awarded:boolean};
 export type StoneTrade = {id:string;sender:string;recipient:string;offered:ArenaStoneId[];wanted:ArenaStoneId[]};
 export type StoneRequest = {id:string;requester:string;donor:string;hero_id:ArenaStoneId};
-export type StoneSnapshot = {version:1;enabled:true;owner:string;bp_exchange_enabled:boolean;discovery_enabled?:boolean;spendable_bp:number;stones:StoneRow[];trades:StoneTrade[];requests:StoneRequest[]};
+export type StoneSnapshot = {version:1;enabled:true;owner:string;bp_exchange_enabled:boolean;discovery_enabled?:boolean;expedition_enabled?:boolean;spendable_bp:number;stones:StoneRow[];trades:StoneTrade[];requests:StoneRequest[]};
 export type StoneAction = 'exchange'|'combine'|'convert'|'gift'|'offer'|'accept_trade'|'cancel_trade'|'request'|'accept_request'|'decline_request';
 const validNumber=(n:unknown):n is number=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
 const validId=(n:unknown):n is ArenaStoneId=>typeof n==='string'&&ARENA_STONE_IDS.has(n);
@@ -62,4 +62,18 @@ export async function finishArenaDiscovery(uid:string,id:string,answers:number[]
  if(d?.enabled!==true||d.id!==id||!validId(d.hero_id)||!['failed','expired','verified'].includes(d.status)||
  (d.status==='verified'&&!['awarded','no_drop','daily_cap','roll_cap'].includes(d.outcome)))throw new Error('Invalid trial result');
  return d;
+}
+
+export type ExpeditionAction='solve'|'strike'|'guard'|'finish';
+export type Expedition={enabled:boolean;id:string;hero_id:ArenaStoneId;version:number;stage:number;state:'active'|'complete'|'failed'|'expired';health:number;monster_hp:number;monster_intent:'heavy'|'recovering'|null;question:{a:number;b:number;c:number}|null;results:{source:string;outcome:string}[];next_action_at:string;expires_at:string};
+function normalizeExpedition(d:any):Expedition|null{
+ if(d?.enabled===false)return null;
+ if(d?.enabled!==true||typeof d.id!=='string'||!validId(d.hero_id)||!validNumber(d.version)||d.version>24||!validNumber(d.stage)||d.stage>5||!validNumber(d.health)||d.health>5||!validNumber(d.monster_hp)||d.monster_hp>3||!['active','complete','failed','expired'].includes(d.state)||!Array.isArray(d.results)||d.results.length>5||typeof d.next_action_at!=='string')throw new Error('Invalid expedition state');
+ if(d.state==='active'&&[0,2,3].includes(d.stage)&&(!d.question||![d.question.a,d.question.b,d.question.c].every(n=>validNumber(n)&&n>0&&n<=20)))throw new Error('Invalid expedition question');
+ return d;
+}
+export async function startArenaExpedition(uid:string,hero:ArenaStoneId){return normalizeExpedition(await request(uid,'start_my_empire_expedition_v1',{p_hero_id:hero}));}
+export async function stepArenaExpedition(uid:string,id:string,version:number,action:ExpeditionAction,answer:number|null,requestId:string){
+ const d=normalizeExpedition(await request(uid,'step_my_empire_expedition_v1',{p_id:id,p_version:version,p_action:action,p_answer:answer,p_request_id:requestId}));
+ if(!d||d.id!==id)throw new Error('Invalid expedition receipt');return d;
 }
