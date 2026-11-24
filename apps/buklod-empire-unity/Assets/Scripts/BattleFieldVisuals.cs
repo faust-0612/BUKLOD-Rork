@@ -11,20 +11,23 @@ namespace Buklod.Empire {
         private readonly Dictionary<GameObject,Stack<GameObject>> pools=new Dictionary<GameObject,Stack<GameObject>>();
         private readonly HashSet<(int,int)> seen=new HashSet<(int,int)>();
         private readonly List<(int,int)> removed=new List<(int,int)>();
-        private readonly MaterialPropertyBlock block=new MaterialPropertyBlock();
+        private MaterialPropertyBlock block;
+        private readonly Dictionary<(int,int),Color> appliedTints=new Dictionary<(int,int),Color>();
+        private bool review;
         private int pooled;
         private const int PoolLimit=48;
         public int ActiveCount=>active.Count;
-        public void Bind(BattleView owner){Clear();view=owner;bound=owner.Battle;}
+        public void Bind(BattleView owner){Clear();view=owner;bound=owner.Battle;review=owner.IsEditorReview;}
         private GameObject Present(int type,int id,Vector2 position,GameObject prefab,out bool fresh){
             fresh=false;if(!prefab)return null;
             var key=(type,id);seen.Add(key);
-            if(active.TryGetValue(key,out var go)&&prefabs[key]!=prefab){
-                Return(key,go);active.Remove(key);prefabs.Remove(key);go=null;
+            if(active.TryGetValue(key,out var go)&&(!go||prefabs[key]!=prefab)){
+                Return(key,go);active.Remove(key);prefabs.Remove(key);appliedTints.Remove(key);go=null;
             }
             if(!go){
                 if(pools.TryGetValue(prefab,out var pool)&&pool.Count>0){go=pool.Pop();pooled--;}
                 else go=Instantiate(prefab,transform);
+                if(review)foreach(var collider in go.GetComponentsInChildren<Collider>(true))collider.enabled=false;
                 go.transform.localScale=prefab.transform.localScale;
                 go.transform.localRotation=prefab.transform.localRotation;
                 // Rental state is never inherited by the next resource, construction or loot entity.
@@ -44,7 +47,10 @@ namespace Buklod.Empire {
         public static Color ResourceColor(VillageResourceKind kind){
             switch(kind){case VillageResourceKind.Wood:return new Color(.55f,.31f,.13f);case VillageResourceKind.Stone:return new Color(.55f,.59f,.64f);case VillageResourceKind.Crystal:return new Color(.24f,.73f,1);case VillageResourceKind.Gold:return new Color(1,.72f,.18f);default:return new Color(.38f,.79f,.24f);}
         }
-        private void Tint(GameObject go,Color color){
+        private void Tint((int,int) key,GameObject go,Color color){
+            if(appliedTints.TryGetValue(key,out var old)&&old==color)return;
+            appliedTints[key]=color;
+            if(block==null)block=new MaterialPropertyBlock();
             foreach(var renderer in go.GetComponentsInChildren<Renderer>(true)){
                 var materials=renderer.sharedMaterials;
                 for(int i=0;i<materials.Length;i++){
@@ -60,7 +66,8 @@ namespace Buklod.Empire {
         }
         private void Loot(int type,int id,Vector2 position,GameObject prefab,int tier,float spawnedAt){
             var go=Present(type,id,position,prefab,out var fresh);if(!go)return;
-            if(fresh)Tint(go,TierColor(tier));
+            if(!review)return;
+            Tint((type,id),go,TierColor(tier));
             float t=Mathf.Max(0,bound.Time-spawnedAt);
             go.transform.position=view.FieldPosition(position)+Vector3.up*(.15f+.12f*Mathf.Sin(t*3+id));
             go.transform.rotation=Quaternion.Euler(0,t*72,0)*prefab.transform.rotation;
@@ -75,20 +82,20 @@ namespace Buklod.Empire {
             if(!view||view.Battle==null)return;if(bound!=view.Battle){Clear();bound=view.Battle;}
             seen.Clear();
             if(!bound.Finished){
-                foreach(var n in bound.ResourceNodes)if(n.StructureId==0&&(n.Stock>0||n.Renewable)&&Nearby(n.Position)&&(n.Team==bound.Player.Team||Visible(n.Position))){
+                foreach(var n in bound.ResourceNodes)if(Nearby(n.Position)&&(review?n.StructureId==0&&(n.Stock>0||n.Renewable)&&(n.Team==bound.Player.Team||Visible(n.Position)):n.Stock>0)){
                     var prefab=view.visuals.ResolveResource(n.Kind);var go=Present(0,n.Id,n.Position,prefab,out _);
-                    if(go){var scale=prefab.transform.localScale;scale.y*=StockScale(n.Stock,n.Capacity);go.transform.localScale=scale;}
+                    if(go&&review){var scale=prefab.transform.localScale;scale.y*=StockScale(n.Stock,n.Capacity);go.transform.localScale=scale;}
                 }
                 foreach(var c in bound.Camps)if(c.Alive&&Visible(c.Position))Present(1,c.Id,c.Position,view.visuals.ResolveCamp(c.Kind),out _);
                 foreach(var d in bound.Drops)if(Visible(d.Position))Loot(2,d.Id,d.Position,view.visuals.fieldPickup,d.Item.Tier,d.SpawnedAt);
                 foreach(var d in bound.RelicDrops)if(Visible(d.Position))Loot(3,d.Id,d.Position,view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt);
-                foreach(var u in bound.Units){
+                if(review)foreach(var u in bound.Units){
                     if(!u.State.Alive||!Nearby(u.Position)||(u.Team!=bound.Player.Team&&!bound.IsVisibleTo(bound.Player.Team,u)))continue;
                     if(u.Villager!=null&&u.Cargo>1e-6){
                         var kind=u.CargoWood>0?VillageResourceKind.Wood:u.CargoStone>0?VillageResourceKind.Stone:u.CargoCrystal>0?VillageResourceKind.Crystal:u.CargoGold>0?VillageResourceKind.Gold:VillageResourceKind.Food;
                         var prefab=view.visuals.fieldPickup;var go=Present(4,u.Id,u.Position,prefab,out var fresh);
                         if(go){
-                            if(fresh)Tint(go,ResourceColor(kind));
+                            Tint((4,u.Id),go,ResourceColor(kind));
                             go.transform.position=view.FieldPosition(u.Position)+Vector3.up*2.1f;
                             go.transform.localScale=prefab.transform.localScale*Mathf.Lerp(.35f,.65f,Mathf.Clamp01((float)(u.Cargo/OfflineBattle.CargoLimit)));
                         }
@@ -101,7 +108,7 @@ namespace Buklod.Empire {
                 }
             }
             removed.Clear();foreach(var e in active)if(!seen.Contains(e.Key)){Return(e.Key,e.Value);removed.Add(e.Key);}
-            foreach(var key in removed){active.Remove(key);prefabs.Remove(key);}
+            foreach(var key in removed){active.Remove(key);prefabs.Remove(key);appliedTints.Remove(key);}
         }
         private void Return((int,int) key,GameObject go){
             if(!go)return;go.SetActive(false);
@@ -111,7 +118,7 @@ namespace Buklod.Empire {
         private void Clear(){
             foreach(var go in active.Values)if(go)Destroy(go);
             foreach(var pool in pools.Values)foreach(var go in pool)if(go)Destroy(go);
-            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();pooled=0;
+            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();pooled=0;
         }
         private void OnDestroy(){Clear();}
     }
