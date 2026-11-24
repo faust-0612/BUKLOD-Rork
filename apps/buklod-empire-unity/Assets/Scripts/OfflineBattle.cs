@@ -23,6 +23,10 @@ namespace Buklod.Empire {
         public float RecallEnds {get;internal set;}
         public bool IsRecalling=>RecallEnds>0;
         internal bool Jungler;
+        internal int ResolveStacks,RhythmStacks,TriageSeen;
+        internal float ResolveAt,TrailReady,RhythmAt=float.NegativeInfinity,HarmonyAt,TriageUntil;
+        internal bool TriageUsed;
+        internal Vector2 TriageOrigin;
         public readonly HashSet<string> Gear=new HashSet<string>();
         internal readonly Dictionary<string,ArenaRelicDefinition> RelicSlots=new Dictionary<string,ArenaRelicDefinition>();
         public IReadOnlyDictionary<string,ArenaRelicDefinition> Relics {get;}
@@ -159,6 +163,8 @@ namespace Buklod.Empire {
             n*=1-Mathf.Clamp(t.RelicStats.Block+t.RelicStats.Mitigation,0,.42f);
             n*=1-Mathf.Clamp(actor.Buff("weaken",Time),0,.3f);n*=1+Mathf.Clamp(actor.Buff("fury",Time),0,.3f);
             n*=1-Mathf.Clamp(target.Buff("guard",Time),0,.4f);n*=1+Mathf.Clamp(target.Buff("vulnerable",Time),0,.2f);
+            if(target.Kit?.Id=="phan")n*=1-.04f*t.ResolveStacks;
+            if(actor.Kit?.Id=="jawo"&&Time-a.RhythmAt<=4)n*=1+.03f*a.RhythmStacks;
             if(t.Kind==BattleTargetKind.Minion)n*=1-Mathf.Clamp01(MinionCombatRules.Stats(t.Role).Defense-target.Buff("armor_break",Time));
             float actual=target.Absorb(n,Time);float priorHp=target.Health;
             if(n>0&&a.Kind==BattleTargetKind.Hero&&t.Kind==BattleTargetKind.Hero){
@@ -171,7 +177,9 @@ namespace Buklod.Empire {
             if(hpDamage>0&&a.Gear.Contains("withering_thorn")&&t.Kind==BattleTargetKind.Hero)target.Set("antiheal",.35f,Time+4,Time);
             if(basic&&a.Gear.Contains("renewal")&&t.Kind!=BattleTargetKind.Structure&&t.Kind!=BattleTargetKind.Villager)actor.Heal(hpDamage*.15f);
             if(actor.Kit?.Id=="mitch")target.Set("vulnerable",.1f,Time+3,Time);
-            if(target.Kit?.Id=="trudice"&&actual>0)actor.Health=Mathf.Max(1,actor.Health-actual*Mathf.Clamp(target.Buff("reflect",Time),0,.3f));
+            if(actor.Kit?.Id=="quin"&&Time>=a.TrailReady&&n>0){target.Set("revealed",1,Time+6,Time);a.TrailReady=Time+8;}
+            if(actor.Kit?.Id=="jawo"&&n>0&&Time-a.RhythmAt>=.39f){a.RhythmStacks=Time-a.RhythmAt>4?1:Math.Min(5,a.RhythmStacks+1);a.RhythmAt=Time;}
+            if(target.Kit?.Id=="trudice"&&hpDamage>0)actor.Health=Mathf.Max(1,actor.Health-hpDamage*Mathf.Clamp(target.Buff("reflect",Time),0,.3f));
             if(!target.Alive){
                 if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager){a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?OfflineMatchRules.KillGold(t.ConsecutiveDeaths,t.KillStreak):t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16);}
                 if(t.Kind==BattleTargetKind.Hero){
@@ -365,6 +373,7 @@ namespace Buklod.Empire {
             foreach(var village in villages)village.Advance(Step);
             foreach(var u in units)if(u.Villager!=null)u.State.Health=u.Villager.Health;
             if(tick%10==0)VillageAuras();
+            HeroPassives();
             var copy=units.ToArray();
             foreach(var u in copy){
                 if(Finished)break;var a=u.State;if(u.Villager!=null)continue;
@@ -384,6 +393,8 @@ namespace Buklod.Empire {
                     if(tick%10==0){u.Gold=Mathf.Min(9999,u.Gold+2);GainXp(u,3);}
                     if(CanRespawn(u.Team)&&Vector2.Distance(u.Position,u.Spawn)<10){a.Heal(.8f);a.Mana=Mathf.Min(a.MaxMana,a.Mana+.8f);}
                     float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+u.RelicStats.Speed)*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
+                    if(a.Kit.Id=="jawo"&&Time-u.RhythmAt<=4)speed*=1+.02f*u.RhythmStacks;
+                    if(units.Any(v=>v.Team==u.Team&&v.State.Alive&&v.State.Kit?.Id=="ellusur"&&Dist(u,v)<=8.75f))speed*=1.1f;
                     if(u==Player){Move(u,move,speed*move.magnitude*Step);CollectNearby(u);continue;}
                     Bot(u,speed);if(!Finished)CollectNearby(u);
                 }else if(u.Kind==BattleTargetKind.Minion)Minion(u);
@@ -498,6 +509,32 @@ namespace Buklod.Empire {
                 var u=Add(team,BattleTargetKind.Minion,state,f.Position,f.Lane,role:f.Role);u.Power=f.Power;fallen.RemoveAt(i);count++;
             }
             return count;
+        }
+        private void HeroPassives(){
+            var heroes=units.Where(u=>u.Kind==BattleTargetKind.Hero&&u.State.Alive).ToArray();
+            foreach(var u in heroes){
+                var a=u.State;var id=a.Kit.Id;
+                if(id=="phan"){
+                    bool near=units.Any(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Structure&&v.State.Alive&&Dist(u,v)<=6.25f);
+                    if(Time>=u.ResolveAt){u.ResolveStacks=Mathf.Clamp(u.ResolveStacks+(near?1:-1),0,5);u.ResolveAt=Time+(near?1:3);}
+                    a.Heal(.1f*u.ResolveStacks*Step);
+                }else if(id=="van"){
+                    var friends=heroes.Where(v=>v!=u&&v.Team==u.Team&&Dist(u,v)<=7.5f).ToArray();
+                    if(friends.Length>0){a.Set("guard",.12f,Time+.2f,Time);a.Heal(.4f*Step);}
+                    foreach(var friend in friends){friend.State.Set("guard",.12f,Time+.2f,Time);friend.State.Heal(.4f*Step);}
+                }else if(id=="christian"){
+                    foreach(var friend in heroes)if(friend!=u&&friend.Team==u.Team&&Dist(u,friend)<=8.75f)friend.State.Heal(friend.State.MaxHealth*.01f*Step);
+                }else if(id=="lhen"){
+                    if(Time>=u.HarmonyAt&&heroes.Any(v=>v!=u&&v.Team==u.Team&&Dist(u,v)<=8)){a.HarmonyStacks=Math.Min(5,a.HarmonyStacks+1);u.HarmonyAt=Time+2;}
+                }else if(id=="ace"){
+                    if(a.TriageSequence>u.TriageSeen){u.TriageSeen=a.TriageSequence;u.TriageOrigin=u.Position;u.TriageUntil=a.LastCastAt+10;u.TriageUsed=false;}
+                    if(a.Buff("triage",Time)<=0||Time>=u.TriageUntil)continue;
+                    foreach(var friend in units.Where(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&Vector2.Distance(v.Position,u.TriageOrigin)<=8.75f).OrderBy(v=>v.Id)){
+                        if(friend.State.Alive)friend.State.Heal(4*Step);
+                        else if(!u.TriageUsed&&CanRespawn(friend.Team)){friend.State.Respawn();friend.State.Health=friend.State.MaxHealth*.5f;friend.RespawnAt=0;friend.RecallEnds=0;friend.Retreat=false;u.TriageUsed=true;}
+                    }
+                }
+            }
         }
         private void VillageAuras(){
             foreach(var u in units){

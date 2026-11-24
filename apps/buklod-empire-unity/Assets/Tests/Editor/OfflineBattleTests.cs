@@ -3,6 +3,23 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void QuinTrailRevealsAndHasCooldown(){
+            var battle=new OfflineBattle("quin");
+            var enemy=battle.Units.First(u=>u.Team!=battle.Player.Team&&u.Kind==BattleTargetKind.Hero);
+            Assert.IsTrue(battle.Hit(battle.Player.State,enemy.State,10));
+            Assert.Greater(enemy.State.Buff("revealed",5),0);
+            Assert.AreEqual(0,enemy.State.Buff("revealed",6));
+        }
+        [Test] public void JawoSameTickHitsDoNotStackRhythm(){
+            var battle=new OfflineBattle("jawo");
+            var enemy=battle.Units.First(u=>u.Team!=battle.Player.Team&&u.Kind==BattleTargetKind.Hero);
+            Assert.IsTrue(battle.Hit(battle.Player.State,enemy.State,10));
+            float before=enemy.State.Health;
+            Assert.IsTrue(battle.Hit(battle.Player.State,enemy.State,10));
+            float second=before-enemy.State.Health;before=enemy.State.Health;
+            Assert.IsTrue(battle.Hit(battle.Player.State,enemy.State,10));
+            Assert.AreEqual(second,before-enemy.State.Health,.001f);
+        }
         [Test] public void HeroDeathAndAssistSettleOnce(){
             var b=new OfflineBattle("phan");
             var ally=b.Units.First(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Hero&&u!=b.Player);

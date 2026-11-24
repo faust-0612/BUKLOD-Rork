@@ -20,6 +20,7 @@ namespace Buklod.Empire {
         public float Health=160, MaxHealth=160, Mana=100, MaxMana=100, Shield;
         internal float ShieldCapacity=105;
         internal float Clock,EquipmentCooldown;
+        internal int HarmonyStacks,TriageSequence;
         private float temporaryShield,temporaryShieldUntil;
         public int Level=3;
         public float LastCastAt {get;private set;}=float.NegativeInfinity;
@@ -98,7 +99,7 @@ namespace Buklod.Empire {
             if(Mana<cost||Remaining(slot,now)>0)return false;
             if(!HeroSkillRules.Cast(world,this,Kit.Skill(slot).Id,aim,now))return false;
             Mana-=cost;last[(int)slot]=now;LastCastAt=now;LastCastSlot=slot;LastCastAim=aim;
-            CastSequence++;castHistory[(CastSequence-1)%CastHistoryCapacity]=new SkillCastEvent(CastSequence,slot,aim);
+            CastSequence++;if(Kit.Skill(slot).Id=="checkmate_rescue")TriageSequence=CastSequence;castHistory[(CastSequence-1)%CastHistoryCapacity]=new SkillCastEvent(CastSequence,slot,aim);
             foreach(var e in world.Enemies(this,17.5f,Vector2.zero)){
                 if(e.Kit?.Id!="trudice")continue;
                 e.Set("insight",Mathf.Min(3,e.Buff("insight",now)+1),now+6,now);Set("revealed",1,now+2,now);
@@ -112,11 +113,12 @@ namespace Buklod.Empire {
             void Buff(SkillActor a,string key,float value,float seconds)=>a.Set(key,value,now+seconds,now);
             void Allies(float r,string key,float value,float seconds){foreach(var a in w.Allies(p,r))Buff(a,key,value,seconds);}
             void Enemies(float r,string key,float value,float seconds){foreach(var a in w.Enemies(p,r,Vector2.zero))Buff(a,key,value,seconds);}
-            void Heal(float r,float amount,float shield=0){foreach(var a in w.Allies(p,r)){a.Heal(amount);if(shield>0)a.AddShield(shield);}}
+            float HealScale()=>p.Kit.Id=="lhen"?1+.08f*p.HarmonyStacks:1;
+            void Heal(float r,float amount,float shield=0){foreach(var a in w.Allies(p,r)){a.Heal(amount*HealScale());if(shield>0)a.AddShield(shield);}if(p.Kit.Id=="lhen")p.HarmonyStacks=Math.Min(5,p.HarmonyStacks+1);}
             bool Area(float r,float damage,float slow=0){bool any=false;foreach(var e in w.Enemies(p,r,Vector2.zero)){if(!w.Hit(p,e,damage))continue;any=true;if(slow>0)Buff(e,"slow",slow,3);}return any;}
             SkillActor Nearest(float r,bool directional=false){var es=w.Enemies(p,r,directional?aim:Vector2.zero);return es.Count>0?es[0]:null;}
             bool Hit(float r,float damage,bool directional=false,string effect=null,float value=0,float seconds=0){var e=Nearest(r,directional);if(e==null||!w.Hit(p,e,damage))return false;if(effect!=null)Buff(e,effect,value,seconds);return true;}
-            bool Wounded(float r,bool shield){SkillActor best=null;foreach(var a in w.Allies(p,r))if(best==null||a.Health/a.MaxHealth<best.Health/best.MaxHealth)best=a;if(best==null)return false;if(shield)best.AddShield(35);else best.Heal(38);return true;}
+            bool Wounded(float r,bool shield){SkillActor best=null;foreach(var a in w.Allies(p,r))if(best==null||a.Health/a.MaxHealth<best.Health/best.MaxHealth)best=a;if(best==null)return false;if(shield)best.AddShield(35);else{best.Heal(38*HealScale());if(p.Kit.Id=="lhen")p.HarmonyStacks=Math.Min(5,p.HarmonyStacks+1);}return true;}
             bool Dash(float distance,float damage=0,float radius=0,float slow=0){if(!w.Dash(p,dir,distance))return false;if(damage>0)Area(radius,damage,slow);return true;}
             switch(id){
                 case "foundation_wall":case "mosaic_wall":return w.Wall(p,dir,4,2.2f,5);
