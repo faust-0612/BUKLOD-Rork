@@ -40,6 +40,7 @@ namespace Buklod.Empire {
         public bool IsVillageBuilding=>IsDepot||IsGuardPost||IsFarm||IsBarracks||IsMarket||IsHouse;
         internal bool IsCombatStructure=>Kind==BattleTargetKind.Structure&&(!IsVillageBuilding||IsGuardPost);
         public VillageConstructionOrder Construction {get;internal set;}
+        public int RepairSequence {get;internal set;}
         public readonly Vector2 Spawn; public Vector2 Position {get;internal set;}
         public float Power=1, AttackDamage=18, Expires=float.PositiveInfinity, RespawnAt, Xp;
         public int Gold=120, TowerLevel=1;
@@ -225,7 +226,7 @@ namespace Buklod.Empire {
                 float duration=order.Duration;
                 if(order.Progress+0.001f<duration)continue;
                 if(villages[(int)builder.Team].SpendConstruction(order.Kind)){
-                    if(target!=null)target.State.Health=Mathf.Min(target.State.MaxHealth,target.State.Health+35);
+                    if(target!=null){target.State.Health=Mathf.Min(target.State.MaxHealth,target.State.Health+35);target.RepairSequence++;}
                     else {
                         var structure=Add(builder.Team,BattleTargetKind.Structure,new SkillActor(order.Kind==VillageBuildOrder.Farm?130:order.Kind==VillageBuildOrder.Depot?180:220),order.Position,ArenaLane.Mid);
                         structure.IsDepot=order.Kind==VillageBuildOrder.Depot;structure.IsGuardPost=order.Kind==VillageBuildOrder.GuardPost;structure.IsFarm=order.Kind==VillageBuildOrder.Farm;structure.IsBarracks=order.Kind==VillageBuildOrder.Barracks;structure.IsMarket=order.Kind==VillageBuildOrder.Market;structure.IsHouse=order.Kind==VillageBuildOrder.House;
