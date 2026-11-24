@@ -27,16 +27,18 @@ namespace Buklod.Empire {
             if(!go){
                 if(pools.TryGetValue(prefab,out var pool)&&pool.Count>0){go=pool.Pop();pooled--;}
                 else go=Instantiate(prefab,transform);
-                if(review)foreach(var collider in go.GetComponentsInChildren<Collider>(true))collider.enabled=false;
-                go.transform.localScale=prefab.transform.localScale;
-                go.transform.localRotation=prefab.transform.localRotation;
-                // Rental state is never inherited by the next resource, construction or loot entity.
-                foreach(var renderer in go.GetComponentsInChildren<Renderer>(true)){
-                    renderer.SetPropertyBlock(null);
-                    for(int i=0;i<renderer.sharedMaterials.Length;i++)renderer.SetPropertyBlock(null,i);
+                if(review){
+                    foreach(var collider in go.GetComponentsInChildren<Collider>(true))collider.enabled=false;
+                    go.transform.localScale=prefab.transform.localScale;
+                    go.transform.localRotation=prefab.transform.localRotation;
+                    // Rental state is never inherited by the next review entity.
+                    foreach(var renderer in go.GetComponentsInChildren<Renderer>(true)){
+                        renderer.SetPropertyBlock(null);
+                        for(int i=0;i<renderer.sharedMaterials.Length;i++)renderer.SetPropertyBlock(null,i);
+                    }
                 }
                 go.transform.position=view.FieldPosition(position);go.SetActive(true);active.Add(key,go);prefabs.Add(key,prefab);fresh=true;
-                foreach(var animator in go.GetComponentsInChildren<Animator>(true))animator.Rebind();
+                if(review)foreach(var animator in go.GetComponentsInChildren<Animator>(true))animator.Rebind();
             }
             return go;
         }
@@ -65,7 +67,7 @@ namespace Buklod.Empire {
             }
         }
         private void Loot(int type,int id,Vector2 position,GameObject prefab,int tier,float spawnedAt){
-            var go=Present(type,id,position,prefab,out var fresh);if(!go)return;
+            var go=Present(type,id,position,prefab,out _);if(!go)return;
             if(!review)return;
             Tint((type,id),go,TierColor(tier));
             float t=Mathf.Max(0,bound.Time-spawnedAt);
@@ -93,7 +95,7 @@ namespace Buklod.Empire {
                     if(!u.State.Alive||!Nearby(u.Position)||(u.Team!=bound.Player.Team&&!bound.IsVisibleTo(bound.Player.Team,u)))continue;
                     if(u.Villager!=null&&u.Cargo>1e-6){
                         var kind=u.CargoWood>0?VillageResourceKind.Wood:u.CargoStone>0?VillageResourceKind.Stone:u.CargoCrystal>0?VillageResourceKind.Crystal:u.CargoGold>0?VillageResourceKind.Gold:VillageResourceKind.Food;
-                        var prefab=view.visuals.fieldPickup;var go=Present(4,u.Id,u.Position,prefab,out var fresh);
+                        var prefab=view.visuals.fieldPickup;var go=Present(4,u.Id,u.Position,prefab,out _);
                         if(go){
                             Tint((4,u.Id),go,ResourceColor(kind));
                             go.transform.position=view.FieldPosition(u.Position)+Vector3.up*2.1f;
