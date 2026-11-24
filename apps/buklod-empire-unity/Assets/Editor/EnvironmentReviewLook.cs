@@ -64,7 +64,7 @@ namespace Buklod.Empire.Editor {
             Debug.Log("Review environment water, animated foliage and cinematic grade configured. Verify on device before approving.");
         }
         // Original environment reflection, no downloaded HDRI and no per-frame capture.
-        static Cubemap ReviewSkyReflection(){
+        internal static Cubemap ReviewSkyReflection(){
             const int size=128;string path=Out+"/ReviewSkyReflection.asset";
             var cube=AssetDatabase.LoadAssetAtPath<Cubemap>(path);
             if(cube)return cube;
