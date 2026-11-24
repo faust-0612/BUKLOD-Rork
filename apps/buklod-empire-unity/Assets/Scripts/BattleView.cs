@@ -221,7 +221,12 @@ namespace Buklod.Empire {
             if(reviewShadows)reviewShadows.End();
         }
         private void Follow(bool immediate){
-            var at=Ground(Battle.Player.Position);var desired=at+new Vector3(0,cameraHeight,-cameraHeight*.72f);
+            var at=Ground(Battle.Player.Position);
+            // Restrained spectator-only dolly. Keep the camera heading and human input projection unchanged.
+            float height=cameraHeight;
+            if(ReviewOnly&&Battle.AutonomousTraining&&!Battle.Finished)
+                height+=Mathf.Min(1.1f,cameraHeight*.045f)*Mathf.Sin(Battle.Time*.24f);
+            var desired=at+new Vector3(0,height,-height*.72f);
             var t=battleCamera.transform;t.position=immediate?desired:Vector3.Lerp(t.position,desired,1-Mathf.Exp(-10*Time.deltaTime));t.rotation=Quaternion.Euler(54,0,0);
         }
     }
