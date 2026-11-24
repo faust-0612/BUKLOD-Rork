@@ -84,6 +84,7 @@ namespace Buklod.Empire.Editor {
             var mat=AssetDatabase.LoadAssetAtPath<Material>(Out+"/ReviewPulse.mat");
             if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,Out+"/ReviewPulse.mat");}
             root.GetComponent<BattleEffects>().pulseMaterial=mat;
+            root.GetComponent<BattleEffects>().skillParticleMaterial=SkillParticleMaterial.Get(Out+"/ReviewSkillParticles.mat");
             if(!EditorSceneManager.SaveScene(scene,ScenePath))throw new InvalidOperationException("Failed to save offline review scene.");
             AssetDatabase.SaveAssets();
             Debug.Log("Editor-only offline match scene assembled. Three lanes and both base routes verified. No production approval or Android build.");

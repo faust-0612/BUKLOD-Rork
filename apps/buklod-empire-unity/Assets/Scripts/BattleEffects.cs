@@ -3,25 +3,27 @@ namespace Buklod.Empire {
     // Presentation only: bounded reusable visual pulses, never changes combat state.
     public sealed class BattleEffects:MonoBehaviour {
         public Material pulseMaterial;
+        public Material skillParticleMaterial;
         public const int Capacity=24, Segments=32;
-        private sealed class Pulse {public LineRenderer line;public float start,duration,radius;public Color color;public int style;public bool skill;public SkillCueShape shape;public Vector3 forward;}
-        private Pulse[] pool;private int next;
-        public void Clear(){if(pool==null)return;foreach(var p in pool)p.line.enabled=false;next=0;}
+        private sealed class Pulse {public LineRenderer line;public float start,duration,radius;public Color color;public int style;public bool skill;public SkillCueShape shape;public Vector3 forward;public SkillParticleBurst burst;}
+        private Pulse[] pool;private int next;private Camera battleCamera;
+        public void Clear(){if(pool==null)return;foreach(var p in pool){p.line.enabled=false;p.burst?.Stop();}next=0;}
         private void Initialize(){
             if(pool!=null||!pulseMaterial)return;
             pool=new Pulse[Capacity];
+            var view=GetComponent<BattleView>();battleCamera=view&&view.battleCamera?view.battleCamera:Camera.main;
             for(int i=0;i<Capacity;i++){
                 var go=new GameObject("Pooled combat pulse");go.transform.SetParent(transform,false);
                 var line=go.AddComponent<LineRenderer>();line.sharedMaterial=pulseMaterial;line.useWorldSpace=false;
                 line.positionCount=Segments+1;line.loop=false;line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
-                line.receiveShadows=false;line.enabled=false;pool[i]=new Pulse{line=line};
+                line.receiveShadows=false;line.enabled=false;pool[i]=new Pulse{line=line,burst=skillParticleMaterial?new SkillParticleBurst(transform,skillParticleMaterial):null};
             }
         }
         public static Color Accent(string hero){return SacredStoneCatalog.TryGet(hero,out var stone)?Color.Lerp(stone.Accent,Color.white,.25f):Color.white;}
         public void Emit(Vector3 at,Color color,int style){
             Initialize();if(pool==null)return;
             var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;
-            p.skill=false;p.style=Mathf.Clamp(style,0,4);p.duration=p.style==3?.65f:.32f;
+            p.burst?.Stop();p.skill=false;p.style=Mathf.Clamp(style,0,4);p.duration=p.style==3?.65f:.32f;
             p.radius=p.style==3?3.5f:p.style==2?2.1f:p.style==1?1.6f:.85f;
             p.color=color;p.line.transform.position=at+Vector3.up*.11f;p.line.enabled=true;Draw(p,0);
         }
@@ -30,6 +32,7 @@ namespace Buklod.Empire {
             var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;p.skill=true;p.shape=cue.Shape;p.duration=cue.Duration;p.radius=cue.Size;p.color=color;p.style=0;
             direction.y=0;p.forward=direction.sqrMagnitude>.001f?direction.normalized:Vector3.forward;
             p.line.transform.position=at+Vector3.up*.16f;p.line.enabled=true;Draw(p,0);
+            p.burst?.Begin(at+Vector3.up*.14f,color,cue,p.forward);p.burst?.Draw(0,battleCamera);
         }
         private static void Draw(Pulse p,float t){
             var c=p.color;c.a=(1-t)*.85f;p.line.startColor=c;p.line.endColor=c;
@@ -63,8 +66,10 @@ namespace Buklod.Empire {
         }
         private void Update(){if(pool==null)return;foreach(var p in pool)if(p.line.enabled){
             float t=(Time.unscaledTime-p.start)/p.duration;
-            if(t>=1)p.line.enabled=false;else Draw(p,Mathf.Clamp01(t));
+            if(t>=1){p.line.enabled=false;p.burst?.Stop();}
+            else{Draw(p,Mathf.Clamp01(t));if(p.skill)p.burst?.Draw(Mathf.Clamp01(t),battleCamera);}
         }}
         private void OnDisable(){Clear();}
+        private void OnDestroy(){if(pool!=null)foreach(var p in pool)p.burst?.Dispose();}
     }
 }

@@ -43,6 +43,7 @@ namespace Buklod.Empire.Editor {
             const string pulsePath="Assets/Scenes/CombatPulse.mat";var pulse=AssetDatabase.LoadAssetAtPath<Material>(pulsePath);
             if(!pulse){pulse=new Material(pulseShader);AssetDatabase.CreateAsset(pulse,pulsePath);}
             root.GetComponent<BattleEffects>().pulseMaterial=pulse;
+            root.GetComponent<BattleEffects>().skillParticleMaterial=SkillParticleMaterial.Get("Assets/Scenes/SkillParticles.mat");
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,AndroidBuildGuard.ExpectedApplicationId);
             PlayerSettings.productName="BUKLOD EMPIRE";PlayerSettings.defaultInterfaceOrientation=UIOrientation.LandscapeLeft;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android,ScriptingImplementation.IL2CPP);
