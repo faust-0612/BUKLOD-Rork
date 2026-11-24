@@ -14,6 +14,7 @@ export const BUKLOD_FEATURE_LINKS: readonly BuklodFeatureLink[] = [
   { id: 'stories', title: "Children's Stories", route: '/children-stories', aliases: ['children', 'kids', 'storybook', 'story', 'stories', 'bedtime', 'children story', 'kwento', 'kuwento', 'pambata', 'bata', 'pabula', 'alamat', 'Sunday School', 'read to me', 'pakinggan', 'magbasa'] },
   { id: 'bible', title: 'Bible & Reading', route: '/bible', aliases: ['bible', 'basa', 'pagbasa', 'daily reading', 'salita ng dios', 'verses'] },
   { id: 'prayer', title: 'Prayer', route: '/prayer', aliases: ['panalangin', 'prayer', 'dasal', 'pray'] },
+  { id: 'kingdom', title: 'BUKLOD Kingdom', route: '/games', aliases: ['kingdom', 'game', 'laro', 'map', 'reward'] },
   { id: 'contribution', title: 'Community Contribution', route: '/community-contribution', aliases: ['kontribusyon', 'bayanihan', 'contribute', 'qmp', 'earnings', 'puntos','monetization','monetize','income','admob','revenue','withdrawal','payout','earnings summary','how to earn','paano kumita', 'monetization', 'monetisation', 'how to earn', 'paano kumita', 'income', 'revenue', 'admob', 'withdrawal', 'payout'] },
   { id: 'security', title: 'Password & Recovery', route: '/account/security', aliases: ['password', 'pass', 'reset', 'recover', 'security', 'palit password', 'how to change password', 'paano palitan ang password'] },
   { id: 'language', title: 'App Language', route: '/preferences/language', aliases: ['wika', 'tagalog', 'english', 'salita'] },
@@ -36,13 +37,18 @@ export const BUKLOD_FEATURE_LINKS: readonly BuklodFeatureLink[] = [
   { id:'announcements', title:'Public Announcements', route:'/hub', aliases:['announcement','announcements','public notice','bulletin','advisory'] },
 ];
 
+/** The Genesis MAIN UI and search share one filtered catalogue. */
+export function getBuklodFeatureLinks(genesisMain: boolean): readonly BuklodFeatureLink[] {
+  return genesisMain ? BUKLOD_FEATURE_LINKS.filter(item => item.route !== '/games') : BUKLOD_FEATURE_LINKS;
+}
+
 export function normalizeBuklodFeatureSearch(value: string): string {
   return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim().replace(/\s+/g, ' ');
 }
 
 const QUESTION_WORDS=new Set(['how','what','where','when','do','does','can','i','you','me','my','is','are','the','to','in','of','for','with','and','show','find','see','check','open','paano','ko','ang','ng','sa','na','ba','mga','nasa','nasaan','pwede','pwedeng','makita','yung','ung','ano','saan']);
 /** No network, no behavior tracking, no privileged/admin destinations and no private content search. */
-export function findBuklodFeatures(query: string, maxResults = 5): BuklodFeatureLink[] {
+export function findBuklodFeatures(query: string, maxResults = 5, links: readonly BuklodFeatureLink[] = BUKLOD_FEATURE_LINKS): BuklodFeatureLink[] {
   const q = normalizeBuklodFeatureSearch(query);
   if (q.length < 2) return [];
   const max = Number.isFinite(maxResults) ? Math.max(0, Math.floor(maxResults)) : 5;
@@ -58,7 +64,7 @@ export function findBuklodFeatures(query: string, maxResults = 5): BuklodFeature
     if(coverage>0)return 15+Math.round(30*coverage/tokens.length);
     return 0;
   };
-  return BUKLOD_FEATURE_LINKS.map(item=>({item,rank:score(item)}))
+  return links.map(item=>({item,rank:score(item)}))
     .filter(row=>row.rank>0).sort((a,b)=>b.rank-a.rank)
     .slice(0,max).map(row=>row.item);
 }

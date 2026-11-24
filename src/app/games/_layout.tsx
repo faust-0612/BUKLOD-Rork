@@ -1,6 +1,8 @@
-import { Redirect } from 'expo-router';
+import { Redirect, Slot } from 'expo-router';
+import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 
-/** MAIN only: all legacy Kingdom/Arena routes are retired. Empire is a separate app. */
+/** Retire games in Genesis MAIN without altering the current Season 1 production experience. */
 export default function RetiredGamesLayout() {
-  return <Redirect href="/(tabs)/hub" />;
+  if (isGenesisPreviewBuild()) return <Redirect href="/(tabs)/hub" />;
+  return <Slot />;
 }
