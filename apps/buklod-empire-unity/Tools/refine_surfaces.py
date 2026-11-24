@@ -4,6 +4,7 @@ Preserves skin, animation, vertex count, material factors and original source as
 """
 import json, math, struct, zlib
 from premium_surface import SIZE, surface, tangent
+from hd_surface import review_size, encoded_surface
 
 def png(size, pixel):
     def chunk(kind,data):
@@ -56,13 +57,17 @@ def texture_glb(path):
         return {"index":len(d["textures"])-1}
     # All patterns are original analytic tileable detail. Factors retain canonical colors.
     cache={}
+    resolution=review_size()
     for m in d["materials"]:
         name=m["name"];p=m["pbrMetallicRoughness"]
         if name.startswith("SacredStone") or name in ("eye","pupil","glow"):continue
         kind=name
         if kind not in cache:
-            maps=surface(kind)
-            cache[kind]=tuple(image(png(SIZE,lambda x,y: pixels[y*SIZE+x]),kind+suffix) for pixels,suffix in zip(maps,("_detail","_roughness","_normal")))
+            if resolution==SIZE:
+                maps=tuple(png(SIZE,lambda x,y: pixels[y*SIZE+x]) for pixels in surface(kind))
+            else:
+                maps=encoded_surface(kind,resolution)
+            cache[kind]=tuple(image(data,kind+suffix) for data,suffix in zip(maps,("_detail","_roughness","_normal")))
         p["baseColorTexture"],p["metallicRoughnessTexture"],m["normalTexture"]=cache[kind]
     b.extend(b"\0"*((-len(b))%4));d["buffers"][0]["byteLength"]=len(b)
     j=json.dumps(d,separators=(",",":")).encode();j+=b" "*((-len(j))%4)
