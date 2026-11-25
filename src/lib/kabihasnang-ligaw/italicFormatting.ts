@@ -14,7 +14,10 @@ function append(runs: KlItalicRun[], text: string, italic: boolean) {
 export function splitKlItalics(source: string, season?: number, chapter?: number): KlItalicRun[] {
   const runs: KlItalicRun[] = [];
   const raw = source.trim();
-  if (/^>\s+/.test(raw)) return [{ text: raw.replace(/^>\s+/, ''), italic: true }];
+  if (/^>\s+/.test(raw)) {
+    const quote = raw.replace(/^>\s+/, '');
+    return [{ text: splitKlItalics(quote).map(run => run.text).join(''), italic: true }];
+  }
   const rule = season === 1 && chapter != null
     ? KL_RELEASED_ITALIC_RULES[chapter]?.find(row => row.paragraph === raw)
     : undefined;
