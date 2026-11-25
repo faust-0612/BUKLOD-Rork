@@ -1,0 +1,51 @@
+name: Faith Accomplishments Ephemeral PostgreSQL QA (No OTA)
+on:
+  push:
+    branches:
+      - qa/genesis-206-faith-accomplishments-20261125
+  pull_request:
+    branches:
+      - integration/genesis-206-backlog-staging-20261125
+    paths:
+      - 'supabase/migrations/2026112514*.sql'
+      - 'tests/faith-accomplishment-report-v2.test.mjs'
+      - 'supabase/tests/faith_accomplishment_privilege_contract_20261125.sql'
+permissions:
+  contents: read
+jobs:
+  isolated-faith-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate source contracts
+        run: node --test tests/faith-accomplishment-report-v2.test.mjs tests/faith-monitoring-named-period.test.cjs
+      - name: Validate both migrations against fictional fixture records only
+        run: |
+          set -euo pipefail
+          test "$PGHOST" = 127.0.0.1
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/faith-accomplishment-postgres17-20261125.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261101044500_faith_monitoring_named_period_reports_v1.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125141700_children_story_verified_accomplishments.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125141800_faith_accomplishment_report_v2.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/faith_accomplishment_privilege_contract_20261125.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/faith-accomplishment-postgres17-verification-20261125.sql
