@@ -1,0 +1,60 @@
+name: Living Kingdom Godot DEV QA (never publish)
+on:
+  push:
+    branches: [dev/genesis-living-kingdom-godot-20261125]
+    paths:
+      - '.github/workflows/genesis-living-kingdom-godot-dev-qa-20261125.yml'
+      - 'godot/empire-arena/**'
+      - 'scripts/kingdom-living-realms-catalog.mjs'
+      - 'scripts/build-empire-godot-pack.mjs'
+      - 'scripts/genesis-prepare-godot-ota-pack.mjs'
+      - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
+      - 'tests/living-kingdom-godot-release-navigation.test.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: living-kingdom-dev-qa
+  cancel-in-progress: true
+jobs:
+  native-dev-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BUKLOD_GENESIS_PREMIUM_3D: 'true'
+      BUKLOD_GENESIS_PRIVATE_ASSETS: 'false'
+      BUKLOD_GENESIS_PRIVATE_FX: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Canonical catalog and regression checks
+        run: |
+          node --experimental-strip-types --test tests/living-kingdom-godot-release-navigation.test.mjs tests/genesis-main-home-no-empire-20261124.test.mjs tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs tests/genesis-premium-world-content-ota-20261123.test.mjs
+      - name: Build exact approved pack and verify source provenance
+        run: |
+          set -euo pipefail
+          node scripts/genesis-import-verified-3d.mjs
+          node scripts/genesis-prepare-godot-ota-pack.mjs
+          unzip -t assets/season2/genesis/ota/empire-arena.zip | tail -2
+          mkdir -p /tmp/kingdom-project /tmp/kingdom-godot
+          unzip -q assets/season2/genesis/ota/empire-arena.zip -d /tmp/kingdom-project
+          sha256sum assets/season2/genesis/ota/empire-arena.zip
+      - name: Godot 4.7.2 scene parse, actual mission state and movement
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 2 --connect-timeout 20 --max-time 240 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/kingdom-godot.zip
+          unzip -q /tmp/kingdom-godot.zip -d /tmp/kingdom-godot
+          GODOT="$(find /tmp/kingdom-godot -type f -name 'Godot_*linux.x86_64' -print -quit)"
+          test -n "$GODOT"
+          chmod +x "$GODOT"
+          "$GODOT" --version | grep -F '4.7.2'
+          "$GODOT" --headless --path /tmp/kingdom-project --editor --import --quit 2>&1 | tee /tmp/kingdom-import.log
+          if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' /tmp/kingdom-import.log; then exit 1; fi
+          for smoke in living_kingdom_smoke.gd premium_3d_import_smoke.gd premium_content_smoke.gd; do
+            timeout 120 "$GODOT" --headless --path /tmp/kingdom-project -s "res://tests/$smoke" 2>&1 | tee "/tmp/$smoke.log"
+            if grep -E 'SCRIPT ERROR|Parse Error|Parser Error|Failed to load script' "/tmp/$smoke.log"; then exit 1; fi
+          done
+          grep -F 'BUKLOD_LIVING_KINGDOM_39_MISSIONS_AND_ARRIVAL_PASS' /tmp/living_kingdom_smoke.gd.log

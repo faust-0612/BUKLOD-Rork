@@ -26,6 +26,7 @@
   ],
   "allowedPaths": [
     ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",
+    ".github/workflows/genesis-living-kingdom-godot-dev-qa-20261125.yml",
     "godot/empire-arena/scenes/LivingKingdom.tscn",
     "godot/empire-arena/scripts/kingdom_mission_state.gd",
     "godot/empire-arena/scripts/living_kingdom.gd",
@@ -46,16 +47,6 @@
       "reason": "Add explicitly gated optional native launcher and preserve the original Kingdom experience.",
       "preservedBehaviors": [
         "No changes to existing navigation or rewards."
-      ],
-      "tests": [
-        "tests/living-kingdom-godot-release-navigation.test.mjs"
-      ]
-    },
-    {
-      "id": "kingdom-character",
-      "reason": "Implement independent session-only Kingdom adventure catalogue and scene integration.",
-      "preservedBehaviors": [
-        "Character progression and original game routes remain authoritative."
       ],
       "tests": [
         "tests/living-kingdom-godot-release-navigation.test.mjs"
