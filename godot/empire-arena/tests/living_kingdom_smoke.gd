@@ -32,8 +32,16 @@ func _run() -> void:
     var world = load("res://scenes/LivingKingdom.tscn").instantiate()
     root.add_child(world)
     await process_frame
-    if world.get_dev_snapshot().get("realms") != 13 or world.get_dev_snapshot().get("server_settlement") != false:
+    if world.get_dev_snapshot().get("realms") != 13 or world.get_dev_snapshot().get("server_settlement") != false or not world.get_dev_snapshot().get("adventure_ready",false):
         quit(7)
+        return
+    if world._valid_realm_catalog({"schema":1,"serverSettlement":false,"mode":"SESSION_LOCAL_ADVENTURE","realms":[]}):
+        quit(17)
+        return
+    var tampered: Dictionary = raw.duplicate(true)
+    tampered.realms[1].id = tampered.realms[0].id
+    if world._valid_realm_catalog(tampered):
+        quit(18)
         return
     var biomes := {}
     var landmarks := {}

@@ -57,6 +57,8 @@ var sfx_cache: Dictionary = {}
 var steps_player: AudioStreamPlayer
 var ambient_tail: AudioStreamPlayer
 var ambient_fade: Tween
+var valid_catalog := false
+var realm_ready := false
 
 func _get_world() -> String:
     return "kingdom"
@@ -64,13 +66,50 @@ func _get_world() -> String:
 func _ready() -> void:
     var raw := FileAccess.get_file_as_bytes("res://data/kingdom_realms.json")
     var parsed: Variant = JSON.parse_string(raw.get_string_from_utf8())
-    if parsed is Dictionary and parsed.get("schema") == 1 and parsed.get("serverSettlement") == false:
+    if parsed is Dictionary and _valid_realm_catalog(parsed):
         realms = parsed.get("realms", [])
+        valid_catalog = true
     super._ready()
     _refresh_missions()
     _apply_realm_visuals()
     _update_quest_status()
-    print("BUKLOD_LIVING_KINGDOM_READY: realms=", realms.size())
+    if _adventure_ready():
+        print("BUKLOD_LIVING_KINGDOM_READY: realms=", realms.size())
+    else:
+        push_warning("BUKLOD_LIVING_KINGDOM_CONTENT_NOT_READY: original games remain available")
+
+func _valid_realm_catalog(data: Dictionary) -> bool:
+    if data.get("schema") != 1 or data.get("serverSettlement") != false or data.get("mode") != "SESSION_LOCAL_ADVENTURE":
+        return false
+    var entries: Variant = data.get("realms", [])
+    if not entries is Array or entries.size() != 13:
+        return false
+    var ids := {}
+    var missions := {}
+    for realm in entries:
+        if not realm is Dictionary:
+            return false
+        var id := str(realm.get("id",""))
+        if not id in ["phan","quin","van","christian","lhen","ace","ellusur","jawo","mitch","niel","angel","vhen","trudice"] or ids.has(id):
+            return false
+        ids[id] = true
+        var profile: Variant = realm.get("profile",{})
+        if not profile is Dictionary or int(profile.get("layout",-1)) < 0 or int(profile.get("layout",-1)) > 12:
+            return false
+        var games: Variant = realm.get("missions",[])
+        if not games is Array or games.size() != 3:
+            return false
+        for game in games:
+            if not game is Dictionary:
+                return false
+            var game_id := str(game.get("id",""))
+            if game_id.is_empty() or missions.has(game_id) or not str(game.get("kind","")) in ["collect","sequence","delivery"] or not int(game.get("count",0)) in [2,3]:
+                return false
+            missions[game_id] = true
+    return ids.size() == 13 and missions.size() == 39
+
+func _adventure_ready() -> bool:
+    return valid_catalog and realm_ready and avatar_anim != null and guide_anim != null and player != null and not player.find_children("*","Skeleton3D",true,false).is_empty()
 
 func _setup_world() -> void:
     var floor := MeshInstance3D.new()
@@ -145,6 +184,11 @@ func _original_hero(id: String) -> Node3D:
     if importer.append_from_buffer(raw, "res://kingdom-original/heroes/", state) != OK:
         return null
     var model: Node = importer.generate_scene(state)
+    if model == null:
+        return null
+    if not model is Node3D or model.find_children("*","Skeleton3D",true,false).is_empty():
+        model.free()
+        return null
     return model as Node3D
 
 func _build_avatar() -> void:
@@ -198,6 +242,7 @@ func _choose_practice_avatar(index: int) -> void:
             if str(realms[i].get("id", "")) == original_character_id:
                 avatar_picker.select(i)
                 break
+    _update_quest_status()
 
 func _set_guide(id: String) -> void:
     for child in guide.get_children():
@@ -295,6 +340,7 @@ func _toggle_original_audio() -> void:
         _play_original_sound("guide")
 
 func _apply_realm_visuals() -> void:
+    realm_ready = false
     if realm_index < 0 or realm_index >= realms.size():
         return
     var realm: Dictionary = realms[realm_index]
@@ -312,6 +358,7 @@ func _apply_realm_visuals() -> void:
     realm_visuals.add_child(original_environment)
     original_environment.build(realm_profile)
     realm_landmark = str(original_environment.landmark_id)
+    realm_ready = not realm_landmark.is_empty() and original_environment.get_child_count() >= 8
     sky_band = -1
     cinematic_fx.clear()
     # Different layouts, all within visible traversable ground. Phan retains original coordinates.
@@ -445,7 +492,7 @@ func _toggle_sky() -> void:
     _apply_daylight()
 
 func _talk_to_guide() -> void:
-    if not guide_near:
+    if not guide_near or not _adventure_ready():
         guide_notice.text = "Walk to the guide to talk."
         return
     guide_talking = true
@@ -490,6 +537,9 @@ func _next_adventure() -> void:
         _select_realm(next_realm)
 
 func _start_or_cancel() -> void:
+    if not _adventure_ready():
+        _update_quest_status()
+        return
     if quest.phase in ["active", "return"]:
         quest.cancel()
     elif realm_index < realms.size():
@@ -503,7 +553,7 @@ func _start_or_cancel() -> void:
     _update_quest_status()
 
 func move_to(point: Vector3) -> bool:
-    if not point.is_finite() or absf(point.x) > 11.5 or absf(point.z) > 11.5:
+    if not _adventure_ready() or not point.is_finite() or absf(point.x) > 11.5 or absf(point.z) > 11.5:
         return false
     if not super.move_to(point):
         return false
@@ -571,7 +621,7 @@ func _process(delta: float) -> void:
             _apply_daylight()
     if guide != null:
         guide_near = player.position.distance_to(Vector3(0, 0, -1.5)) <= 3.2
-        talk_button.disabled = not guide_near
+        talk_button.disabled = not guide_near or not _adventure_ready()
         if guide_talking and not guide_near:
             guide_talking = false
             guide_notice.text = str(realm_profile.get("biome", ""))
@@ -612,6 +662,7 @@ func _update_quest_status() -> void:
     mission_picker.disabled = active
     avatar_picker.disabled = active
     action_button.text = "CANCEL ADVENTURE" if active else "START ADVENTURE"
+    action_button.disabled = not _adventure_ready()
     next_button.visible = quest.phase == "complete"
     session_label.text = "SESSION DISCOVERIES: %d / 39" % quest.completed.size()
     for i in range(target_nodes.size()):
@@ -619,8 +670,8 @@ func _update_quest_status() -> void:
         if target_nodes[i].visible and quest.mission.get("kind") != "collect":
             target_nodes[i].visible = i == quest.visited.size()
     return_marker.visible = quest.phase == "return"
-    if realms.is_empty():
-        quest_status.text = "Adventure data unavailable. Return to BUKLOD."
+    if not _adventure_ready():
+        quest_status.text = "Kingdom content unavailable. Try another realm or return to the original Kingdom games."
     elif quest.phase == "active":
         quest_status.text = str(quest.mission.get("title")) + ": " + str(quest.mission.get("object")) + " " + str(quest.visited.size()) + "/" + str(quest.mission.get("count")) + ". Tap illuminated markers to walk."
     elif quest.phase == "return":
@@ -642,6 +693,7 @@ func get_dev_snapshot() -> Dictionary:
     result["practice_avatar_id"] = original_character_id
     result["skinned_avatar"] = player != null and not player.find_children("*", "Skeleton3D", true, false).is_empty()
     result["guide_near"] = guide_near
+    result["adventure_ready"] = _adventure_ready()
     result["landmark_id"] = realm_landmark
     result["fx_count"] = cinematic_fx.count if cinematic_fx != null else 0
     return result
