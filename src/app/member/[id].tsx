@@ -6,6 +6,7 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -24,10 +25,12 @@ import { BuklodCommunityPhotoCollage } from '@/components/BuklodCommunityPhotoCo
 import { CommunityVideo } from '@/components/CommunityVideo';
 import { BuklodSystemAnnouncementBoard } from '@/components/BuklodSystemAnnouncementBoard';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import BuklodLifetimePointsHero from '@/components/points/BuklodLifetimePointsHero';
 import { Button } from '@/components/UI';
 import {
   loadMemberCommunityPosts,
   loadMemberPublicProfile,
+  loadMemberPublicLifetimePoints,
   openMemberConnect,
   type MemberPublicPost,
   type MemberPublicProfile,
@@ -63,6 +66,10 @@ export default function MemberPublicProfileScreen() {
   const [posts, setPosts] = useState<MemberPublicPost[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isOfficialProfile, setIsOfficialProfile] = useState(false);
+  const [lifetimeSnapshot, setLifetimeSnapshot] = useState<{
+    userId: string;
+    points: number | null;
+  } | null>(null);
 
   const load = useCallback(async () => {
     if (!memberId) {
@@ -76,6 +83,7 @@ export default function MemberPublicProfileScreen() {
     setLoading(true);
     setError(null);
     setIsOfficialProfile(false);
+    setLifetimeSnapshot(null);
 
     try {
       const next = await loadMemberPublicProfile(memberId);
@@ -94,6 +102,12 @@ export default function MemberPublicProfileScreen() {
         );
         setIsOfficialProfile(!officialError && official === true);
       }
+
+      // Lifetime earned BP is a public profile metric even for locked members.
+      // The RPC returns no cash or redeemable-balance information.
+      void loadMemberPublicLifetimePoints(next.user_id)
+        .then(points => setLifetimeSnapshot({ userId: next.user_id, points }))
+        .catch(() => setLifetimeSnapshot({ userId: next.user_id, points: null }));
 
       if (next.is_locked && !next.is_self && !next.can_view_details) {
         setPosts([]);
@@ -123,6 +137,9 @@ export default function MemberPublicProfileScreen() {
   }, [load]);
 
   const title = profile?.display_name || routeName || 'Member Profile';
+  const publicLifetimePoints =
+    profile?.user_id === memberId && lifetimeSnapshot?.userId === memberId
+      ? lifetimeSnapshot.points : null;
 
   const styles = useMemo(
     () =>
@@ -135,8 +152,33 @@ export default function MemberPublicProfileScreen() {
         },
         hero: {
           alignItems: 'center',
-          gap: 10,
-          paddingVertical: 8,
+          gap: 7,
+          paddingVertical: 7,
+        },
+        cover: {
+          width: '100%',
+          height: 148,
+          borderRadius: 14,
+          backgroundColor: theme.accentSoft,
+        },
+        profileBadgeRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          gap: 6,
+        },
+        badge: {
+          backgroundColor: theme.accentSoft,
+          borderRadius: 999,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+        },
+        badgeText: {
+          fontSize: 12,
+          fontWeight: '800',
+          color: theme.textPrimary,
+          textAlign: 'center',
         },
         name: {
           fontSize: 24,
@@ -313,11 +355,88 @@ export default function MemberPublicProfileScreen() {
     </View>
   );
 
+
+  // Public identity stays visible while locked; private posts and contacts do not.
+  const publicIdentity = profile ? (
+    <>
+      <View style={styles.hero}>
+        {!!profile.background_url && (
+          <Image
+            testID="member-public-profile-background"
+            source={{ uri: profile.background_url }}
+            style={styles.cover}
+            resizeMode="cover"
+            accessibilityLabel="Member profile background"
+          />
+        )}
+        <ProfileAvatar
+          userId={profile.user_id}
+          uri={profile.avatar_url}
+          name={profile.display_name}
+          size={92}
+        />
+        <Text style={styles.name}>{profile.display_name}</Text>
+        {isOfficialProfile && (
+          <View style={styles.chip}>
+            <Text style={styles.chipText}>✓ VERIFIED PLATFORM ACCOUNT · NO MEMBER POINTS</Text>
+          </View>
+        )}
+        {profile.is_locked && !profile.is_self && (
+          <View style={styles.profileBadgeRow}>
+            <MaterialCommunityIcons name="lock-outline" size={14} color={theme.textMuted} />
+            <Text style={styles.cardTitle}>PRIVATE PROFILE</Text>
+          </View>
+        )}
+        {!profile.is_locked && !!profile.username && (
+          <Text style={styles.username}>@{profile.username.replace(/^@/, '')}</Text>
+        )}
+      </View>
+      {!isOfficialProfile && (
+        <BuklodLifetimePointsHero points={publicLifetimePoints} />
+      )}
+      {(!!profile.circle_rank || profile.all_time_rank != null) && (
+        <View style={styles.card} testID="member-public-rank">
+          <Text style={styles.cardTitle}>CIRCLE & ALL-TIME RANK</Text>
+          <View style={styles.profileBadgeRow}>
+            {!!profile.circle_rank && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{profile.circle_rank}</Text>
+              </View>
+            )}
+            {profile.all_time_rank != null && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>All-time #{profile.all_time_rank}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+      {!!profile.quick_note && (
+        <View style={styles.card} testID="member-public-profile-note">
+          <Text style={styles.cardTitle}>PROFILE NOTE</Text>
+          <Text style={styles.note}>{profile.quick_note}</Text>
+        </View>
+      )}
+      {profile.cluster_labels.length > 0 && (
+        <View style={styles.card} testID="member-public-cluster-memberships">
+          <Text style={styles.cardTitle}>CLUSTER MEMBERSHIP</Text>
+          <View style={styles.chipRow}>
+            {profile.cluster_labels.map(label => (
+              <View key={label} style={styles.chip}>
+                <Text style={styles.chipText}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+    </>
+  ) : null;
+
   return (
     <>
       <Stack.Screen
         options={{
-          title: isOfficialProfile ? 'BUKLOD Official' : 'Member Profile',
+          title: isOfficialProfile ? 'BUKLOD Official' : title,
           headerBackTitle: 'Back',
         }}
       />
@@ -335,6 +454,7 @@ export default function MemberPublicProfileScreen() {
           </View>
         ) : profile?.is_self ? (
           <>
+          {publicIdentity}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>YOUR PROFILE</Text>
             <Text style={styles.cardBody}>
@@ -349,48 +469,20 @@ export default function MemberPublicProfileScreen() {
           {postsSection}
           </>
         ) : profile?.is_locked || !profile?.can_view_details ? (
-          <View style={[styles.card, styles.lockedCard]}>
-            {profile ? <ProfileAvatar userId={profile.user_id} name={profile.display_name} size={82} /> : null}
-            <MaterialCommunityIcons
-              name="lock-outline"
-              size={34}
-              color={theme.textMuted}
-            />
-            <Text style={styles.lockedTitle}>{title}</Text>
-            <Text style={styles.lockedBody}>
-              BUKLOD community member · Private profile. Contact details, personal activities and memberships are hidden by the member’s choice.
-            </Text>
-          </View>
+          <>
+            {publicIdentity}
+            <View style={[styles.card, styles.lockedCard]}>
+              <MaterialCommunityIcons name="shield-lock-outline" size={23} color={theme.textMuted} />
+              <Text style={styles.lockedBody}>
+                Contact information and private activities are hidden.
+                Public points, rank, note, cluster, photo and background remain visible.
+              </Text>
+            </View>
+          </>
         ) : (
           <>
-            <View style={styles.hero}>
-              <ProfileAvatar
-                userId={profile.user_id}
-                uri={profile.avatar_url}
-                name={profile.display_name}
-                size={92}
-              />
-              <Text style={styles.name}>{profile.display_name}</Text>
-              {isOfficialProfile && (
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>✓ VERIFIED PLATFORM ACCOUNT · NO MEMBER POINTS</Text>
-                </View>
-              )}
-              {!!profile.username && (
-                <Text style={styles.username}>
-                  @{profile.username.replace(/^@/, '')}
-                </Text>
-              )}
-            </View>
-
+            {publicIdentity}
             <BuklodSystemAnnouncementBoard slot="profile" />
-
-            {!!profile.quick_note && (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>PROFILE NOTE</Text>
-                <Text style={styles.note}>{profile.quick_note}</Text>
-              </View>
-            )}
 
             {!!profile.member_since && (
               <View style={styles.card}>
@@ -415,8 +507,9 @@ export default function MemberPublicProfileScreen() {
             <View style={styles.card}>
               <Text style={styles.cardTitle}>PRIVATE BY DESIGN</Text>
               <Text style={styles.cardBody}>
-                Contact details, address, earnings, and exact points are not
-                shown on member profiles.
+                Contact details, address, and earnings stay private.
+                Lifetime Points above show verified earned points only,
+                not a redeemable balance or cash amount.
               </Text>
             </View>
 

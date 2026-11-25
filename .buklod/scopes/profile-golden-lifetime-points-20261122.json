@@ -1,0 +1,89 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/profile-golden-lifetime-points-20261122.json",
+  "objective": "Show large golden verified lifetime Points, Circle/All-time Rank, active cluster membership, public note, avatar, and background on both normal and locked BUKLOD member profiles without disclosing private activity or contacts.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: main source 7b224c39624827282c3cbf003060317045b0a73f inspected Nov 22 2026; source-only, no served OTA fingerprint asserted.",
+  "chosenApproach": "Reuse existing profile RPC to return a strictly whitelisted public identity bundle regardless of lock, while preserving private-field flags/omissions on locked profiles. Reuse golden lifetime hero and guard the scores RPC with auth, active-member and Official exclusions. No new native module.",
+  "selectionRationale": "Current Profile knows lifetime points but not prominently; View Profile explicitly hides exact points. Reusing authoritative balance while enforcing server privacy avoids monthly, redeemable and fake zero values.",
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "ads-finance-points",
+    "backend-security",
+    "profile-privacy",
+    "member-identity",
+    "reward-integrity",
+    "accessibility"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/me.tsx",
+    "src/app/member/[id].tsx",
+    "src/lib/buklodMemberProfile.ts",
+    "src/components/points/BuklodLifetimePointsHero.tsx",
+    "supabase/migrations/20261122104500_buklod_profile_lifetime_points_v1.sql",
+    "supabase/tests/buklod_profile_lifetime_points_visibility_20261122.sql",
+    "tests/profile-lifetime-points-navigation-security-20261122.test.mjs",
+    ".buklod/scopes/profile-golden-lifetime-points-20261122.json"
+  ],
+  "preserveBehaviors": [
+    "Profile lock still hides username, join details, shared-scope history and private activities or posts; only the owner-approved public identity and metrics remain visible.",
+    "Profile photo, background, note, active cluster membership, Circle Rank, all-time rank, and earned Lifetime BP are readable even when locked.",
+    "All reward accounting, redeemed/available points, ledger, QMP, posts, ads, admin official isolation and navigation remain unchanged."
+  ],
+  "acceptanceChecks": [
+    "New guarded SQL RPC returns authoritative exact lifetime_points only for authorized active visible members.",
+    "SQL post-migration rollback-only test checks auth, locked profile, Official exclusion, absent accounts, and grants.",
+    "Node contract confirms gold hero, no fabricated zero, focus refresh, data sources, navigation and privacy.",
+    "TypeScript, low-cost regression and engineering scope-lock CI required; no merge or OTA until passing.",
+    "No production Supabase migration or production/staging OTA executed by this code-only PR.",
+    "Locked-profile SQL rollback test verifies authorized public BP and field-by-field public-vs-private response boundaries."
+  ],
+  "regressionTests": [
+    "tests/profile-lifetime-points-navigation-security-20261122.test.mjs",
+    "supabase/tests/buklod_profile_lifetime_points_visibility_20261122.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Render a golden lifetime BP badge on Profile and Member screens while retaining existing feed, account and character functionality.",
+      "preservedBehaviors": [
+        "Rank, activity, rewards, redemption and existing profile navigation are not changed."
+      ],
+      "tests": [
+        "tests/profile-lifetime-points-navigation-security-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Profile and member route display additional read-only server verified BP with secure user-scoped view permission.",
+      "preservedBehaviors": [
+        "Member profile locking, profile navigation, self-account isolation, messages and official identity persist."
+      ],
+      "tests": [
+        "tests/profile-lifetime-points-navigation-security-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add an authenticated privacy-checked lifetime BP read RPC and restrict legacy direct read helper grants to prevent locked-profile disclosure.",
+      "preservedBehaviors": [
+        "Balance tables, existing ledger history, reward triggers, RLS, official exclusions, and internal definer function calls remain untouched."
+      ],
+      "tests": [
+        "tests/profile-lifetime-points-navigation-security-20261122.test.mjs",
+        "supabase/tests/buklod_profile_lifetime_points_visibility_20261122.sql"
+      ]
+    }
+  ],
+  "alternativeApproaches": [
+    "Use raw client SELECT for public lifetime balances (rejected due to RLS/privacy and broader data exposure).",
+    "Use rank or leaderboard points as a lifetime substitute (rejected due to incorrect data semantics).",
+    "Call existing public direct lifetime helpers (rejected because they lack authentication/profile-lock enforcement).",
+    "Disable all locks to show profile content (rejected: would leak sensitive information)."
+  ],
+  "releaseMode": "dev-only-gated-no-ota",
+  "releaseTarget": "future explicitly verified consolidated OTA after migration and runtime QA",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

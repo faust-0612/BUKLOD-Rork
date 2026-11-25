@@ -13,7 +13,11 @@ export type MemberPublicProfile = {
   display_name: string;
   username: string | null;
   avatar_url: string | null;
+  background_url: string | null;
   quick_note: string | null;
+  cluster_labels: string[];
+  circle_rank: string | null;
+  all_time_rank: number | null;
   member_since: string | null;
   shared_scope_labels: string[];
 };
@@ -46,7 +50,16 @@ function mapProfileRow(
     ),
     username: row.username ? String(row.username) : null,
     avatar_url: row.avatar_url ? String(row.avatar_url) : null,
+    background_url: row.background_url ? String(row.background_url) : null,
     quick_note: row.quick_note ? String(row.quick_note) : null,
+    cluster_labels: Array.isArray(row.cluster_labels)
+      ? row.cluster_labels.map(label => String(label ?? '').trim()).filter(Boolean)
+      : [],
+    circle_rank: typeof row.circle_rank === 'string'
+      ? row.circle_rank.trim() || null : null,
+    all_time_rank: typeof row.all_time_rank === 'number' &&
+      Number.isSafeInteger(row.all_time_rank) && row.all_time_rank > 0
+        ? row.all_time_rank : null,
     member_since: row.member_since ? String(row.member_since) : null,
     shared_scope_labels: shared,
   };
@@ -62,7 +75,7 @@ async function loadMemberPublicProfileDirect(
     await Promise.all([
       supabase
         .from('profiles')
-        .select('id, full_name, username, avatar_url, created_at')
+        .select('id, full_name, username, avatar_url, profile_background_url, created_at')
         .eq('id', userId)
         .maybeSingle(),
       supabase
@@ -89,18 +102,9 @@ async function loadMemberPublicProfileDirect(
   const profile = profileResult.data;
 
   if (locked && !isSelf) {
-    return {
-      user_id: userId,
-      is_self: false,
-      is_locked: true,
-      can_view_details: false,
-      display_name: resolvePersonDisplayName(profile, userId),
-      username: null,
-      avatar_url: null,
-      quick_note: null,
-      member_since: null,
-      shared_scope_labels: [],
-    };
+    // Approved public details must come from the authenticated RPC.
+    // Never infer another member's lock state from an RLS-filtered preference.
+    return null;
   }
 
   const createdAt = profile.created_at
@@ -117,6 +121,12 @@ async function loadMemberPublicProfileDirect(
     avatar_url: profile.avatar_url
       ? String(profile.avatar_url)
       : null,
+    background_url: profile.profile_background_url
+      ? String(profile.profile_background_url)
+      : null,
+    cluster_labels: [],
+    circle_rank: null,
+    all_time_rank: null,
     quick_note: statusResult.data?.quick_note
       ? String(statusResult.data.quick_note)
       : null,
@@ -308,7 +318,34 @@ export async function loadMemberPublicProfile(
     return mapProfileRow(data as Record<string, unknown>, id);
   }
 
-  return loadMemberPublicProfileDirect(id);
+  // Only the signed-in owner may use the direct fallback; another
+  // member's private status is never guessed from an RLS-blocked read.
+  const { data: authData } = await supabase.auth.getUser();
+  return authData.user?.id === id ? loadMemberPublicProfileDirect(id) : null;
+}
+
+
+/**
+ * Lifetime earned BP for a profile the viewer is permitted to see.
+ * Never query the balances table from the client: the RPC enforces the
+ * authenticated caller, active target and Official exclusion server-side.
+ * Public lifetime BP is owner-approved to remain visible when locked.
+ */
+export async function loadMemberPublicLifetimePoints(
+  userId: string,
+): Promise<number | null> {
+  const id = String(userId ?? '').trim();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    return null;
+  }
+  const { data, error } = await (supabase as any).rpc(
+    'get_buklod_member_lifetime_points_v1',
+    { p_user_id: id },
+  );
+  if (error) throw error;
+  if (data == null) return null;
+  const points = Number(data);
+  return Number.isSafeInteger(points) && points >= 0 ? points : null;
 }
 
 export async function loadMyProfileLocked(): Promise<boolean> {
