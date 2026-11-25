@@ -1,8 +1,8 @@
 {
   "contractVersion": 2,
   "objective": "Restore KL question generation during transient Gemini provider unavailability using existing Flash-Lite fallback",
-  "baseRef": "main",
-  "productionBaselineEvidence": "Live Supabase KL generator version 3 exact source matched MAIN blob 35f05658a96cd20a3e9f0882333ef6bce28425dc; four 503 provider errors in logs 2026-11-25 15:01–15:03 UTC. No production deployment authorized by this scope.",
+  "baseRef": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "productionBaselineEvidence": "verified: live Supabase KL generator version 3 exact source matched MAIN blob 35f05658a96cd20a3e9f0882333ef6bce28425dc; four 503 provider errors in logs 2026-11-25 15:01–15:03 UTC. Baseline evidence is for this Edge Function only; no production deployment authorized by this scope.",
   "chosenApproach": "Bounded provider failover with existing models; preserve authorization and exact evidence validation",
   "selectionRationale": "Isolated server-side change without new dependencies or client OTA; no extra paid provider",
   "alternativeApproaches": [
@@ -26,12 +26,14 @@
     "admin authorization"
   ],
   "regressionTests": [
-    "tests/kl-generator-supabase-security-failover.test.mjs"
+    "tests/kl-generator-supabase-security-failover.test.mjs",
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql"
   ],
   "allowedPaths": [
     "supabase/functions/kl-generate-reading-quiz/index.ts",
     "tests/kl-generator-supabase-security-failover.test.mjs",
-    ".buklod/scopes/kl-gemini-transient-failover-20261125.json"
+    ".buklod/scopes/kl-gemini-transient-failover-20261125.json",
+    "supabase/tests/kl_question_generator_admin_security_20261112.sql"
   ],
   "lockedFeatureChanges": [
     {
@@ -44,7 +46,8 @@
         "Existing client, rewards and release gate unchanged"
       ],
       "tests": [
-        "tests/kl-generator-supabase-security-failover.test.mjs"
+        "tests/kl-generator-supabase-security-failover.test.mjs",
+        "supabase/tests/kl_question_generator_admin_security_20261112.sql"
       ]
     },
     {
@@ -57,7 +60,8 @@
         "Existing client, rewards and release gate unchanged"
       ],
       "tests": [
-        "tests/kl-generator-supabase-security-failover.test.mjs"
+        "tests/kl-generator-supabase-security-failover.test.mjs",
+        "supabase/tests/kl_question_generator_admin_security_20261112.sql"
       ]
     }
   ]
