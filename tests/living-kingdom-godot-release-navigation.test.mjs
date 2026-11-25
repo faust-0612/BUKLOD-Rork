@@ -31,7 +31,7 @@ test('13 realm visual profiles use distinct authored environments and guide dial
  const approved=new Set(['kingdom_tree','house_path','kingdom_chest','house_fence','kingdom_rocks','arena_crystal','arena_tower','arena_flag','house_building','arena_gate','kingdom_wall','house_tree']);
  assert.ok(profiles.every(p=>p.props.length===4&&p.props.every(x=>approved.has(x))&&p.dialogue.length>40));
  const s=read('godot/empire-arena/scripts/living_kingdom.gd');
- for(const token of ['_apply_realm_visuals','_original_hero','_talk_to_guide','guide_near','guide.remove_child(child)','mission_targets[i] = TARGETS[i].rotated','absf(point.z) > 17.5','_apply_daylight','realm_visuals.get_child_count() >= 20'])assert.ok(s.includes(token),token);
+ for(const token of ['_apply_realm_visuals','_original_hero','_talk_to_guide','guide_near','guide.remove_child(child)','mission_targets[i] = TARGETS[i].rotated','absf(point.z) > 17.5','_apply_daylight','original_environment.build(realm_profile)'])assert.ok(s.includes(token),token);
  assert.doesNotMatch(s,/HTTPRequest|FileAccess\.WRITE|user:\/\/|grant_bp|supabase/i);
 });
 
@@ -49,4 +49,13 @@ test('Original 13 hero GLBs and seven PCM cues are generated locally; not sprite
  assert.equal(new Set(manifest.heroes.map(h=>h.prop)).size,13);
  for(const item of entries){const b=item.bytes;if(item.name.endsWith('.glb')){assert.equal(b.toString('ascii',0,4),'glTF');assert.equal(b.readUInt32LE(8),b.length);const json=JSON.parse(b.toString('utf8',20,20+b.readUInt32LE(12)));assert.ok(json.meshes.length>=20);assert.deepEqual(json.animations.map(a=>a.name),['Idle','Walk','Run','Interact','Celebrate']);}else{assert.equal(b.toString('ascii',0,4),'RIFF');assert.equal(b.readUInt16LE(22),2);assert.equal(b.readUInt32LE(40),b.length-44);}}
  const world=read('godot/empire-arena/scripts/living_kingdom.gd');assert.ok(world.includes('kingdom-original/heroes/'));assert.ok(world.includes('kingdom-original/audio/'));assert.doesNotMatch(world,/Sprite3D|art\/fullbody\/|rig_knight/);assert.ok(world.includes('var sound_enabled := false'));
+});
+
+test('Living Kingdom generates original terrain and scene geometry and uses animation reactions',()=>{
+ const s=read('godot/empire-arena/scripts/living_kingdom.gd');
+ assert.doesNotMatch(s,/func _realm_prop|_model\(id\)|Sprite3D/);
+ for(const token of ['kingdom_original_ground.gdshader','kingdom_original_environment.gd','_play_avatar_animation("Celebrate")','_play_avatar_animation("Interact")','ambient_player.stop()'])assert.ok(s.includes(token),token);
+ const env=read('godot/empire-arena/scripts/kingdom_original_environment.gd');
+ for(const token of ['CylinderMesh.new()','PrismMesh.new()','TorusMesh.new()','PlaneMesh.new()','func _tree','func _spire','func _tower'])assert.ok(env.includes(token),token);
+ const shader=read('godot/empire-arena/shaders/kingdom_original_ground.gdshader');assert.ok(shader.includes('NORMAL_MAP_DEPTH'));assert.ok(shader.includes('noise2'));
 });

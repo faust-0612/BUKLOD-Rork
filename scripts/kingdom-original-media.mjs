@@ -127,6 +127,11 @@ export function createOriginalHero(id, d) {
  // separate metal trims, boots, gloves and role-specific silhouette pieces.
  ell(pelvis,cloth,[0,0,0],[.26,.20,.17]);ell(torso,dark,[0,.03,0],[.27,.32,.17]);ell(torso,cloth,[0,.13,0],[.34,.29,.205]);
  ell(torso,metal,[0,.12,.185],[.17,.19,.034],12,8);ell(torso,accent,[0,.15,.221],[.055,.065,.024],10,7);
+ const shoulderShape=[.10,.08,.13,.15,.07,.19,.14,.085,.075,.11,.12,.09,.065][variant];
+ for(let s of [-1,1])ell(torso,cloth,[s*.26,.24,-.09],[shoulderShape,.24+(variant%5)*.024,.12],16,10,s*.16);
+ if([1,3,7,9,10].includes(variant)){ell(torso,cloth,[0,-.13,-.16],[.29,.41+(variant%3)*.08,.085],18,12);for(let s of [-1,1])ell(torso,metal,[s*.23,-.10,-.18],[.032,.36,.04],10,9,s*.10);}
+ if([0,6,11].includes(variant)){ell(pelvis,leather,[.28,-.11,-.01],[.13,.17,.14],14,9);ell(pelvis,metal,[.28,-.06,.11],[.06,.045,.025],12,6);}
+ if(variant===4||variant===8||variant===12){for(let s of [-1,1])ell(torso,accent,[s*.19,.19,.17],[.04,.11,.034],10,7,s*.6);}
  ell(pelvis,leather,[0,.02,0],[.28,.057,.19]);ell(pelvis,metal,[0,.02,.184],[.095,.056,.035],12,6);
  // Asymmetric coat tails and embroidered collar; real geometry instead of flat art.
  for(let s of [-1,1]){ell(pelvis,cloth,[s*.17,-.15,-.018],[.135,.29+(variant%3)*.025,.13],14,9,s*.13);ell(torso,metal,[s*.23,.35,.05],[.11,.055,.105],12,7,s*.27);}
@@ -151,11 +156,15 @@ export function createOriginalHero(id, d) {
   ell(foot,leather,[0,-.015,.065],[.107,.078,.17],16,9);ell(foot,metal,[0,-.015,.179],[.096,.05,.065],12,7);
   if(s===1){
    const held=node("Signature_"+prop,[0,-.025,.07],hand);
-   if(["staff","signal","hammer","harvest"].includes(prop)){ell(held,leather,[0,-.18,0],[.035,.39,.035],10,8);ell(held,metal,[0,.19,0],[.12,prop==="hammer"?.068:.15,.085],12,9);ell(held,accent,[0,.28,0],[.065,.07,.064],10,8);}
+   if(["staff","signal","hammer","harvest"].includes(prop)){ell(held,leather,[0,-.18,0],[.035,.39,.035],10,8);ell(held,metal,[0,.19,0],[prop==="hammer"?.18:.12,prop==="hammer"?.068:.15,.085],12,9);ell(held,accent,[0,.28,0],[.065,.07,.064],10,8);if(prop==="harvest"){for(let k=0;k<5;k++)ell(held,accent,[(k-2)*.035,.28+(k%2)*.08,0],[.025,.10,.027],10,7,(k-2)*.23);}if(prop==="signal"){for(let k=0;k<3;k++)ell(held,accent,[0,.20+k*.065,.07],[.10-k*.023,.024,.024],12,6);}if(prop==="staff"){ell(held,metal,[0,.36,0],[.11,.045,.07],14,7);}}
    else if(prop==="shield"){ell(held,metal,[.11,-.05,.02],[.21,.27,.055],20,12);ell(held,cloth,[.11,-.05,.07],[.16,.21,.027],16,10);ell(held,accent,[.11,-.05,.10],[.06,.07,.03],12,8);}
    else if(prop==="lute"){ell(held,leather,[.05,-.10,0],[.16,.21,.07],18,12);ell(held,metal,[.05,.14,0],[.037,.20,.04],10,8);ell(held,ink,[.05,-.1,.065],[.045,.05,.02],12,8);}
    else if(prop==="lantern"||prop==="blossom"){ell(held,metal,[0,.03,0],[.12,.13,.095],12,9);ell(held,accent,[0,.03,.06],[.075,.095,.05],12,9);for(let n=0;n<5;n++){let a=n*TAU/5;ell(held,accent,[.10*Math.cos(a),.10*Math.sin(a)+.04,.06],[.046,.046,.035],8,6);}}
-   else {ell(held,leather,[.035,-.045,0],[.15,.17,.065],12,9);ell(held,metal,[.035,-.045,.056],[.13,.14,.025],12,8);ell(held,accent,[.035,-.045,.084],[.055,.065,.024],10,7);}
+   else if(prop==="compass"){ell(held,metal,[.035,0,0],[.145,.145,.055],24,12);ell(held,ink,[.035,0,.052],[.12,.12,.02],20,10);ell(held,accent,[.035,0,.077],[.018,.107,.015],10,8,.74);}
+   else if(prop==="palette"){ell(held,leather,[.035,-.04,0],[.19,.115,.04],20,10,.5);for(let k=0;k<5;k++){let a=k*TAU/5;ell(held,k%2?accent:cloth,[.035+.11*Math.cos(a),-.04+.07*Math.sin(a),.038],[.027,.024,.019],8,6);}}
+   else if(prop==="chest"){ell(held,leather,[.03,-.07,0],[.175,.13,.105],14,9);ell(held,metal,[.03,.012,0],[.18,.045,.105],12,7);for(let s of [-1,1])ell(held,metal,[.03+s*.1,-.05,.09],[.023,.11,.024],10,7);}
+   else if(prop==="book"){for(let s of [-1,1]){ell(held,leather,[.035+s*.085,-.045,0],[.10,.16,.035],14,9,s*.2);ell(held,white,[.035+s*.085,-.045,.032],[.09,.14,.018],12,8,s*.2);}}
+   else {ell(held,leather,[.035,-.045,0],[.13,.18,.045],12,9);for(let k=0;k<3;k++)ell(held,metal,[.035,-.13+k*.065,.046],[.105,.015,.017],10,5);}
   }
  }
  // Each articulated node uses actual indexed triangle meshes with smooth normals.

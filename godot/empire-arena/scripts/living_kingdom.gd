@@ -27,7 +27,9 @@ var sound_button: Button
 var guide_anim: AnimationPlayer
 var motion_clip := ""
 var footstep_time := 0.0
-var ground_material: StandardMaterial3D
+var action_hold := 0.0
+var ambient_player: AudioStreamPlayer
+var ground_material: ShaderMaterial
 var realm_environment: Environment
 var guide_notice: Label
 var talk_button: Button
@@ -61,8 +63,8 @@ func _setup_world() -> void:
     var plane := PlaneMesh.new()
     plane.size = Vector2(55, 38)
     floor.mesh = plane
-    ground_material = StandardMaterial3D.new()
-    ground_material.roughness = 0.92
+    ground_material = ShaderMaterial.new()
+    ground_material.shader = load("res://shaders/kingdom_original_ground.gdshader")
     floor.material_override = ground_material
     floor.position.y = -0.04
     add_child(floor)
@@ -111,6 +113,9 @@ func _build_avatar() -> void:
     sound_player = AudioStreamPlayer.new()
     sound_player.volume_db = -13.0
     add_child(sound_player)
+    ambient_player = AudioStreamPlayer.new()
+    ambient_player.volume_db = -24.0
+    add_child(ambient_player)
 
 func _set_guide(id: String) -> void:
     for child in guide.get_children():
@@ -135,7 +140,7 @@ func _set_guide(id: String) -> void:
             break
 
 func _play_avatar_animation(desired: String) -> void:
-    if player == null or desired == motion_clip:
+    if player == null or desired == motion_clip or (action_hold > 0.0 and desired in ["Idle","Walk","Run"]):
         return
     for candidate in player.find_children("*", "AnimationPlayer", true, false):
         if candidate is AnimationPlayer:
@@ -166,20 +171,15 @@ func _toggle_original_audio() -> void:
     sound_button.text = "SOUND ON" if sound_enabled else "SOUND OFF"
     if not sound_enabled:
         sound_player.stop()
+        ambient_player.stop()
     else:
+        var raw := FileAccess.get_file_as_bytes("res://kingdom-original/audio/ambience.wav")
+        var ambient := AudioStreamWAV.load_from_buffer(raw)
+        if ambient != null:
+            ambient.loop_mode = AudioStreamWAV.LOOP_FORWARD
+            ambient_player.stream = ambient
+            ambient_player.play()
         _play_original_sound("guide")
-
-func _realm_prop(id: String, at: Vector3, size: float, angle: float) -> void:
-    if realm_visuals.get_child_count() >= 20:
-        return
-    var template: Node3D = _model(id)
-    if template == null:
-        return
-    var prop: Node3D = template.duplicate()
-    prop.position = at
-    prop.scale = Vector3.ONE * size
-    prop.rotation.y = angle
-    realm_visuals.add_child(prop)
 
 func _apply_realm_visuals() -> void:
     if realm_index < 0 or realm_index >= realms.size():
@@ -191,19 +191,13 @@ func _apply_realm_visuals() -> void:
         realm_visuals.queue_free()
     realm_visuals = Node3D.new()
     add_child(realm_visuals)
-    ground_material.albedo_color = Color(str(realm_profile.get("ground", "#6b8b45")))
+    ground_material.set_shader_parameter("ground_color", Color(str(realm_profile.get("ground", "#6b8b45"))))
+    ground_material.set_shader_parameter("realm_seed", float(realm_profile.get("layout", 0)))
     var accent := Color(str(realm_profile.get("accent", "#ffe1a0")))
-    var props: Array = realm_profile.get("props", [])
     var layout := int(realm_profile.get("layout", 0))
-    # Real imported props and varied perimeter arrangements. Keep open mission corridors.
-    if props.size() == 4:
-        for i in range(12):
-            var side := -1.0 if i < 6 else 1.0
-            var z := -13.0 + float(i % 6) * 5.2
-            var x := side * (13.0 + float((i + layout) % 3))
-            _realm_prop(str(props[(i + layout) % 4]), Vector3(x, 0, z), 1.5 + float((i + layout) % 3) * 0.3, float(i + layout) * 0.54)
-        for i in range(3):
-            _realm_prop(str(props[i]), Vector3(-8.0 + i * 8.0, 0, -15.0), 1.8, float(layout) * 0.3)
+    var original_environment = load("res://scripts/kingdom_original_environment.gd").new()
+    realm_visuals.add_child(original_environment)
+    original_environment.build(realm_profile)
     # Different layouts, all within visible traversable ground. Phan retains original coordinates.
     var angle := 0.0 if str(realm.get("id")) == "phan" else float(layout) * 0.48
     for i in range(TARGETS.size()):
@@ -325,6 +319,8 @@ func _talk_to_guide() -> void:
         guide_notice.text = "Walk to the guide to talk."
         return
     guide_talking = true
+    _play_avatar_animation("Interact")
+    action_hold = 1.1
     _play_original_sound("guide")
     guide_notice.text = str(realm_profile.get("dialogue", ""))
 
@@ -405,6 +401,9 @@ func _unhandled_input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
+    action_hold = maxf(0.0, action_hold - delta)
+    if player.position.distance_to(destination) > 0.3:
+        action_hold = 0.0
     super._process(delta)
     if sky_auto:
         day_phase = fposmod(day_phase + minf(delta, 0.05) / 240.0, 1.0)
@@ -429,9 +428,13 @@ func _process(delta: float) -> void:
     pending_target = -1
     if index == 3:
         if quest.finish(player.position.distance_to(START)):
+            _play_avatar_animation("Celebrate")
+            action_hold = 1.4
             _play_original_sound("complete")
     else:
         if quest.visit(index, player.position.distance_to(mission_targets[index])):
+            _play_avatar_animation("Interact")
+            action_hold = 1.1
             _play_original_sound("return" if quest.phase == "return" else "discover")
     _update_quest_status()
 
@@ -464,7 +467,7 @@ func get_dev_snapshot() -> Dictionary:
     result["phase"] = quest.phase
     result["local_completed"] = quest.completed.duplicate()
     result["biome"] = realm_profile.get("biome", "")
-    result["realm_props"] = realm_visuals.get_child_count() if realm_visuals != null else 0
+    result["realm_props"] = realm_visuals.get_child(0).get_child_count() if realm_visuals != null and realm_visuals.get_child_count() > 0 else 0
     result["guide_ready"] = guide != null and guide.get_child_count() > 0 and guide_anim != null
     result["original_avatar"] = player != null and player.get_child_count() > 0
     result["guide_near"] = guide_near
