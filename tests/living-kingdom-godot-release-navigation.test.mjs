@@ -13,7 +13,7 @@ test('39 native adventure specifications derive from canonical existing Kingdom 
 });
 test('Native Kingdom uses isolated scene, physical arrival and no reward writes',()=>{
  const s=read('godot/empire-arena/scripts/living_kingdom.gd');
- for(const token of ['super.move_to(point)','player.position.distance_to(destination)','quest.visit(index','quest.finish(player.position.distance_to(START))','DAY / NIGHT'])assert.ok(s.includes(token));
+ for(const token of ['super.move_to(point)','player.position.distance_to(destination)','quest.visit(target','quest.finish(player.position.distance_to(START))','DAY / NIGHT'])assert.ok(s.includes(token));
  assert.doesNotMatch(s,/HTTPRequest|FileAccess\.WRITE|user:\/\/|grant_bp|supabase/i);
  assert.ok(read('godot/empire-arena/scripts/world_preview.gd').includes('LivingKingdom.tscn" if world_id == "kingdom"'));
  assert.ok(read('scripts/genesis-prepare-godot-ota-pack.mjs').includes('data/kingdom_realms.json'));

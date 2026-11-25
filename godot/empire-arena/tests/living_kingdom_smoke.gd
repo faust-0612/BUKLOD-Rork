@@ -76,8 +76,14 @@ func _run() -> void:
         return
     for i in range(160):
         world._process(0.04)
-    if world.quest.visited.size() != 1:
+    if world.quest.visited.size() != 0 or world.get_dev_snapshot().get("field_index") != 0:
         quit(9)
+        return
+    # Solve the actual Phan budget challenge, not just a marker arrival.
+    for choice in [0,1,2]:
+        world._choose_field(choice)
+    if world.quest.visited.size() != 1 or world.get_dev_snapshot().get("field_index") != -1:
+        quit(19)
         return
     # The next-adventure action must keep all earlier session clears.
     var spec: Dictionary = world.quest.mission

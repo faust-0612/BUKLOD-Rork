@@ -3,6 +3,7 @@
 extends "res://scripts/premium_world_3d.gd"
 
 const MissionState = preload("res://scripts/kingdom_mission_state.gd")
+const FieldChallenge = preload("res://scripts/kingdom_field_challenge.gd")
 const START := Vector3(0, 0, 0)
 const TARGETS := [Vector3(-5, 0, -5), Vector3(5, 0, -6), Vector3(0, 0, 7)]
 var quest = MissionState.new()
@@ -62,6 +63,13 @@ var ambient_tail: AudioStreamPlayer
 var ambient_fade: Tween
 var valid_catalog := false
 var realm_ready := false
+var field = FieldChallenge.new()
+var field_panel: PanelContainer
+var field_prompt: Label
+var field_status: Label
+var field_grid: GridContainer
+var field_index := -1
+var field_buttons: Array[Button] = []
 
 func _get_world() -> String:
     return "kingdom"
@@ -107,6 +115,9 @@ func _valid_realm_catalog(data: Dictionary) -> bool:
                 return false
             var game_id := str(game.get("id",""))
             if game_id.is_empty() or missions.has(game_id) or not str(game.get("kind","")) in ["collect","sequence","delivery"] or not int(game.get("count",0)) in [2,3]:
+                return false
+            var challenge: Variant = game.get("challenge",{})
+            if not challenge is Dictionary or not str(challenge.get("type","")) in FieldChallenge.TYPES:
                 return false
             missions[game_id] = true
     return ids.size() == 13 and missions.size() == 39
@@ -492,11 +503,94 @@ func _install_controls() -> void:
     back.custom_minimum_size = Vector2(240, 54)
     back.pressed.connect(func() -> void: get_tree().quit())
     layer.add_child(back)
+    _install_field_panel(layer)
     for child in get_children():
         if child is DirectionalLight3D and child.shadow_enabled:
             world_sun = child
         if child is WorldEnvironment:
             realm_environment = child.environment
+
+func _install_field_panel(layer: CanvasLayer) -> void:
+    field_panel = PanelContainer.new()
+    field_panel.position = Vector2(725,105)
+    field_panel.custom_minimum_size = Vector2(490,0)
+    layer.add_child(field_panel)
+    var body := VBoxContainer.new()
+    field_panel.add_child(body)
+    field_prompt = Label.new()
+    field_prompt.custom_minimum_size = Vector2(455,0)
+    field_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    field_prompt.add_theme_font_size_override("font_size",20)
+    body.add_child(field_prompt)
+    field_status = Label.new()
+    field_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    body.add_child(field_status)
+    field_grid = GridContainer.new()
+    field_grid.columns = 3
+    body.add_child(field_grid)
+    for i in range(9):
+        var button := Button.new()
+        button.custom_minimum_size = Vector2(145,54)
+        button.pressed.connect(_choose_field.bind(i))
+        field_grid.add_child(button)
+        field_buttons.append(button)
+    var retry := Button.new()
+    retry.text = "RESTART CHALLENGE"
+    retry.pressed.connect(_restart_field)
+    body.add_child(retry)
+    var close := Button.new()
+    close.text = "RETURN TO EXPLORATION"
+    close.pressed.connect(_close_field)
+    body.add_child(close)
+    field_panel.hide()
+
+func _open_field(index: int) -> bool:
+    if not field.begin(quest.mission.get("challenge",{})):
+        return false
+    field_index = index
+    field_panel.show()
+    _refresh_field()
+    return true
+
+func _refresh_field() -> void:
+    if field_index < 0:
+        return
+    field_prompt.text = str(field.spec.get("prompt",""))
+    field_status.text = field.status() + (" • " + field.feedback if not field.feedback.is_empty() else "")
+    for i in range(field_buttons.size()):
+        var button := field_buttons[i]
+        button.visible = i < field.spec.items.size()
+        if not button.visible:
+            continue
+        var selected: bool = field.picks.has(i) or field.matched.has(i)
+        button.text = ("✓ " if selected else "") + str(field.spec.items[i])
+        button.disabled = field.preview_left > 0.0 or field.solved or field.matched.has(i)
+
+func _choose_field(index: int) -> void:
+    if field_index < 0 or quest.phase != "active":
+        return
+    if not field.choose(index):
+        _refresh_field()
+        return
+    var target := field_index
+    _close_field()
+    if quest.visit(target,player.position.distance_to(mission_targets[target])):
+        _play_avatar_animation("Interact")
+        action_hold = 1.1
+        _play_original_sound("return" if quest.phase == "return" else "discover")
+        cinematic_fx.trigger("discover",player.position,Color(str(realm_profile.get("accent","#ffe3a3"))))
+    _update_quest_status()
+
+func _restart_field() -> void:
+    if field_index >= 0:
+        field.begin(quest.mission.get("challenge",{}))
+        _refresh_field()
+
+func _close_field() -> void:
+    field_index = -1
+    field.clear()
+    if field_panel != null:
+        field_panel.hide()
 
 func _toggle_sky() -> void:
     sky_auto = false
@@ -563,6 +657,7 @@ func _next_adventure() -> void:
         _select_realm(next_realm)
 
 func _start_or_cancel() -> void:
+    _close_field()
     if not _adventure_ready():
         _update_quest_status()
         return
@@ -579,7 +674,7 @@ func _start_or_cancel() -> void:
     _update_quest_status()
 
 func move_to(point: Vector3) -> bool:
-    if not _adventure_ready() or not point.is_finite() or absf(point.x) > 11.5 or absf(point.z) > 11.5:
+    if field_index >= 0 or not _adventure_ready() or not point.is_finite() or absf(point.x) > 11.5 or absf(point.z) > 11.5:
         return false
     if not super.move_to(point):
         return false
@@ -612,6 +707,8 @@ func _process(delta: float) -> void:
     # Custom locomotion: acceleration, deceleration and motion-rate matching;
     # no inherited child bounce or abrupt teleport on touch.
     var dt := minf(delta, 0.05)
+    if field_index >= 0 and field.tick(dt):
+        _refresh_field()
     elapsed += dt
     action_hold = maxf(0.0, action_hold - dt)
     var remaining := player.position.distance_to(destination)
@@ -684,11 +781,8 @@ func _process(delta: float) -> void:
             _play_original_sound("complete")
             cinematic_fx.trigger("complete",player.position,Color("#f5d77d"))
     else:
-        if quest.visit(index, player.position.distance_to(mission_targets[index])):
-            _play_avatar_animation("Interact")
-            action_hold = 1.1
-            _play_original_sound("return" if quest.phase == "return" else "discover")
-            cinematic_fx.trigger("discover",player.position,Color(str(realm_profile.get("accent","#ffe3a3"))))
+        if not _open_field(index):
+            guide_notice.text = "Challenge unavailable. Cancel and retry the adventure."
     _update_quest_status()
 
 func _update_quest_status() -> void:
@@ -729,6 +823,7 @@ func get_dev_snapshot() -> Dictionary:
     result["skinned_avatar"] = player != null and not player.find_children("*", "Skeleton3D", true, false).is_empty()
     result["guide_near"] = guide_near
     result["guide_clip"] = guide_clip
+    result["field_index"] = field_index
     result["adventure_ready"] = _adventure_ready()
     result["landmark_id"] = realm_landmark
     result["fx_count"] = cinematic_fx.count if cinematic_fx != null else 0
