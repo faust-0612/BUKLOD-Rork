@@ -4,6 +4,7 @@ extends "res://scripts/premium_world_3d.gd"
 
 const MissionState = preload("res://scripts/kingdom_mission_state.gd")
 const FieldChallenge = preload("res://scripts/kingdom_field_challenge.gd")
+const AdventureProgress = preload("res://scripts/kingdom_adventure_progression.gd")
 const START := Vector3(0, 0, 0)
 const TARGETS := [Vector3(-5, 0, -5), Vector3(5, 0, -6), Vector3(0, 0, 7)]
 var quest = MissionState.new()
@@ -67,6 +68,11 @@ var ambient_fade: Tween
 var valid_catalog := false
 var realm_ready := false
 var field = FieldChallenge.new()
+var progression = AdventureProgress.new()
+var difficulty_picker: OptionButton
+var mode_picker: OptionButton
+var progress_label: Label
+var round_feedback: Label
 var field_panel: PanelContainer
 var field_prompt: Label
 var field_status: Label
@@ -464,8 +470,25 @@ func _install_controls() -> void:
     avatar_picker.item_selected.connect(_choose_practice_avatar)
     panel.add_child(realm_picker)
     panel.add_child(mission_picker)
+    difficulty_picker = OptionButton.new()
+    for name in AdventureProgress.DIFFICULTIES:
+        difficulty_picker.add_item(name)
+    difficulty_picker.select(1)
+    difficulty_picker.item_selected.connect(func(index: int) -> void:
+        progression.difficulty = index
+        _update_quest_status())
+    panel.add_child(difficulty_picker)
+    mode_picker = OptionButton.new()
+    mode_picker.add_item("Quick game • 1 encounter")
+    mode_picker.add_item("Story expedition • 2–3 encounters")
+    mode_picker.item_selected.connect(func(index: int) -> void:
+        progression.quick_play = index == 0
+        _update_quest_status())
+    panel.add_child(mode_picker)
     realm_picker.item_selected.connect(_select_realm)
-    mission_picker.item_selected.connect(func(index: int) -> void: mission_index = index)
+    mission_picker.item_selected.connect(func(index: int) -> void:
+        mission_index = index
+        _update_quest_status())
     var controls := HBoxContainer.new()
     panel.add_child(controls)
     action_button = Button.new()
@@ -490,6 +513,12 @@ func _install_controls() -> void:
     panel.add_child(next_button)
     session_label = Label.new()
     panel.add_child(session_label)
+    progress_label = Label.new()
+    progress_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    panel.add_child(progress_label)
+    round_feedback = Label.new()
+    round_feedback.add_theme_color_override("font_color",Color("#ffe1a0"))
+    panel.add_child(round_feedback)
     quest_status = Label.new()
     quest_status.add_theme_font_size_override("font_size", 17)
     quest_status.custom_minimum_size = Vector2(390, 0)
@@ -552,7 +581,8 @@ func _install_field_panel(layer: CanvasLayer) -> void:
     field_panel.hide()
 
 func _open_field(index: int) -> bool:
-    if not field.begin(quest.mission.get("challenge",{}),index):
+    var prepared: Dictionary = progression.prepare(quest.mission.get("challenge",{}),progression.active_level,progression.active_difficulty,index)
+    if not field.begin(prepared,int((progression.active_level-1+index)%3)):
         return false
     field_index = index
     field_panel.show()
@@ -613,15 +643,31 @@ func _choose_field(index: int) -> void:
     var target := field_index
     _close_field()
     if quest.visit(target,player.position.distance_to(mission_targets[target])):
+        if progression.quick_play and quest.phase == "return":
+            if quest.finish(0.0):
+                _finish_practice_round()
+                _update_quest_status()
+                return
         _play_avatar_animation("Interact")
         action_hold = 1.1
         _play_original_sound("return" if quest.phase == "return" else "discover")
         cinematic_fx.trigger("discover",player.position,Color(str(realm_profile.get("accent","#ffe3a3"))))
     _update_quest_status()
 
+func _finish_practice_round() -> void:
+    var earned: int = progression.complete_round()
+    if earned <= 0:
+        return
+    round_feedback.text = "+%d practice score • Level %d cleared!" % [earned,progression.active_level]
+    _play_avatar_animation("Celebrate")
+    action_hold = 1.4
+    _play_original_sound("complete")
+    cinematic_fx.trigger("complete",player.position,Color("#f5d77d"))
+
 func _restart_field() -> void:
     if field_index >= 0:
-        field.begin(quest.mission.get("challenge",{}),field_index)
+        var prepared: Dictionary = progression.prepare(quest.mission.get("challenge",{}),progression.active_level,progression.active_difficulty,field_index)
+        field.begin(prepared,int((progression.active_level-1+field_index)%3))
         _refresh_field()
 
 func _close_field() -> void:
@@ -683,6 +729,10 @@ func _next_adventure() -> void:
     if quest.phase != "complete" or realms.is_empty():
         return
     var missions: Array = realms[realm_index].get("missions", [])
+    if progression.quick_play:
+        quest.cancel()
+        _start_or_cancel()
+        return
     if mission_index + 1 < missions.size():
         mission_index += 1
         mission_picker.select(mission_index)
@@ -701,10 +751,16 @@ func _start_or_cancel() -> void:
         return
     if quest.phase in ["active", "return"]:
         quest.cancel()
+        progression.abandon()
     elif realm_index < realms.size():
         var missions: Array = realms[realm_index].get("missions", [])
         if mission_index < missions.size():
-            if quest.begin(missions[mission_index]):
+            var selected: Dictionary = missions[mission_index].duplicate(true)
+            if progression.quick_play:
+                selected.count = 1
+            if quest.begin(selected):
+                progression.begin(str(selected.id))
+                round_feedback.text = ""
                 _play_original_sound("start")
                 cinematic_fx.trigger("start",player.position,Color(str(realm_profile.get("accent","#ffe3a3"))))
     pending_target = -1
@@ -819,10 +875,7 @@ func _process(delta: float) -> void:
         avatar_anim.speed_scale = 1.0
     if index == 3:
         if quest.finish(player.position.distance_to(START)):
-            _play_avatar_animation("Celebrate")
-            action_hold = 1.4
-            _play_original_sound("complete")
-            cinematic_fx.trigger("complete",player.position,Color("#f5d77d"))
+            _finish_practice_round()
     else:
         if not _open_field(index):
             guide_notice.text = "Challenge unavailable. Cancel and retry the adventure."
@@ -833,10 +886,19 @@ func _update_quest_status() -> void:
     realm_picker.disabled = active
     mission_picker.disabled = active
     avatar_picker.disabled = active
+    difficulty_picker.disabled = active
+    mode_picker.disabled = active
     action_button.text = "CANCEL ADVENTURE" if active else "START ADVENTURE"
     action_button.disabled = not _adventure_ready()
     next_button.visible = quest.phase == "complete"
     session_label.text = "SESSION DISCOVERIES: %d / 39" % quest.completed.size()
+    var game_id := ""
+    if realm_index < realms.size():
+        var missions: Array = realms[realm_index].get("missions",[])
+        if mission_index < missions.size():
+            game_id = str(missions[mission_index].get("id",""))
+    progress_label.text = "%s • Level %d • %d rounds\nPractice score: %d (not BP)" % [progression.milestone(),progression.level_for(game_id,progression.difficulty),progression.total_rounds,progression.practice_score]
+    next_button.text = "NEXT LEVEL" if progression.quick_play else "NEXT ADVENTURE"
     for i in range(target_nodes.size()):
         target_nodes[i].visible = quest.phase == "active" and i < int(quest.mission.get("count", 0)) and not quest.visited.has(i)
         if target_nodes[i].visible and quest.mission.get("kind") != "collect":
@@ -867,6 +929,9 @@ func get_dev_snapshot() -> Dictionary:
     result["guide_near"] = guide_near
     result["guide_clip"] = guide_clip
     result["field_index"] = field_index
+    result["practice_score"] = progression.practice_score
+    result["practice_rounds"] = progression.total_rounds
+    result["difficulty"] = progression.difficulty
     result["adventure_ready"] = _adventure_ready()
     result["landmark_id"] = realm_landmark
     result["fx_count"] = cinematic_fx.count if cinematic_fx != null else 0

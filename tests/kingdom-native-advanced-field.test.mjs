@@ -19,7 +19,7 @@ test('Advanced native encounter boards have valid solutions and reject invalid d
 });
 test('Native rules retain negative tests, audio isolation and session-only authority',()=>{
  const state=read('godot/empire-arena/scripts/kingdom_field_challenge.gd'),world=read('godot/empire-arena/scripts/living_kingdom.gd'),smoke=read('godot/empire-arena/tests/living_kingdom_smoke.gd');
- for(const token of ['func _choose_match','func _choose_merge','func _choose_crop','func _choose_beat','crop_remaining','absf(beat_clock) > 0.24','No line of three. Swap undone.'])assert.ok(state.includes(token),token);
+ for(const token of ['func _choose_match','func _choose_merge','func _choose_crop','func _choose_beat','crop_remaining','absf(beat_clock) > timing_window','No line of three. Swap undone.'])assert.ok(state.includes(token),token);
  for(const token of ['_negative_fields(field)','field_total != 104','final_sum != sum'])assert.ok(smoke.includes(token),token);
  for(const token of ['func _play_rhythm_note','rhythm_player.stop()','field_refresh_elapsed >= 0.08'])assert.ok(world.includes(token),token);
  assert.doesNotMatch(state,/HTTPRequest|FileAccess|supabase|grant_bp/i);

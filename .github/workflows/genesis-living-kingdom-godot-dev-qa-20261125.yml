@@ -15,6 +15,7 @@ on:
       - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
       - 'tests/living-kingdom-godot-release-navigation.test.mjs'
       - 'tests/kingdom-native-advanced-field.test.mjs'
+      - 'tests/kingdom-native-progression.test.mjs'
 permissions:
   contents: read
 concurrency:
@@ -37,7 +38,7 @@ jobs:
           node-version: '22'
       - name: Canonical catalog and regression checks
         run: |
-          node --experimental-strip-types --test tests/kingdom-native-advanced-field.test.mjs tests/living-kingdom-godot-release-navigation.test.mjs tests/genesis-main-home-no-empire-20261124.test.mjs tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs tests/genesis-premium-world-content-ota-20261123.test.mjs
+          node --experimental-strip-types --test tests/kingdom-native-progression.test.mjs tests/kingdom-native-advanced-field.test.mjs tests/living-kingdom-godot-release-navigation.test.mjs tests/genesis-main-home-no-empire-20261124.test.mjs tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs tests/genesis-premium-world-content-ota-20261123.test.mjs
       - name: Build exact approved pack and verify source provenance
         run: |
           set -euo pipefail

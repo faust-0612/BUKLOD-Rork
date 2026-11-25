@@ -79,6 +79,8 @@ func _run() -> void:
     if not world.guide_talking or world.guide_notice.text.is_empty() or world.get_dev_snapshot().get("guide_clip") != "Interact":
         quit(12)
         return
+    world.progression.quick_play = false
+    world.mode_picker.select(1)
     world._start_or_cancel()
     if world.get_dev_snapshot().get("fx_count",0) <= 0:
         quit(16)
@@ -109,6 +111,9 @@ func _run() -> void:
     world._next_adventure()
     if world.mission_index != 1 or world.quest.completed.size() != 1 or world.quest.phase != "idle":
         quit(14)
+        return
+    if not _progression_checks():
+        quit(22)
         return
     print("BUKLOD_LIVING_KINGDOM_39_MISSIONS_AND_ARRIVAL_PASS")
     quit(0)
@@ -253,3 +258,22 @@ func _negative_fields(field) -> bool:
         return false
     field.tick(1.2)
     return field.rhythm_misses == 1 and not field.solved
+
+func _progression_checks() -> bool:
+    var progress = preload("res://scripts/kingdom_adventure_progression.gd").new()
+    for i in range(150):
+        progress.begin("game")
+        if progress.active_level != i+1 or progress.complete_round() != 1 or progress.complete_round() != 0:
+            return false
+    progress.difficulty = 2
+    progress.begin("game")
+    if progress.active_level != 1 or progress.complete_round() != 2 or progress.total_rounds != 151:
+        return false
+    var base := {"type":"budget","items":[3,4,5,7],"goal":12,"limit":3}
+    for tier in range(4):
+        for level in [1,2,50,10000]:
+            var data: Dictionary = progress.prepare(base,level,tier,0)
+            var field = Field.new()
+            if not field.begin(data,0) or not _solve_field(field):
+                return false
+    return progress.practice_score == 152

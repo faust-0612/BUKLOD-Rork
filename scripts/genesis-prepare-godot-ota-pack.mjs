@@ -26,7 +26,7 @@ const files = execFileSync('unzip', ['-Z1', dest], { encoding: 'utf8', timeout: 
 for (const entry of [
   'project.godot', 'scenes/Arena.tscn', 'scenes/WorldPreview.tscn',
   'scenes/LivingKingdom.tscn', 'scripts/living_kingdom.gd', 'scripts/kingdom_mission_state.gd', 'data/kingdom_realms.json', 'tests/living_kingdom_smoke.gd',
-  'data/kingdom_original_media.json', 'kingdom-original/heroes/phan.glb', 'kingdom-original/audio/complete.wav', 'kingdom-original/ambience/phan.wav', 'shaders/kingdom_original_water.gdshader', 'scripts/kingdom_cinematic_fx.gd', 'scripts/kingdom_field_challenge.gd',
+  'data/kingdom_original_media.json', 'kingdom-original/heroes/phan.glb', 'kingdom-original/audio/complete.wav', 'kingdom-original/ambience/phan.wav', 'shaders/kingdom_original_water.gdshader', 'scripts/kingdom_cinematic_fx.gd', 'scripts/kingdom_field_challenge.gd', 'scripts/kingdom_adventure_progression.gd',
   'scripts/world_explore_controller.gd', 'scripts/arena_root.gd',
   'world-art/kingdom.webp', 'world-art/house.webp', 'splash/buklod-green-b.png',
   'world-audio/kingdom_ambience.wav', 'world-audio/house_ambience.wav'

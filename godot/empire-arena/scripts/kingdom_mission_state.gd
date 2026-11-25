@@ -12,7 +12,7 @@ func begin(spec: Dictionary) -> bool:
     if str(spec.get("id", "")).is_empty() or not str(spec.get("kind", "")) in ["collect", "sequence", "delivery"]:
         return false
     var count := int(spec.get("count", 0))
-    if count < 2 or count > 3:
+    if count < 1 or count > 3:
         return false
     mission = spec.duplicate(true)
     visited.clear()

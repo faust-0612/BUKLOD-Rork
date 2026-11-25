@@ -17,6 +17,8 @@ var crop_remaining: Array[float] = []
 var beat_clock := 0.0
 var beat_index := 0
 var rhythm_misses := 0
+var timing_window := 0.24
+var memory_seconds := 3.0
 func begin(data: Dictionary, variant: int = 0) -> bool:
     clear()
     if not str(data.get("type","")) in TYPES or not data.get("items",[]) is Array:
@@ -70,6 +72,8 @@ func begin(data: Dictionary, variant: int = 0) -> bool:
             if int(item) < 0 or int(item) >= items.size():
                 return false
     spec = data.duplicate(true)
+    timing_window = clampf(float(data.get("timingWindow",0.24)),0.16,0.4)
+    memory_seconds = clampf(float(data.get("previewSeconds",3.0)),2.0,5.0)
     _vary(maxi(0,variant))
     if kind in ["match3","merge"]:
         board = spec.items.duplicate()
@@ -81,7 +85,7 @@ func begin(data: Dictionary, variant: int = 0) -> bool:
     if kind == "rhythm":
         beat_clock = -float(spec.beatSeconds)
     if spec.type == "memory":
-        preview_left = 3.0
+        preview_left = memory_seconds
     if spec.type == "route":
         picks.append(0)
     return true
@@ -127,6 +131,8 @@ func clear() -> void:
     beat_clock = 0.0
     beat_index = 0
     rhythm_misses = 0
+    timing_window = 0.24
+    memory_seconds = 3.0
 func tick(delta: float) -> bool:
     var changed := false
     if preview_left > 0.0:
@@ -146,7 +152,7 @@ func tick(delta: float) -> bool:
                     changed = true
     if not spec.is_empty() and not solved and spec.type == "rhythm":
         beat_clock += maxf(0.0,delta)
-        if beat_clock > 0.24:
+        if beat_clock > timing_window:
             rhythm_misses += 1
             beat_index = 0
             beat_clock = -float(spec.beatSeconds)
@@ -174,7 +180,7 @@ func choose(index: int) -> bool:
                 picks.clear()
                 feedback = "Not quite. Try the pattern again."
                 if spec.type == "memory":
-                    preview_left = 3.0
+                    preview_left = memory_seconds
                 return false
             picks.append(index)
             solved = picks.size() == spec.answer.size()
@@ -283,7 +289,7 @@ func _choose_crop(index: int) -> void:
             feedback = "Already harvested."
 
 func _choose_beat(index: int) -> void:
-    if absf(beat_clock) > 0.24:
+    if absf(beat_clock) > timing_window:
         feedback = "Wait for NOW."
         return
     if index != int(spec.answer[beat_index]):
@@ -327,7 +333,7 @@ func status() -> String:
         if solved:
             return "Rhythm complete"
         var note := str(spec.items[int(spec.answer[beat_index])])
-        return "%d/%d • %s • %s" % [beat_index+1,spec.answer.size(),note,"NOW" if absf(beat_clock)<=0.24 else "Wait %.1fs" % maxf(0.0,-beat_clock)]
+        return "%d/%d • %s • %s" % [beat_index+1,spec.answer.size(),note,"NOW" if absf(beat_clock)<=timing_window else "Wait %.1fs" % maxf(0.0,-beat_clock)]
     if spec.type == "budget":
         var total := 0
         for i in picks:
