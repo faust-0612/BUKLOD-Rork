@@ -232,4 +232,108 @@ export function createOriginalCue(id,index){
  return {bytes:pcm,meta:{id,seconds:dur,sampleRate:rate,channels:2,source:"original procedural layered synthesis"}};
 }
 export const CUE_IDS = Object.freeze(["start","discover","guide","complete","footstep","ambience","return"]);
-export function originalKingdomEntries(){const entries=[],heroes=[],cues=[];for(const [id,d] of Object.entries(HERO_DESIGNS)){const a=createOriginalHero(id,d);entries.push({name:'kingdom-original/heroes/'+id+'.glb',bytes:Buffer.from(a.bytes)});heroes.push(a.meta);}for(const [i,id] of CUE_IDS.entries()){const a=createOriginalCue(id,i);entries.push({name:'kingdom-original/audio/'+id+'.wav',bytes:Buffer.from(a.bytes)});cues.push(a.meta);}return {entries,manifest:{schema:1,origin:'BUKLOD_ORIGINAL_PROCEDURAL',heroes,cues}};}
+export const REALM_AMBIENCE_PROFILES = Object.freeze({
+  "phan": [
+    0.5,
+    0.18,
+    0.04,
+    2
+  ],
+  "quin": [
+    0.9,
+    0.04,
+    0.02,
+    3
+  ],
+  "van": [
+    0.24,
+    0.1,
+    0.13,
+    5
+  ],
+  "christian": [
+    0.25,
+    0.07,
+    0.08,
+    1
+  ],
+  "lhen": [
+    0.32,
+    0.13,
+    0.08,
+    7
+  ],
+  "ace": [
+    0.7,
+    0.06,
+    0.05,
+    4
+  ],
+  "ellusur": [
+    0.43,
+    0.12,
+    0.05,
+    6
+  ],
+  "jawo": [
+    0.25,
+    0.3,
+    0.15,
+    2
+  ],
+  "mitch": [
+    0.31,
+    0.06,
+    0.06,
+    8
+  ],
+  "niel": [
+    0.63,
+    0.1,
+    0.07,
+    3
+  ],
+  "angel": [
+    0.28,
+    0.04,
+    0.025,
+    6
+  ],
+  "vhen": [
+    0.38,
+    0.25,
+    0.2,
+    5
+  ],
+  "trudice": [
+    0.26,
+    0.27,
+    0.12,
+    9
+  ]
+});
+export function createRealmAmbience(id,profile) {
+ const rate=24000,dur=8,n=rate*dur,[wind,birds,water,mode]=profile;
+ const left=new Float32Array(n),right=new Float32Array(n);
+ let seed=(1103515245+mode*3299+id.split("").reduce((a,c)=>a+c.charCodeAt(0)*97,0))>>>0;
+ const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296*2-1};
+ const tau=2*Math.PI;let low=0,mid=0,fluid=0;const calls=Array.from({length:6},(_,i)=>({start:.5+i*1.13+random()*.22,freq:1500+mode*57+i*92+random()*140,pan:random()*.85}));
+ for(let i=0;i<n;i++){const t=i/rate,r=random();low=.997*low+.003*r;mid=.965*mid+.035*r;fluid=.77*fluid+.23*r;
+  const drift=.64+.23*Math.sin(tau*t/4+mode)+.1*Math.sin(tau*t/2);
+  let base=wind*(low*1.15+mid*.21)*drift;
+  base+=water*(mid*.27+fluid*.12)*(.7+.3*Math.sin(tau*t/1.6+mode));
+  const root=48+mode*4;const harm=.018*(Math.sin(tau*root*t)+.3*Math.sin(tau*(root*1.5)*t));
+  let l=base+harm,rch=base+harm;
+  for(const c of calls){const d=t-c.start;if(d>=0&&d<.26){const en=Math.sin(Math.PI*d/.26)**2;const sweep=tau*(c.freq*d+170*Math.sin(d*15)*d);const q=birds*.11*en*(Math.sin(sweep)+.15*Math.sin(sweep*2));l+=q*(.7-.3*c.pan);rch+=q*(.7+.3*c.pan);}}
+  left[i]=l;right[i]=rch;
+ }
+ // Make both loop endpoints match with a symmetric crossfade; no restart click.
+ const fade=rate/4;for(let i=0;i<fade;i++){const x=i/(fade-1),gain=.5-.5*Math.cos(Math.PI*x);left[i]*=gain;right[i]*=gain;left[n-1-i]*=gain;right[n-1-i]*=gain;}
+ let peak=0;for(let i=0;i<n;i++)peak=Math.max(peak,Math.abs(left[i]),Math.abs(right[i]));
+ const gain=.53/Math.max(.018,peak);
+ const bytes=new Uint8Array(44+n*4),d=new DataView(bytes.buffer),str=(o,s)=>{for(let i=0;i<s.length;i++)bytes[o+i]=s.charCodeAt(i)};
+ str(0,"RIFF");d.setUint32(4,bytes.length-8,true);str(8,"WAVE");str(12,"fmt ");d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,2,true);d.setUint32(24,rate,true);d.setUint32(28,rate*4,true);d.setUint16(32,4,true);d.setUint16(34,16,true);str(36,"data");d.setUint32(40,n*4,true);
+ for(let i=0;i<n;i++){d.setInt16(44+i*4,Math.round(left[i]*gain*32767),true);d.setInt16(46+i*4,Math.round(right[i]*gain*32767),true);}
+ return {bytes,meta:{id,seconds:dur,sampleRate:rate,channels:2,source:"original synthesized realm wind, wildlife and water layers"}};
+}
+export function originalKingdomEntries(){const entries=[],heroes=[],cues=[];for(const [id,d] of Object.entries(HERO_DESIGNS)){const a=createOriginalHero(id,d);entries.push({name:'kingdom-original/heroes/'+id+'.glb',bytes:Buffer.from(a.bytes)});heroes.push(a.meta);}for(const [i,id] of CUE_IDS.entries()){const a=createOriginalCue(id,i);entries.push({name:'kingdom-original/audio/'+id+'.wav',bytes:Buffer.from(a.bytes)});cues.push(a.meta);}const soundscapes=[];for(const [id,profile] of Object.entries(REALM_AMBIENCE_PROFILES)){const a=createRealmAmbience(id,profile);entries.push({name:'kingdom-original/ambience/'+id+'.wav',bytes:Buffer.from(a.bytes)});soundscapes.push(a.meta);}return {entries,manifest:{schema:2,origin:'BUKLOD_ORIGINAL_PROCEDURAL',heroes,cues,soundscapes}};}

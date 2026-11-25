@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",
-  "objective": "Build first playable Living Kingdom Godot DEV vertical slice with 13 realm identities and 39 canonical game-linked local adventure specifications, without retiring original games or reopening Arena/estate. Add 13 distinct procedural realm art directions, bounded props, guide dialogue, dynamic lighting and realm-specific mission layouts. Replace existing sprite guides and shared explorer rig with 13 original generated articulated GLBs, new animation tracks and original synthesized audio. Replace imported Kingdom environment props with original procedural geometry and surface shader, and wire interactive animation and sound. Upgrade character mesh topology to actual glTF skinned skeletons, material-batched surfaces, blended joint weights, facial and hand detail, denser authored motion.",
+  "objective": "Build first playable Living Kingdom Godot DEV vertical slice with 13 realm identities and 39 canonical game-linked local adventure specifications, without retiring original games or reopening Arena/estate. Add 13 distinct procedural realm art directions, bounded props, guide dialogue, dynamic lighting and realm-specific mission layouts. Replace existing sprite guides and shared explorer rig with 13 original generated articulated GLBs, new animation tracks and original synthesized audio. Replace imported Kingdom environment props with original procedural geometry and surface shader, and wire interactive animation and sound. Upgrade character mesh topology to actual glTF skinned skeletons, material-batched surfaces, blended joint weights, facial and hand detail, denser authored motion. Add 13 original realm audio soundscapes and acceleration/deceleration matched to native animation.",
   "baseRef": "c9bc8a6c01a3c8465240b3984a76b76688539f77",
   "productionBaselineEvidence": "Kingdom restoration source c9bc8a6c is DEV only; last verified staging runtime 2.0.6 group cc65a12a-3e1b-45fa-aa6a-1e2ed27f0f31. No production change authorized.",
   "chosenApproach": "Generate original indexed 3D character meshes and five articulated animation clips per design, integrate direct GLB loading and seven original layered PCM cues, retain old games as fallback; gate native release.",
@@ -26,7 +26,8 @@
     "Verify each realm has imported props, original character guide texture, unique biome and correct movement bounds; no fake entitlement.",
     "Validate all 13 GLB headers, mesh counts, named animations, and seven WAV files; inspect actual Godot visual/audio on device before release.",
     "Original environment geometry, no imported props in Living Kingdom, actual on-device appearance, motion and audio evaluation.",
-    "Inspect decoded GLB inverse bind matrices, normalized vertex weights, joint/index range and actual Godot Skeleton3D import."
+    "Inspect decoded GLB inverse bind matrices, normalized vertex weights, joint/index range and actual Godot Skeleton3D import.",
+    "Validate 13 stereo ambience headers, peak bounds and clean loop endpoints; verify walking/running transitions, reaction holds and audio focus on Android."
   ],
   "allowedPaths": [
     ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",

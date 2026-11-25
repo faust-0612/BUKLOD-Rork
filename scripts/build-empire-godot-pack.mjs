@@ -75,6 +75,7 @@ entries.push({name:'data/kingdom_realms.json',bytes:Buffer.from(JSON.stringify(k
 const originalKingdom = originalKingdomEntries();
 assert.equal(originalKingdom.manifest.heroes.length,13);
 assert.equal(originalKingdom.manifest.cues.length,7);
+assert.equal(originalKingdom.manifest.soundscapes.length,13);
 entries.push(...originalKingdom.entries,{name:'data/kingdom_original_media.json',bytes:Buffer.from(JSON.stringify(originalKingdom.manifest))});
 const splashSource = path.join(root,'assets/season2/genesis/genesis-green-b-transparent.png');
 const nativeSplash = readFileSync(splashSource);

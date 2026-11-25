@@ -45,7 +45,7 @@ test('Session chapter continuation is non-credit and never discards completed ad
 test('Original 13 hero GLBs and seven PCM cues are generated locally; not sprite recolors',async()=>{
  const {originalKingdomEntries}=await import('../scripts/kingdom-original-media.mjs');
  const {entries,manifest}=originalKingdomEntries();
- assert.equal(manifest.heroes.length,13);assert.equal(manifest.cues.length,7);
+ assert.equal(manifest.heroes.length,13);assert.equal(manifest.cues.length,7);assert.equal(manifest.soundscapes.length,13);
  assert.equal(new Set(manifest.heroes.map(h=>h.prop)).size,13);
  for(const item of entries){const b=item.bytes;if(item.name.endsWith('.glb')){assert.equal(b.toString('ascii',0,4),'glTF');assert.equal(b.readUInt32LE(8),b.length);const json=JSON.parse(b.toString('utf8',20,20+b.readUInt32LE(12)));assert.equal(json.meshes.length,1);assert.ok(json.meshes[0].primitives.length>=9);assert.equal(json.skins.length,1);assert.ok(json.skins[0].joints.length>=15);assert.deepEqual(json.animations.map(a=>a.name),['Idle','Walk','Run','Interact','Celebrate']);}else{assert.equal(b.toString('ascii',0,4),'RIFF');assert.equal(b.readUInt16LE(22),2);assert.equal(b.readUInt32LE(40),b.length-44);}}
  const world=read('godot/empire-arena/scripts/living_kingdom.gd');assert.ok(world.includes('kingdom-original/heroes/'));assert.ok(world.includes('kingdom-original/audio/'));assert.doesNotMatch(world,/Sprite3D|art\/fullbody\/|rig_knight/);assert.ok(world.includes('var sound_enabled := false'));

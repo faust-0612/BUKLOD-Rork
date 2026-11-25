@@ -27,6 +27,10 @@ var sound_button: Button
 var guide_anim: AnimationPlayer
 var motion_clip := ""
 var footstep_time := 0.0
+var last_step_side := 0
+var moving_speed := 0.0
+var avatar_anim: AnimationPlayer
+var current_ambient_id := ""
 var action_hold := 0.0
 var ambient_player: AudioStreamPlayer
 var ground_material: ShaderMaterial
@@ -109,6 +113,10 @@ func _build_avatar() -> void:
     if model != null:
         player.add_child(model)
         visual_count += 1
+        for candidate in model.find_children("*", "AnimationPlayer", true, false):
+            if candidate is AnimationPlayer:
+                avatar_anim = candidate
+                break
     _play_avatar_animation("Idle")
     sound_player = AudioStreamPlayer.new()
     sound_player.volume_db = -13.0
@@ -158,6 +166,8 @@ func _play_original_sound(id: String) -> void:
         return
     if id == "footstep" and sound_player.playing:
         return
+    if id != "footstep":
+        sound_player.pitch_scale = 1.0
     var raw := FileAccess.get_file_as_bytes("res://kingdom-original/audio/" + id + ".wav")
     if raw.is_empty():
         return
@@ -166,6 +176,22 @@ func _play_original_sound(id: String) -> void:
         sound_player.stream = stream
         sound_player.play()
 
+func _set_realm_ambience() -> void:
+    if not sound_enabled or ambient_player == null or realm_index >= realms.size():
+        return
+    var id := str(realms[realm_index].get("id", ""))
+    if id == current_ambient_id and ambient_player.playing:
+        return
+    var raw := FileAccess.get_file_as_bytes("res://kingdom-original/ambience/" + id + ".wav")
+    if raw.is_empty():
+        raw = FileAccess.get_file_as_bytes("res://kingdom-original/audio/ambience.wav")
+    var track := AudioStreamWAV.load_from_buffer(raw) if not raw.is_empty() else null
+    if track != null:
+        track.loop_mode = AudioStreamWAV.LOOP_FORWARD
+        ambient_player.stream = track
+        current_ambient_id = id
+        ambient_player.play()
+
 func _toggle_original_audio() -> void:
     sound_enabled = not sound_enabled
     sound_button.text = "SOUND ON" if sound_enabled else "SOUND OFF"
@@ -173,12 +199,7 @@ func _toggle_original_audio() -> void:
         sound_player.stop()
         ambient_player.stop()
     else:
-        var raw := FileAccess.get_file_as_bytes("res://kingdom-original/audio/ambience.wav")
-        var ambient := AudioStreamWAV.load_from_buffer(raw)
-        if ambient != null:
-            ambient.loop_mode = AudioStreamWAV.LOOP_FORWARD
-            ambient_player.stream = ambient
-            ambient_player.play()
+        _set_realm_ambience()
         _play_original_sound("guide")
 
 func _apply_realm_visuals() -> void:
@@ -212,6 +233,7 @@ func _apply_realm_visuals() -> void:
     guide_talking = false
     guide_notice.text = str(realm_profile.get("biome", "")) + " • " + str(realm.get("theme", ""))
     _apply_daylight()
+    _set_realm_ambience()
 
 func _apply_daylight() -> void:
     if world_sun == null or realm_environment == null:
@@ -376,6 +398,7 @@ func move_to(point: Vector3) -> bool:
         return false
     if not super.move_to(point):
         return false
+    action_hold = 0.0
     pending_target = -1
     if quest.phase == "active":
         for i in range(int(quest.mission.get("count", 0))):
@@ -401,10 +424,36 @@ func _unhandled_input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
-    action_hold = maxf(0.0, action_hold - delta)
-    if player.position.distance_to(destination) > 0.3:
+    # Custom locomotion: acceleration, deceleration and motion-rate matching;
+    # no inherited child bounce or abrupt teleport on touch.
+    var dt := minf(delta, 0.05)
+    elapsed += dt
+    action_hold = maxf(0.0, action_hold - dt)
+    var remaining := player.position.distance_to(destination)
+    var desired_speed := 4.4 if remaining > 6.0 else 2.45
+    desired_speed *= clampf(remaining / 1.15, 0.0, 1.0)
+    moving_speed = move_toward(moving_speed, desired_speed, 10.0 * dt)
+    var moving := remaining > 0.08
+    if moving:
         action_hold = 0.0
-    super._process(delta)
+        var direction := (destination - player.position).normalized()
+        player.rotation.y = lerp_angle(player.rotation.y, atan2(direction.x, direction.z), minf(1.0,dt*12.0))
+        player.position = player.position.move_toward(destination, maxf(0.04,moving_speed)*dt)
+        var clip := "Run" if moving_speed > 3.2 else "Walk"
+        _play_avatar_animation(clip)
+        if avatar_anim != null:
+            avatar_anim.speed_scale = clampf(moving_speed / (4.4 if clip == "Run" else 2.45), 0.40, 1.35)
+    else:
+        player.position = destination
+        moving_speed = 0.0
+        if avatar_anim != null:
+            avatar_anim.speed_scale = 1.0
+        _play_avatar_animation("Idle")
+    if camera != null:
+        var focus := player.position + Vector3(0,0.85,0)
+        var follow := player.position + Vector3(0,12.5,15.5)
+        camera.position = camera.position.lerp(follow, minf(1.0,dt*3.5))
+        camera.look_at(focus, Vector3.UP)
     if sky_auto:
         day_phase = fposmod(day_phase + minf(delta, 0.05) / 240.0, 1.0)
         daylight_update += delta
@@ -417,15 +466,24 @@ func _process(delta: float) -> void:
         if guide_talking and not guide_near:
             guide_talking = false
             guide_notice.text = str(realm_profile.get("biome", ""))
-    if player.position.distance_to(destination) > 0.3:
-        footstep_time += delta
-        if footstep_time >= 0.46:
+    if moving and moving_speed > 0.7:
+        footstep_time += dt
+        var step_period := 0.32 if moving_speed > 3.2 else 0.46
+        if footstep_time >= step_period:
             footstep_time = 0.0
+            last_step_side = 1 - last_step_side
+            sound_player.pitch_scale = 0.96 if last_step_side == 0 else 1.04
             _play_original_sound("footstep")
-    if pending_target < 0 or player.position.distance_to(destination) > 1.0:
+    else:
+        footstep_time = 0.0
+    if pending_target < 0 or player.position.distance_to(destination) > 0.30:
         return
     var index := pending_target
     pending_target = -1
+    destination = player.position
+    moving_speed = 0.0
+    if avatar_anim != null:
+        avatar_anim.speed_scale = 1.0
     if index == 3:
         if quest.finish(player.position.distance_to(START)):
             _play_avatar_animation("Celebrate")

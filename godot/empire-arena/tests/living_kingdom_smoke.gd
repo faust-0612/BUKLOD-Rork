@@ -56,7 +56,7 @@ func _run() -> void:
     if not world.move_to(Vector3(-5, 0, -5)) or world.quest.visited.size() != 0:
         quit(8)
         return
-    for i in range(60):
+    for i in range(160):
         world._process(0.04)
     if world.quest.visited.size() != 1:
         quit(9)
