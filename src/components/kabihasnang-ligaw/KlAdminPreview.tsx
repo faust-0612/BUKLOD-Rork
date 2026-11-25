@@ -1,3 +1,4 @@
+import { splitKlItalics } from '@/lib/kabihasnang-ligaw/italicFormatting';
 import KlChapterAudio from './KlChapterAudio';
 import React,{useEffect,useRef,useState} from 'react';
 import { Image } from 'expo-image';
@@ -122,7 +123,7 @@ export default function KlAdminPreview({episodeId,onApproved}:{episodeId:string;
  {bundle.media.filter(m=>m.kind==='cover').map(m=>image(m))}
  {paragraphs.map((p,i)=><View key={i} style={{gap:8}}>
  {illustrationsAtParagraph(bundle.media,p,'before').map(m=>image(m))}
- <Text style={{color:'#fff',fontSize:17,lineHeight:27}}>{p}</Text>
+ <Text style={{color:'#fff',fontSize:17,lineHeight:27}}>{splitKlItalics(p).some(run=>run.italic) ? splitKlItalics(p).map((run,j)=><Text key={j} style={run.italic ? {fontStyle:'italic'} : undefined}>{run.text}</Text>) : p}</Text>
  {illustrationsAtParagraph(bundle.media,p,'after').map(m=>image(m))}
  </View>)}
  <Text style={{color:'#fff'}}>Review uploaded media before approval:</Text>
