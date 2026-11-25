@@ -39,7 +39,7 @@ func _run() -> void:
     for i in range(13):
         world._select_realm(i)
         var snap: Dictionary = world.get_dev_snapshot()
-        if snap.get("realm_props", 0) < 8 or not snap.get("guide_ready", false):
+        if snap.get("realm_props", 0) < 8 or not snap.get("guide_ready", false) or not snap.get("original_avatar", false):
             quit(10)
             return
         biomes[snap.get("biome")] = true

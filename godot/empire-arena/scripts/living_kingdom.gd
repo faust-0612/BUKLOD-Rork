@@ -1,5 +1,5 @@
 ## Independent Kingdom adventure on the existing reviewed 3D renderer.
-## Shared rig is an explorer, not a claim of 13 individually modeled heroes.
+## Uses original procedural articulated character meshes; visual quality remains device-gated.
 extends "res://scripts/premium_world_3d.gd"
 
 const MissionState = preload("res://scripts/kingdom_mission_state.gd")
@@ -19,8 +19,14 @@ var world_sun: DirectionalLight3D
 var night := false
 var pending_target := -1
 var realm_visuals: Node3D
-var guide: Sprite3D
-var guide_texture_cache: Dictionary = {}
+var guide: Node3D
+var original_character_id := "phan"
+var sound_player: AudioStreamPlayer
+var sound_enabled := false
+var sound_button: Button
+var guide_anim: AnimationPlayer
+var motion_clip := ""
+var footstep_time := 0.0
 var ground_material: StandardMaterial3D
 var realm_environment: Environment
 var guide_notice: Label
@@ -69,11 +75,8 @@ func _build_props() -> void:
         mission_targets.append(TARGETS[i])
     return_marker = _marker(START, Color("#77f1c5"))
     return_marker.visible = false
-    guide = Sprite3D.new()
-    guide.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-    guide.hframes = 4
-    guide.vframes = 2
-    guide.position = Vector3(0, 1.65, -1.5)
+    guide = Node3D.new()
+    guide.position = Vector3(0, 0, -1.5)
     add_child(guide)
     guide_label = Label3D.new()
     guide_label.position = Vector3(0, 3.3, -1.5)
@@ -83,19 +86,88 @@ func _build_props() -> void:
     guide_label.outline_size = 9
     add_child(guide_label)
 
-func _guide_texture(id: String) -> Texture2D:
-    if guide_texture_cache.has(id):
-        return guide_texture_cache[id]
-    var bytes := FileAccess.get_file_as_bytes("res://art/fullbody/" + id + "_idle.png")
-    var img := Image.new()
-    if bytes.is_empty() or img.load_png_from_buffer(bytes) != OK or img.get_width() % 4 != 0 or img.get_height() % 2 != 0:
+func _original_hero(id: String) -> Node3D:
+    if not id in ["phan","quin","van","christian","lhen","ace","ellusur","jawo","mitch","niel","angel","vhen","trudice"]:
         return null
-    var texture := ImageTexture.create_from_image(img)
-    # Keep only two decoded atlases; never load all 13 at once.
-    if guide_texture_cache.size() >= 2:
-        guide_texture_cache.clear()
-    guide_texture_cache[id] = texture
-    return texture
+    var raw := FileAccess.get_file_as_bytes("res://kingdom-original/heroes/" + id + ".glb")
+    if raw.size() < 1024 or raw.size() > 4000000:
+        return null
+    var importer := GLTFDocument.new()
+    var state := GLTFState.new()
+    if importer.append_from_buffer(raw, "res://kingdom-original/heroes/", state) != OK:
+        return null
+    var model: Node = importer.generate_scene(state)
+    return model as Node3D
+
+func _build_avatar() -> void:
+    player = Node3D.new()
+    player.name = "OriginalLocalExplorer"
+    add_child(player)
+    var model := _original_hero(original_character_id)
+    if model != null:
+        player.add_child(model)
+        visual_count += 1
+    _play_avatar_animation("Idle")
+    sound_player = AudioStreamPlayer.new()
+    sound_player.volume_db = -13.0
+    add_child(sound_player)
+
+func _set_guide(id: String) -> void:
+    for child in guide.get_children():
+        guide.remove_child(child)
+        child.queue_free()
+    guide_anim = null
+    var model := _original_hero(id)
+    guide.visible = model != null
+    if model == null:
+        return
+    guide.add_child(model)
+    model.rotation.y = PI
+    for candidate in model.find_children("*", "AnimationPlayer", true, false):
+        if candidate is AnimationPlayer:
+            guide_anim = candidate
+            for clip in guide_anim.get_animation_list():
+                if "idle" in str(clip).to_lower():
+                    var animation := guide_anim.get_animation(clip)
+                    animation.loop_mode = Animation.LOOP_LINEAR
+                    guide_anim.play(clip)
+                    break
+            break
+
+func _play_avatar_animation(desired: String) -> void:
+    if player == null or desired == motion_clip:
+        return
+    for candidate in player.find_children("*", "AnimationPlayer", true, false):
+        if candidate is AnimationPlayer:
+            for clip in candidate.get_animation_list():
+                if desired.to_lower() in str(clip).to_lower():
+                    var animation: Animation = candidate.get_animation(clip)
+                    if desired in ["Idle", "Walk", "Run"]:
+                        animation.loop_mode = Animation.LOOP_LINEAR
+                    candidate.play(clip, 0.12)
+                    motion_clip = desired
+                    return
+
+func _play_original_sound(id: String) -> void:
+    if not sound_enabled or sound_player == null or not id in ["start","discover","guide","complete","footstep","ambience","return"]:
+        return
+    if id == "footstep" and sound_player.playing:
+        return
+    var raw := FileAccess.get_file_as_bytes("res://kingdom-original/audio/" + id + ".wav")
+    if raw.is_empty():
+        return
+    var stream := AudioStreamWAV.load_from_buffer(raw)
+    if stream != null:
+        sound_player.stream = stream
+        sound_player.play()
+
+func _toggle_original_audio() -> void:
+    sound_enabled = not sound_enabled
+    sound_button.text = "SOUND ON" if sound_enabled else "SOUND OFF"
+    if not sound_enabled:
+        sound_player.stop()
+    else:
+        _play_original_sound("guide")
 
 func _realm_prop(id: String, at: Vector3, size: float, angle: float) -> void:
     if realm_visuals.get_child_count() >= 20:
@@ -140,10 +212,7 @@ func _apply_realm_visuals() -> void:
         var mat: StandardMaterial3D = target_nodes[i].material_override
         mat.albedo_color = accent
         mat.emission = accent
-    guide.texture = _guide_texture(str(realm.get("id", "")))
-    if guide.texture != null:
-        guide.pixel_size = 2.5 / float(guide.texture.get_height() / 2)
-    guide.visible = guide.texture != null
+    _set_guide(str(realm.get("id", "")))
     guide_label.text = str(realm.get("theme", "")) + " GUIDE"
     guide_label.modulate = accent
     guide_talking = false
@@ -208,6 +277,11 @@ func _install_controls() -> void:
     sky_button.custom_minimum_size = Vector2(130, 50)
     sky_button.pressed.connect(_toggle_sky)
     controls.add_child(sky_button)
+    sound_button = Button.new()
+    sound_button.text = "SOUND OFF"
+    sound_button.custom_minimum_size = Vector2(120, 48)
+    sound_button.pressed.connect(_toggle_original_audio)
+    controls.add_child(sound_button)
     next_button = Button.new()
     next_button.text = "NEXT ADVENTURE"
     next_button.custom_minimum_size = Vector2(160, 48)
@@ -251,6 +325,7 @@ func _talk_to_guide() -> void:
         guide_notice.text = "Walk to the guide to talk."
         return
     guide_talking = true
+    _play_original_sound("guide")
     guide_notice.text = str(realm_profile.get("dialogue", ""))
 
 func _select_realm(index: int) -> void:
@@ -294,7 +369,8 @@ func _start_or_cancel() -> void:
     elif realm_index < realms.size():
         var missions: Array = realms[realm_index].get("missions", [])
         if mission_index < missions.size():
-            quest.begin(missions[mission_index])
+            if quest.begin(missions[mission_index]):
+                _play_original_sound("start")
     pending_target = -1
     destination = player.position
     _update_quest_status()
@@ -337,20 +413,26 @@ func _process(delta: float) -> void:
             daylight_update = 0.0
             _apply_daylight()
     if guide != null:
-        guide.frame = int(elapsed * 5.0) % 8
         guide_near = player.position.distance_to(Vector3(0, 0, -1.5)) <= 3.2
         talk_button.disabled = not guide_near
         if guide_talking and not guide_near:
             guide_talking = false
             guide_notice.text = str(realm_profile.get("biome", ""))
+    if player.position.distance_to(destination) > 0.3:
+        footstep_time += delta
+        if footstep_time >= 0.46:
+            footstep_time = 0.0
+            _play_original_sound("footstep")
     if pending_target < 0 or player.position.distance_to(destination) > 1.0:
         return
     var index := pending_target
     pending_target = -1
     if index == 3:
-        quest.finish(player.position.distance_to(START))
+        if quest.finish(player.position.distance_to(START)):
+            _play_original_sound("complete")
     else:
-        quest.visit(index, player.position.distance_to(mission_targets[index]))
+        if quest.visit(index, player.position.distance_to(mission_targets[index])):
+            _play_original_sound("return" if quest.phase == "return" else "discover")
     _update_quest_status()
 
 func _update_quest_status() -> void:
@@ -383,6 +465,7 @@ func get_dev_snapshot() -> Dictionary:
     result["local_completed"] = quest.completed.duplicate()
     result["biome"] = realm_profile.get("biome", "")
     result["realm_props"] = realm_visuals.get_child_count() if realm_visuals != null else 0
-    result["guide_ready"] = guide != null and guide.texture != null
+    result["guide_ready"] = guide != null and guide.get_child_count() > 0 and guide_anim != null
+    result["original_avatar"] = player != null and player.get_child_count() > 0
     result["guide_near"] = guide_near
     return result

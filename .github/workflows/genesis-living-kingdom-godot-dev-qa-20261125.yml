@@ -7,6 +7,7 @@ on:
       - 'godot/empire-arena/**'
       - 'scripts/kingdom-living-realms-catalog.mjs'
       - 'scripts/kingdom-realm-visual-profiles.mjs'
+      - 'scripts/kingdom-original-media.mjs'
       - 'scripts/build-empire-godot-pack.mjs'
       - 'scripts/genesis-prepare-godot-ota-pack.mjs'
       - 'src/features/season2/genesis/GenesisKingdomPortal.tsx'
