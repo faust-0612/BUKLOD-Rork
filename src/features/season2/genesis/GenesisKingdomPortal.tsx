@@ -162,10 +162,10 @@ export default function GenesisKingdomPortal() {
         </View>
         <GenesisSeal active={animate} size={70}/>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD World map"
-        onPress={()=>router.push('/buklod-map' as any)} style={styles.worldBack}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Back to BUKLOD Home"
+        onPress={()=>router.replace('/(tabs)/hub')} style={styles.worldBack}>
         <MaterialCommunityIcons name="arrow-left" size={18} color="#EFD7A0"/>
-        <Text style={styles.worldBackText}>BUKLOD World Map</Text>
+        <Text style={styles.worldBackText}>BUKLOD Home</Text>
       </Pressable>
       <GenesisKingdomLoreMaps mode={mapMode} realms={GENESIS_REALMS}
         unlockedSpecialIds={allowedSpecialIds} loadingSpecial={specialLoading}
@@ -276,16 +276,6 @@ export default function GenesisKingdomPortal() {
         </Pressable>
       </View>:null}
       <View style={styles.actions}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Enter BUKLOD Empire Arena inside the Kingdom"
-          onPress={()=>{ void pulseGenesisTouch('selection'); router.push('/games/empire-arena' as any); }}
-          style={styles.action}>
-          <MaterialCommunityIcons name="shield-sword" size={23} color="#FFD99C"/>
-          <View style={{flex:1}}>
-            <Text style={styles.actionTitle}>Empire Arena</Text>
-            <Text style={styles.actionSub}>Landscape 1v1 / 3v3 / 5v5 · animated battles · offline practice</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" color="#FFE3A3" size={24}/>
-        </Pressable>
         <Pressable accessibilityRole="switch" accessibilityLabel="Genesis cinematic ambience"
           accessibilityState={{checked:musicEnabled}} onPress={toggleMusic}
           style={[styles.action,styles.soundAction]}>

@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
-import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { useBuklodScope } from '@/providers/BuklodScopeProvider';
@@ -35,9 +34,7 @@ export default function BuklodNavigationSideMenu({ visible, onClose }: { visible
   const insets = useSafeAreaInsets();
   const busy = useRef(false);
   const [opening, setOpening] = useState(false);
-  const genesisMain = isGenesisPreviewBuild();
   const navigate = async (item: MenuLink) => {
-    if (genesisMain && item.route === '/games') return;
     if (busy.current) return;
     busy.current = true;
     setOpening(true);
@@ -96,7 +93,7 @@ export default function BuklodNavigationSideMenu({ visible, onClose }: { visible
                 </View>
                 <View style={{ borderRadius: 16, overflow: 'hidden',
                   borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface }}>
-                  {section.links.filter(item => !genesisMain || item.route !== '/games').map((item, index) => {
+                  {section.links.map((item, index) => {
                     const selected = pathname === item.route;
                     return (
                       <Pressable key={item.route} accessibilityRole="button" accessibilityLabel={item.label}

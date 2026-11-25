@@ -1,0 +1,77 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-kingdom-restore-20261125.json",
+  "objective": "Owner-authorized restore Kingdom only to Genesis MAIN existing Android staging OTA; Arena, entry map, and estate remain retired.",
+  "baseRef": "27bad448a4b205edfe5bfe0b6a428b0d3059dab6",
+  "productionBaselineEvidence": "Verified staging OTA 7dee3f5b3556448d9f0f03b7da98aa00438b3c0b group cc65a12a-3e1b-45fa-aa6a-1e2ed27f0f31, runtime 2.0.6-genesis-godot-ota, verified source RC 27bad448. Production MAIN 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 unchanged by prior staging receipt.",
+  "chosenApproach": "Restore exact original menu/search catalogue and the existing Kingdom portal; explicit allowlist for original Kingdom routes; remove Arena CTA and old world-map navigation, replace with direct Home.",
+  "selectionRationale": "Existing Kingdom code and assets already verified in staging baseline; JS-only OTA retains native compatibility and does not reintroduce Arena.",
+  "alternativeApproaches": [
+    "Revert entire removal commit: rejected because it restores Arena and estate.",
+    "Rebuild APK: not necessary, owner requested existing staging runtime."
+  ],
+  "riskAreas": [
+    "navigation-scroll",
+    "app-runtime",
+    "navigation-auth",
+    "kingdom-character"
+  ],
+  "preserveBehaviors": [
+    "Keep login and Home routing, retired entry map and estate routes, original household tools, AdMob slots and bottom navigation.",
+    "Keep original character progression and Kingdom station authorization, offline games and rewards; no new reward or backend writes.",
+    "Keep existing non-Genesis behavior; no native APK or production changes."
+  ],
+  "acceptanceChecks": [
+    "Focused source tests for Kingdom allowlist, blocked Arena, old estate redirects, original ads and Home boot.",
+    "Exact source CI, TypeScript/Metro, Ads and navigation regressions; remote staging prior group guard, native parity and readback."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-kingdom-restore-20261125.json",
+    "src/app/games/_layout.tsx",
+    "src/components/BuklodFeatureFinder.tsx",
+    "src/components/BuklodNavigationSideMenu.tsx",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "src/lib/buklodKingdomRoutePolicy.ts",
+    "src/lib/buklodNavigationV2.ts",
+    "tests/genesis-main-home-no-empire-20261124.test.mjs",
+    "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/genesis-main-home-no-empire-20261124.test.mjs",
+    "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Restore Kingdom UI only without native or backend change.",
+      "preservedBehaviors": [
+        "Existing direct Home and estate removal preserved."
+      ],
+      "tests": [
+        "tests/genesis-main-home-no-empire-20261124.test.mjs",
+        "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Restore only the original menu and Kingdom search route; retain account scope guard.",
+      "preservedBehaviors": [
+        "Original navigation and scope guards remain, no retired map entry."
+      ],
+      "tests": [
+        "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Re-enable existing Kingdom station routes and verified progression while disallowing Arena.",
+      "preservedBehaviors": [
+        "Preserve existing original game catalogue, progression and reward authorities."
+      ],
+      "tests": [
+        "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_STAGING_OTA_GATE_PENDING"
+}
