@@ -157,7 +157,7 @@ export function BuklodCommunityCommentThread({
           comment.commenter_name,
           comment.user_id,
         )}
-        size={isReply ? 28 : 34}
+        size={isReply ? 26 : 32}
       />
       <View style={styles.bubbleWrap}>
         <BuklodCommunityCommentBubble
@@ -287,13 +287,13 @@ function createStyles(theme: {
 }) {
   return StyleSheet.create({
     root: {
-      gap: 8,
+      gap: 4,
     },
     sortRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      marginBottom: 4,
+      gap: 6,
+      marginBottom: 2,
     },
     sortLabel: {
       fontSize: 13,
@@ -303,7 +303,7 @@ function createStyles(theme: {
     },
     sortChip: {
       paddingHorizontal: 8,
-      paddingVertical: 6,
+      paddingVertical: 4,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: theme.border,
@@ -328,24 +328,24 @@ function createStyles(theme: {
       color: theme.textMuted,
     },
     thread: {
-      gap: 8,
-      marginBottom: 6,
+      gap: 4,
+      marginBottom: 3,
     },
     inlineAd: { marginVertical: 9 },
     row: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      gap: 6,
+      gap: 5,
     },
     replyRow: {
-      marginLeft: 12,
-      paddingLeft: 8,
+      marginLeft: 10,
+      paddingLeft: 6,
     },
     replyRail: {
       position: 'absolute',
-      left: -10,
-      top: 4,
-      bottom: 8,
+      left: -8,
+      top: 3,
+      bottom: 4,
       width: 2,
       borderRadius: 1,
       backgroundColor: theme.border,
@@ -355,8 +355,8 @@ function createStyles(theme: {
       minWidth: 0,
     },
     toggleReplies: {
-      marginLeft: 52,
-      paddingVertical: 4,
+      marginLeft: 44,
+      paddingVertical: 3,
     },
     toggleRepliesText: {
       fontSize: 13,

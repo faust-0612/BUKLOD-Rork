@@ -320,17 +320,17 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
  communityDrawerHandle:{
   width:42,
   height:4,
-  marginTop:8,
-  marginBottom:6,
+  marginTop:6,
+  marginBottom:3,
   borderRadius:2,
   alignSelf:'center',
   backgroundColor:'#BAC4BD'
  },
 
  communityCommentHeader:{
-  minHeight:58,
-  paddingHorizontal:13,
-  paddingBottom:9,
+  minHeight:52,
+  paddingHorizontal:11,
+  paddingBottom:5,
   flexDirection:'row',
   alignItems:'center',
   borderBottomWidth:
@@ -361,10 +361,10 @@ member:{minHeight:57,padding:11,borderWidth:1,borderColor:c.line,borderRadius:12
  },
 
  communityCommentList:{
-  paddingHorizontal:10,
-  paddingTop:10,
-  paddingBottom:18,
-  gap:8
+  paddingHorizontal:8,
+  paddingTop:6,
+  paddingBottom:10,
+  gap:4
  },
 
  communityCommentEmpty:{
