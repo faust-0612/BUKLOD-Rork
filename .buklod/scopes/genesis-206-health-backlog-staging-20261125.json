@@ -1,0 +1,71 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-health-backlog-staging-20261125.json",
+  "objective": "Port the previously compiled in-app Tagalog IMCI and AJA education source to the current isolated Genesis 2.0.6 staging backlog; no publication.",
+  "baseRef": "c9bc8a6c01a3c8465240b3984a76b76688539f77",
+  "productionBaselineEvidence": "Production main 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 unchanged. Prior staging publish run 45342074126 succeeded at 7dee3f5b3556448d9f0f03b7da98aa00438b3c0b with source 27bad448; its proof artifact 14896193554 exists. Current served OTA has not independently been read back. Parent includes unshipped Kingdom-only restore PR 1166.",
+  "chosenApproach": "Reuse seven exact source/test blobs from previously verified Health R4 source 8b8d6bcf81caccfe03f56b93d9bb34e440c3915c; all three modified files have byte-identical ancestor and target blobs and four new files were absent. Do not import old runtime-specific QA/publisher. Preserve current staging-native package, runtime, channel, and shared-backend restrictions.",
+  "selectionRationale": "Source-only forward-port avoids regression or an older runtime overwrite; earlier R4 QA compiled the same seven blobs. Current Genesis 206 source still contains the old Health stub.",
+  "alternativeApproaches": [
+    "Merge the entire old R4 release branch: rejected because its runtime/channel and other source diverge.",
+    "Publish prior frozen R4 bundle or bypass current QA: rejected; staging RC must be verified against exact installed 2.0.6 identity."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "pediatric-caregiver-safety",
+    "adolescent-privacy",
+    "emergency-escalation",
+    "ads-gating",
+    "no-native-runtime-change"
+  ],
+  "preserveBehaviors": [
+    "No diagnosis, medical prescription or professional activation; retain educational boundaries, emergency referral, consent and no response persistence or network transmission.",
+    "No production, shared DB, Edge, Play, native dependency or APK changes. Preserve original Health links and current ad/navigation protection.",
+    "Do not enable unverified AI or emergency ads."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-health-backlog-staging-20261125.json",
+    "src/app/profile/buklod-health.tsx",
+    "src/components/health/BuklodAjaTagalogGuide.tsx",
+    "src/components/health/BuklodImciTagalogGuide.tsx",
+    "src/lib/buklodAjaTagalog.ts",
+    "src/lib/buklodImciTagalog.ts",
+    "tests/health-center-consultation-card-20261110.test.mjs",
+    "tests/nov14-imci-health-flow.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/health-center-consultation-card-20261110.test.mjs",
+    "tests/nov14-imci-health-flow.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Port exact previously source-compiled educational Health guides and their existing privacy and emergency regression tests.",
+      "preservedBehaviors": [
+        "No data persistence, patient answer transmission, new native or backend dependency, or nonurgent ads during emergency."
+      ],
+      "tests": [
+        "tests/health-center-consultation-card-20261110.test.mjs",
+        "tests/nov14-imci-health-flow.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Exact seven source blobs, scoped staging-only diff and unchanged native/backend identity.",
+    "All focused privacy, emergency, AdMob/nav and runtime compilation gates pass on exact final candidate; no provider publication until independent staging mapping and readback are verified.",
+    "Physical-device check waived previously, not a device pass. Formal clinical review remains separate."
+  ],
+  "publicationStatus": "DEV_STAGING_ONLY_NO_OTA",
+  "target": {
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "2.0.6-genesis-godot-ota",
+    "channel": "season2-genesis-library-206-preview"
+  },
+  "sourcePR": 1107,
+  "priorCompiledSource": "8b8d6bcf81caccfe03f56b93d9bb34e440c3915c",
+  "priorQA": [
+    45017498420,
+    45017498427,
+    45017498488
+  ]
+}
