@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validate source contracts
-        run: node --test tests/faith-accomplishment-report-v2.test.mjs tests/faith-monitoring-named-period.test.cjs
+        run: node --test tests/faith-accomplishment-report-v2.test.mjs tests/faith-monitoring-named-period.test.cjs tests/named-formation-submission-notifications-20261125.test.mjs tests/faith-accomplishment-named-notifications-20261125.test.mjs
       - name: Validate both migrations against fictional fixture records only
         run: |
           set -euo pipefail
@@ -49,3 +49,4 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261125141800_faith_accomplishment_report_v2.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/faith_accomplishment_privilege_contract_20261125.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/faith-accomplishment-postgres17-verification-20261125.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/fixtures/faith-named-notification-postgres17-20261125.sql
