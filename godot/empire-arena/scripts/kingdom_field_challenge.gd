@@ -50,8 +50,16 @@ func begin(data: Dictionary, variant: int = 0) -> bool:
         return false
     if kind == "match3" and int(data.get("goal",0)) != 3:
         return false
-    if kind == "merge" and int(data.get("goal",0)) < 4:
-        return false
+    if kind == "merge":
+        if int(data.get("goal",0)) < 4:
+            return false
+        var total := 0
+        for item in items:
+            if int(item) < 0 or int(item) == int(data.goal):
+                return false
+            total += int(item)
+        if total != int(data.goal):
+            return false
     if kind == "farm" and (int(data.get("goal",0)) != items.size() or float(data.get("growSeconds",0)) < 1.0):
         return false
     if kind == "rhythm":
@@ -86,6 +94,11 @@ func _vary(variant: int) -> void:
             for i in range(9):
                 var transposed := (i%3)*3+floori(float(i)/3.0)
                 spec.items[transposed] = original[i]
+        elif variant % 3 == 2 and spec.type != "route":
+            var original: Array = spec.items.duplicate()
+            for i in range(9):
+                var mirrored := floori(float(i)/3.0)*3+2-i%3
+                spec.items[mirrored] = original[i]
         return
     var old: Array = spec.items.duplicate()
     var shift := variant % old.size()

@@ -662,8 +662,34 @@ export const ADVANCED_FIELD_CHALLENGES = Object.freeze({
     "beatSeconds": 0.75
   }
 });
+export function checkAdvancedField(data,variant=0){
+ const d=JSON.parse(JSON.stringify(data)),size=d.items.length,adj=(a,b)=>Math.abs(a%3-b%3)+Math.abs(Math.floor(a/3)-Math.floor(b/3))===1;
+ const fail=msg=>{throw Error(d.type+": "+msg)};
+ if(!Number.isInteger(variant)||variant<0||variant>2)fail("invalid variant");
+ if(["match3","merge"].includes(d.type)){
+  if(size!==9)fail("board size");const original=d.items.slice();
+  for(let i=0;i<9;i++){const row=Math.floor(i/3),col=i%3,j=variant===1?col*3+row:variant===2?row*3+2-col:i;d.items[j]=original[i];}
+ }else if(variant){const original=d.items.slice();for(let i=0;i<size;i++)d.items[(i+variant)%size]=original[i];if(d.type==="rhythm")d.answer=d.answer.map(i=>(i+variant)%size);}
+ if(d.type==="match3"){
+  if(d.goal!==3||d.items.some(x=>typeof x!=="string"||!x))fail("invalid match board");
+  const matches=board=>{const hit=new Set();for(let i=0;i<3;i++)for(const line of [[i*3,i*3+1,i*3+2],[i,i+3,i+6]])if(board[line[0]]&&line.every(j=>board[j]===board[line[0]]))line.forEach(j=>hit.add(j));return hit.size};
+  if(matches(d.items))fail("initial free match");
+  let legal=0,invalid=0;for(let i=0;i<9;i++)for(let j=i+1;j<9;j++)if(adj(i,j)){let b=d.items.slice();[b[i],b[j]]=[b[j],b[i]];if(matches(b)>=d.goal)legal++;else invalid++;}
+  if(!legal||!invalid)fail("no meaningful swap");return {legal,invalid};
+ }
+ if(d.type==="merge"){
+  if(!Number.isInteger(d.goal)||d.goal<4||d.items.some(x=>!Number.isInteger(x)||x<0)||d.items.includes(d.goal))fail("invalid merge board");
+  const total=d.items.reduce((a,b)=>a+b,0);if(total!==d.goal)fail("value mismatch");
+  const queue=[d.items],seen=new Set([d.items.join(",")]);let wins=0,invalid=0;
+  for(const b of queue){if(b.includes(d.goal)){wins++;continue;}for(let i=0;i<9;i++)for(let j=0;j<9;j++)if(i!==j&&adj(i,j)){if(b[i]<=0||b[i]!==b[j]){invalid++;continue;}let next=b.slice();next[j]*=2;next[i]=0;if(next.reduce((a,x)=>a+x,0)!==total)fail("nonconservation");let k=next.join(",");if(!seen.has(k)){seen.add(k);queue.push(next);}}}
+  if(!wins||!invalid)fail("no meaningful merge");return {wins,states:seen.size,invalid};
+ }
+ if(d.type==="farm"){if(d.goal!==size||d.growSeconds<1||!Number.isFinite(d.growSeconds)||new Set(d.items).size!==size)fail("invalid farming data");return {plots:size};}
+ if(d.type==="rhythm"){if(!Number.isFinite(d.beatSeconds)||d.beatSeconds<0.6||d.answer.length<2||d.answer.some(x=>!Number.isInteger(x)||x<0||x>=size))fail("invalid rhythm data");return {beats:d.answer.length};}
+ fail("unknown advanced type");
+}
 export function buildFieldChallenge(id,raw){
- if(ADVANCED_FIELD_CHALLENGES[id])return JSON.parse(JSON.stringify(ADVANCED_FIELD_CHALLENGES[id]));
+ if(ADVANCED_FIELD_CHALLENGES[id]){const data=ADVANCED_FIELD_CHALLENGES[id];for(let i=0;i<3;i++)checkAdvancedField(data,i);return JSON.parse(JSON.stringify(data));}
  if(!raw)throw Error("Missing field challenge "+id);
  const [type,prompt,items,answer,limit]=raw;let d={type,prompt};
  if(type==="budget"){d={...d,items,goal:answer,limit};const combinations=[];for(let mask=1;mask<1<<items.length;mask++){let s=0,n=0;for(let i=0;i<items.length;i++)if(mask>>i&1){s+=items[i];n++;}if(s===answer&&n===limit)combinations.push(mask)}if(!combinations.length)throw Error("Unsolvable "+id);}

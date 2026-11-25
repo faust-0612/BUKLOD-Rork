@@ -59,6 +59,9 @@ var cinematic_fx
 var realm_landmark := ""
 var sfx_cache: Dictionary = {}
 var steps_player: AudioStreamPlayer
+var rhythm_player: AudioStreamPlayer
+var rhythm_tones: Dictionary = {}
+var field_refresh_elapsed := 0.0
 var ambient_tail: AudioStreamPlayer
 var ambient_fade: Tween
 var valid_catalog := false
@@ -222,6 +225,9 @@ func _build_avatar() -> void:
     steps_player = AudioStreamPlayer.new()
     steps_player.volume_db = -21.0
     add_child(steps_player)
+    rhythm_player = AudioStreamPlayer.new()
+    rhythm_player.volume_db = -15.0
+    add_child(rhythm_player)
 
 func _replace_explorer(id: String) -> bool:
     var model := _original_hero(id)
@@ -356,6 +362,7 @@ func _toggle_original_audio() -> void:
             ambient_fade.kill()
         sound_player.stop()
         steps_player.stop()
+        rhythm_player.stop()
         ambient_player.stop()
         ambient_tail.stop()
     else:
@@ -570,13 +577,36 @@ func _refresh_field() -> void:
         if field.spec.type == "match3" and str(field.board[i]).is_empty():
             button.disabled = true
 
+func _play_rhythm_note(index: int) -> void:
+    if not sound_enabled or rhythm_player == null or index < 0 or index > 2:
+        return
+    if not rhythm_tones.has(index):
+        var rate := 44100
+        var frames := int(rate*0.18)
+        var pcm := PackedByteArray()
+        pcm.resize(frames*2)
+        var hz := float([261.63,329.63,392.0][index])
+        for i in range(frames):
+            var t := float(i)/float(rate)
+            var envelope := minf(1.0,t*180.0)*exp(-t*13.0)*minf(1.0,(0.18-t)*45.0)
+            var sample := (sin(TAU*hz*t)*0.65+sin(TAU*hz*2.0*t)*0.18+sin(TAU*hz*3.0*t)*0.06)*envelope
+            pcm.encode_s16(i*2,int(clampf(sample,-0.9,0.9)*24000.0))
+        var tone := AudioStreamWAV.new()
+        tone.format = AudioStreamWAV.FORMAT_16_BITS
+        tone.mix_rate = rate
+        tone.stereo = false
+        tone.data = pcm
+        rhythm_tones[index] = tone
+    rhythm_player.stream = rhythm_tones[index]
+    rhythm_player.play()
+
 func _choose_field(index: int) -> void:
     if field_index < 0 or quest.phase != "active":
         return
     var previous_beat: int = field.beat_index
     var finished: bool = field.choose(index)
     if field.spec.type == "rhythm" and field.beat_index > previous_beat:
-        _play_original_sound("discover")
+        _play_rhythm_note(index)
     if not finished:
         _refresh_field()
         return
@@ -716,8 +746,12 @@ func _process(delta: float) -> void:
     # Custom locomotion: acceleration, deceleration and motion-rate matching;
     # no inherited child bounce or abrupt teleport on touch.
     var dt := minf(delta, 0.05)
-    if field_index >= 0 and field.tick(dt):
-        _refresh_field()
+    if field_index >= 0:
+        var changed: bool = field.tick(dt)
+        field_refresh_elapsed += dt
+        if changed and (field.spec.type != "rhythm" or field_refresh_elapsed >= 0.08):
+            field_refresh_elapsed = 0.0
+            _refresh_field()
     elapsed += dt
     action_hold = maxf(0.0, action_hold - dt)
     var remaining := player.position.distance_to(destination)

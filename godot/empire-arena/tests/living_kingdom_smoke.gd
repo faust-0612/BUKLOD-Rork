@@ -38,7 +38,7 @@ func _run() -> void:
                 quit(5)
                 return
             total += 1
-    if total != 39 or state.completed.size() != 39 or field_total != 104:
+    if total != 39 or state.completed.size() != 39 or field_total != 104 or not _negative_fields(field):
         quit(6)
         return
     var world = load("res://scenes/LivingKingdom.tscn").instantiate()
@@ -128,12 +128,37 @@ func _solve_field(field) -> bool:
                 if found:
                     break
         "merge":
-            var first := 3 if int(field.board[3]) > 0 else 1
-            var second := first*2
-            field.choose(0)
-            field.choose(first)
-            field.choose(first)
-            field.choose(second)
+            var initial: Array = field.board.duplicate()
+            var sum := 0
+            for item in initial:
+                sum += int(item)
+            # Find equal adjacent pairs and favor the merge that stays beside
+            # the other tier; the authored three-tile boards always allow this.
+            for turn in range(2):
+                var found := false
+                for i in range(9):
+                    for j in range(9):
+                        if i == j or not field._adjacent(i,j) or int(field.board[i]) <= 0 or field.board[i] != field.board[j]:
+                            continue
+                        var viable := turn == 1
+                        if turn == 0:
+                            for k in range(9):
+                                if k != i and k != j and field._adjacent(j,k) and int(field.board[k]) == int(field.board[i])*2:
+                                    viable = true
+                        if viable:
+                            field.choose(i)
+                            field.choose(j)
+                            found = true
+                            break
+                    if found:
+                        break
+                if not found:
+                    return false
+            var final_sum := 0
+            for item in field.board:
+                final_sum += int(item)
+            if final_sum != sum:
+                return false
         "farm":
             for i in range(data.items.size()):
                 field.choose(i)
@@ -198,3 +223,33 @@ func _solve_field(field) -> bool:
                         next.append(i)
                         queue.append(next)
     return field.solved and not field.choose(0)
+
+func _negative_fields(field) -> bool:
+    if not field.begin({"type":"match3","items":["A","B","A","C","A","B","B","C","C"],"goal":3}):
+        return false
+    var before: Array = field.board.duplicate()
+    field.choose(0)
+    field.choose(1)
+    if field.solved or field.board != before:
+        return false
+    if not field.begin({"type":"merge","items":[1,1,2,0,0,0,0,0,0],"goal":4}):
+        return false
+    before = field.board.duplicate()
+    field.choose(1)
+    field.choose(2)
+    if field.solved or field.board != before:
+        return false
+    if not field.begin({"type":"farm","items":["A","B"],"goal":2,"growSeconds":2.5}):
+        return false
+    field.choose(0)
+    field.choose(0)
+    field.choose(0)
+    if field.score != 0 or field.crop_stage[0] != 2:
+        return false
+    if not field.begin({"type":"rhythm","items":["A","B"],"answer":[0,1],"beatSeconds":0.8}):
+        return false
+    field.choose(0)
+    if field.beat_index != 0:
+        return false
+    field.tick(1.2)
+    return field.rhythm_misses == 1 and not field.solved
