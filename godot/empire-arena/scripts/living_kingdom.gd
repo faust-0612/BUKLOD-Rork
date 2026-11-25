@@ -185,7 +185,7 @@ func _set_realm_ambience() -> void:
     var raw := FileAccess.get_file_as_bytes("res://kingdom-original/ambience/" + id + ".wav")
     if raw.is_empty():
         raw = FileAccess.get_file_as_bytes("res://kingdom-original/audio/ambience.wav")
-    var track := AudioStreamWAV.load_from_buffer(raw) if not raw.is_empty() else null
+    var track: AudioStreamWAV = AudioStreamWAV.load_from_buffer(raw) if not raw.is_empty() else null
     if track != null:
         track.loop_mode = AudioStreamWAV.LOOP_FORWARD
         ambient_player.stream = track

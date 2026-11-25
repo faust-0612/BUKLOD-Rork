@@ -59,3 +59,9 @@ test('Living Kingdom generates original terrain and scene geometry and uses anim
  for(const token of ['CylinderMesh.new()','PrismMesh.new()','TorusMesh.new()','PlaneMesh.new()','func _tree','func _spire','func _tower'])assert.ok(env.includes(token),token);
  const shader=read('godot/empire-arena/shaders/kingdom_original_ground.gdshader');assert.ok(shader.includes('NORMAL_MAP_DEPTH'));assert.ok(shader.includes('noise2'));
 });
+
+test('Original textured glTF materials embed valid PNG color, normal and packed PBR maps',async()=>{
+ const {originalKingdomEntries}=await import('../scripts/kingdom-original-media.mjs');const {entries}=originalKingdomEntries();
+ for(const {name,bytes:b} of entries.filter(x=>x.name.endsWith('.glb'))){const n=b.readUInt32LE(12),j=JSON.parse(b.toString('utf8',20,20+n)),base=28+n;assert.equal(j.images.length,12);assert.equal(j.textures.length,12);for(const im of j.images){const v=j.bufferViews[im.bufferView],png=b.subarray(base+v.byteOffset,base+v.byteOffset+v.byteLength);assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');assert.equal(png.readUInt32BE(16),96);assert.equal(png.readUInt32BE(20),96);}assert.ok(j.materials.filter(m=>m.normalTexture&&m.pbrMetallicRoughness.metallicRoughnessTexture).length>=4,name);}
+ const env=read('godot/empire-arena/scripts/kingdom_original_environment.gd');for(const q of ['SurfaceTool.new()','generate_normals()','MultiMesh.new()','kingdom_original_water.gdshader','func _rugged_peak','func _leaf_clusters'])assert.ok(env.includes(q));
+});

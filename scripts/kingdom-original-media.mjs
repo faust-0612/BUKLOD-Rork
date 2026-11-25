@@ -105,14 +105,38 @@ export const HERO_DESIGNS = Object.freeze({
     12
   ]
 });
+export function originalTexturePNG(kind,mode,variant,size=96){
+ const tau=2*Math.PI,raw=new Uint8Array(size*(size*3+1));let seed=(variant+1)*374761393;
+ const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+ const h=new Float32Array(size*size);
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){let u=x/size,v=y/size;
+  const grain=rand()-.5,warp=Math.sin(tau*(u*24))*Math.cos(tau*(v*24));
+  const braid=Math.sin(tau*(u*6+v*8))*Math.sin(tau*(u*6-v*8));
+  const engraved=Math.pow(Math.max(0,Math.sin(tau*(u*3+v*2))*Math.cos(tau*(u*3-v*2))),7);
+  const pores=Math.max(0,Math.sin(tau*u*17+.8*Math.sin(tau*v*9))*Math.cos(tau*v*19));
+  h[y*size+x]=kind==="cloth"? .5+.17*warp+.12*braid+.035*grain:kind==="metal"? .5+.14*engraved+.025*grain:.5+.13*pores+.045*grain;
+ }
+ const clamp=x=>Math.max(0,Math.min(255,Math.round(x)));
+ const px=(x,y)=>h[((y+size)%size)*size+(x+size)%size];
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){const q=y*(size*3+1)+1+x*3,v=px(x,y);if(mode==="normal"){let dx=(px(x+1,y)-px(x-1,y))*.48,dy=(px(x,y+1)-px(x,y-1))*.48,l=Math.hypot(dx,dy,1);raw[q]=clamp(127.5+127.5*(-dx/l));raw[q+1]=clamp(127.5+127.5*(-dy/l));raw[q+2]=clamp(127.5+127.5/l);}else if(mode==="orm"){raw[q]=clamp(225+30*v);raw[q+1]=clamp((kind==="metal"?0.76:0.86)+(v-.5)*.19>1?255:255*((kind==="metal"?0.76:0.86)+(v-.5)*.19));raw[q+2]=kind==="metal"?255:0;}else{const color=clamp((kind==="metal"?224:211)+58*v);raw[q]=color;raw[q+1]=color;raw[q+2]=color;}}
+ const crc32=bytes=>{let crc=0xffffffff;for(const b of bytes){crc^=b;for(let i=0;i<8;i++)crc=(crc>>>1)^((crc&1)?0xedb88320:0)}return (crc^0xffffffff)>>>0};
+ const be=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255];
+ const chunk=(type,payload)=>{const body=[...type.split("").map(c=>c.charCodeAt(0)),...payload];return [...be(payload.length),...body,...be(crc32(body))]};
+ const z=[0x78,0x01];let a=1,b=0;for(const byte of raw){a=(a+byte)%65521;b=(b+a)%65521;}
+ for(let off=0;off<raw.length;){const n=Math.min(65535,raw.length-off),last=off+n===raw.length;z.push(last?1:0,n&255,n>>>8,(~n)&255,((~n)>>>8)&255);for(let i=0;i<n;i++)z.push(raw[off+i]);off+=n;}
+ z.push(...be(((b<<16)|a)>>>0));
+ return new Uint8Array([137,80,78,71,13,10,26,10,...chunk("IHDR",[...be(size),...be(size),8,2,0,0,0]),...chunk("IDAT",z),...chunk("IEND",[])]);
+}
 export function createOriginalHero(id, d) {
  const [primary,trim,hair,height,prop,variant]=d;
- const TAU=2*Math.PI, mats=[], meshes=[], nodes=[], anims=[], views=[], access=[], bin=[];
+ const TAU=2*Math.PI, mats=[], meshes=[], nodes=[], anims=[], views=[], access=[], bin=[],images=[],textures=[];
  const hex=x=>[parseInt(x.slice(1,3),16)/255,parseInt(x.slice(3,5),16)/255,parseInt(x.slice(5,7),16)/255,1].map((v,i)=>i<3?Math.pow(v,2.2):v);
  const material=(name,color,metallic=0,roughness=.65)=>{mats.push({name,pbrMetallicRoughness:{baseColorFactor:hex(color),metallicFactor:metallic,roughnessFactor:roughness},doubleSided:false});return mats.length-1};
  const cloth=material("Dyed fabric",primary,0,.85),metal=material("Engraved metal",trim,.66,.32),leather=material("Leather","#302b30",0,.8),skin=material("Skin","#c89577",0,.75),hairM=material("Hair",hair,0,.76),white=material("Eye ivory","#f1e7d9"),ink=material("Eye iris","#252a35"),accent=material("Gem",trim,.32,.23),dark=material("Undertunic","#17232c");
  const addBytes=(arr,type)=>{while(bin.length%4)bin.push(0);const start=bin.length, bytes=new Uint8Array(arr.length*(type===5123?2:4)),dv=new DataView(bytes.buffer);for(let i=0;i<arr.length;i++){if(type===5123)dv.setUint16(i*2,arr[i],true);else dv.setFloat32(i*4,arr[i],true)}for(const b of bytes)bin.push(b);views.push({buffer:0,byteOffset:start,byteLength:bytes.length});return views.length-1};
+ const appendImage=(bytes,name)=>{while(bin.length%4)bin.push(0);const offset=bin.length;for(const b of bytes)bin.push(b);views.push({buffer:0,byteOffset:offset,byteLength:bytes.length});images.push({name,mimeType:"image/png",bufferView:views.length-1});textures.push({source:images.length-1,sampler:0});return textures.length-1;};
  const ac=(arr,type,shape,min,max)=>{const n={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT4:16}[shape];const item={bufferView:addBytes(arr,type),componentType:type,count:arr.length/n,type:shape};if(min)item.min=min;if(max)item.max=max;access.push(item);return access.length-1};
+ for(const [mat,kind] of [[cloth,"cloth"],[leather,"leather"],[metal,"metal"],[dark,"cloth"]]){const normal=appendImage(originalTexturePNG(kind,"normal",variant),kind+"_normal");const albedo=appendImage(originalTexturePNG(kind,"albedo",variant),kind+"_albedo");const orm=appendImage(originalTexturePNG(kind,"orm",variant),kind+"_orm");mats[mat].pbrMetallicRoughness.baseColorTexture={index:albedo};mats[mat].pbrMetallicRoughness.metallicRoughnessTexture={index:orm};mats[mat].normalTexture={index:normal,scale:kind==="metal"?.46:.7};mats[mat].occlusionTexture={index:orm,strength:.38};}
  const node=(name,t,parent)=>{const n={name,translation:t,children:[]};nodes.push(n);const i=nodes.length-1;if(parent>=0)nodes[parent].children.push(i);return i};
  const root=node(id,[0,0,0],-1), pelvis=node("Pelvis",[0,.90*height,0],root),torso=node("Spine",[0,.22*height,0],pelvis),head=node("Head",[0,.47*height,0],torso);
  const joints={};
@@ -204,6 +228,7 @@ export function createOriginalHero(id, d) {
  const inverseBind=boneIds.flatMap(id=>{const [x,y,z]=bind[id];return [1,0,0,0,0,1,0,0,0,0,1,0,-x,-y,-z,1];});
  const skinIndex=ac(inverseBind,5126,"MAT4");
  const skinNode=node(id+"_SkinnedMesh",[0,0,0],root);nodes[skinNode].mesh=0;nodes[skinNode].skin=0;
+ let floor=Infinity;for(const b of batches.values())for(let k=1;k<b.p.length;k+=3)floor=Math.min(floor,b.p[k]);nodes[root].translation[1]=-floor;
  const quat=(x,y,z)=>{const sx=Math.sin(x/2),cx=Math.cos(x/2),sy=Math.sin(y/2),cy=Math.cos(y/2),sz=Math.sin(z/2),cz=Math.cos(z/2);return [sx*cy*cz-cx*sy*sz,cx*sy*cz+sx*cy*sz,cx*cy*sz-sx*sy*cz,cx*cy*cz+sx*sy*sz]};
  for(const [name,dur] of [["Idle",2.4],["Walk",.92],["Run",.64],["Interact",1.1],["Celebrate",1.4]]){
   const times=Array.from({length:25},(_,i)=>dur*i/24),input=ac(times,5126,"SCALAR",[0],[dur]),samplers=[],channels=[];
@@ -214,10 +239,10 @@ export function createOriginalHero(id, d) {
   track(torso,t=>[gait?.04:0,gait?.055*Math.sin(t*TAU):.03*Math.sin(t*TAU),0]);track(head,t=>[name==="Interact"?.12*Math.sin(Math.PI*t):.025*Math.sin(t*TAU),.05*Math.sin(t*TAU),0]);anims.push({name,samplers,channels});
  }
  for(const n of nodes)if(!n.children.length)delete n.children;
- const doc={asset:{version:"2.0",generator:"BUKLOD Original Living Kingdom Skinned Mesh Workshop v2"},scene:0,scenes:[{nodes:[root]}],nodes,meshes,skins:[{name:id+"_Skeleton",joints:boneIds,skeleton:pelvis,inverseBindMatrices:skinIndex}],materials:mats,animations:anims,buffers:[{byteLength:bin.length}],bufferViews:views,accessors:access};
+ const doc={asset:{version:"2.0",generator:"BUKLOD Original Living Kingdom Skinned Mesh Workshop v2"},scene:0,scenes:[{nodes:[root]}],nodes,meshes,skins:[{name:id+"_Skeleton",joints:boneIds,skeleton:pelvis,inverseBindMatrices:skinIndex}],materials:mats,images,textures,samplers:[{magFilter:9729,minFilter:9987,wrapS:10497,wrapT:10497}],animations:anims,buffers:[{byteLength:bin.length}],bufferViews:views,accessors:access};
  const json=JSON.stringify(doc),jb=Array.from(json,c=>c.charCodeAt(0));while(jb.length%4)jb.push(32);while(bin.length%4)bin.push(0);
  const bytes=new Uint8Array(12+8+jb.length+8+bin.length),dv=new DataView(bytes.buffer);dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,bytes.length,true);dv.setUint32(12,jb.length,true);dv.setUint32(16,0x4e4f534a,true);bytes.set(jb,20);const o=20+jb.length;dv.setUint32(o,bin.length,true);dv.setUint32(o+4,0x004e4942,true);bytes.set(bin,o+8);
- return {bytes,meta:{id,meshes:meshes.length,primitives:primitives.length,bones:boneIds.length,vertices:[...geoms.values()].reduce((s,g)=>s+g.p.length/3,0),triangles:[...geoms.values()].reduce((s,g)=>s+g.i.length/3,0),nodes:nodes.length,clips:anims.map(x=>x.name),prop}};
+ return {bytes,meta:{id,meshes:meshes.length,primitives:primitives.length,bones:boneIds.length,textures:textures.length,vertices:[...geoms.values()].reduce((s,g)=>s+g.p.length/3,0),triangles:[...geoms.values()].reduce((s,g)=>s+g.i.length/3,0),nodes:nodes.length,clips:anims.map(x=>x.name),prop}};
 }
 export function createOriginalCue(id,index){
  const rate=24000,dur=id==="complete"?2.4:id==="ambience"?8:id==="footstep"?.28:1.15,n=Math.floor(rate*dur),samples=new Float64Array(n);let seed=1234567+index*991,low=0,slow=0;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296*2-1};
