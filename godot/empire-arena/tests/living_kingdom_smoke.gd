@@ -89,10 +89,10 @@ func _run() -> void:
     world.progression.quick_play = false
     world.mode_picker.select(1)
     world._start_or_cancel()
-    if world.get_dev_snapshot().get("fx_count",0) <= 0:
+    if world.get_dev_snapshot().get("fx_count",0) <= 0 or world.get_dev_snapshot().get("story_kind")!="briefing":
         quit(16)
         return
-    if not world.move_to(Vector3(-5, 0, -5)) or world.quest.visited.size() != 0:
+    if not world.move_to(Vector3(-5, 0, -5)) or world.quest.visited.size() != 0 or world.get_dev_snapshot().get("story_active",true):
         quit(8)
         return
     for i in range(160):
@@ -141,7 +141,7 @@ func _run() -> void:
         return
     for choice in [0,1,2]:
         world._choose_field(choice)
-    if world.quest.phase != "complete" or world.progression.practice_score != 1 or world.field_index != -1:
+    if world.quest.phase != "complete" or world.progression.practice_score != 1 or world.field_index != -1 or world.get_dev_snapshot().get("story_kind")!="victory":
         quit(24)
         return
     world._next_adventure()

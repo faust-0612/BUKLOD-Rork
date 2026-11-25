@@ -12,7 +12,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "house_fence"
     ],
     "dialogue": "We grow what we can share. Bring the harvest to the people who need it.",
-    "layout": 0
+    "layout": 0,
+    "storyIntro": "The market is opening. Families await the harvest; make every resource count.",
+    "storyWin": "The market has been supplied. The valley can share the fruit of your work."
   },
   "quin": {
     "biome": "Alpine Observatory",
@@ -26,7 +28,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "arena_flag"
     ],
     "dialogue": "Follow the evidence, not guesses. Every discovery starts with a careful observation.",
-    "layout": 1
+    "layout": 1,
+    "storyIntro": "A new clue lies beyond the ridge. Observe carefully before choosing your path.",
+    "storyWin": "The discovery has been recorded. Your next expedition awaits."
   },
   "van": {
     "biome": "Civic Harbor",
@@ -40,7 +44,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "arena_tower"
     ],
     "dialogue": "A living city thrives when its people receive the right help at the right time.",
-    "layout": 2
+    "layout": 2,
+    "storyIntro": "The harbor has received a new dispatch. Help the city respond with care.",
+    "storyWin": "The city can move forward because you completed the task."
   },
   "christian": {
     "biome": "Covenant Citadel",
@@ -54,7 +60,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "arena_tower"
     ],
     "dialogue": "Leadership is service. Choose the path that protects and strengthens the community.",
-    "layout": 3
+    "layout": 3,
+    "storyIntro": "The council calls for wisdom and service. Think of the people affected by your choices.",
+    "storyWin": "Your service strengthens the community. Carry that wisdom onward."
   },
   "lhen": {
     "biome": "Resonance Grove",
@@ -68,7 +76,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "arena_flag"
     ],
     "dialogue": "Listen, remember and bring harmony to the realm.",
-    "layout": 4
+    "layout": 4,
+    "storyIntro": "The grove is listening. Bring its scattered sounds into harmony.",
+    "storyWin": "The grove resonates with the pattern you completed."
   },
   "ace": {
     "biome": "Guardian Pass",
@@ -82,7 +92,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "kingdom_wall"
     ],
     "dialogue": "Plan a safe route, find the signals and bring help to those in danger.",
-    "layout": 5
+    "layout": 5,
+    "storyIntro": "The watch has raised a signal. Plan carefully and protect those in need.",
+    "storyWin": "Your careful response has brought the mission to a safe conclusion."
   },
   "ellusur": {
     "biome": "Sanctuary Highlands",
@@ -96,7 +108,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "house_path"
     ],
     "dialogue": "Restore shared places with care. This is a community mission, not personal property.",
-    "layout": 6
+    "layout": 6,
+    "storyIntro": "A shared sanctuary needs restoration. Make sound connections and use resources wisely.",
+    "storyWin": "The restoration team celebrates another step toward a stronger sanctuary."
   },
   "jawo": {
     "biome": "Living Forest",
@@ -110,7 +124,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "kingdom_tree"
     ],
     "dialogue": "Walk gently through creation and learn from the signs along the trail.",
-    "layout": 7
+    "layout": 7,
+    "storyIntro": "The living forest reveals a new trail. Read the signs and tread gently.",
+    "storyWin": "You have discovered another part of the forest without harming it."
   },
   "mitch": {
     "biome": "Prism Terrace",
@@ -124,7 +140,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "arena_flag"
     ],
     "dialogue": "Restore beauty by gathering colors and completing the pattern.",
-    "layout": 8
+    "layout": 8,
+    "storyIntro": "The terrace awaits a new work of art. Bring form, color and purpose together.",
+    "storyWin": "Your work adds beauty to the terrace. A new canvas awaits."
   },
   "niel": {
     "biome": "Mission Frontier",
@@ -138,7 +156,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "arena_gate"
     ],
     "dialogue": "Prepare well and carry supplies to the next frontier.",
-    "layout": 9
+    "layout": 9,
+    "storyIntro": "The frontier calls. Prepare the expedition and guide it toward its goal.",
+    "storyWin": "The expedition has reached its goal. The next journey is ready."
   },
   "angel": {
     "biome": "Treasury Gardens",
@@ -152,7 +172,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "house_path"
     ],
     "dialogue": "Guard entrusted resources with honesty; account for each item.",
-    "layout": 10
+    "layout": 10,
+    "storyIntro": "The treasury entrusted you with its resources. Account for each decision.",
+    "storyWin": "The resources have been handled with care. Your next stewardship task awaits."
   },
   "vhen": {
     "biome": "River Farms",
@@ -166,7 +188,9 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "kingdom_chest"
     ],
     "dialogue": "Care for the land and bring the harvest to market.",
-    "layout": 11
+    "layout": 11,
+    "storyIntro": "The river farms need patient hands. Plant, nurture and gather the harvest.",
+    "storyWin": "The harvest is gathered. New seeds are ready for the next season."
   },
   "trudice": {
     "biome": "Wonder Garden",
@@ -180,6 +204,8 @@ export const KINGDOM_REALM_PROFILES = Object.freeze({
       "house_fence"
     ],
     "dialogue": "Look closely, remember the clues and discover joy in small things.",
-    "layout": 12
+    "layout": 12,
+    "storyIntro": "The wonder garden has hidden another little discovery. Look closely and remember.",
+    "storyWin": "The garden celebrates your discovery. More wonders remain to be found."
   }
 });

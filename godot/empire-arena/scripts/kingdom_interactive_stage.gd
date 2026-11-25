@@ -8,6 +8,8 @@ var stage_root: Node3D
 var board_root: Node3D
 var scenario: Node3D
 var scene_actor: Node3D
+var route_traveler: Node3D
+var route_goal := Vector3.ZERO
 var view_camera: Camera3D
 var tiles: Array[Dictionary] = []
 var meshes: Dictionary = {}
@@ -169,6 +171,7 @@ func _new_tile(index: int, cell: bool, at: Vector3, half: Vector2) -> void:
 func _build_board(field) -> void:
     _clear(board_root)
     tiles.clear()
+    route_traveler = null
     kind = str(field.spec.type)
     if kind in ["wordsearch","sudoku"]:
         var n: int = int(field.spec.size) if kind=="wordsearch" else int(field.sudoku_size)
@@ -185,6 +188,14 @@ func _build_board(field) -> void:
         for i in range(count):
             _new_tile(i,false,Vector3((float(i%3)-1.0)*2.58-1.3,0,(float(floori(float(i)/3.0))-(rows-1)*0.5)*2.0),Vector2(1.19,0.88))
     _build_scenario()
+    if kind=="route":
+        route_traveler = Node3D.new()
+        board_root.add_child(route_traveler)
+        var at: Vector3 = tiles[0].at
+        route_goal = at+Vector3(0,0.55,0)
+        route_traveler.position = route_goal
+        _mesh(route_traveler,"coin",Vector3(0,0.06,0),Vector3(0.45,0.12,0.45),Color("#ffd27a"),0.7)
+        _mesh(route_traveler,"gem",Vector3(0,0.35,0),Vector3(0.34,0.54,0.34),Color("#f1c46b"),0.48)
     intro = 0.55
     state_key = ""
 
@@ -249,9 +260,13 @@ func _actor(tile: Dictionary, field, value: String) -> void:
             var crop: int = field.crop_stage[index]
             _mesh(root,"box",Vector3(0,0.04,0),Vector3(1,0.13,0.66),Color("#725239"))
             if crop>0 and crop<4:
-                var growth := 0.25 if crop==1 else (0.55 if crop==2 else 1.0)
+                var plants := Node3D.new()
+                plants.name = "GrowingPlants"
+                plants.position.y = 0.10
+                root.add_child(plants)
                 for i in range(3):
-                    _plant(root,Vector3((i-1)*0.26,0.10,0),growth)
+                    _plant(plants,Vector3((i-1)*0.26,0,0),1.0)
+                plants.scale.y = 0.25 if crop==1 else (0.40 if crop==2 else 1.0)
         "domino":
             if index==field.spec.items.size()-1:
                 return
@@ -290,6 +305,9 @@ func sync(field) -> void:
     if key!=layout_key or tiles.is_empty():
         layout_key = key
         _build_board(field)
+    if kind=="route" and route_traveler!=null and not field.picks.is_empty():
+        var at: Vector3 = tiles[int(field.picks.back())].at
+        route_goal = at+Vector3(0,0.55,0)
     # State-driven animation, not time-based changes to game rules.
     var summary: String = field.status()
     if summary!=state_key:
@@ -345,9 +363,25 @@ func sync(field) -> void:
         label.text = value.replace(": ","\n") if kind=="farm" else value
         label.modulate = Color("#ffeec3") if enabled or status=="fixed" else Color("#b7c8c5")
         label.position.y = 0.48 if cell or kind in ["codebreaker","sudoku","sequence","select","memory","pair"] else 0.91
-        label.font_size = 42 if cell else (30 if value.length()>13 else 40)
+        label.font_size = 42 if cell else (27 if value.length()>25 else (32 if value.length()>13 else 40))
+        label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        label.width = float(tile.half.x)*1.75/label.pixel_size
         tile.lift = 0.12 if status=="selected" else 0.0
         _actor(tile,field,value)
+
+func advance_visual(field) -> void:
+    if not active or kind!="farm":
+        return
+    for tile in tiles:
+        var index: int = tile.index
+        if index>=field.crop_stage.size() or field.crop_stage[index]!=2:
+            continue
+        var root: Node3D = tile.actor
+        var plants := root.get_node_or_null("GrowingPlants") as Node3D
+        if plants!=null:
+            var duration := maxf(0.1,float(field.spec.get("growSeconds",1.0)))
+            var progress := 1.0-clampf(field.crop_remaining[index]/duration,0.0,1.0)
+            plants.scale.y = lerpf(0.40,1.0,progress)
 
 func _process(delta: float) -> void:
     if not active:
@@ -364,6 +398,9 @@ func _process(delta: float) -> void:
         if kind=="domino" and not bool(tile.cell):
             var actor: Node3D = tile.actor
             actor.rotation.x = lerpf(actor.rotation.x,-0.48 if not bool(tile.enabled) else 0.0,minf(1.0,delta*9.0))
+    if is_instance_valid(route_traveler):
+        route_traveler.position = route_traveler.position.lerp(route_goal,minf(1.0,delta*7.0))
+        route_traveler.rotation.y += delta*0.9
     pulse = maxf(0.0,pulse-delta)
     if is_instance_valid(scene_actor):
         scene_actor.rotation.y = sin(phase*0.6)*0.24

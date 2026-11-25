@@ -88,6 +88,12 @@ var tile_style_cache: Dictionary = {}
 var interactive_stage
 var text_controls: CheckButton
 var field_button_bar: HBoxContainer
+var story_panel: PanelContainer
+var story_caption: Label
+var story_clock := 0.0
+var story_duration := 0.0
+var story_kind := ""
+var story_default_fov := 52.0
 
 func _get_world() -> String:
     return "kingdom"
@@ -386,6 +392,7 @@ func _toggle_original_audio() -> void:
 
 func _apply_realm_visuals() -> void:
     realm_ready = false
+    _end_story()
     if realm_index < 0 or realm_index >= realms.size():
         return
     var realm: Dictionary = realms[realm_index]
@@ -551,11 +558,65 @@ func _install_controls() -> void:
     back.pressed.connect(func() -> void: get_tree().quit())
     layer.add_child(back)
     _install_field_panel(layer)
+    _install_story_panel(layer)
+    if camera != null:
+        story_default_fov = camera.fov
     for child in get_children():
         if child is DirectionalLight3D and child.shadow_enabled:
             world_sun = child
         if child is WorldEnvironment:
             realm_environment = child.environment
+
+func _install_story_panel(layer: CanvasLayer) -> void:
+    story_panel = PanelContainer.new()
+    story_panel.position = Vector2(420,535)
+    story_panel.custom_minimum_size = Vector2(820,0)
+    var style := StyleBoxFlat.new()
+    style.bg_color = Color(0.06,0.13,0.17,0.94)
+    style.border_color = Color("#d7b575")
+    style.set_border_width_all(2)
+    style.set_corner_radius_all(12)
+    style.content_margin_left = 18
+    style.content_margin_right = 18
+    style.content_margin_top = 10
+    style.content_margin_bottom = 10
+    story_panel.add_theme_stylebox_override("panel",style)
+    layer.add_child(story_panel)
+    var row := HBoxContainer.new()
+    story_panel.add_child(row)
+    story_caption = Label.new()
+    story_caption.custom_minimum_size = Vector2(660,0)
+    story_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    story_caption.add_theme_font_size_override("font_size",19)
+    row.add_child(story_caption)
+    var skip := Button.new()
+    skip.text = "SKIP SCENE"
+    skip.custom_minimum_size = Vector2(120,42)
+    skip.pressed.connect(_end_story)
+    row.add_child(skip)
+    story_panel.hide()
+
+func _begin_story(kind: String) -> void:
+    if story_panel==null or camera==null or player==null or field_index>=0:
+        return
+    story_kind = kind
+    story_duration = 2.4 if kind=="victory" else 2.8
+    story_clock = story_duration
+    var title_text := str(realms[realm_index].get("title","")) if realm_index<realms.size() else "Living Realms"
+    var message := str(realm_profile.get("storyWin" if kind=="victory" else "storyIntro",""))
+    story_caption.text = title_text+"\n"+message
+    story_panel.show()
+    if kind=="briefing":
+        _play_avatar_animation("Interact")
+        action_hold = 1.1
+        _play_guide_animation("Interact")
+        guide_talk_left = 1.1
+
+func _end_story() -> void:
+    story_clock = 0.0
+    story_kind = ""
+    if story_panel!=null:
+        story_panel.hide()
 
 func _install_field_panel(layer: CanvasLayer) -> void:
     field_panel = PanelContainer.new()
@@ -629,6 +690,7 @@ func _open_field(index: int) -> bool:
     if not field.begin(prepared,int((progression.active_level-1+index)%3)):
         return false
     field_index = index
+    _end_story()
     field_panel.show()
     _refresh_field()
     return true
@@ -807,6 +869,7 @@ func _finish_practice_round() -> void:
     if earned <= 0:
         return
     round_feedback.text = "+%d practice score • Level %d cleared!" % [earned,progression.active_level]
+    _begin_story("victory")
     _play_avatar_animation("Celebrate")
     action_hold = 1.4
     _play_original_sound("complete")
@@ -902,6 +965,7 @@ func _next_adventure() -> void:
         _select_realm(next_realm)
 
 func _start_or_cancel() -> void:
+    _end_story()
     _close_field()
     if not _adventure_ready():
         _update_quest_status()
@@ -921,6 +985,8 @@ func _start_or_cancel() -> void:
                 round_feedback.text = ""
                 _play_original_sound("start")
                 cinematic_fx.trigger("start",player.position,Color(str(realm_profile.get("accent","#ffe3a3"))))
+                if not progression.quick_play:
+                    _begin_story("briefing")
     pending_target = -1
     destination = player.position
     if progression.quick_play and quest.phase == "active" and not _open_field(0):
@@ -934,6 +1000,7 @@ func move_to(point: Vector3) -> bool:
         return false
     if not super.move_to(point):
         return false
+    _end_story()
     action_hold = 0.0
     pending_target = -1
     if quest.phase == "active":
@@ -966,6 +1033,8 @@ func _process(delta: float) -> void:
     var dt := minf(delta, 0.05)
     if field_index >= 0:
         var changed: bool = field.tick(dt)
+        if interactive_stage!=null:
+            interactive_stage.advance_visual(field)
         field_refresh_elapsed += dt
         if changed and (field.spec.type != "rhythm" or field_refresh_elapsed >= 0.08):
             field_refresh_elapsed = 0.0
@@ -995,8 +1064,22 @@ func _process(delta: float) -> void:
     if camera != null:
         var focus := player.position + Vector3(0,0.85,0)
         var follow := player.position + Vector3(0,12.5,15.5)
-        camera.position = camera.position.lerp(follow, minf(1.0,dt*3.5))
-        camera.look_at(focus, Vector3.UP)
+        var target_fov := story_default_fov
+        if story_clock>0.0 and field_index<0:
+            story_clock = maxf(0.0,story_clock-dt)
+            var progress := 1.0-story_clock/maxf(0.1,story_duration)
+            var orbit := lerpf(-0.28,0.28,progress)
+            if story_kind=="briefing" and guide_near and guide!=null:
+                focus = (player.position+guide.position)*0.5+Vector3(0,1.05,0)
+            else:
+                focus = player.position+Vector3(0,1.05,0)
+            follow = focus+Vector3(2.1,1.35,4.8).rotated(Vector3.UP,orbit)
+            target_fov = 43.0
+            if story_clock<=0.0:
+                _end_story()
+        camera.fov = lerpf(camera.fov,target_fov,minf(1.0,dt*5.0))
+        camera.position = camera.position.lerp(follow,minf(1.0,dt*4.5))
+        camera.look_at(focus,Vector3.UP)
     if sky_auto:
         day_phase = fposmod(day_phase + minf(delta, 0.05) / 240.0, 1.0)
         daylight_update += delta
@@ -1094,6 +1177,8 @@ func get_dev_snapshot() -> Dictionary:
     result["guide_clip"] = guide_clip
     result["field_index"] = field_index
     result["interactive_3d"] = interactive_stage.snapshot() if interactive_stage!=null else {}
+    result["story_kind"] = story_kind
+    result["story_active"] = story_clock>0.0
     result["practice_score"] = progression.practice_score
     result["practice_rounds"] = progression.total_rounds
     result["difficulty"] = progression.difficulty
