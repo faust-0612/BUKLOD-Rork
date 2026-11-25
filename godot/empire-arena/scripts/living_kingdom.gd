@@ -565,11 +565,19 @@ func _refresh_field() -> void:
         var selected: bool = field.picks.has(i) or field.matched.has(i)
         button.text = ("✓ " if selected else "") + field.tile_label(i)
         button.disabled = field.preview_left > 0.0 or field.reveal_left > 0.0 or field.solved or field.matched.has(i)
+        if field.spec.type == "farm" and field.crop_stage[i] == 4:
+            button.disabled = true
+        if field.spec.type == "match3" and str(field.board[i]).is_empty():
+            button.disabled = true
 
 func _choose_field(index: int) -> void:
     if field_index < 0 or quest.phase != "active":
         return
-    if not field.choose(index):
+    var previous_beat: int = field.beat_index
+    var finished: bool = field.choose(index)
+    if field.spec.type == "rhythm" and field.beat_index > previous_beat:
+        _play_original_sound("discover")
+    if not finished:
         _refresh_field()
         return
     var target := field_index

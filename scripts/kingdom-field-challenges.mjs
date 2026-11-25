@@ -517,7 +517,153 @@ export const FIELD_CHALLENGES = Object.freeze({
     ]
   ]
 });
+export const ADVANCED_FIELD_CHALLENGES = Object.freeze({
+  "phan-market-match": {
+    "type": "match3",
+    "prompt": "Swap adjacent goods to make a line of three.",
+    "items": [
+      "Grain",
+      "Cloth",
+      "Grain",
+      "Spice",
+      "Grain",
+      "Cloth",
+      "Cloth",
+      "Spice",
+      "Spice"
+    ],
+    "goal": 3
+  },
+  "jawo-nature-match": {
+    "type": "match3",
+    "prompt": "Swap adjacent forest samples to match three.",
+    "items": [
+      "Fern",
+      "Acorn",
+      "Fern",
+      "Bloom",
+      "Fern",
+      "Acorn",
+      "Acorn",
+      "Bloom",
+      "Bloom"
+    ],
+    "goal": 3
+  },
+  "vhen-harvest-match": {
+    "type": "match3",
+    "prompt": "Swap neighbouring crops to match three.",
+    "items": [
+      "Corn",
+      "Rice",
+      "Corn",
+      "Bean",
+      "Corn",
+      "Rice",
+      "Rice",
+      "Bean",
+      "Bean"
+    ],
+    "goal": 3
+  },
+  "mitch-color-merge": {
+    "type": "merge",
+    "prompt": "Merge equal adjacent pigment tiers to create tier 4.",
+    "items": [
+      1,
+      1,
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "goal": 4,
+    "unit": "Pigment"
+  },
+  "angel-treasure-merge": {
+    "type": "merge",
+    "prompt": "Combine equal neighbouring treasure tiers to make tier 8.",
+    "items": [
+      2,
+      2,
+      4,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "goal": 8,
+    "unit": "Treasure"
+  },
+  "vhen-farm-merge": {
+    "type": "merge",
+    "prompt": "Merge equal crop bundles to form a bundle of 16.",
+    "items": [
+      4,
+      4,
+      8,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "goal": 16,
+    "unit": "Bundle"
+  },
+  "vhen-farm-to-market": {
+    "type": "farm",
+    "prompt": "Plant, water, wait for growth, then harvest each plot.",
+    "items": [
+      "Corn",
+      "Rice",
+      "Bean"
+    ],
+    "goal": 3,
+    "growSeconds": 2.5
+  },
+  "lhen-rhythm-journey": {
+    "type": "rhythm",
+    "prompt": "Tap the indicated note when the beat reaches NOW.",
+    "items": [
+      "Low",
+      "Mid",
+      "High"
+    ],
+    "answer": [
+      0,
+      1,
+      0,
+      2
+    ],
+    "beatSeconds": 0.85
+  },
+  "lhen-beat-composer": {
+    "type": "rhythm",
+    "prompt": "Perform the alternating strong and soft beats.",
+    "items": [
+      "Strong",
+      "Soft"
+    ],
+    "answer": [
+      0,
+      1,
+      0,
+      1,
+      0,
+      1
+    ],
+    "beatSeconds": 0.75
+  }
+});
 export function buildFieldChallenge(id,raw){
+ if(ADVANCED_FIELD_CHALLENGES[id])return JSON.parse(JSON.stringify(ADVANCED_FIELD_CHALLENGES[id]));
  if(!raw)throw Error("Missing field challenge "+id);
  const [type,prompt,items,answer,limit]=raw;let d={type,prompt};
  if(type==="budget"){d={...d,items,goal:answer,limit};const combinations=[];for(let mask=1;mask<1<<items.length;mask++){let s=0,n=0;for(let i=0;i<items.length;i++)if(mask>>i&1){s+=items[i];n++;}if(s===answer&&n===limit)combinations.push(mask)}if(!combinations.length)throw Error("Unsolvable "+id);}

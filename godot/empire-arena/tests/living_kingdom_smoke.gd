@@ -116,6 +116,39 @@ func _run() -> void:
 func _solve_field(field) -> bool:
     var data: Dictionary = field.spec
     match str(data.type):
+        "match3":
+            var found := false
+            for i in range(9):
+                for j in range(i+1,9):
+                    if field._adjacent(i,j):
+                        field.choose(i)
+                        if field.choose(j):
+                            found = true
+                            break
+                if found:
+                    break
+        "merge":
+            var first := 3 if int(field.board[3]) > 0 else 1
+            var second := first*2
+            field.choose(0)
+            field.choose(first)
+            field.choose(first)
+            field.choose(second)
+        "farm":
+            for i in range(data.items.size()):
+                field.choose(i)
+                field.choose(i)
+                if field.choose(i):
+                    return false
+            field.tick(float(data.growSeconds)+0.1)
+            for i in range(data.items.size()):
+                field.choose(i)
+        "rhythm":
+            if field.choose(int(data.answer[0])):
+                return false
+            for note in data.answer:
+                field.tick(float(data.beatSeconds))
+                field.choose(int(note))
         "select":
             field.choose(int(data.answer))
         "sequence","memory":
