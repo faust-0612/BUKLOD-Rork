@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "objective": "Accomplishment-based weekly and monthly Faith Monitoring with actual distinct validated activities, mentoring roles and server-confirmed Children Story assessment",
+  "baseRef": "main",
+  "productionBaselineEvidence": "GitHub main 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 inspected; production runtime/OTA and frozen RC not verified. Read-only production schema and EXPLAIN of core query performed. No deployment authorized by this branch.",
+  "chosenApproach": "Add v2 period RPC reusing v1 scope authorization; keep v1 daily metrics and add accomplishment counts; independently synchronize adult-account story assessments using the existing offline queue.",
+  "selectionRationale": "No new manual approval, reward or ad behavior; one count per actual unit, no fake zero for unavailable sources, exact workspace protection.",
+  "alternativeApproaches": [
+    "Client-only aggregation rejected: incomplete offline data and cross-scope risk.",
+    "Rewriting v1 rejected: regression risk."
+  ],
+  "riskAreas": [
+    "faith-cluster"
+  ],
+  "preserveBehaviors": [
+    "Existing daily reports and feedback unchanged",
+    "No BP awards/deductions, no production database writes, no OTA",
+    "No private devotional text, child identity, photos or research content exposed",
+    "Existing offline behavior retained"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/faith-accomplishment-report-20261125.json",
+    "tests/fixtures/faith-accomplishment-postgres17-20261125.sql",
+    "tests/fixtures/faith-accomplishment-postgres17-verification-20261125.sql",
+    ".github/workflows/faith-accomplishment-isolated-qa-20261125.yml",
+    "src/components/BuklodFaithPeriodReport.tsx",
+    "src/lib/buklodScopeFaithPeriodReport.ts",
+    "src/components/BuklodSyncCoordinator.tsx",
+    "src/app/children-stories/[id].tsx",
+    "supabase/migrations/20261125141700_children_story_verified_accomplishments.sql",
+    "supabase/migrations/20261125141800_faith_accomplishment_report_v2.sql",
+    "tests/faith-accomplishment-report-v2.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/faith-accomplishment-report-v2.test.mjs",
+    "tests/faith-monitoring-named-period.test.cjs",
+    "tests/fixtures/faith-accomplishment-postgres17-verification-20261125.sql"
+  ],
+  "acceptanceChecks": [
+    "Multiple same-day lessons count separately",
+    "Repeat chapter translations and same story do not double count",
+    "Mentor sessions and mentee participation separate",
+    "Scope permissions and account-bound sync enforced",
+    "SALIKSIK conditional on source migration; children teaching remains unavailable until canonical evidence source exists",
+    "No production release before consolidated DEV/RC verification"
+  ]
+}
