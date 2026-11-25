@@ -19,7 +19,8 @@
   "preserveBehaviors": [
     "Keep login and Home routing, retired entry map and estate routes, original household tools, AdMob slots and bottom navigation.",
     "Keep original character progression and Kingdom station authorization, offline games and rewards; no new reward or backend writes.",
-    "Keep existing non-Genesis behavior; no native APK or production changes."
+    "Keep existing non-Genesis behavior; no native APK or production changes.",
+    "Navigation-auth behavior remains an acceptance check; exact changed paths impact app-runtime and kingdom-character, not the separately path-scoped navigation-auth lock."
   ],
   "acceptanceChecks": [
     "Focused source tests for Kingdom allowlist, blocked Arena, old estate redirects, original ads and Home boot.",
@@ -49,16 +50,6 @@
       ],
       "tests": [
         "tests/genesis-main-home-no-empire-20261124.test.mjs",
-        "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
-      ]
-    },
-    {
-      "id": "navigation-auth",
-      "reason": "Restore only the original menu and Kingdom search route; retain account scope guard.",
-      "preservedBehaviors": [
-        "Original navigation and scope guards remain, no retired map entry."
-      ],
-      "tests": [
         "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs"
       ]
     },
