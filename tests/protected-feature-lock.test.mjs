@@ -152,3 +152,18 @@ test('Connect staging-only latest-activity scope enforces notification, chat and
   assert.ok(workflow.includes('dev/connect-inbox-latest-activity-20261123'));
   assert.ok(workflow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-inbox-staging-20261123.json'));
 });
+
+
+test('November 25 consolidated source candidate retains exact scope and explicit release isolation', () => {
+  const scope = JSON.parse(readFileSync(new URL('../.buklod/scopes/main-conso-backlog-20261125.json', import.meta.url), 'utf8'));
+  assert.equal(scope.releaseMode, 'consolidated-main-rc');
+  assert.equal(scope.publicationStatus, 'DEV_ONLY_NO_PUBLISH');
+  const paths = scope.allowedPaths;
+  assert.deepEqual(scope.componentScopePaths.slice().sort(), paths.filter(p => p.startsWith('.buklod/scopes/') && p !== scope.scopeManifestPath).sort());
+  assert.ok(paths.every(p => !/^(?:supabase\/|android\/|ios\/|modules\/|plugins\/|app\.config\.|eas\.json$|package(?:-lock)?\.json$)/.test(p)));
+  assert.deepEqual(assessProtectedFeatureLock(paths.map(path=>({status:'M',path})),scope).failures, []);
+  const flow=readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+  assert.match(flow,/integration\/main-conso-backlog-20261125\)[\s\S]*?if \[ "\$PR_BASE" = "main" \]; then[\s\S]*?BUKLOD_CONSOLIDATED_RC_GATE=true/);
+  const gate=readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8');
+  assert.ok(gate.includes("'integration/main-conso-backlog-20261125'].includes(process.env.GITHUB_HEAD_REF)"));
+});
