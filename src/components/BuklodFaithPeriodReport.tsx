@@ -55,7 +55,7 @@ function MemberRow({ member, expected }: { member: FaithPeriodMember; expected: 
       {member.lesson_stages.map((stage) => <Text key={stage.stage_code} style={styles.stage}>
         BUKLOD {stage.stage_code}: {stage.approved_count} approved lesson{stage.approved_count === 1 ? '' : 's'}
       </Text>)}
-      <Text style={styles.explain}>Daily progress is counted once per assigned or completed date, not once per repeated submission.</Text>
+      <Text style={styles.explain}>Habit-day metrics and distinct assignment/completion counts are separate. Repeated submissions do not increase accomplishment counts.</Text>
     </View> : null}
   </Pressable>;
 }

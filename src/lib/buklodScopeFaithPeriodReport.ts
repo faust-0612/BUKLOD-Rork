@@ -14,6 +14,8 @@ export type FaithPeriodMember = {
   lesson_approved_count: number;
   lesson_pending_count: number;
   lesson_stages: FaithPeriodStage[];
+  reading_approved_count?: number | null;
+  devotion_completed_count?: number | null;
   abaka_completed_count?: number | null;
   saliksik_completed_count?: number | null;
   children_story_count?: number | null;
@@ -77,7 +79,7 @@ export function percentage(value: number, denominator: number): number {
   return Math.min(100, Math.round(100 * value / denominator));
 }
 
-export const ACCOMPLISHMENT_METRICS = [["abaka_completed_count","ABAKA lessons"],["saliksik_completed_count","SALIKSIK investigations"],["children_story_count","Children stories"],["bible_chapter_count","Personal Bible chapters"],["children_teaching_count","Children teaching sessions"],["mentor_session_count","Mentor sessions"],["mentee_session_count","Mentee sessions"],["mentees_reached_count","Distinct in-scope mentees"]] as const;
+export const ACCOMPLISHMENT_METRICS = [["reading_approved_count","Daily Reading assignments"],["devotion_completed_count","Daily Devotion completions"],["abaka_completed_count","ABAKA lessons"],["saliksik_completed_count","SALIKSIK investigations"],["children_story_count","Children stories"],["bible_chapter_count","Personal Bible chapters"],["children_teaching_count","Children teaching sessions"],["mentor_session_count","Mentor sessions"],["mentee_session_count","Mentee sessions"],["mentees_reached_count","Distinct in-scope mentees"]] as const;
 export function accomplishmentCount(value: unknown): number | null {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
@@ -148,6 +150,8 @@ export async function fetchFaithPeriodReport(
         devotion_revision_days: nonnegative(row.devotion_revision_days),
         lesson_approved_count: nonnegative(row.lesson_approved_count),
         lesson_pending_count: nonnegative(row.lesson_pending_count),
+        reading_approved_count: accomplishmentCount(row.reading_approved_count),
+        devotion_completed_count: accomplishmentCount(row.devotion_completed_count),
         abaka_completed_count: accomplishmentCount(row.abaka_completed_count),
         saliksik_completed_count: accomplishmentCount(row.saliksik_completed_count),
         children_story_count: accomplishmentCount(row.children_story_count),
@@ -191,6 +195,8 @@ export function faithPeriodToCsvRows(report: FaithPeriodResult): Record<string, 
     'Devotion needs revision days': member.devotion_revision_days,
     'Lessons approved in period': member.lesson_approved_count,
     'Lessons pending in period': member.lesson_pending_count,
+    'Daily Reading assignments': displayAccomplishment(member.reading_approved_count),
+    'Daily Devotion completions': displayAccomplishment(member.devotion_completed_count),
     'ABAKA lessons': displayAccomplishment(member.abaka_completed_count),
     'SALIKSIK investigations': displayAccomplishment(member.saliksik_completed_count),
     'Children stories': displayAccomplishment(member.children_story_count),

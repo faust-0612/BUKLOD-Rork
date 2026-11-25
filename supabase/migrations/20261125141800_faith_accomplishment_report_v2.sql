@@ -36,6 +36,36 @@ begin
   from public.buklod_scope_memberships m
   join members u on u.uid=m.user_id
   where m.scope_id=any(v_scopes) and m.membership_status='ACTIVE'
+ ), reading as (
+  select s.user_id,count(distinct s.assignment_id) n
+  from public.daily_bible_submissions s
+  join public.daily_bible_assignments a on a.id=s.assignment_id
+  left join lateral (
+    select f.status from public.buklod_scope_formation_approvals_v2 f
+    where f.scope_id=s.cluster_id and f.learner_id=s.user_id
+      and f.item_kind='DAILY_READING' and f.item_id=s.id
+    order by f.updated_at desc nulls last,f.created_at desc limit 1
+  ) f on true
+  where a.reading_date between v_start and v_end
+    and upper(coalesce(f.status,s.status,''))='APPROVED'
+    and exists(select 1 from membership m where m.user_id=s.user_id and m.scope_id=s.cluster_id
+      and s.submitted_at>=m.joined_at)
+  group by s.user_id
+ ), devotion as (
+  select s.user_id,count(distinct dc.id) n
+  from public.devotional_reward_submissions s
+  join public.devotional_completions dc on dc.id=s.completion_id and dc.user_id=s.user_id
+  where dc.completion_date between v_start and v_end
+    and exists(select 1 from membership m
+      join lateral (
+        select f.status from public.buklod_scope_formation_approvals_v2 f
+        where f.scope_id=m.scope_id and f.learner_id=s.user_id
+          and f.item_kind='DAILY_DEVOTION' and f.item_id=s.id
+        order by f.updated_at desc nulls last,f.created_at desc limit 1
+      ) f on true
+      where m.user_id=s.user_id and dc.completed_at>=m.joined_at
+        and upper(f.status)='APPROVED')
+  group by s.user_id
  ), abc as (
   select p.user_id,count(distinct p.lesson_id) n from public.buklod_abc_growth_progress p
   where p.completed_at>=v_start_ts and p.completed_at<v_end_ts
@@ -43,7 +73,7 @@ begin
   group by p.user_id
  ), bible as (
   select p.user_id,count(distinct (p.book_no,p.chapter_no)) n from public.bible_reading_sessions p
-  where p.completed_at>=v_start_ts and p.completed_at<v_end_ts and p.source in ('free_reading','search_reading')
+  where p.completed_at>=v_start_ts and p.completed_at<v_end_ts and p.source in ('free_reading','search','search_reading')
   and exists(select 1 from membership m where m.user_id=p.user_id and p.completed_at>=m.joined_at)
   group by p.user_id
  ), mentoring as (
@@ -63,6 +93,8 @@ begin
   select mentee_id,count(distinct id) n from mentoring group by mentee_id
  )
  select coalesce(jsonb_agg(u.item || jsonb_build_object(
+ 'reading_approved_count',coalesce(r.n,0),
+ 'devotion_completed_count',coalesce(d.n,0),
  'abaka_completed_count',coalesce(a.n,0),
  'bible_chapter_count',coalesce(b.n,0),
  'mentor_session_count',coalesce(m.n,0),
@@ -70,7 +102,8 @@ begin
  'mentees_reached_count',coalesce(m.reached,0),
  'children_story_count',null,'children_teaching_count',null,'saliksik_completed_count',null
  ) order by lower(u.item->>'member_name'),u.uid),'[]'::jsonb)
- into v_members from members u left join abc a on a.user_id=u.uid
+ into v_members from members u left join reading r on r.user_id=u.uid
+ left join devotion d on d.user_id=u.uid left join abc a on a.user_id=u.uid
  left join bible b on b.user_id=u.uid left join mentors m on m.mentor_id=u.uid
  left join mentees t on t.mentee_id=u.uid;
  -- SALIKSIK can be rolled out independently. Never turn a missing source into zero.
