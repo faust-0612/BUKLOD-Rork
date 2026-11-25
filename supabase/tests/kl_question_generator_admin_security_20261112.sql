@@ -39,3 +39,29 @@ DO $kl_security$ BEGIN
     RAISE EXCEPTION 'KL question or attempt row-level security disabled';
   END IF;
 END $kl_security$;
+
+-- Provider failover must preserve server-side authorization, stale-hash rejection,
+-- source validation and idempotency regardless of which model responded.
+DO $kl_failover_security$
+DECLARE
+  context_def text := pg_get_functiondef('public.kl_quiz_admin_context_v1(uuid)'::regprocedure);
+  store_def text := pg_get_functiondef('public.kl_quiz_store_generated_v1(uuid,text,jsonb)'::regprocedure);
+BEGIN
+  IF position('id=auth.uid() AND role::text=''system_admin'' AND is_active=true' in context_def)=0
+     OR position('id=auth.uid() AND role::text=''system_admin'' AND is_active=true' in store_def)=0
+     OR position('v.status<>''approved''' in context_def)=0
+     OR position('v.approved_at IS NULL' in context_def)=0
+     OR position('manuscript_hash=md5(v.manuscript)' in context_def)=0 THEN
+    RAISE EXCEPTION 'KL failover must not bypass approved manuscript authorization';
+  END IF;
+  IF position('FOR UPDATE' in store_def)=0
+     OR position('md5(v.manuscript)<>p_manuscript_hash' in store_def)=0
+     OR position('jsonb_array_length(p_items)<>5' in store_def)=0
+     OR position('position(v_e in v.manuscript)=0' in store_def)=0
+     OR position('Correct answer must appear verbatim in the approved evidence' in store_def)=0
+     OR position('status=''ready''' in store_def)=0
+     OR position('''changed'',false' in store_def)=0
+     OR position('''changed'',false' in store_def)>=position('DELETE FROM public.kl_quiz_questions' in store_def) THEN
+    RAISE EXCEPTION 'KL failover must preserve locked hash, evidence, five-item and no-rewrite contracts';
+  END IF;
+END $kl_failover_security$;
