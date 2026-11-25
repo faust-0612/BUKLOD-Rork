@@ -139,7 +139,7 @@ Deno.serve(async (request: Request) => {
   if (!key) return reply(503, { ok: false, reason: "generator_not_configured" });
 
   // Gemini 2.5 access is restricted for newer projects. Use affordable, current
-  // Flash-Lite models; fall back only when a requested model returns HTTP 404.
+  // Flash-Lite models; fail over on model-not-found or transient upstream errors.
   const configuredModel = (Deno.env.get("KL_QUIZ_GEMINI_MODEL") || "").trim();
   const modelCandidates = [...new Set([
     configuredModel || "gemini-3.5-flash-lite",
@@ -152,8 +152,9 @@ Deno.serve(async (request: Request) => {
   const collected: Question[] = [];
   const usedQuestions = new Set<string>();
   const usedEvidence = new Set<string>();
+  let lastTransportFailure: "generator_model_unavailable" | "generator_unavailable" | "generator_timeout" | null = null;
   for (const model of modelCandidates) {
-    let unsupportedModel = false;
+    let tryNextModel = false;
     for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 24000);
@@ -189,9 +190,14 @@ Deno.serve(async (request: Request) => {
         },
       );
       if (!response.ok) {
-        if (response.status === 404) {
-          console.warn("kl_question_model_not_found", model, response.status);
-          unsupportedModel = true;
+        // A single unavailable model must not strand an edited chapter.
+        // Immediately try the next low-cost model; never loop on repeated 503s.
+        if (response.status === 404 || response.status === 500 ||
+            response.status === 502 || response.status === 503 || response.status === 504) {
+          console.warn("kl_question_model_fallback", model, response.status);
+          lastTransportFailure = response.status === 404
+            ? "generator_model_unavailable" : "generator_unavailable";
+          tryNextModel = true;
           break;
         }
         console.error("kl_question_model_error", model, response.status);
@@ -228,17 +234,20 @@ Deno.serve(async (request: Request) => {
       return reply(200, { ok: true, status: "ready", count: 5, changed: stored?.changed === true });
     } catch (cause) {
       console.error("kl_question_request_error", cause instanceof Error ? cause.name : "unknown");
-      if (attempt === 1) return reply(504, { ok: false, reason: "generator_timeout" });
+      lastTransportFailure = "generator_timeout";
+      tryNextModel = true;
+      break;
     } finally {
       clearTimeout(timeout);
     }
     }
     // A reachable model that gave two invalid results must not trigger extra
     // model calls or costs; do not weaken manuscript evidence checks.
-    if (!unsupportedModel) return reply(422, {
+    if (!tryNextModel) return reply(422, {
       ok: false, reason: "generated_questions_failed_source_validation",
       valid_candidates: collected.length,
     });
   }
-  return reply(502, { ok: false, reason: "generator_model_unavailable" });
+  const reason = lastTransportFailure ?? "generator_model_unavailable";
+  return reply(reason === "generator_timeout" ? 504 : 502, { ok: false, reason });
 });

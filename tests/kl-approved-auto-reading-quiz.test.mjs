@@ -93,7 +93,7 @@ test('generator picks 5 source-validated questions from 8 candidates with bounde
   assert.match(generator, /const valid = validatedItems\(parsed, context\.manuscript, excerpts\)/);
   assert.match(generator, /if \(collected\.length < 5\) continue/);
   assert.match(generator, /p_items: collected\.slice\(0, 5\)/);
-  assert.match(generator, /if \(!unsupportedModel\) return reply\(422/);
+  assert.match(generator, /if \(!tryNextModel\) return reply\(422/);
   assert.match(generator, /const timeout = setTimeout\(\(\) => controller\.abort\(\), 24000\)/);
   assert.doesNotMatch(generator, /text: instructions \+.*APPROVED MANUSCRIPT/);
 });
@@ -109,4 +109,19 @@ test('KL Admin can review 5 stored questions but reader never fetches admin answ
   assert.match(reader, /Tingnan ang 5 Tanong at Sagot/);
   assert.match(reader, /quizReviews\[episode\.id\]\.questions\?\.map/);
   assert.doesNotMatch(quiz, /kl_quiz_admin_review_v1/);
+});
+
+
+test('a Gemini 503/5xx fails over to a different Flash-Lite instead of stranding revised chapters', () => {
+  assert.match(generator, /response\.status === 503/);
+  assert.match(generator, /response\.status === 500/);
+  assert.match(generator, /response\.status === 502/);
+  assert.match(generator, /response\.status === 504/);
+  assert.match(generator, /lastTransportFailure = response\.status === 404/);
+  assert.match(generator, /tryNextModel = true;\s*break;/);
+  assert.match(generator, /const reason = lastTransportFailure \?\? "generator_model_unavailable"/);
+  // Other non-retryable response codes may still return generator_unavailable directly.
+  assert.match(generator, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/);
+  assert.match(generator, /return reply\(429, \{ ok: false, reason: "generator_quota_limited" \}\)/);
+  assert.match(generator, /p_manuscript_hash: context\.manuscript_hash/);
 });

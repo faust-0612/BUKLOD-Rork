@@ -1,0 +1,67 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore KL question generation after manuscript edits when primary Gemini model returns 503.",
+  "baseRef": "main",
+  "sourceBranch": "fix/kl-ai-503-failover-20261123",
+  "chosenApproach": "Fail over to a second low-cost Gemini model on upstream 404/5xx without relaxing evidence checks or spending on repeated 503 retries.",
+  "selectionRationale": "Live logs report 43 generator HTTP 502s caused by Gemini 3.5 Flash-Lite 503; edited manuscript correctly invalidates old banks.",
+  "riskAreas": [
+    "KL manuscript",
+    "Supabase Edge security",
+    "Gemini provider costs"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/kl-generator-503-failover-20261123.json",
+    "supabase/functions/kl-generate-reading-quiz/index.ts",
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/kl-supabase-generator-503.test.mjs",
+    "supabase/tests/kl_generate_reading_quiz_failover_security_v1.sql"
+  ],
+  "regressionTests": [
+    "tests/kl-approved-auto-reading-quiz.test.mjs",
+    "tests/kl-supabase-generator-503.test.mjs",
+    "supabase/tests/kl_generate_reading_quiz_failover_security_v1.sql"
+  ],
+  "preserveBehaviors": [
+    "Admin-only auth enforced by current Supabase RPC.",
+    "Exactly 5 evidence-validated questions, answer keys private; 429 quota failures stop.",
+    "Reading progress and points unchanged; no chapter release, OTA or native change."
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Restore existing KL app reader workflow after upstream provider model outage.",
+      "preservedBehaviors": [
+        "No changes to existing native runtime, ads, navigation, reader or release behavior."
+      ],
+      "tests": [
+        "tests/kl-approved-auto-reading-quiz.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Improve existing protected Edge Function model fallback, retaining confidentiality and auth.",
+      "preservedBehaviors": [
+        "Active System Admin auth remains mandatory; bank storage still checks exact manuscript evidence and hashes.",
+        "429 stops generation and no answer keys are disclosed to reader."
+      ],
+      "tests": [
+        "tests/kl-supabase-generator-503.test.mjs",
+        "supabase/tests/kl_generate_reading_quiz_failover_security_v1.sql"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Run both changed Node tests and Engineering Accountability gate.",
+    "Review exact deployed function version before any production claim.",
+    "Re-run K11 as System Admin and confirm 5 validated questions; do not publish chapter without READY bank.",
+    "Read-only SQL regression confirms admin RPC privileges and manuscript-change approval trigger remain protected."
+  ],
+  "publicationStatus": "DEV_SOURCE_ONLY_NO_LIVE_BACKEND_DEPLOY",
+  "productionBaselineEvidence": "verified: GitHub repository main source baseline 993fba1b405a4c1a50d1d377e223f024f46a076b read back Nov 23 2026; separately verified: live Supabase project yhanxndaqbmuzbdqlblu read-only chapter/status/auth trigger state and 43 upstream Gemini 503 errors. Verified source/database metadata only, NOT a verified deployed Android OTA fingerprint. Production source/release state is not inferred from main.",
+  "alternativeApproaches": [
+    "Mark pending stale quiz READY (rejected: one stored evidence excerpt is not in current manuscript).",
+    "Repeat same overloaded 503 model multiple times (rejected: cost and latency).",
+    "Expand to alternate Flash-Lite on transient 5xx without weaker SQL validation (selected)."
+  ]
+}
