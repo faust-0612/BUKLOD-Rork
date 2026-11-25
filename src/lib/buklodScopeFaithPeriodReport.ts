@@ -14,6 +14,16 @@ export type FaithPeriodMember = {
   lesson_approved_count: number;
   lesson_pending_count: number;
   lesson_stages: FaithPeriodStage[];
+  reading_approved_count?: number | null;
+  devotion_completed_count?: number | null;
+  abaka_completed_count?: number | null;
+  saliksik_completed_count?: number | null;
+  children_story_count?: number | null;
+  bible_chapter_count?: number | null;
+  children_teaching_count?: number | null;
+  mentor_session_count?: number | null;
+  mentee_session_count?: number | null;
+  mentees_reached_count?: number | null;
 };
 export type FaithPeriodResult = {
   scope_id: string;
@@ -69,12 +79,28 @@ export function percentage(value: number, denominator: number): number {
   return Math.min(100, Math.round(100 * value / denominator));
 }
 
+export const ACCOMPLISHMENT_METRICS = [["reading_approved_count","Daily Reading assignments"],["devotion_completed_count","Daily Devotion completions"],["abaka_completed_count","ABAKA lessons"],["saliksik_completed_count","SALIKSIK investigations"],["children_story_count","Children stories"],["bible_chapter_count","Personal Bible chapters"],["children_teaching_count","Children teaching sessions"],["mentor_session_count","Mentor sessions"],["mentee_session_count","Mentee sessions"],["mentees_reached_count","Distinct in-scope mentees"]] as const;
+export function accomplishmentCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+export function accomplishmentTotal(members: FaithPeriodMember[], key: typeof ACCOMPLISHMENT_METRICS[number][0]): number | null {
+  if (!members.length || members.some(m => accomplishmentCount(m[key]) === null)) return null;
+  return members.reduce((total, m) => total + (m[key] ?? 0), 0);
+}
+export function displayAccomplishment(value: unknown): string {
+  return String(accomplishmentCount(value) ?? 'Not available');
+}
+
 export async function fetchFaithPeriodReport(
   scopeId: string, period: FaithPeriod, anchor: string,
 ): Promise<FaithPeriodResult> {
-  const { data, error } = await supabase.rpc('buklod_scope_faith_monitoring_period_v1' as any, {
-    p_scope_id: scopeId, p_period: period, p_anchor_date: anchor,
-  } as any);
+  const args = { p_scope_id: scopeId, p_period: period, p_anchor_date: anchor } as any;
+  let response = await supabase.rpc('buklod_scope_faith_monitoring_period_v2' as any, args);
+  if (response.error && (response.error.code === 'PGRST202' || response.error.code === '42883') &&
+    /buklod_scope_faith_monitoring_period_v2/i.test(String(response.error.message ?? ''))) {
+    response = await supabase.rpc('buklod_scope_faith_monitoring_period_v1' as any, args);
+  }
+  const { data, error } = response;
   if (error) {
     const message = String(error.message ?? '');
     if (error.code === '42501' || /not authorized|authentication required/i.test(message)) {
@@ -124,6 +150,16 @@ export async function fetchFaithPeriodReport(
         devotion_revision_days: nonnegative(row.devotion_revision_days),
         lesson_approved_count: nonnegative(row.lesson_approved_count),
         lesson_pending_count: nonnegative(row.lesson_pending_count),
+        reading_approved_count: accomplishmentCount(row.reading_approved_count),
+        devotion_completed_count: accomplishmentCount(row.devotion_completed_count),
+        abaka_completed_count: accomplishmentCount(row.abaka_completed_count),
+        saliksik_completed_count: accomplishmentCount(row.saliksik_completed_count),
+        children_story_count: accomplishmentCount(row.children_story_count),
+        bible_chapter_count: accomplishmentCount(row.bible_chapter_count),
+        children_teaching_count: accomplishmentCount(row.children_teaching_count),
+        mentor_session_count: accomplishmentCount(row.mentor_session_count),
+        mentee_session_count: accomplishmentCount(row.mentee_session_count),
+        mentees_reached_count: accomplishmentCount(row.mentees_reached_count),
         lesson_stages: (Array.isArray(row.lesson_stages) ? row.lesson_stages : []).flatMap((item: unknown) => {
           const stage = object(item);
           const code = Number(stage.stage_code);
@@ -159,6 +195,16 @@ export function faithPeriodToCsvRows(report: FaithPeriodResult): Record<string, 
     'Devotion needs revision days': member.devotion_revision_days,
     'Lessons approved in period': member.lesson_approved_count,
     'Lessons pending in period': member.lesson_pending_count,
+    'Daily Reading assignments': displayAccomplishment(member.reading_approved_count),
+    'Daily Devotion completions': displayAccomplishment(member.devotion_completed_count),
+    'ABAKA lessons': displayAccomplishment(member.abaka_completed_count),
+    'SALIKSIK investigations': displayAccomplishment(member.saliksik_completed_count),
+    'Children stories': displayAccomplishment(member.children_story_count),
+    'Personal Bible chapters': displayAccomplishment(member.bible_chapter_count),
+    'Children teaching sessions': displayAccomplishment(member.children_teaching_count),
+    'Mentor sessions': displayAccomplishment(member.mentor_session_count),
+    'Mentee sessions': displayAccomplishment(member.mentee_session_count),
+    'Distinct in-scope mentees': displayAccomplishment(member.mentees_reached_count),
     'Lesson stage breakdown': member.lesson_stages.map((stage) => `BUKLOD ${stage.stage_code}: ${stage.approved_count}`).join('; '),
   }));
 }

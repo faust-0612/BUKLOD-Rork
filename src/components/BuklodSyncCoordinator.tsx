@@ -51,7 +51,7 @@ export default function BuklodSyncCoordinator() {
   onlineRef.current = online;
 
   useEffect(() => {
-    // ABC completion is the only Show Faith mutation replayed here. The
+    // ABAKA completion is replayed with the original account. The
     // database uniquely constrains (user_id, lesson_id/source_key), so a
     // lost acknowledgement or interrupted retry cannot grant points twice.
     return registerOfflineQueueHandler('faith_abc_completion_v1', async item => {
@@ -101,6 +101,30 @@ export default function BuklodSyncCoordinator() {
         .catch(() => undefined);
     });
   }, [user?.id]);
+
+  useEffect(() => {
+    return registerOfflineQueueHandler('children_story_completion_v1',async item=>{
+      if(!user?.id||item.userId!==user.id)throw new OfflineQueueDeferredError();
+      const p=item.payload as {storyId?:unknown;version?:unknown;source?:unknown;answers?:unknown}|null;
+      if(typeof p?.storyId!=='string'||!/^[a-z0-9-]{3,70}$/.test(p.storyId)||
+        typeof p.version!=='number'||!Number.isSafeInteger(p.version)||p.version<1||
+        (p.source!=='bundled'&&p.source!=='published')||!Array.isArray(p.answers)||
+        p.answers.length<1||p.answers.length>20||p.answers.some((v:unknown)=>v!==0&&v!==1&&v!==2)){
+        throw new OfflineQueuePermanentError('Invalid story assessment.');
+      }
+      const {data:{user:verified},error:authError}=await supabase.auth.getUser();
+      if(authError||verified?.id!==item.userId)throw new OfflineQueueDeferredError();
+      const {data,error}=await (supabase as any).rpc('complete_my_children_story_v1',{
+        p_expected_user:item.userId,p_story_id:p.storyId,p_version:p.version,p_source:p.source,p_answers:p.answers
+      });
+      if(error){
+        if(error.code==='PGRST202'||error.code==='42883'||error.code==='42501')throw new OfflineQueueDeferredError();
+        if(error.code==='22023')throw new OfflineQueuePermanentError(String(error.message));
+        throw error;
+      }
+      if(data?.recorded!==true)throw new Error('Story completion was not confirmed.');
+    });
+  },[user?.id]);
 
   const runSync = useCallback(async () => {
     if (!onlineRef.current || !user?.id || runningRef.current) {

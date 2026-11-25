@@ -1,0 +1,80 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-faith-accomplishments-qa-20261125.json",
+  "objective": "Forward-port Faith Monitoring distinct accomplishments and verified Children Story completion to isolated Genesis 2.0.6 QA only; never publish this branch to a shared-backend staging client.",
+  "baseRef": "5a854420458abf43442d3cd48f5b32d81743ad4d",
+  "productionBaselineEvidence": "MAIN 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 unchanged; four client ancestors match exact Genesis staging candidate. Existing staging uses shared backend; migrations and RPC activation explicitly held.",
+  "chosenApproach": "Reuse exact nine reviewed source/SQL/fixture blobs, test against ephemeral PostgreSQL 17 only, assert RPC privileges and no direct private writes. No live database, Edge or OTA operations.",
+  "selectionRationale": "Existing Faith v1 remains untouched on publishable staging source. New v2 requires verified server tables; frontend-only release would misrepresent completeness and queue new unsupported story events.",
+  "alternativeApproaches": [
+    "Deploy SQL on shared production database: rejected by owner staging-only constraint.",
+    "Publish client with missing RPCs and indefinite queued assessments: rejected until server parity."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "app-runtime",
+    "backend-security"
+  ],
+  "preserveBehaviors": [
+    "Existing Faith report remains available on unchanged staging candidate. No live data writes, reward change or manual approval.",
+    "Server authorization, unavailable-source distinction, adult account binding, offline behavior and no child identity disclosure."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-faith-accomplishments-qa-20261125.json",
+    ".github/workflows/genesis-206-faith-accomplishments-isolated-qa.yml",
+    "src/app/children-stories/[id].tsx",
+    "src/components/BuklodFaithPeriodReport.tsx",
+    "src/components/BuklodSyncCoordinator.tsx",
+    "src/lib/buklodScopeFaithPeriodReport.ts",
+    "supabase/migrations/20261125141700_children_story_verified_accomplishments.sql",
+    "supabase/migrations/20261125141800_faith_accomplishment_report_v2.sql",
+    "supabase/tests/faith_accomplishment_privilege_contract_20261125.sql",
+    "tests/faith-accomplishment-report-v2.test.mjs",
+    "tests/fixtures/faith-accomplishment-postgres17-20261125.sql",
+    "tests/fixtures/faith-accomplishment-postgres17-verification-20261125.sql"
+  ],
+  "regressionTests": [
+    "tests/faith-accomplishment-report-v2.test.mjs",
+    "supabase/tests/faith_accomplishment_privilege_contract_20261125.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Port exact four client blobs on matching ancestor for separate QA.",
+      "preservedBehaviors": [
+        "Existing offline runtime and identity remain unchanged on publishable staging."
+      ],
+      "tests": [
+        "tests/faith-accomplishment-report-v2.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Add distinct per-unit report metrics, never fake unavailable counts or expose private material.",
+      "preservedBehaviors": [
+        "Existing v1 authorization and daily report stay authoritative."
+      ],
+      "tests": [
+        "tests/faith-accomplishment-report-v2.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add scoped v2 and story completion SQL for ephemeral QA only with read-only privilege assertions.",
+      "preservedBehaviors": [
+        "No anonymous RPC access, answer key disclosure or direct ledger writes."
+      ],
+      "tests": [
+        "supabase/tests/faith_accomplishment_privilege_contract_20261125.sql",
+        "tests/faith-accomplishment-report-v2.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Exact source diff and protected feature validation.",
+    "Run source and isolated PostgreSQL fixtures including role, duplicate and missing-source tests before any release decision.",
+    "Never merge into publishable staging until backend compatibility is verified without touching live backend."
+  ],
+  "publicationStatus": "QA_ONLY_BACKEND_DEPENDENCY_HOLD",
+  "sourceSha": "03ae617eacfd9f5469afd39b133afcb87467bc15"
+}
