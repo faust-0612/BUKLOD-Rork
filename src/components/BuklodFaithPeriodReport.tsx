@@ -6,7 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
 import {
-  faithPeriodToCsvRows, fetchFaithPeriodReport, percentage, shiftFaithPeriodAnchor, todayInManila,
+  ACCOMPLISHMENT_METRICS, accomplishmentTotal, displayAccomplishment, faithPeriodToCsvRows, fetchFaithPeriodReport, percentage, shiftFaithPeriodAnchor, todayInManila,
   type FaithPeriod, type FaithPeriodMember, type FaithPeriodResult,
 } from '@/lib/buklodScopeFaithPeriodReport';
 import { shareCsv } from '@/lib/reports/export';
@@ -45,12 +45,13 @@ function MemberRow({ member, expected }: { member: FaithPeriodMember; expected: 
     <View style={styles.memberMetrics}>
       <Text style={styles.memberRate}>Reading {percentage(member.reading_approved_days, expected)}%</Text>
       <Text style={styles.memberRate}>Devotion {percentage(member.devotion_completed_days, expected)}%</Text>
-      <Text style={styles.memberRate}>Lessons +{member.lesson_approved_count}</Text>
+      <Text style={styles.memberRate}>BUKLOD Lessons {member.lesson_approved_count}</Text>
     </View>
     {expanded ? <View style={styles.details}>
       <Text style={styles.detail}>Daily Reading: {member.reading_submitted_days} submitted days, {member.reading_approved_days} approved, {member.reading_revision_days} need revision</Text>
       <Text style={styles.detail}>Devotion: {member.devotion_submitted_days} submitted days, {member.devotion_completed_days} completed, {member.devotion_revision_days} need revision</Text>
       <Text style={styles.detail}>BUKLOD Lessons: {member.lesson_approved_count} approved, {member.lesson_pending_count} pending this period</Text>
+      {ACCOMPLISHMENT_METRICS.map(([key, label]) => <Text key={key} style={styles.detail}>{label}: {displayAccomplishment(member[key])}</Text>)}
       {member.lesson_stages.map((stage) => <Text key={stage.stage_code} style={styles.stage}>
         BUKLOD {stage.stage_code}: {stage.approved_count} approved lesson{stage.approved_count === 1 ? '' : 's'}
       </Text>)}
@@ -183,9 +184,10 @@ export default function BuklodFaithPeriodReport({ scopeId, scopeName }: Props) {
         <Metric label="Devotion completion" value={`${percentage(totals.devotion_completed_days, possibleDays)}%`} />
         <Metric label="Approved lessons" value={String(totals.lesson_approved_count)} />
         <Metric label="Below daily target to date" value={String(belowTarget)} />
+        {ACCOMPLISHMENT_METRICS.filter(([key]) => key !== 'mentees_reached_count').map(([key, label]) => <Metric key={key} label={label} value={displayAccomplishment(accomplishmentTotal(activeReport.members, key))} />)}
       </View>
       <Text style={styles.context}>
-        Reading and Devotion rates use {activeReport.expected_days} elapsed days × {totals.active_members} members. Only submissions attributed to this workspace count.
+        Reading and Devotion rates use {activeReport.expected_days} elapsed days × {totals.active_members} members. Reading and devotion are workspace-attributed. ABAKA and personal Bible count member accomplishments during membership; mentoring counts approved shared-scope sessions. Mentor and mentee totals are separate, not additive. Unavailable sources are not counted as zero.
       </Text>
       <Text style={styles.sectionTitle}>INDIVIDUAL MEMBER REPORT</Text>
       <TextInput style={styles.search} placeholder="Search member by name" placeholderTextColor="#738679"
