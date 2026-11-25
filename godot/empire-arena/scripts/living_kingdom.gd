@@ -12,7 +12,7 @@ var mission_index := 0
 var realm_picker: OptionButton
 var mission_picker: OptionButton
 var action_button: Button
-var target_nodes: Array[Node3D] = []
+var target_nodes: Array[MeshInstance3D] = []
 var quest_status: Label
 var return_marker: Node3D
 var world_sun: DirectionalLight3D
@@ -32,6 +32,9 @@ var guide_talking := false
 var day_phase := 0.22
 var sky_auto := true
 var realm_profile: Dictionary = {}
+var next_button: Button
+var session_label: Label
+var daylight_update := 0.0
 
 func _get_world() -> String:
     return "kingdom"
@@ -150,14 +153,14 @@ func _apply_realm_visuals() -> void:
 func _apply_daylight() -> void:
     if world_sun == null or realm_environment == null:
         return
-    var sun_amount := 0.0 if night else (0.65 + 0.35 * sin(day_phase * TAU))
+    var sun_amount := clampf(0.5 + 0.65 * sin(day_phase * TAU), 0.0, 1.0) if sky_auto else (0.0 if night else 1.0)
     world_sun.light_energy = lerpf(0.27, 1.7, sun_amount)
     world_sun.light_color = Color("#b3cbff").lerp(Color("#fff3d2"), sun_amount)
     var sky := Color(str(realm_profile.get("sky", "#a6d3f0")))
     realm_environment.background_color = Color("#172440").lerp(sky, sun_amount)
     realm_environment.ambient_light_energy = lerpf(0.42, 0.82, sun_amount)
 
-func _marker(at: Vector3, tint: Color) -> Node3D:
+func _marker(at: Vector3, tint: Color) -> MeshInstance3D:
     var node := MeshInstance3D.new()
     var mesh := CylinderMesh.new()
     mesh.top_radius = 0.65
@@ -205,6 +208,13 @@ func _install_controls() -> void:
     sky_button.custom_minimum_size = Vector2(130, 50)
     sky_button.pressed.connect(_toggle_sky)
     controls.add_child(sky_button)
+    next_button = Button.new()
+    next_button.text = "NEXT ADVENTURE"
+    next_button.custom_minimum_size = Vector2(160, 48)
+    next_button.pressed.connect(_next_adventure)
+    panel.add_child(next_button)
+    session_label = Label.new()
+    panel.add_child(session_label)
     quest_status = Label.new()
     quest_status.add_theme_font_size_override("font_size", 17)
     quest_status.custom_minimum_size = Vector2(390, 0)
@@ -249,8 +259,10 @@ func _select_realm(index: int) -> void:
     if index < 0 or index >= realms.size():
         return
     realm_index = index
+    quest.cancel()
     _refresh_missions()
     _apply_realm_visuals()
+    _update_quest_status()
 
 func _refresh_missions() -> void:
     mission_picker.clear()
@@ -260,6 +272,21 @@ func _refresh_missions() -> void:
         return
     for mission in realms[realm_index].get("missions", []):
         mission_picker.add_item(str(mission.get("title", "")))
+
+func _next_adventure() -> void:
+    if quest.phase != "complete" or realms.is_empty():
+        return
+    var missions: Array = realms[realm_index].get("missions", [])
+    if mission_index + 1 < missions.size():
+        mission_index += 1
+        mission_picker.select(mission_index)
+        quest.cancel()
+        _update_quest_status()
+    else:
+        # Continue through the realm story without inventing unlocks or reward credit.
+        var next_realm := (realm_index + 1) % realms.size()
+        realm_picker.select(next_realm)
+        _select_realm(next_realm)
 
 func _start_or_cancel() -> void:
     if quest.phase in ["active", "return"]:
@@ -305,7 +332,10 @@ func _process(delta: float) -> void:
     super._process(delta)
     if sky_auto:
         day_phase = fposmod(day_phase + minf(delta, 0.05) / 240.0, 1.0)
-        _apply_daylight()
+        daylight_update += delta
+        if daylight_update >= 0.2:
+            daylight_update = 0.0
+            _apply_daylight()
     if guide != null:
         guide.frame = int(elapsed * 5.0) % 8
         guide_near = player.position.distance_to(Vector3(0, 0, -1.5)) <= 3.2
@@ -328,6 +358,8 @@ func _update_quest_status() -> void:
     realm_picker.disabled = active
     mission_picker.disabled = active
     action_button.text = "CANCEL ADVENTURE" if active else "START ADVENTURE"
+    next_button.visible = quest.phase == "complete"
+    session_label.text = "SESSION DISCOVERIES: %d / 39" % quest.completed.size()
     for i in range(target_nodes.size()):
         target_nodes[i].visible = quest.phase == "active" and i < int(quest.mission.get("count", 0)) and not quest.visited.has(i)
         if target_nodes[i].visible and quest.mission.get("kind") != "collect":
@@ -340,7 +372,7 @@ func _update_quest_status() -> void:
     elif quest.phase == "return":
         quest_status.text = "Return to the green beacon to finish."
     elif quest.phase == "complete":
-        quest_status.text = "Adventure complete! Session practice only. No BP, XP or wallet credit."
+        quest_status.text = "Adventure complete! Continue to the next challenge or replay. No BP, XP or wallet credit."
     else:
         quest_status.text = "Choose a realm and adventure. Session practice, no account rewards."
 

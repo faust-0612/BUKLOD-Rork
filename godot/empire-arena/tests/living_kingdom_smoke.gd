@@ -61,5 +61,18 @@ func _run() -> void:
     if world.quest.visited.size() != 1:
         quit(9)
         return
+    # The next-adventure action must keep all earlier session clears.
+    var spec: Dictionary = world.quest.mission
+    for i in range(int(spec.count)):
+        if not world.quest.visited.has(i):
+            world.quest.visit(i, 0.0)
+    if not world.quest.finish(0.0):
+        quit(13)
+        return
+    world._update_quest_status()
+    world._next_adventure()
+    if world.mission_index != 1 or world.quest.completed.size() != 1 or world.quest.phase != "idle":
+        quit(14)
+        return
     print("BUKLOD_LIVING_KINGDOM_39_MISSIONS_AND_ARRIVAL_PASS")
     quit(0)

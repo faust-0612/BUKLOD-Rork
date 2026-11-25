@@ -34,3 +34,10 @@ test('13 realm visual profiles use distinct authored environments and guide dial
  for(const token of ['_apply_realm_visuals','_guide_texture','_talk_to_guide','guide_near','guide_texture_cache.size() >= 2','mission_targets[i] = TARGETS[i].rotated','absf(point.z) > 17.5','_apply_daylight','realm_visuals.get_child_count() >= 20'])assert.ok(s.includes(token),token);
  assert.doesNotMatch(s,/HTTPRequest|FileAccess\.WRITE|user:\/\/|grant_bp|supabase/i);
 });
+
+test('Session chapter continuation is non-credit and never discards completed adventures',()=>{
+ const s=read('godot/empire-arena/scripts/living_kingdom.gd');
+ for(const token of ['func _next_adventure()','quest.phase != "complete"','quest.cancel()','quest.completed.size()','SESSION DISCOVERIES','realm_picker.select(next_realm)','daylight_update >= 0.2'])assert.ok(s.includes(token),token);
+ const state=read('godot/empire-arena/scripts/kingdom_mission_state.gd');
+ assert.doesNotMatch(state.slice(state.indexOf('func cancel()')), /completed\.clear/);
+});
