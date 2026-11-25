@@ -15,6 +15,7 @@
     "__tests__/connectInboxSearch.test.ts",
     "__tests__/connectInboxSignal.test.ts",
     "docs/release/BUKLOD_POINTS_STAGING_NO_NEW_SUPABASE_20261124.md",
+    "scripts/engineering-regression-gate.mjs",
     "src/app/(tabs)/messages.tsx",
     "src/components/BuklodConnectThread.tsx",
     "src/components/BuklodMaritesBoard.tsx",
@@ -43,6 +44,9 @@
     "tests/protected-feature-lock.test.mjs"
   ],
   "regressionTests": [
+    "__tests__/connectInboxActivity.test.ts",
+    "__tests__/connectInboxSearch.test.ts",
+    "__tests__/connectInboxSignal.test.ts",
     "tests/buklod-ad-opportunities.test.cjs",
     "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
@@ -123,5 +127,28 @@
     "No deployment or production merge until exact frozen runtime and live baseline are verified.",
     "Rewarded bonus remains disabled; no live balance-changing QA."
   ],
-  "publicationStatus": "DEV_ONLY_NO_PUBLISH"
+  "publicationStatus": "DEV_ONLY_NO_PUBLISH",
+  "releaseMode": "consolidated-main-rc",
+  "componentScopePaths": [
+    ".buklod/scopes/connect-inbox-staging-20261123.json",
+    ".buklod/scopes/wall-marites-upload-fastpath-conso-ota-20261124.json"
+  ],
+  "selectionRationale": "Exact cumulative source allowlist and mandatory regression checks preserve reviewed component contracts while avoiding production or database mutation.",
+  "alternativeApproaches": [
+    "Blindly merge each branch into MAIN: rejected because combined regressions and production release identity are not verified.",
+    "Suppress individual scope checks or use broad path exceptions: rejected; the existing exact named consolidated candidate contract is required."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "connect",
+    "navigation-scroll",
+    "ads-monetization",
+    "app-runtime",
+    "ads-finance-points",
+    "governance-lock"
+  ],
+  "preserveBehaviors": [
+    "Keep existing account isolation, native/runtime configuration, private media, current Points claim RPC and mandatory protected feature gates.",
+    "Do not publish or activate the rewarded bonus, modify the live backend or release Season 2."
+  ]
 }
