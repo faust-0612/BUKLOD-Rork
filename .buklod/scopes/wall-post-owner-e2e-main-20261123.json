@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/wall-post-owner-e2e-main-20261123.json",
+  "objective": "Correct BUKLOD MAIN Wall post ownership actions end-to-end with media-safe video edits and private/public/delete confirmation on Android.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: inspected source branch main commit 7b224c39624827282c3cbf003060317045b0a73f on 2026-11-23; source is not an independently verified live OTA fingerprint.",
+  "chosenApproach": "Route unchanged-media captions through owner-checked text RPC only; explicit photo replacement/clear through v7 transactional media RPC; one Android native Modal with serialized actions; scoped delete updates only local state.",
+  "selectionRationale": "A text-only edit previously called media replacement with empty photos and silently nulled the legacy media reference, risking lost video playback; Android independent modals could overlap.",
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "navigation-auth",
+    "cluster-faith",
+    "navigation-scroll"
+  ],
+  "allowedPaths": [
+    "src/app/(tabs)/buklod.tsx",
+    "src/app/post/[id].tsx",
+    "src/components/BuklodContentOverflowMenu.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/lib/buklodCommunityPostOwnerActions.ts",
+    "tests/community-wall-post-owner-e2e.test.mjs",
+    "tests/community-wall-scope-privacy-navigation.test.mjs",
+    ".buklod/scopes/wall-post-owner-e2e-main-20261123.json"
+  ],
+  "regressionTests": [
+    "tests/community-wall-post-owner-e2e.test.mjs",
+    "tests/community-wall-scope-privacy-navigation.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Surgical shared Wall post-owner UI and media-save correction impacting app-runtime without changing app/runtime/ad identity.",
+      "preservedBehaviors": [
+        "All unrelated native, ads, auth, economy, player and scoped membership behaviors remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Surgical shared Wall post-owner UI and media-save correction impacting wall-media without changing app/runtime/ad identity.",
+      "preservedBehaviors": [
+        "All unrelated native, ads, auth, economy, player and scoped membership behaviors remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Surgical shared Wall post-owner UI and media-save correction impacting navigation-auth without changing app/runtime/ad identity.",
+      "preservedBehaviors": [
+        "All unrelated native, ads, auth, economy, player and scoped membership behaviors remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Surgical shared Wall post-owner UI and media-save correction impacting cluster-faith without changing app/runtime/ad identity.",
+      "preservedBehaviors": [
+        "All unrelated native, ads, auth, economy, player and scoped membership behaviors remain unchanged."
+      ],
+      "tests": [
+        "tests/community-wall-scope-privacy-navigation.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Ads first-view, visibility, preload and cooldown lifecycle are unchanged.",
+    "Playing video, AWS external keys, posters and media row remain unchanged on caption-only edit.",
+    "Post owner alone can change privacy; scoped moderator may delete where already authorized.",
+    "All other BUKLOD apps and release channels are unchanged."
+  ],
+  "acceptanceChecks": [
+    "Run new and existing focused Wall owner tests as part of engineering accountability.",
+    "Compile TypeScript and run compact layout, performance, recent-comment and ads navigation source QA.",
+    "Device-check Android menu modal transitions, offline save failure, video media continuity and real privacy readback before promotion.",
+    "Production OTA remains prohibited until verified staging RC, ads and nav gates pass."
+  ],
+  "alternativeApproaches": [
+    "Always replace media on every caption edit (rejected: risks media deletion and expensive uploads).",
+    "Use separate native Alert and editor Modals (rejected: Android transition race).",
+    "Bypass backend RPC and directly write table columns (rejected: RLS can affect zero rows without error)."
+  ],
+  "releaseMode": "dev-staging-candidate-no-ota",
+  "releaseTarget": "BUKLOD MAIN staging RC only after verification",
+  "publicationStatus": "DEV_ONLY_NO_OTA",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}

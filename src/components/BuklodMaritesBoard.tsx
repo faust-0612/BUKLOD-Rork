@@ -1475,7 +1475,7 @@ export default function BuklodMaritesBoard({
           iconSize={18}
           maxChars={MARITES_MAX_CHARS}
           maxPhotos={MARITES_MAX_PHOTOS}
-          allowPhotoEdit
+          allowPhotoEdit={!Boolean(story.video_uri)}
           photos={storyEditPhotos(story)}
           style={menuStyle}
           onEdit={(nextBody, nextPhotos) =>
