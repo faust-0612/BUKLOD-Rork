@@ -8,6 +8,8 @@ var palette := Color("#8bb976")
 var waterfall_material: ShaderMaterial
 var waterfall: MeshInstance3D
 var feature_nodes: Array[Node3D] = []
+var landmark_id := ""
+var landmark_motion: Array[Node3D] = []
 func _material(color: Color, rough: float = 0.75, metallic: float = 0.0) -> StandardMaterial3D:
     var mat := StandardMaterial3D.new()
     mat.albedo_color = color
@@ -128,6 +130,126 @@ func _tower(at: Vector3, tint: Color, size: float) -> void:
         var angle := TAU*float(side)/5.0
         var frame := _mesh(self,windows,at+Vector3(sin(angle)*0.97,2.15,cos(angle)*0.97)*size,window_mat,Vector3.ONE*size)
         frame.rotation.y = angle
+func _box(at: Vector3, dimensions: Vector3, mat: Material) -> MeshInstance3D:
+    var shape := BoxMesh.new()
+    shape.size = dimensions
+    return _mesh(self,shape,at,mat)
+
+func _ring(at: Vector3, radius: float, mat: Material, vertical: bool = false) -> MeshInstance3D:
+    var shape := TorusMesh.new()
+    shape.inner_radius = radius*0.87
+    shape.outer_radius = radius
+    shape.rings = 24
+    shape.ring_segments = 10
+    var item := _mesh(self,shape,at,mat)
+    if vertical:
+        item.rotation.x = PI*0.5
+    return item
+
+# Individually authored original landmarks beyond the safe walkable boundary.
+func _landmark(layout: int, accent: Color) -> void:
+    var stone := _material(palette.lightened(0.24),0.79)
+    var wood := _material(Color("#78533b"),0.85)
+    var gold := _material(accent,0.4,0.45)
+    var at := Vector3(0,0,-16.5)
+    match layout:
+        0:
+            landmark_id = "harvest_market"
+            for x in [-4.0,0.0,4.0]:
+                _box(at+Vector3(x,0.55,0),Vector3(2.6,1.1,1.7),wood)
+                for sx in [-1.1,1.1]:
+                    _box(at+Vector3(x+sx,1.55,0),Vector3(0.14,3.1,0.14),wood)
+                _box(at+Vector3(x,3.1,0),Vector3(2.8,0.20,2.4),gold)
+        1:
+            landmark_id = "alpine_observatory"
+            _tower(at,palette.lightened(0.38),1.1)
+            var orb := SphereMesh.new()
+            orb.radius = 0.95
+            orb.height = 1.9
+            _mesh(self,orb,at+Vector3(0,6.1,0),gold)
+            landmark_motion.append(_ring(at+Vector3(0,6.1,0),1.6,stone,true))
+        2:
+            landmark_id = "civic_harbor"
+            _box(at+Vector3(0,0.28,0),Vector3(10,0.55,2.4),wood)
+            for x in [-4.0,0.0,4.0]:
+                _box(at+Vector3(x,1.6,0),Vector3(0.28,3.2,0.28),stone)
+            _box(at+Vector3(0,3.2,0),Vector3(10,0.32,0.3),gold)
+        3:
+            landmark_id = "covenant_hall"
+            _box(at+Vector3(0,0.45,0),Vector3(9,0.9,2.5),stone)
+            for i in range(5):
+                _box(at+Vector3(-4.0+i*2.0,2.4,0),Vector3(0.42,4.0,0.42),stone)
+            _box(at+Vector3(0,4.55,0),Vector3(9,0.45,2.6),gold)
+            var roof := PrismMesh.new()
+            roof.size = Vector3(9,1.35,2.6)
+            _mesh(self,roof,at+Vector3(0,5.4,0),stone)
+        4:
+            landmark_id = "resonance_harp"
+            for i in range(7):
+                var h := 1.8+0.55*float(i)
+                _box(at+Vector3(-3.6+i*1.2,h*0.5,0),Vector3(0.2,h,0.26),gold)
+            _ring(at+Vector3(0,3.4,-0.12),3.6,stone,true)
+        5:
+            landmark_id = "guardian_gate"
+            _tower(at+Vector3(-3,0,0),palette.lightened(0.24),1.18)
+            _tower(at+Vector3(3,0,0),palette.lightened(0.24),1.18)
+            _box(at+Vector3(0,3.8,0),Vector3(6.2,0.68,1.2),stone)
+            for i in range(7):
+                _box(at+Vector3(-2.7+0.9*i,4.35,0),Vector3(0.52,0.48,0.8),gold)
+        6:
+            landmark_id = "artisan_workshop"
+            _box(at+Vector3(0,1.4,0),Vector3(6,2.8,2.4),wood)
+            var roof := PrismMesh.new()
+            roof.size = Vector3(6.4,1.6,2.8)
+            _mesh(self,roof,at+Vector3(0,3.55,0),stone)
+            _box(at+Vector3(2.0,4.25,0),Vector3(0.5,2.2,0.6),stone)
+            landmark_motion.append(_ring(at+Vector3(-2.3,1.7,1.35),1.2,gold,true))
+        7:
+            landmark_id = "forest_sanctuary"
+            for i in range(5):
+                _tree(at+Vector3(-5.4+i*2.7,0,0),1.35+0.12*float(i%2),i+50,false)
+            _ring(at+Vector3(0,2.4,1.2),2.15,gold,true)
+        8:
+            landmark_id = "prism_gallery"
+            for i in range(5):
+                var base := at+Vector3(-4.8+i*2.4,0,0)
+                _box(base+Vector3(0,0.35,0),Vector3(1.15,0.7,1.15),stone)
+                _spire(base+Vector3(0,0.7,0),0.95+float(i%3)*0.25,accent.lerp(Color("#8ee5de"),float(i)/5.0))
+        9:
+            landmark_id = "mission_beacon"
+            _tower(at,palette.lightened(0.26),1.4)
+            for i in range(3):
+                landmark_motion.append(_ring(at+Vector3(0,6.3+float(i)*0.55,0),1.8-float(i)*0.25,gold))
+        10:
+            landmark_id = "treasury_vault"
+            _box(at+Vector3(0,2.0,0),Vector3(7.4,4,2.5),stone)
+            _ring(at+Vector3(0,2.0,1.28),1.55,gold,true)
+            _box(at+Vector3(0,2.0,1.36),Vector3(2.1,2.1,0.24),gold)
+        11:
+            landmark_id = "river_windmill"
+            _tower(at,palette.lightened(0.30),1.05)
+            var axle := Node3D.new()
+            add_child(axle)
+            axle.position = at+Vector3(0,3.8,1.25)
+            var blade := BoxMesh.new()
+            blade.size = Vector3(0.28,2.8,0.12)
+            for i in range(4):
+                var pivot := Node3D.new()
+                axle.add_child(pivot)
+                pivot.rotation.z = float(i)*PI*0.5
+                _mesh(pivot,blade,Vector3(0,1.4,0),wood)
+            landmark_motion.append(axle)
+        12:
+            landmark_id = "wonder_garden"
+            for i in range(7):
+                var base := at+Vector3(-5.4+i*1.8,0,0)
+                _box(base+Vector3(0,1.1,0),Vector3(0.12,2.2,0.12),stone)
+                var blossom := SphereMesh.new()
+                blossom.radius = 0.55
+                blossom.height = 0.85
+                _mesh(self,blossom,base+Vector3(0,2.3,0),gold)
+                _ring(base+Vector3(0,2.3,0),0.82,gold,true)
+
 func build(profile: Dictionary) -> void:
     palette = Color(str(profile.get("ground","#8bb976"))).lightened(0.15)
     var accent := Color(str(profile.get("accent","#ffe1a0")))
@@ -165,11 +287,12 @@ func build(profile: Dictionary) -> void:
         waterfall = _mesh(self,sheet,Vector3(-5.0,2.75,-16.8),waterfall_material)
         var rim := _rugged_peak(layout+77,3.0,5.6)
         _mesh(self,rim,Vector3(-5.0,0,-18.6),_material(palette.darkened(0.37)))
-    else:
-        _tower(Vector3(0,0,-15.0),palette.lightened(0.33),1.15)
+    _landmark(layout,accent)
 func _process(delta: float) -> void:
     clock += minf(delta,0.05)
     if water != null and waterfall_material == null:
         water.albedo_color = Color("#3d9eae").lerp(Color("#83c8d0"),0.12+0.1*sin(clock*1.9))
     for i in range(crystal_nodes.size()):
         crystal_nodes[i].rotation.y = clock*0.19+i*0.4
+    for item in landmark_motion:
+        item.rotation.z += delta*0.24

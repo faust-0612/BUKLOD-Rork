@@ -48,6 +48,15 @@ var realm_profile: Dictionary = {}
 var next_button: Button
 var session_label: Label
 var daylight_update := 0.0
+var sky_material: ProceduralSkyMaterial
+var sky_band := -1
+var fill_light: DirectionalLight3D
+var cinematic_fx: Node3D
+var realm_landmark := ""
+var sfx_cache: Dictionary = {}
+var steps_player: AudioStreamPlayer
+var ambient_tail: AudioStreamPlayer
+var ambient_fade: Tween
 
 func _get_world() -> String:
     return "kingdom"
@@ -74,7 +83,39 @@ func _setup_world() -> void:
     floor.position.y = -0.04
     add_child(floor)
 
+func _install_environment() -> void:
+    var world := WorldEnvironment.new()
+    var env := Environment.new()
+    env.background_mode = Environment.BG_SKY
+    sky_material = ProceduralSkyMaterial.new()
+    sky_material.sky_top_color = Color("#44678d")
+    sky_material.sky_horizon_color = Color("#c6d9d5")
+    sky_material.ground_bottom_color = Color("#263e3a")
+    sky_material.ground_horizon_color = Color("#879b84")
+    var sky := Sky.new()
+    sky.sky_material = sky_material
+    env.sky = sky
+    env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+    env.ambient_light_color = Color("#c9dcf4")
+    env.ambient_light_energy = 0.68
+    world.environment = env
+    add_child(world)
+    world_sun = DirectionalLight3D.new()
+    world_sun.rotation_degrees = Vector3(-48,32,0)
+    world_sun.light_energy = 1.65
+    world_sun.shadow_enabled = true
+    world_sun.directional_shadow_max_distance = 37.0
+    add_child(world_sun)
+    fill_light = DirectionalLight3D.new()
+    fill_light.rotation_degrees = Vector3(-30,-132,0)
+    fill_light.light_color = Color("#b6d3ff")
+    fill_light.light_energy = 0.32
+    add_child(fill_light)
+    realm_environment = env
+
 func _build_props() -> void:
+    cinematic_fx = preload("res://scripts/kingdom_cinematic_fx.gd").new()
+    add_child(cinematic_fx)
     for i in range(TARGETS.size()):
         var marker := _marker(TARGETS[i], Color("#f7d68b"))
         target_nodes.append(marker)
@@ -117,6 +158,12 @@ func _build_avatar() -> void:
     ambient_player = AudioStreamPlayer.new()
     ambient_player.volume_db = -24.0
     add_child(ambient_player)
+    ambient_tail = AudioStreamPlayer.new()
+    ambient_tail.volume_db = -60.0
+    add_child(ambient_tail)
+    steps_player = AudioStreamPlayer.new()
+    steps_player.volume_db = -21.0
+    add_child(steps_player)
 
 func _replace_explorer(id: String) -> bool:
     var model := _original_hero(id)
@@ -191,17 +238,20 @@ func _play_avatar_animation(desired: String) -> void:
 func _play_original_sound(id: String) -> void:
     if not sound_enabled or sound_player == null or not id in ["start","discover","guide","complete","footstep","ambience","return"]:
         return
-    if id == "footstep" and sound_player.playing:
+    var output := steps_player if id == "footstep" else sound_player
+    if id == "footstep" and output.playing:
         return
-    if id != "footstep":
-        sound_player.pitch_scale = 1.0
-    var raw := FileAccess.get_file_as_bytes("res://kingdom-original/audio/" + id + ".wav")
-    if raw.is_empty():
-        return
-    var stream := AudioStreamWAV.load_from_buffer(raw)
-    if stream != null:
-        sound_player.stream = stream
-        sound_player.play()
+    if not sfx_cache.has(id):
+        var raw := FileAccess.get_file_as_bytes("res://kingdom-original/audio/" + id + ".wav")
+        if raw.is_empty():
+            return
+        var stream := AudioStreamWAV.load_from_buffer(raw)
+        if stream == null:
+            return
+        sfx_cache[id] = stream
+    output.stream = sfx_cache[id]
+    output.pitch_scale = 0.96 if id == "footstep" and last_step_side == 0 else (1.04 if id == "footstep" else 1.0)
+    output.play()
 
 func _set_realm_ambience() -> void:
     if not sound_enabled or ambient_player == null or realm_index >= realms.size():
@@ -210,21 +260,36 @@ func _set_realm_ambience() -> void:
     if id == current_ambient_id and ambient_player.playing:
         return
     var raw := FileAccess.get_file_as_bytes("res://kingdom-original/ambience/" + id + ".wav")
-    if raw.is_empty():
-        raw = FileAccess.get_file_as_bytes("res://kingdom-original/audio/ambience.wav")
     var track: AudioStreamWAV = AudioStreamWAV.load_from_buffer(raw) if not raw.is_empty() else null
-    if track != null:
-        track.loop_mode = AudioStreamWAV.LOOP_FORWARD
-        ambient_player.stream = track
-        current_ambient_id = id
-        ambient_player.play()
+    if track == null:
+        return
+    track.loop_mode = AudioStreamWAV.LOOP_FORWARD
+    if ambient_fade != null and ambient_fade.is_valid():
+        ambient_fade.kill()
+    ambient_tail.stop()
+    if ambient_player.playing:
+        ambient_tail.stream = ambient_player.stream
+        ambient_tail.volume_db = ambient_player.volume_db
+        ambient_tail.play(ambient_player.get_playback_position())
+    ambient_player.stream = track
+    ambient_player.volume_db = -60.0
+    current_ambient_id = id
+    ambient_player.play()
+    ambient_fade = create_tween().set_parallel(true)
+    ambient_fade.tween_property(ambient_player,"volume_db",-24.0,0.65)
+    ambient_fade.tween_property(ambient_tail,"volume_db",-60.0,0.65)
+    ambient_fade.chain().tween_callback(ambient_tail.stop)
 
 func _toggle_original_audio() -> void:
     sound_enabled = not sound_enabled
     sound_button.text = "SOUND ON" if sound_enabled else "SOUND OFF"
     if not sound_enabled:
+        if ambient_fade != null and ambient_fade.is_valid():
+            ambient_fade.kill()
         sound_player.stop()
+        steps_player.stop()
         ambient_player.stop()
+        ambient_tail.stop()
     else:
         _set_realm_ambience()
         _play_original_sound("guide")
@@ -246,6 +311,9 @@ func _apply_realm_visuals() -> void:
     var original_environment = load("res://scripts/kingdom_original_environment.gd").new()
     realm_visuals.add_child(original_environment)
     original_environment.build(realm_profile)
+    realm_landmark = str(original_environment.landmark_id)
+    sky_band = -1
+    cinematic_fx.clear()
     # Different layouts, all within visible traversable ground. Phan retains original coordinates.
     var angle := 0.0 if str(realm.get("id")) == "phan" else float(layout) * 0.48
     for i in range(TARGETS.size()):
@@ -269,8 +337,16 @@ func _apply_daylight() -> void:
     world_sun.light_energy = lerpf(0.27, 1.7, sun_amount)
     world_sun.light_color = Color("#b3cbff").lerp(Color("#fff3d2"), sun_amount)
     var sky := Color(str(realm_profile.get("sky", "#a6d3f0")))
-    realm_environment.background_color = Color("#172440").lerp(sky, sun_amount)
-    realm_environment.ambient_light_energy = lerpf(0.42, 0.82, sun_amount)
+    realm_environment.ambient_light_energy = lerpf(0.42,0.82,sun_amount)
+    fill_light.light_energy = lerpf(0.18,0.36,sun_amount)
+    # Quantize sky edits so the environment cubemap is not regenerated every frame.
+    var band := int(round(sun_amount*6.0))
+    if sky_material != null and band != sky_band:
+        sky_band = band
+        var brightness := float(band)/6.0
+        sky_material.sky_top_color = Color("#111b36").lerp(sky.darkened(0.26),brightness)
+        sky_material.sky_horizon_color = Color("#35476b").lerp(sky.lightened(0.24),brightness)
+        sky_material.ground_horizon_color = sky_material.sky_horizon_color
 
 func _marker(at: Vector3, tint: Color) -> MeshInstance3D:
     var node := MeshInstance3D.new()
@@ -358,7 +434,7 @@ func _install_controls() -> void:
     back.pressed.connect(func() -> void: get_tree().quit())
     layer.add_child(back)
     for child in get_children():
-        if child is DirectionalLight3D:
+        if child is DirectionalLight3D and child.shadow_enabled:
             world_sun = child
         if child is WorldEnvironment:
             realm_environment = child.environment
@@ -421,6 +497,7 @@ func _start_or_cancel() -> void:
         if mission_index < missions.size():
             if quest.begin(missions[mission_index]):
                 _play_original_sound("start")
+                cinematic_fx.trigger("start",player.position,Color(str(realm_profile.get("accent","#ffe3a3"))))
     pending_target = -1
     destination = player.position
     _update_quest_status()
@@ -504,7 +581,6 @@ func _process(delta: float) -> void:
         if footstep_time >= step_period:
             footstep_time = 0.0
             last_step_side = 1 - last_step_side
-            sound_player.pitch_scale = 0.96 if last_step_side == 0 else 1.04
             _play_original_sound("footstep")
     else:
         footstep_time = 0.0
@@ -521,11 +597,13 @@ func _process(delta: float) -> void:
             _play_avatar_animation("Celebrate")
             action_hold = 1.4
             _play_original_sound("complete")
+            cinematic_fx.trigger("complete",player.position,Color("#f5d77d"))
     else:
         if quest.visit(index, player.position.distance_to(mission_targets[index])):
             _play_avatar_animation("Interact")
             action_hold = 1.1
             _play_original_sound("return" if quest.phase == "return" else "discover")
+            cinematic_fx.trigger("discover",player.position,Color(str(realm_profile.get("accent","#ffe3a3"))))
     _update_quest_status()
 
 func _update_quest_status() -> void:
@@ -564,4 +642,6 @@ func get_dev_snapshot() -> Dictionary:
     result["practice_avatar_id"] = original_character_id
     result["skinned_avatar"] = player != null and not player.find_children("*", "Skeleton3D", true, false).is_empty()
     result["guide_near"] = guide_near
+    result["landmark_id"] = realm_landmark
+    result["fx_count"] = cinematic_fx.count if cinematic_fx != null else 0
     return result

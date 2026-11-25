@@ -36,6 +36,7 @@ func _run() -> void:
         quit(7)
         return
     var biomes := {}
+    var landmarks := {}
     for i in range(13):
         world._select_realm(i)
         var snap: Dictionary = world.get_dev_snapshot()
@@ -43,7 +44,8 @@ func _run() -> void:
             quit(10)
             return
         biomes[snap.get("biome")] = true
-    if biomes.size() != 13 or world.move_to(Vector3(0, 0, 23)):
+        landmarks[snap.get("landmark_id")] = true
+    if biomes.size() != 13 or landmarks.size() != 13 or landmarks.has("") or world.move_to(Vector3(0, 0, 23)):
         quit(11)
         return
     world._choose_practice_avatar(1)
@@ -58,6 +60,9 @@ func _run() -> void:
         quit(12)
         return
     world._start_or_cancel()
+    if world.get_dev_snapshot().get("fx_count",0) <= 0:
+        quit(16)
+        return
     if not world.move_to(Vector3(-5, 0, -5)) or world.quest.visited.size() != 0:
         quit(8)
         return
