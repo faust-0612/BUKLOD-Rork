@@ -60,7 +60,7 @@ namespace Buklod.Empire.Editor {
                 var materials=renderer.sharedMaterials;bool changed=false;
                 for(int i=0;i<materials.Length;i++){
                     var original=materials[i];if(!original||!Families.TryGetValue(original.name,out var kind))continue;
-                    var colorProperty=original.HasProperty("_BaseColor")?"_BaseColor":original.HasProperty("_BaseColorFactor")?"_BaseColorFactor":null;
+                    var colorProperty=original.HasProperty("_BaseColor")?"_BaseColor":original.HasProperty("_BaseColorFactor")?"_BaseColorFactor":original.HasProperty("baseColorFactor")?"baseColorFactor":original.HasProperty("_Color")?"_Color":null;
                     if(colorProperty==null)throw new InvalidOperationException("Missing original environmental tint: "+original.name);
                     var path=Out+"/"+id+"_"+original.name+".mat";
                     var m=AssetDatabase.LoadAssetAtPath<Material>(path);

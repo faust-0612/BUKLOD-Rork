@@ -74,7 +74,7 @@ namespace Buklod.Empire.Editor {
             if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,path);}
             mat.shader=shader;
             // Keep the imported wildlife tint, not a replacement palette.
-            var colorProperty=original.HasProperty("_BaseColor")?"_BaseColor":original.HasProperty("_BaseColorFactor")?"_BaseColorFactor":null;
+            var colorProperty=original.HasProperty("_BaseColor")?"_BaseColor":original.HasProperty("_BaseColorFactor")?"_BaseColorFactor":original.HasProperty("baseColorFactor")?"baseColorFactor":original.HasProperty("_Color")?"_Color":null;
             if(colorProperty==null)throw new InvalidOperationException("Imported wildlife tint unavailable: "+original.name);
             mat.SetColor("_BaseColor",original.GetColor(colorProperty));
             mat.SetTexture("_BaseMap",Texture(kind,"base"));
