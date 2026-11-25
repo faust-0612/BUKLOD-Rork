@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 
-const source = readFileSync(new URL('../supabase/functions/kl-generate-reading-quiz/index.ts', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
+const source = readFileSync(new URL('../supabase/functions/kl-generate-reading-quiz/index.ts', import.meta.url), 'utf8').replace(/^\uFEFF?import [^\r\n]*;\r?\n/gm, '');
 const compile = new Function('Deno','createClient','fetch','console','Response','AbortController','setTimeout','clearTimeout',stripTypeScriptTypes(source));
 const manuscript = Array.from({length:60}, (_,i)=>'Sa lupain ng Salindaw, natagpuan ni Phan ang bato at tala sa bahay. Ang gabi ay tahimik at ang mga puno ay gumagalaw. Bahagi '+(i+1)+' ng paglalakbay.\n').join('');
 async function run(sequence, opts={}) {
