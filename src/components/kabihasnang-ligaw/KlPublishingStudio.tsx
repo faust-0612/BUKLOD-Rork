@@ -440,7 +440,7 @@ export default function KlPublishingStudio() {
               <Action label={previewOpen ? 'Hide Private Preview & Media Approvals' : 'Open Private Preview & Media Approvals'}
                 disabled={workspaceBusy || !saved} onPress={() => setPreviewOpen((current) => !current)} />
               {previewOpen && saved ? (
-                <KlAdminPreview episodeId={id} onApproved={() => setApprovalRefreshToken((value) => value + 1)} />
+                <KlAdminPreview episodeId={id} season={Number(season)} chapter={Number(chapter)} onApproved={() => setApprovalRefreshToken((value) => value + 1)} />
               ) : null}
             </>
           ) : (
