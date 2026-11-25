@@ -9,7 +9,7 @@ import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement
 import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks';
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
 type Bundle={title:string;manuscript:string;version:number;media:Media[]};
-export default function KlAdminPreview({episodeId,onApproved}:{episodeId:string;onApproved?:()=>void}) {
+export default function KlAdminPreview({episodeId,onApproved,season,chapter}:{episodeId:string;onApproved?:()=>void;season?:number;chapter?:number}) {
  const [bundle,setBundle]=useState<Bundle|null>(null);
  const [urls,setUrls]=useState<Record<string,string>>({});
  const [error,setError]=useState('');
@@ -123,7 +123,7 @@ export default function KlAdminPreview({episodeId,onApproved}:{episodeId:string;
  {bundle.media.filter(m=>m.kind==='cover').map(m=>image(m))}
  {paragraphs.map((p,i)=><View key={i} style={{gap:8}}>
  {illustrationsAtParagraph(bundle.media,p,'before').map(m=>image(m))}
- <Text style={{color:'#fff',fontSize:17,lineHeight:27}}>{splitKlItalics(p).some(run=>run.italic) ? splitKlItalics(p).map((run,j)=><Text key={j} style={run.italic ? {fontStyle:'italic'} : undefined}>{run.text}</Text>) : p}</Text>
+ <Text style={{color:'#fff',fontSize:17,lineHeight:27}}>{splitKlItalics(p,season,chapter).some(run=>run.italic) ? splitKlItalics(p,season,chapter).map((run,j)=><Text key={j} style={run.italic ? {fontStyle:'italic'} : undefined}>{run.text}</Text>) : p}</Text>
  {illustrationsAtParagraph(bundle.media,p,'after').map(m=>image(m))}
  </View>)}
  <Text style={{color:'#fff'}}>Review uploaded media before approval:</Text>
