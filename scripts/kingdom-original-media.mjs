@@ -105,7 +105,22 @@ export const HERO_DESIGNS = Object.freeze({
     12
   ]
 });
-export function originalTexturePNG(kind,mode,variant,size=96){
+// Deterministic RFC1951 fixed-Huffman LZ77; no npm dependency.
+function packTextureDeflate(raw){
+ const out=[0x78,0x01];let acc=0,bits=0;
+ const write=(v,n)=>{acc|=v<<bits;bits+=n;while(bits>=8){out.push(acc&255);acc>>>=8;bits-=8}};
+ const rev=(v,n)=>{let r=0;while(n--){r=(r<<1)|(v&1);v>>>=1}return r};
+ const symbol=v=>{if(v<=143)write(rev(48+v,8),8);else if(v<=255)write(rev(400+v-144,9),9);else if(v<=279)write(rev(v-256,7),7);else write(rev(192+v-280,8),8)};
+ const lens=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258], le=[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+ const ds=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577],de=[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+ const last=new Int32Array(65536).fill(-1),prev=new Int32Array(32768).fill(-1),key=i=>((raw[i]*251+raw[i+1])*251+raw[i+2])&65535;
+ const insert=i=>{if(i+2>=raw.length)return;let h=key(i);prev[i&32767]=last[h];last[h]=i};
+ write(1,1);write(1,2);
+ for(let i=0;i<raw.length;){let len=0,dist=0;if(i+2<raw.length){let j=last[key(i)],left=12,limit=Math.min(258,raw.length-i);while(j>=0&&i-j<=32768&&left--){if(raw[j]===raw[i]&&raw[j+1]===raw[i+1]&&raw[j+2]===raw[i+2]){let k=3;while(k<limit&&raw[j+k]===raw[i+k])k++;if(k>len){len=k;dist=i-j;if(k===limit)break}}let next=prev[j&32767];if(next>=j)break;j=next}}
+  if(len>=3){let l=lens.length-1;while(lens[l]>len)l--;symbol(257+l);write(len-lens[l],le[l]);let d=ds.length-1;while(ds[d]>dist)d--;write(rev(d,5),5);write(dist-ds[d],de[d]);for(let k=0;k<len;k++)insert(i+k);i+=len}else{symbol(raw[i]);insert(i++);}}
+ symbol(256);if(bits)out.push(acc&255);let a=1,b=0;for(const v of raw){a=(a+v)%65521;b=(b+a)%65521}out.push(b>>>8,b&255,a>>>8,a&255);return out;
+}
+export function originalTexturePNG(kind,mode,variant,size=320){
  const tau=2*Math.PI,raw=new Uint8Array(size*(size*3+1));let seed=(variant+1)*374761393;
  const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
  const h=new Float32Array(size*size);
@@ -122,9 +137,9 @@ export function originalTexturePNG(kind,mode,variant,size=96){
  const crc32=bytes=>{let crc=0xffffffff;for(const b of bytes){crc^=b;for(let i=0;i<8;i++)crc=(crc>>>1)^((crc&1)?0xedb88320:0)}return (crc^0xffffffff)>>>0};
  const be=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255];
  const chunk=(type,payload)=>{const body=[...type.split("").map(c=>c.charCodeAt(0)),...payload];return [...be(payload.length),...body,...be(crc32(body))]};
- const z=[0x78,0x01];let a=1,b=0;for(const byte of raw){a=(a+byte)%65521;b=(b+a)%65521;}
- for(let off=0;off<raw.length;){const n=Math.min(65535,raw.length-off),last=off+n===raw.length;z.push(last?1:0,n&255,n>>>8,(~n)&255,((~n)>>>8)&255);for(let i=0;i<n;i++)z.push(raw[off+i]);off+=n;}
- z.push(...be(((b<<16)|a)>>>0));
+ // PNG Sub predictor preserves every texel.
+ for(let y=0;y<size;y++){const base=y*(size*3+1);for(let x=size*3;x>=4;x--)raw[base+x]=(raw[base+x]-raw[base+x-3]+256)&255;raw[base]=1;}
+ const z=packTextureDeflate(raw);
  return new Uint8Array([137,80,78,71,13,10,26,10,...chunk("IHDR",[...be(size),...be(size),8,2,0,0,0]),...chunk("IDAT",z),...chunk("IEND",[])]);
 }
 export function createOriginalHero(id, d) {

@@ -39,7 +39,7 @@ export function verifyOriginalKingdomMedia(entries, manifest) {
     if(index<3){const width=channel.target.path==="rotation"?4:3;for(let k=0;k<width;k++)if(Math.abs(get(s.output,k)-get(s.output,(n-1)*width+k))>1e-4)fail(name+" loop seam");}
    }
   }
-  for(const im of j.images){const view=j.bufferViews[im.bufferView],off=base+view.byteOffset,end=off+view.byteLength;if(v.getUint32(off,false)!==0x89504e47||v.getUint32(off+4,false)!==0x0d0a1a0a||v.getUint32(off+16,false)!==96||v.getUint32(off+20,false)!==96)fail(name+" PNG");let at=off+8,closed=false;while(at<end){const n=v.getUint32(at,false),stop=at+n+12;if(stop>end||crc(b.subarray(at+4,stop-4))!==v.getUint32(stop-4,false))fail(name+" PNG CRC");if(decode(b.subarray(at+4,at+8))==="IEND")closed=true;at=stop;}if(!closed||at!==end)fail(name+" PNG terminator");}
+  for(const im of j.images){const view=j.bufferViews[im.bufferView],off=base+view.byteOffset,end=off+view.byteLength;if(v.getUint32(off,false)!==0x89504e47||v.getUint32(off+4,false)!==0x0d0a1a0a||v.getUint32(off+16,false)!==320||v.getUint32(off+20,false)!==320)fail(name+" PNG");let at=off+8,closed=false;while(at<end){const n=v.getUint32(at,false),stop=at+n+12;if(stop>end||crc(b.subarray(at+4,stop-4))!==v.getUint32(stop-4,false))fail(name+" PNG CRC");if(decode(b.subarray(at+4,at+8))==="IEND")closed=true;at=stop;}if(!closed||at!==end)fail(name+" PNG terminator");}
   report.models++;report.bones+=joints;report.triangles+=tri;report.vertices+=vertex;report.textures+=j.images.length;report.clips+=j.animations.length;report.totalBytes+=b.length;
  }
  if(expected.some(id=>!names.has(id)))fail("wrong character roster");
