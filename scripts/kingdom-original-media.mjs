@@ -191,9 +191,30 @@ export function createOriginalHero(id, d) {
   ell(pelvis,metal,[s*.19,-.17,.047],[.012,.19,.014],12,10,s*.14);
   if(armored)sculpt(torso,metal,[s*.238,.285,.0],[.113,.06,.102],plate,20,14);
  }
+ // Tailored identity: 13 different modeled costume cuts, not recolors.
+ const outfit=["merchant-sash","expedition-mantle","civic-uniform","scholar-robe","musician-coat","guardian-cuirass","artisan-apron","forest-cloak","painter-smock","mission-surcoat","treasury-vest","farmer-overalls","garden-tunic"][variant];
+ const panel=(joint,mat,c,scale,cut)=>sculpt(joint,mat,c,scale,cut,18,14);
+ const flare=(x,y,z)=>[x*(1-.38*y),y,z*(.86+.12*y)];
+ const fitted=(x,y,z)=>[x*(.92+.12*y),y,z];
+ const diagonal=(x,y,z)=>[x+.45*y,y,z];
+ switch(variant){
+  case 0: panel(torso,cloth,[.015,.105,.171],[.076,.26,.018],diagonal);panel(pelvis,leather,[-.19,-.07,.06],[.076,.11,.06],fitted);break;
+  case 1: panel(torso,cloth,[0,.31,-.045],[.256,.11,.16],flare);ell(torso,metal,[-.17,.28,.119],[.042,.027,.017],12,8);break;
+  case 2: for(let side of [-1,1]){panel(torso,cloth,[side*.195,.32,0],[.08,.055,.103],fitted);for(let k=0;k<3;k++)ell(torso,metal,[side*.17,.31,.105-k*.045],[.022,.009,.012],10,6);}break;
+  case 3: panel(pelvis,cloth,[0,-.23,.015],[.216,.35,.13],flare);panel(torso,metal,[0,.09,.176],[.038,.18,.018],fitted);break;
+  case 4: panel(torso,cloth,[-.14,.18,.138],[.12,.23,.042],diagonal);for(let k=0;k<4;k++)ell(torso,metal,[-.15+k*.035,.32-k*.04,.172],[.018,.018,.009],10,6);break;
+  case 5: for(let side of [-1,1]){panel(torso,metal,[side*.218,.295,.018],[.134,.078,.127],fitted);panel(pelvis,metal,[side*.159,-.10,.065],[.091,.125,.049],flare);}break;
+  case 6: panel(torso,leather,[0,.02,.159],[.181,.28,.032],flare);panel(pelvis,leather,[0,-.19,.12],[.17,.20,.035],flare);ell(pelvis,metal,[.055,-.09,.155],[.09,.014,.012],12,8);break;
+  case 7: panel(torso,cloth,[0,.315,-.045],[.253,.12,.14],flare);panel(torso,cloth,[.13,-.09,-.162],[.16,.36,.033],diagonal);break;
+  case 8: panel(pelvis,cloth,[0,-.21,.083],[.20,.25,.060],flare);for(let k=0;k<5;k++)ell(torso,k%2?accent:metal,[-.12+(k%3)*.08,-.035+Math.floor(k/3)*.08,.179],[.023,.019,.010],10,6);break;
+  case 9: panel(torso,cloth,[0,.09,.168],[.084,.25,.022],fitted);panel(pelvis,cloth,[0,-.23,.084],[.113,.26,.043],flare);break;
+  case 10: panel(torso,metal,[0,.08,.176],[.119,.21,.021],fitted);for(let k=0;k<3;k++)ell(torso,accent,[0,.2-k*.1,.2],[.027,.026,.012],12,8);break;
+  case 11: for(let side of [-1,1])ell(torso,leather,[side*.12,.12,.177],[.025,.235,.015],14,12,side*.09);panel(torso,cloth,[0,.005,.166],[.143,.13,.026],fitted);break;
+  case 12: panel(pelvis,cloth,[0,-.19,.019],[.232,.25,.13],flare);for(let k=0;k<5;k++){const a=k*TAU/5;ell(torso,accent,[.054*Math.cos(a),.235+.052*Math.sin(a),.17],[.026,.018,.011],12,8,a);}break;
+ }
  const facial=[.99,1.04,.99,1.07,.91,1.10,1.06,.96,.93,1.01,.96,1.03,.88][variant];
  const gauss=(a,b,w,h)=>Math.exp(-(a*a/w+b*b/h));
- const faceProfile=(x,y,z)=>{const front=Math.max(0,z),jaw=.90+.12*Math.cos(y*2.1)+.075*y;const cheek=.04*gauss(Math.abs(x)-.56,y+.01,.07,.14)*front,bridge=.19*gauss(x,y+.06,.038,.20)*front,tip=.12*gauss(x,y+.22,.025,.045)*front,orbit=-.075*gauss(Math.abs(x)-.42,y-.14,.055,.035)*front,mouth=.022*gauss(x,y+.49,.10,.035)*front;return [x*jaw,y,z+cheek+bridge+tip+orbit+mouth];};
+ const faceProfile=(x,y,z)=>{const front=Math.max(0,z),jaw=.86+.12*Math.cos(y*2.1)+(.055+.018*(variant%4))*y+.035*(variant%3)*(1-y*y);const cheek=(.025+.01*(variant%5))*gauss(Math.abs(x)-.56,y+.01,.07,.14)*front,bridge=(.13+.02*(variant%4))*gauss(x,y+.06,.038,.20)*front,tip=(.075+.012*(variant%5))*gauss(x,y+.22,.025,.045)*front,orbit=-.075*gauss(Math.abs(x)-.42,y-.14,.055,.035)*front,mouth=.022*gauss(x,y+.49,.10,.035)*front;return [x*jaw,y,z+cheek+bridge+tip+orbit+mouth];};
  sculpt(head,skin,[0,.112,0],[.146*facial,.181,.139],faceProfile,40,30);
  const lips=material("Lip tone","#80504a",0,.72);
  ell(head,lips,[0,.022,.130],[.043,.0055,.008],20,8);
@@ -275,16 +296,16 @@ export function createOriginalHero(id, d) {
  for(const [name,dur] of [["Idle",2.4],["Walk",.92],["Run",.64],["Interact",1.1],["Celebrate",1.4]]){
   const times=Array.from({length:25},(_,i)=>dur*i/24),input=ac(times,5126,"SCALAR",[0],[dur]),samplers=[],channels=[];
   const track=(joint,fn)=>{const output=ac(times.flatMap((_,i)=>quat(...fn(i/24))),5126,"VEC4");samplers.push({input,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:joint,path:"rotation"}})};
-  const gait=name==="Walk"||name==="Run",amp=name==="Run"?.68:.36;
+  const gait=name==="Walk"||name==="Run",stride=[1.0,.94,.98,.90,.87,1.10,1.04,.97,.86,1.02,.89,1.06,.82][variant],amp=(name==="Run"?.68:.36)*stride;
   const bob=times.flatMap((_,i)=>{const t=i/24;return [0,.90*height+(gait?.024*(1-Math.cos(t*TAU*2)):name==="Celebrate"?.055*Math.sin(Math.PI*t):.009*Math.sin(t*TAU)),0]});const bobOut=ac(bob,5126,"VEC3");samplers.push({input,output:bobOut,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:pelvis,path:"translation"}});
-  for(const side of ["L","R"]){const sign=side==="L"?1:-1;track(joints["hip"+side],t=>[gait?amp*Math.sin(t*TAU)*sign:0,0,0]);track(joints["knee"+side],t=>[gait?Math.max(0,-Math.sin(t*TAU)*sign)*.62:0,0,0]);track(joints["foot"+side],t=>[gait?-.15*Math.sin(t*TAU+.4)*sign:0,0,0]);track(joints["hand"+side],t=>[name==="Interact"?.12*Math.sin(Math.PI*t):0,0,gait?.025*Math.sin(t*TAU)*sign:0]);track(joints["sh"+side],t=>[gait?-amp*.7*Math.sin(t*TAU)*sign:name==="Interact"&&side==="R"?-.9*Math.sin(Math.PI*t):name==="Celebrate"?-.9*Math.sin(Math.PI*t):.035*Math.sin(t*TAU),0,sign*(.12+(name==="Celebrate"?.65*Math.sin(Math.PI*t):0))]);track(joints["el"+side],t=>[gait?-.18-.16*Math.max(0,Math.sin(t*TAU)*sign):name==="Interact"?-.65*Math.sin(Math.PI*t):-.12,0,0]);}
+  for(const side of ["L","R"]){const sign=side==="L"?1:-1;track(joints["hip"+side],t=>[gait?amp*Math.sin(t*TAU)*sign:0,0,0]);track(joints["knee"+side],t=>[gait?Math.max(0,-Math.sin(t*TAU)*sign)*.62:0,0,0]);track(joints["foot"+side],t=>[gait?-.15*Math.sin(t*TAU+.4)*sign:0,0,0]);track(joints["hand"+side],t=>[name==="Interact"?.12*Math.sin(Math.PI*t):0,0,gait?.025*Math.sin(t*TAU)*sign:0]);track(joints["sh"+side],t=>[gait?-amp*.7*Math.sin(t*TAU)*sign:name==="Interact"&&side==="R"?-(.62+.06*(variant%5))*Math.sin(Math.PI*t):name==="Celebrate"?-(.72+.08*(variant%4))*Math.sin(Math.PI*t):.035*Math.sin(t*TAU),0,sign*(.12+(name==="Celebrate"?.65*Math.sin(Math.PI*t):0))]);track(joints["el"+side],t=>[gait?-.18-.16*Math.max(0,Math.sin(t*TAU)*sign):name==="Interact"?-.65*Math.sin(Math.PI*t):-.12,0,0]);}
   track(torso,t=>[gait?.04:0,gait?.055*Math.sin(t*TAU):.03*Math.sin(t*TAU),0]);track(head,t=>[name==="Interact"?.12*Math.sin(Math.PI*t):.025*Math.sin(t*TAU),.05*Math.sin(t*TAU),0]);anims.push({name,samplers,channels});
  }
  for(const n of nodes)if(!n.children.length)delete n.children;
- const doc={asset:{version:"2.0",generator:"BUKLOD Original Living Kingdom Sculpted Character Workshop v3"},scene:0,scenes:[{nodes:[root]}],nodes,meshes,skins:[{name:id+"_Skeleton",joints:boneIds,skeleton:pelvis,inverseBindMatrices:skinIndex}],materials:mats,images,textures,samplers:[{magFilter:9729,minFilter:9987,wrapS:10497,wrapT:10497}],animations:anims,buffers:[{byteLength:bin.length}],bufferViews:views,accessors:access};
+ const doc={asset:{version:"2.0",generator:"BUKLOD Original Living Kingdom Sculpted Character Workshop v3 - distinctive roles"},scene:0,scenes:[{nodes:[root]}],nodes,meshes,skins:[{name:id+"_Skeleton",joints:boneIds,skeleton:pelvis,inverseBindMatrices:skinIndex}],materials:mats,images,textures,samplers:[{magFilter:9729,minFilter:9987,wrapS:10497,wrapT:10497}],animations:anims,buffers:[{byteLength:bin.length}],bufferViews:views,accessors:access};
  const json=JSON.stringify(doc),jb=Array.from(json,c=>c.charCodeAt(0));while(jb.length%4)jb.push(32);while(bin.length%4)bin.push(0);
  const bytes=new Uint8Array(12+8+jb.length+8+bin.length),dv=new DataView(bytes.buffer);dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,bytes.length,true);dv.setUint32(12,jb.length,true);dv.setUint32(16,0x4e4f534a,true);bytes.set(jb,20);const o=20+jb.length;dv.setUint32(o,bin.length,true);dv.setUint32(o+4,0x004e4942,true);bytes.set(bin,o+8);
- return {bytes,meta:{id,meshes:meshes.length,primitives:primitives.length,bones:boneIds.length,textures:textures.length,vertices:[...geoms.values()].reduce((s,g)=>s+g.p.length/3,0),triangles:[...geoms.values()].reduce((s,g)=>s+g.i.length/3,0),nodes:nodes.length,clips:anims.map(x=>x.name),prop}};
+ return {bytes,meta:{id,meshes:meshes.length,primitives:primitives.length,bones:boneIds.length,textures:textures.length,outfit,vertices:[...geoms.values()].reduce((s,g)=>s+g.p.length/3,0),triangles:[...geoms.values()].reduce((s,g)=>s+g.i.length/3,0),nodes:nodes.length,clips:anims.map(x=>x.name),prop}};
 }
 export function createOriginalCue(id,index){
  const rate=44100,dur=id==="complete"?2.4:id==="ambience"?8:id==="footstep"?.28:1.15,n=Math.floor(rate*dur),samples=new Float64Array(n);let seed=1234567+index*991,low=0,slow=0;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296*2-1};

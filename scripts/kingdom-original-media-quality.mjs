@@ -41,6 +41,7 @@ export function verifyOriginalKingdomMedia(entries, manifest) {
   report.models++;report.bones+=joints;report.triangles+=tri;report.vertices+=vertex;report.textures+=j.images.length;report.clips+=j.animations.length;report.totalBytes+=b.length;
  }
  if(expected.some(id=>!names.has(id)))fail("wrong character roster");
+ if(new Set(manifest.heroes.map(h=>h.outfit)).size!==13||manifest.heroes.some(h=>typeof h.outfit!=="string"||!h.outfit))fail("missing unique costume geometry");
  for(const item of soundEntries){const b=item.bytes,v=new DataView(b.buffer,b.byteOffset,b.byteLength);if(decode(b.subarray(0,4))!=="RIFF"||v.getUint32(4,true)!==b.length-8||v.getUint16(22,true)!==2||v.getUint32(24,true)!==44100||v.getUint16(34,true)!==16||v.getUint32(40,true)!==b.length-44)fail(item.name+" WAV");let peak=0,stereo=0;for(let i=44;i<b.length;i+=4){const l=v.getInt16(i,true),r=v.getInt16(i+2,true);peak=Math.max(peak,Math.abs(l),Math.abs(r));if(l!==r)stereo++;}
   if(peak<500||peak>=32767||stereo<100)fail(item.name+" audio signal");
   if(item.name.includes("/ambience/")&&(Math.abs(v.getInt16(44,true)-v.getInt16(b.length-4,true))>=2600||Math.abs(v.getInt16(46,true)-v.getInt16(b.length-2,true))>=2600))fail(item.name+" loop discontinuity");

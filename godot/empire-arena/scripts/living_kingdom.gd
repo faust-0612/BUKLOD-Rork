@@ -51,7 +51,7 @@ var daylight_update := 0.0
 var sky_material: ProceduralSkyMaterial
 var sky_band := -1
 var fill_light: DirectionalLight3D
-var cinematic_fx: Node3D
+var cinematic_fx
 var realm_landmark := ""
 var sfx_cache: Dictionary = {}
 var steps_player: AudioStreamPlayer
