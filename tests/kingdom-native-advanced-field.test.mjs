@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {FIELD_CHALLENGES,ADVANCED_FIELD_CHALLENGES,buildFieldChallenge,checkAdvancedField} from '../scripts/kingdom-field-challenges.mjs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-test('All 39 missions retain canonical IDs and ten interaction families',()=>{
+test('All 39 missions retain canonical IDs and eleven interaction families',()=>{
  const catalog=JSON.parse(read('src/features/games/kingdom/platform/game-catalog.json'));
  const ids=catalog.characters.flatMap(c=>c.games.map(g=>g.id));
  assert.equal(ids.length,39);assert.equal(Object.keys(FIELD_CHALLENGES).length,39);
- assert.equal(new Set(ids.map(id=>buildFieldChallenge(id,FIELD_CHALLENGES[id]).type)).size,10);
+ assert.equal(new Set(ids.map(id=>buildFieldChallenge(id,FIELD_CHALLENGES[id]).type)).size,11);
 });
 test('Advanced native encounter boards have valid solutions and reject invalid data',()=>{
  assert.equal(Object.keys(ADVANCED_FIELD_CHALLENGES).length,9);
@@ -23,4 +23,8 @@ test('Native rules retain negative tests, audio isolation and session-only autho
  for(const token of ['_negative_fields(field)','field_total != 104','final_sum != sum'])assert.ok(smoke.includes(token),token);
  for(const token of ['func _play_rhythm_note','rhythm_player.stop()','field_refresh_elapsed >= 0.08'])assert.ok(world.includes(token),token);
  assert.doesNotMatch(state,/HTTPRequest|FileAccess|supabase|grant_bp/i);
+});
+
+test('All four Sudoku tiers have unique solutions and genuine different board sizes',async()=>{
+ const {SUDOKU_BANK,countSudokuSolutions}=await import('../scripts/kingdom-field-challenges.mjs');assert.deepEqual(SUDOKU_BANK.map(x=>x.size),[4,4,6,6]);for(const tier of SUDOKU_BANK){assert.equal(tier.templates.length,12);for(const puzzle of tier.templates){assert.equal(countSudokuSolutions(puzzle.clues,tier.size,tier.boxRows,tier.boxCols),1);assert.ok(puzzle.clues.some(x=>x===0));assert.ok(puzzle.clues.every((x,i)=>x===0||x===puzzle.solution[i]));}}
 });

@@ -1,6 +1,6 @@
 ## Session-only interactive field challenge. No account/reward settlement.
 extends RefCounted
-const TYPES := ["budget","route","pair","select","sequence","memory","match3","merge","farm","rhythm"]
+const TYPES := ["budget","route","pair","select","sequence","memory","match3","merge","farm","rhythm","sudoku"]
 var spec: Dictionary = {}
 var picks: Array[int] = []
 var matched: Dictionary = {}
@@ -19,6 +19,12 @@ var beat_index := 0
 var rhythm_misses := 0
 var timing_window := 0.24
 var memory_seconds := 3.0
+var sudoku_grid: Array = []
+var sudoku_fixed: Dictionary = {}
+var sudoku_selected := -1
+var sudoku_size := 0
+var sudoku_box_rows := 0
+var sudoku_box_cols := 0
 func begin(data: Dictionary, variant: int = 0) -> bool:
     clear()
     if not str(data.get("type","")) in TYPES or not data.get("items",[]) is Array:
@@ -64,6 +70,8 @@ func begin(data: Dictionary, variant: int = 0) -> bool:
             return false
     if kind == "farm" and (int(data.get("goal",0)) != items.size() or float(data.get("growSeconds",0)) < 1.0):
         return false
+    if kind == "sudoku" and not _begin_sudoku(data):
+        return false
     if kind == "rhythm":
         var answer: Variant = data.get("answer",[])
         if not answer is Array or answer.is_empty() or answer.size() > 9 or float(data.get("beatSeconds",0)) < 0.6:
@@ -90,7 +98,7 @@ func begin(data: Dictionary, variant: int = 0) -> bool:
         picks.append(0)
     return true
 func _vary(variant: int) -> void:
-    if variant == 0:
+    if variant == 0 or spec.type == "sudoku":
         return
     if spec.type in ["route","match3","merge"]:
         if variant % 2 == 1:
@@ -133,6 +141,12 @@ func clear() -> void:
     rhythm_misses = 0
     timing_window = 0.24
     memory_seconds = 3.0
+    sudoku_grid.clear()
+    sudoku_fixed.clear()
+    sudoku_selected = -1
+    sudoku_size = 0
+    sudoku_box_rows = 0
+    sudoku_box_cols = 0
 func tick(delta: float) -> bool:
     var changed := false
     if preview_left > 0.0:
@@ -164,6 +178,8 @@ func choose(index: int) -> bool:
         return false
     feedback = ""
     match str(spec.type):
+        "sudoku":
+            _choose_sudoku_digit(int(spec.items[index]))
         "match3":
             _choose_match(index)
         "merge":
@@ -221,6 +237,60 @@ func choose(index: int) -> bool:
             picks.append(index)
             solved = index == 8
     return solved
+func _begin_sudoku(data: Dictionary) -> bool:
+    sudoku_size = int(data.get("size",0))
+    sudoku_box_rows = int(data.get("boxRows",0))
+    sudoku_box_cols = int(data.get("boxCols",0))
+    if not sudoku_size in [4,6] or sudoku_box_rows != 2 or sudoku_box_cols*sudoku_box_rows != sudoku_size:
+        return false
+    var clues: Variant = data.get("clues",[])
+    if not clues is Array or clues.size() != sudoku_size*sudoku_size:
+        return false
+    sudoku_grid.resize(clues.size())
+    sudoku_grid.fill(0)
+    for i in range(clues.size()):
+        var value := int(clues[i])
+        if value < 0 or value > sudoku_size:
+            return false
+        if value > 0:
+            if not _sudoku_can_place(i,value):
+                return false
+            sudoku_grid[i] = value
+            sudoku_fixed[i] = true
+    return sudoku_fixed.size() > 0 and sudoku_fixed.size() < sudoku_grid.size()
+
+func _sudoku_can_place(cell: int, value: int) -> bool:
+    var row := floori(float(cell)/sudoku_size)
+    var col := cell%sudoku_size
+    for i in range(sudoku_grid.size()):
+        if i == cell or int(sudoku_grid[i]) != value:
+            continue
+        var r := floori(float(i)/sudoku_size)
+        var c := i%sudoku_size
+        if r == row or c == col or (floori(float(r)/sudoku_box_rows) == floori(float(row)/sudoku_box_rows) and floori(float(c)/sudoku_box_cols) == floori(float(col)/sudoku_box_cols)):
+            return false
+    return true
+
+func select_sudoku_cell(cell: int) -> bool:
+    if spec.get("type") != "sudoku" or solved or cell < 0 or cell >= sudoku_grid.size() or sudoku_fixed.has(cell):
+        return false
+    sudoku_selected = cell
+    feedback = ""
+    return true
+
+func _choose_sudoku_digit(value: int) -> void:
+    if sudoku_selected < 0 or sudoku_fixed.has(sudoku_selected):
+        feedback = "Select an empty or editable square first."
+        return
+    if value == 0:
+        sudoku_grid[sudoku_selected] = 0
+        return
+    if value < 1 or value > sudoku_size or not _sudoku_can_place(sudoku_selected,value):
+        feedback = "That number already appears in this row, column or region."
+        return
+    sudoku_grid[sudoku_selected] = value
+    solved = not sudoku_grid.has(0)
+
 func _adjacent(a: int, b: int) -> bool:
     return absi(a%3-b%3)+absi(floori(float(a)/3.0)-floori(float(b)/3.0)) == 1
 
@@ -303,6 +373,8 @@ func _choose_beat(index: int) -> void:
     beat_clock = -float(spec.beatSeconds)
 
 func tile_label(index: int) -> String:
+    if spec.type == "sudoku":
+        return "Erase" if int(spec.items[index]) == 0 else str(spec.items[index])
     if spec.type == "match3":
         return ("▶ " if selected_tile == index else "") + (str(board[index]) if str(board[index]) != "" else "Cleared")
     if spec.type == "merge":
@@ -323,6 +395,8 @@ func status() -> String:
         for i in spec.answer:
             pattern.append(str(spec.items[int(i)]))
         return "Remember: " + " · ".join(pattern)
+    if spec.type == "sudoku":
+        return "Filled: %d / %d • Tap an editable square, then a number." % [sudoku_grid.size()-sudoku_grid.count(0),sudoku_grid.size()]
     if spec.type == "match3":
         return "Matched: %d / %d" % [score,int(spec.goal)]
     if spec.type == "merge":

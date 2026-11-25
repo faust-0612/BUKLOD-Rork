@@ -51,6 +51,24 @@ func prepare(base: Dictionary, level: int, tier: int, objective: int) -> Diction
     var seed_value := int(step%104729)*31+tier*101+objective*7
     var items: Array = data.get("items",[])
     var kind := str(data.get("type",""))
+    if kind == "sudoku":
+        var profile: Dictionary = data.tiers[tier]
+        var templates: Array = profile.templates
+        var template: Dictionary = templates[(step+objective*5)%templates.size()]
+        var n := int(profile.size)
+        var shift := int((step / int(templates.size()) + objective)%n)
+        data.size = n
+        data.boxRows = profile.boxRows
+        data.boxCols = profile.boxCols
+        data.clues = []
+        data.items = []
+        for i in range(n):
+            data.items.append(i+1)
+        data.items.append(0)
+        for v in template.clues:
+            data.clues.append(0 if int(v)==0 else (int(v)-1+shift)%n+1)
+        data.erase("tiers")
+        return data
     # Keep authored first Normal encounter intact for legacy tests.
     if level == 1 and tier == 1:
         return data

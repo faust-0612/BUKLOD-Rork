@@ -20,6 +20,8 @@ func begin(spec: Dictionary) -> bool:
     return true
 
 func visit(index: int, distance: float) -> bool:
+    if mission.get("quick",false):
+        return false
     if phase != "active" or not is_finite(distance) or distance < 0.0 or distance > 1.6:
         return false
     var count := int(mission.get("count", 0))
@@ -32,9 +34,21 @@ func visit(index: int, distance: float) -> bool:
         phase = "return"
     return true
 
+func finish_quick(solved: bool) -> bool:
+    if phase != "active" or not mission.get("quick",false) or not solved or int(mission.get("count",0)) != 1:
+        return false
+    visited[0] = true
+    phase = "return"
+    return _record_completion()
+
 func finish(distance: float) -> bool:
+    if mission.get("quick",false):
+        return false
     if phase != "return" or not is_finite(distance) or distance < 0.0 or distance > 1.6:
         return false
+    return _record_completion()
+
+func _record_completion() -> bool:
     var id := str(mission.get("id"))
     completed[id] = int(completed.get(id, 0)) + 1
     phase = "complete"

@@ -15,7 +15,11 @@ func _run() -> void:
     for realm in raw.realms:
         for mission in realm.missions:
             for variant in range(int(mission.count)):
-                if not field.begin(mission.challenge,variant) or field.choose(-1):
+                var challenge: Dictionary = mission.challenge
+                if challenge.type == "sudoku":
+                    var progress = preload("res://scripts/kingdom_adventure_progression.gd").new()
+                    challenge = progress.prepare(challenge,1,1,variant)
+                if not field.begin(challenge,variant) or field.choose(-1):
                     quit(20)
                     return
                 if not _solve_field(field):
@@ -121,6 +125,9 @@ func _run() -> void:
 func _solve_field(field) -> bool:
     var data: Dictionary = field.spec
     match str(data.type):
+        "sudoku":
+            if not _solve_sudoku(field,0):
+                return false
         "match3":
             var found := false
             for i in range(9):
@@ -185,7 +192,7 @@ func _solve_field(field) -> bool:
             if data.type == "memory":
                 if field.choose(0):
                     return false
-                field.tick(3.1)
+                field.tick(field.memory_seconds+0.1)
             for x in data.answer:
                 field.choose(int(x))
         "budget":
@@ -276,4 +283,23 @@ func _progression_checks() -> bool:
             var field = Field.new()
             if not field.begin(data,0) or not _solve_field(field):
                 return false
+    var quick = State.new()
+    if not quick.begin({"id":"quick","kind":"collect","count":1,"quick":true}) or quick.visit(0,0.0) or quick.finish(0.0) or quick.finish_quick(false) or not quick.finish_quick(true) or quick.finish_quick(true):
+        return false
     return progress.practice_score == 152
+
+func _solve_sudoku(field, index: int) -> bool:
+    if index >= field.sudoku_grid.size():
+        return not field.sudoku_grid.has(0)
+    if field.sudoku_fixed.has(index):
+        return _solve_sudoku(field,index+1)
+    for value in range(1,field.sudoku_size+1):
+        if not field._sudoku_can_place(index,value):
+            continue
+        field.sudoku_grid[index] = value
+        if _solve_sudoku(field,index+1):
+            if index == 0 or field.sudoku_selected < 0:
+                field.solved = true
+            return true
+        field.sudoku_grid[index] = 0
+    return false

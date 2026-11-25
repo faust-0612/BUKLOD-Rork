@@ -79,6 +79,9 @@ var field_status: Label
 var field_grid: GridContainer
 var field_index := -1
 var field_buttons: Array[Button] = []
+var sudoku_grid_ui: GridContainer
+var sudoku_buttons: Array[Button] = []
+var tile_style_cache: Dictionary = {}
 
 func _get_world() -> String:
     return "kingdom"
@@ -550,6 +553,16 @@ func _install_field_panel(layer: CanvasLayer) -> void:
     field_panel = PanelContainer.new()
     field_panel.position = Vector2(725,105)
     field_panel.custom_minimum_size = Vector2(490,0)
+    var panel_style := StyleBoxFlat.new()
+    panel_style.bg_color = Color("#172b32")
+    panel_style.border_color = Color("#d7b575")
+    panel_style.set_border_width_all(2)
+    panel_style.set_corner_radius_all(14)
+    panel_style.content_margin_left = 12
+    panel_style.content_margin_right = 12
+    panel_style.content_margin_top = 10
+    panel_style.content_margin_bottom = 10
+    field_panel.add_theme_stylebox_override("panel",panel_style)
     layer.add_child(field_panel)
     var body := VBoxContainer.new()
     field_panel.add_child(body)
@@ -561,6 +574,19 @@ func _install_field_panel(layer: CanvasLayer) -> void:
     field_status = Label.new()
     field_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     body.add_child(field_status)
+    sudoku_grid_ui = GridContainer.new()
+    sudoku_grid_ui.columns = 4
+    sudoku_grid_ui.add_theme_constant_override("h_separation",3)
+    sudoku_grid_ui.add_theme_constant_override("v_separation",3)
+    body.add_child(sudoku_grid_ui)
+    for i in range(36):
+        var cell := Button.new()
+        cell.custom_minimum_size = Vector2(69,38)
+        cell.add_theme_font_size_override("font_size",20)
+        cell.pressed.connect(_select_sudoku_cell.bind(i))
+        sudoku_grid_ui.add_child(cell)
+        sudoku_buttons.append(cell)
+    sudoku_grid_ui.hide()
     field_grid = GridContainer.new()
     field_grid.columns = 3
     body.add_child(field_grid)
@@ -576,7 +602,7 @@ func _install_field_panel(layer: CanvasLayer) -> void:
     body.add_child(retry)
     var close := Button.new()
     close.text = "RETURN TO EXPLORATION"
-    close.pressed.connect(_close_field)
+    close.pressed.connect(_leave_field)
     body.add_child(close)
     field_panel.hide()
 
@@ -589,13 +615,56 @@ func _open_field(index: int) -> bool:
     _refresh_field()
     return true
 
+func _tile_style(key: String, color: Color, border_color: Color) -> StyleBoxFlat:
+    if not tile_style_cache.has(key):
+        var style := StyleBoxFlat.new()
+        style.bg_color = color
+        style.border_color = border_color
+        style.set_border_width_all(2)
+        style.set_corner_radius_all(6)
+        tile_style_cache[key] = style
+    return tile_style_cache[key]
+
+func _select_sudoku_cell(index: int) -> void:
+    if field_index >= 0 and field.select_sudoku_cell(index):
+        _refresh_field()
+
+func _refresh_sudoku() -> void:
+    var active: bool = field.spec.type == "sudoku"
+    sudoku_grid_ui.visible = active
+    field_grid.columns = int(field.sudoku_size)+1 if active else 3
+    if not active:
+        return
+    var n: int = field.sudoku_size
+    sudoku_grid_ui.columns = n
+    for i in range(sudoku_buttons.size()):
+        var cell := sudoku_buttons[i]
+        cell.visible = i < n*n
+        if not cell.visible:
+            continue
+        var value: int = int(field.sudoku_grid[i])
+        cell.text = str(value) if value else "·"
+        cell.disabled = field.sudoku_fixed.has(i)
+        cell.custom_minimum_size = Vector2(69 if n==6 else 104,38)
+        var row_group := floori(float(floori(float(i)/n))/field.sudoku_box_rows)
+        var col_group := floori(float(i%n)/field.sudoku_box_cols)
+        var group := (row_group+col_group)%2
+        var selected: bool = field.sudoku_selected == i
+        var color := Color("#475d69") if group==0 else Color("#304951")
+        var outline := Color("#f4d68c") if selected else Color("#67818a")
+        cell.add_theme_stylebox_override("normal",_tile_style("sudoku:"+str(group)+":"+str(selected),color,outline))
+        cell.add_theme_stylebox_override("disabled",_tile_style("fixed",Color("#264b3b"),Color("#74a78d")))
+        cell.add_theme_color_override("font_disabled_color",Color("#f5e7b9"))
+
 func _refresh_field() -> void:
     if field_index < 0:
         return
+    _refresh_sudoku()
     field_prompt.text = str(field.spec.get("prompt",""))
     field_status.text = field.status() + (" • " + field.feedback if not field.feedback.is_empty() else "")
     for i in range(field_buttons.size()):
         var button := field_buttons[i]
+        button.custom_minimum_size = Vector2(57,42) if field.spec.type == "sudoku" else Vector2(145,54)
         button.visible = i < field.spec.items.size()
         if not button.visible:
             continue
@@ -641,13 +710,14 @@ func _choose_field(index: int) -> void:
         _refresh_field()
         return
     var target := field_index
+    if progression.quick_play:
+        if quest.finish_quick(field.solved):
+            _close_field()
+            _finish_practice_round()
+            _update_quest_status()
+        return
     _close_field()
     if quest.visit(target,player.position.distance_to(mission_targets[target])):
-        if progression.quick_play and quest.phase == "return":
-            if quest.finish(0.0):
-                _finish_practice_round()
-                _update_quest_status()
-                return
         _play_avatar_animation("Interact")
         action_hold = 1.1
         _play_original_sound("return" if quest.phase == "return" else "discover")
@@ -669,6 +739,13 @@ func _restart_field() -> void:
         var prepared: Dictionary = progression.prepare(quest.mission.get("challenge",{}),progression.active_level,progression.active_difficulty,field_index)
         field.begin(prepared,int((progression.active_level-1+field_index)%3))
         _refresh_field()
+
+func _leave_field() -> void:
+    if progression.quick_play and quest.phase == "active":
+        quest.cancel()
+        progression.abandon()
+    _close_field()
+    _update_quest_status()
 
 func _close_field() -> void:
     field_index = -1
@@ -758,6 +835,7 @@ func _start_or_cancel() -> void:
             var selected: Dictionary = missions[mission_index].duplicate(true)
             if progression.quick_play:
                 selected.count = 1
+                selected.quick = true
             if quest.begin(selected):
                 progression.begin(str(selected.id))
                 round_feedback.text = ""
@@ -765,6 +843,10 @@ func _start_or_cancel() -> void:
                 cinematic_fx.trigger("start",player.position,Color(str(realm_profile.get("accent","#ffe3a3"))))
     pending_target = -1
     destination = player.position
+    if progression.quick_play and quest.phase == "active" and not _open_field(0):
+        quest.cancel()
+        progression.abandon()
+        guide_notice.text = "Challenge could not start. Try another game."
     _update_quest_status()
 
 func move_to(point: Vector3) -> bool:
@@ -900,12 +982,14 @@ func _update_quest_status() -> void:
     progress_label.text = "%s • Level %d • %d rounds\nPractice score: %d (not BP)" % [progression.milestone(),progression.level_for(game_id,progression.difficulty),progression.total_rounds,progression.practice_score]
     next_button.text = "NEXT LEVEL" if progression.quick_play else "NEXT ADVENTURE"
     for i in range(target_nodes.size()):
-        target_nodes[i].visible = quest.phase == "active" and i < int(quest.mission.get("count", 0)) and not quest.visited.has(i)
+        target_nodes[i].visible = not progression.quick_play and quest.phase == "active" and i < int(quest.mission.get("count", 0)) and not quest.visited.has(i)
         if target_nodes[i].visible and quest.mission.get("kind") != "collect":
             target_nodes[i].visible = i == quest.visited.size()
     return_marker.visible = quest.phase == "return"
     if not _adventure_ready():
         quest_status.text = "Kingdom content unavailable. Try another realm or return to the original Kingdom games."
+    elif quest.phase == "active" and progression.quick_play:
+        quest_status.text = "Quick game • Solve the board to complete this level."
     elif quest.phase == "active":
         quest_status.text = str(quest.mission.get("title")) + ": " + str(quest.mission.get("object")) + " " + str(quest.visited.size()) + "/" + str(quest.mission.get("count")) + ". Tap illuminated markers to walk."
     elif quest.phase == "return":
