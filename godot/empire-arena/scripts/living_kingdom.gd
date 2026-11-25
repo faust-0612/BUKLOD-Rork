@@ -579,7 +579,7 @@ func _install_field_panel(layer: CanvasLayer) -> void:
     sudoku_grid_ui.add_theme_constant_override("h_separation",3)
     sudoku_grid_ui.add_theme_constant_override("v_separation",3)
     body.add_child(sudoku_grid_ui)
-    for i in range(36):
+    for i in range(49):
         var cell := Button.new()
         cell.custom_minimum_size = Vector2(69,38)
         cell.add_theme_font_size_override("font_size",20)
@@ -626,13 +626,38 @@ func _tile_style(key: String, color: Color, border_color: Color) -> StyleBoxFlat
     return tile_style_cache[key]
 
 func _select_sudoku_cell(index: int) -> void:
-    if field_index >= 0 and field.select_sudoku_cell(index):
+    if field_index < 0 or quest.phase!="active":
+        return
+    if field.spec.type=="wordsearch":
+        if field.choose_word_cell(index):
+            _complete_field()
+        else:
+            _refresh_field()
+    elif field.select_sudoku_cell(index):
         _refresh_field()
 
 func _refresh_sudoku() -> void:
+    var is_word: bool = field.spec.type=="wordsearch"
     var active: bool = field.spec.type == "sudoku"
-    sudoku_grid_ui.visible = active
+    sudoku_grid_ui.visible = active or is_word
+    field_grid.visible = not is_word
     field_grid.columns = int(field.sudoku_size)+1 if active else 3
+    if is_word:
+        var size: int = int(field.spec.size)
+        sudoku_grid_ui.columns = size
+        for i in range(sudoku_buttons.size()):
+            var cell := sudoku_buttons[i]
+            cell.visible = i<size*size
+            if not cell.visible:
+                continue
+            cell.disabled = false
+            cell.text = str(field.spec.letters[i])
+            cell.custom_minimum_size = Vector2(floorf(431.0/size),38)
+            var found: bool = field.word_cells.has(i)
+            var selected: bool = field.word_start==i
+            var tint := Color("#35745c") if found else (Color("#806b36") if selected else Color("#304951"))
+            cell.add_theme_stylebox_override("normal",_tile_style("word:"+str(found)+":"+str(selected),tint,Color("#b6d4a1") if found or selected else Color("#67818a")))
+        return
     if not active:
         return
     var n: int = field.sudoku_size
@@ -671,6 +696,10 @@ func _refresh_field() -> void:
         var selected: bool = field.picks.has(i) or field.matched.has(i)
         button.text = ("✓ " if selected else "") + field.tile_label(i)
         button.disabled = field.preview_left > 0.0 or field.reveal_left > 0.0 or field.solved or field.matched.has(i)
+        if field.spec.type == "domino" and field.picks.has(i):
+            button.disabled = true
+        if field.spec.type == "codebreaker" and field.code_locked:
+            button.disabled = true
         if field.spec.type == "farm" and field.crop_stage[i] == 4:
             button.disabled = true
         if field.spec.type == "match3" and str(field.board[i]).is_empty():
@@ -708,6 +737,11 @@ func _choose_field(index: int) -> void:
         _play_rhythm_note(index)
     if not finished:
         _refresh_field()
+        return
+    _complete_field()
+
+func _complete_field() -> void:
+    if field_index<0 or not field.solved or quest.phase!="active":
         return
     var target := field_index
     if progression.quick_play:

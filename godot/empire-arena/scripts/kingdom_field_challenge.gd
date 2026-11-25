@@ -1,6 +1,6 @@
 ## Session-only interactive field challenge. No account/reward settlement.
 extends RefCounted
-const TYPES := ["budget","route","pair","select","sequence","memory","match3","merge","farm","rhythm","sudoku"]
+const TYPES := ["budget","route","pair","select","sequence","memory","match3","merge","farm","rhythm","sudoku","wordsearch","codebreaker","domino"]
 var spec: Dictionary = {}
 var picks: Array[int] = []
 var matched: Dictionary = {}
@@ -25,6 +25,13 @@ var sudoku_selected := -1
 var sudoku_size := 0
 var sudoku_box_rows := 0
 var sudoku_box_cols := 0
+var word_start := -1
+var word_found: Dictionary = {}
+var word_cells: Dictionary = {}
+var code_guess: Array[int] = []
+var code_history: Array[String] = []
+var code_locked := false
+var domino_ends: Array[int] = []
 func begin(data: Dictionary, variant: int = 0) -> bool:
     clear()
     if not str(data.get("type","")) in TYPES or not data.get("items",[]) is Array:
@@ -72,6 +79,29 @@ func begin(data: Dictionary, variant: int = 0) -> bool:
         return false
     if kind == "sudoku" and not _begin_sudoku(data):
         return false
+    if kind == "wordsearch":
+        var n := int(data.get("size",0))
+        if n < 5 or n > 7 or not data.get("letters",[]) is Array or data.letters.size()!=n*n or not data.get("words",[]) is Array or data.words.is_empty():
+            return false
+        for letter in data.letters:
+            if str(letter).length()!=1:
+                return false
+        for word in data.words:
+            if str(word).length()<2 or str(word).length()>n:
+                return false
+    if kind == "codebreaker":
+        var secret: Variant = data.get("secret",[])
+        if not secret is Array or secret.size()<3 or secret.size()>6 or int(data.get("attemptLimit",0))<1 or items[-1]!=0:
+            return false
+        for digit in secret:
+            if int(digit)<=0 or not items.has(digit):
+                return false
+    if kind == "domino":
+        if items.size()<4 or items[-1]!="Undo" or int(data.get("start",-1))<0 or int(data.get("start",-1))>6 or int(data.get("target",-1))<0 or int(data.get("target",-1))>6:
+            return false
+        for i in range(items.size()-1):
+            if not items[i] is Array or items[i].size()!=2 or int(items[i][0])<0 or int(items[i][0])>6 or int(items[i][1])<0 or int(items[i][1])>6:
+                return false
     if kind == "rhythm":
         var answer: Variant = data.get("answer",[])
         if not answer is Array or answer.is_empty() or answer.size() > 9 or float(data.get("beatSeconds",0)) < 0.6:
@@ -85,6 +115,8 @@ func begin(data: Dictionary, variant: int = 0) -> bool:
     _vary(maxi(0,variant))
     if kind in ["match3","merge"]:
         board = spec.items.duplicate()
+    if kind == "domino":
+        domino_ends.append(int(spec.start))
     if kind == "farm":
         crop_stage.resize(items.size())
         crop_stage.fill(0)
@@ -98,7 +130,7 @@ func begin(data: Dictionary, variant: int = 0) -> bool:
         picks.append(0)
     return true
 func _vary(variant: int) -> void:
-    if variant == 0 or spec.type == "sudoku":
+    if variant == 0 or spec.type in ["sudoku","wordsearch","codebreaker","domino"]:
         return
     if spec.type in ["route","match3","merge"]:
         if variant % 2 == 1:
@@ -147,6 +179,13 @@ func clear() -> void:
     sudoku_size = 0
     sudoku_box_rows = 0
     sudoku_box_cols = 0
+    word_start = -1
+    word_found.clear()
+    word_cells.clear()
+    code_guess.clear()
+    code_history.clear()
+    code_locked = false
+    domino_ends.clear()
 func tick(delta: float) -> bool:
     var changed := false
     if preview_left > 0.0:
@@ -178,6 +217,10 @@ func choose(index: int) -> bool:
         return false
     feedback = ""
     match str(spec.type):
+        "codebreaker":
+            _choose_code(int(spec.items[index]))
+        "domino":
+            _choose_domino(index)
         "sudoku":
             _choose_sudoku_digit(int(spec.items[index]))
         "match3":
@@ -237,6 +280,94 @@ func choose(index: int) -> bool:
             picks.append(index)
             solved = index == 8
     return solved
+func choose_word_cell(index: int) -> bool:
+    if spec.get("type")!="wordsearch" or solved or index<0 or index>=spec.letters.size():
+        return false
+    feedback = ""
+    if word_start<0:
+        word_start = index
+        return false
+    if index==word_start:
+        word_start = -1
+        return false
+    var n := int(spec.size)
+    var row := floori(float(word_start)/n)
+    var col := word_start%n
+    var dr := floori(float(index)/n)-row
+    var dc := index%n-col
+    word_start = -1
+    if dr!=0 and dc!=0 and absi(dr)!=absi(dc):
+        feedback = "Choose a straight or diagonal line."
+        return false
+    var count := maxi(absi(dr),absi(dc))+1
+    var cells: Array[int] = []
+    var word := ""
+    for i in range(count):
+        var at := (row+i*signi(dr))*n+col+i*signi(dc)
+        cells.append(at)
+        word += str(spec.letters[at])
+    var found := word if spec.words.has(word) else word.reverse()
+    if not spec.words.has(found) or word_found.has(found):
+        feedback = "No new listed word on that line."
+        return false
+    word_found[found] = true
+    for at in cells:
+        word_cells[at] = true
+    solved = word_found.size()==spec.words.size()
+    return solved
+
+func _choose_code(digit: int) -> void:
+    if code_locked:
+        feedback = "No attempts left. Restart this puzzle."
+        return
+    if digit==0:
+        if not code_guess.is_empty():
+            code_guess.pop_back()
+        return
+    code_guess.append(digit)
+    if code_guess.size()<spec.secret.size():
+        return
+    var exact := 0
+    var left := {}
+    var right := {}
+    for i in range(code_guess.size()):
+        var a := code_guess[i]
+        var b := int(spec.secret[i])
+        if a==b:
+            exact += 1
+        else:
+            left[a] = int(left.get(a,0))+1
+            right[b] = int(right.get(b,0))+1
+    var misplaced := 0
+    for key in left:
+        misplaced += mini(int(left[key]),int(right.get(key,0)))
+    var shown := PackedStringArray()
+    for value in code_guess:
+        shown.append(str(value))
+    code_history.append(" ".join(shown)+"  |  %d exact · %d misplaced" % [exact,misplaced])
+    solved = exact==spec.secret.size()
+    code_guess.clear()
+    code_locked = not solved and code_history.size()>=int(spec.attemptLimit)
+
+func _choose_domino(index: int) -> void:
+    if index==spec.items.size()-1:
+        if not picks.is_empty():
+            picks.pop_back()
+            domino_ends.pop_back()
+        return
+    if picks.has(index):
+        return
+    var tile: Array = spec.items[index]
+    var tail: int = domino_ends[-1]
+    if int(tile[0])!=tail and int(tile[1])!=tail:
+        feedback = "That tile does not match the open end."
+        return
+    picks.append(index)
+    domino_ends.append(int(tile[1]) if int(tile[0])==tail else int(tile[0]))
+    solved = picks.size()==spec.items.size()-1 and domino_ends[-1]==int(spec.target)
+    if not solved and picks.size()==spec.items.size()-1:
+        feedback = "Wrong end. Undo a tile and try another chain."
+
 func _begin_sudoku(data: Dictionary) -> bool:
     sudoku_size = int(data.get("size",0))
     sudoku_box_rows = int(data.get("boxRows",0))
@@ -373,6 +504,12 @@ func _choose_beat(index: int) -> void:
     beat_clock = -float(spec.beatSeconds)
 
 func tile_label(index: int) -> String:
+    if spec.type == "codebreaker":
+        return "Erase" if int(spec.items[index])==0 else str(spec.items[index])
+    if spec.type == "domino":
+        if index==spec.items.size()-1:
+            return "Undo"
+        return "%d │ %d" % [int(spec.items[index][0]),int(spec.items[index][1])]
     if spec.type == "sudoku":
         return "Erase" if int(spec.items[index]) == 0 else str(spec.items[index])
     if spec.type == "match3":
@@ -395,6 +532,24 @@ func status() -> String:
         for i in spec.answer:
             pattern.append(str(spec.items[int(i)]))
         return "Remember: " + " · ".join(pattern)
+    if spec.type == "wordsearch":
+        var remaining := PackedStringArray()
+        for word in spec.words:
+            if not word_found.has(word):
+                remaining.append(str(word))
+        return "Found %d/%d • %s" % [word_found.size(),spec.words.size()," · ".join(remaining)]
+    if spec.type == "codebreaker":
+        var guess := PackedStringArray()
+        for digit in code_guess:
+            guess.append(str(digit))
+        while guess.size()<spec.secret.size():
+            guess.append("□")
+        return "Guess: %s • %d/%d attempts\n%s" % [" ".join(guess),code_history.size(),int(spec.attemptLimit),"\n".join(code_history.slice(maxi(0,code_history.size()-4)))]
+    if spec.type == "domino":
+        var chain := PackedStringArray()
+        for value in domino_ends:
+            chain.append(str(value))
+        return "Chain: %s → target %d • %d/%d tiles" % [" · ".join(chain),int(spec.target),picks.size(),spec.items.size()-1]
     if spec.type == "sudoku":
         return "Filled: %d / %d • Tap an editable square, then a number." % [sudoku_grid.size()-sudoku_grid.count(0),sudoku_grid.size()]
     if spec.type == "match3":

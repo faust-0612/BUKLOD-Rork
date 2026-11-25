@@ -51,6 +51,57 @@ func prepare(base: Dictionary, level: int, tier: int, objective: int) -> Diction
     var seed_value := int(step%104729)*31+tier*101+objective*7
     var items: Array = data.get("items",[])
     var kind := str(data.get("type",""))
+    if kind == "wordsearch":
+        var profile: Dictionary = data.tiers[tier]
+        var templates: Array = profile.templates
+        var template: Dictionary = templates[(step+objective*5)%templates.size()]
+        var rng := RandomNumberGenerator.new()
+        rng.seed = seed_value+31291
+        var n := int(profile.size)
+        data.size = n
+        data.letters = []
+        data.words = template.words.duplicate()
+        for letter in template.grid:
+            data.letters.append(str(letter) if str(letter)!="" else String.chr(65+rng.randi_range(0,25)))
+        data.erase("tiers")
+        return data
+    if kind == "codebreaker":
+        var rng := RandomNumberGenerator.new()
+        rng.seed = seed_value+6197
+        var digits := 4+tier
+        var length := 3+tier
+        data.items = []
+        data.secret = []
+        for i in range(digits):
+            data.items.append(i+1)
+        data.items.append(0)
+        for i in range(length):
+            data.secret.append(rng.randi_range(1,digits))
+        data.attemptLimit = [12,10,9,8][tier]
+        return data
+    if kind == "domino":
+        var rng := RandomNumberGenerator.new()
+        rng.seed = seed_value+9191
+        var count := 3+tier
+        var chain: Array = [rng.randi_range(0,6)]
+        for i in range(count):
+            chain.append(rng.randi_range(0,6))
+        var tiles: Array = []
+        for i in range(count):
+            var tile: Array = [chain[i],chain[i+1]]
+            if rng.randi_range(0,1)==1:
+                tile.reverse()
+            tiles.append(tile)
+        for i in range(tiles.size()-1,0,-1):
+            var j := rng.randi_range(0,i)
+            var tmp: Variant = tiles[i]
+            tiles[i] = tiles[j]
+            tiles[j] = tmp
+        data.start = chain[0]
+        data.target = chain[-1]
+        data.items = tiles
+        data.items.append("Undo")
+        return data
     if kind == "sudoku":
         var profile: Dictionary = data.tiers[tier]
         var templates: Array = profile.templates

@@ -16,7 +16,7 @@ func _run() -> void:
         for mission in realm.missions:
             for variant in range(int(mission.count)):
                 var challenge: Dictionary = mission.challenge
-                if challenge.type == "sudoku":
+                if challenge.type in ["sudoku","wordsearch","codebreaker","domino"]:
                     var progress = preload("res://scripts/kingdom_adventure_progression.gd").new()
                     challenge = progress.prepare(challenge,1,1,variant)
                 if not field.begin(challenge,variant) or field.choose(-1):
@@ -146,6 +146,39 @@ func _run() -> void:
 func _solve_field(field) -> bool:
     var data: Dictionary = field.spec
     match str(data.type):
+        "wordsearch":
+            var n := int(data.size)
+            for word_value in data.words:
+                var word := str(word_value)
+                var found := false
+                for i in range(data.letters.size()):
+                    for direction in [Vector2i(0,1),Vector2i(1,0),Vector2i(1,1),Vector2i(-1,0),Vector2i(0,-1),Vector2i(-1,-1),Vector2i(1,-1),Vector2i(-1,1)]:
+                        var start := Vector2i(i%n,floori(float(i)/n))
+                        var end: Vector2i = start+direction*(word.length()-1)
+                        if end.x<0 or end.y<0 or end.x>=n or end.y>=n:
+                            continue
+                        var candidate := ""
+                        for k in range(word.length()):
+                            var at: Vector2i = start+direction*k
+                            candidate += str(data.letters[at.y*n+at.x])
+                        if candidate==word:
+                            field.choose_word_cell(i)
+                            field.choose_word_cell(end.y*n+end.x)
+                            found = true
+                            break
+                    if found:
+                        break
+                if not found:
+                    return false
+        "codebreaker":
+            for digit in data.secret:
+                field.choose(data.items.find(digit))
+        "domino":
+            var answer: Array[int] = []
+            if not _domino_solution(data,int(data.start),{},answer):
+                return false
+            for i in answer:
+                field.choose(i)
         "sudoku":
             var original: Array = field.sudoku_grid.duplicate()
             if not _solve_sudoku(field,0):
@@ -332,4 +365,21 @@ func _solve_sudoku(field, index: int) -> bool:
         if _solve_sudoku(field,index+1):
             return true
         field.sudoku_grid[index] = 0
+    return false
+
+func _domino_solution(data: Dictionary, tail: int, used: Dictionary, answer: Array[int]) -> bool:
+    if answer.size()==data.items.size()-1:
+        return tail==int(data.target)
+    for i in range(data.items.size()-1):
+        if used.has(i):
+            continue
+        var tile: Array = data.items[i]
+        if int(tile[0])!=tail and int(tile[1])!=tail:
+            continue
+        used[i]=true
+        answer.append(i)
+        if _domino_solution(data,int(tile[1]) if int(tile[0])==tail else int(tile[0]),used,answer):
+            return true
+        answer.pop_back()
+        used.erase(i)
     return false

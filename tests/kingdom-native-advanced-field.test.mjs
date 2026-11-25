@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {FIELD_CHALLENGES,ADVANCED_FIELD_CHALLENGES,buildFieldChallenge,checkAdvancedField} from '../scripts/kingdom-field-challenges.mjs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-test('All 39 missions retain canonical IDs and eleven interaction families',()=>{
+test('All 39 missions retain canonical IDs and fourteen interaction families',()=>{
  const catalog=JSON.parse(read('src/features/games/kingdom/platform/game-catalog.json'));
  const ids=catalog.characters.flatMap(c=>c.games.map(g=>g.id));
  assert.equal(ids.length,39);assert.equal(Object.keys(FIELD_CHALLENGES).length,39);
- assert.equal(new Set(ids.map(id=>buildFieldChallenge(id,FIELD_CHALLENGES[id]).type)).size,11);
+ assert.equal(new Set(ids.map(id=>buildFieldChallenge(id,FIELD_CHALLENGES[id]).type)).size,14);
 });
 test('Advanced native encounter boards have valid solutions and reject invalid data',()=>{
  assert.equal(Object.keys(ADVANCED_FIELD_CHALLENGES).length,9);
@@ -27,4 +27,10 @@ test('Native rules retain negative tests, audio isolation and session-only autho
 
 test('All four Sudoku tiers have unique solutions and genuine different board sizes',async()=>{
  const {SUDOKU_BANK,countSudokuSolutions}=await import('../scripts/kingdom-field-challenges.mjs');assert.deepEqual(SUDOKU_BANK.map(x=>x.size),[4,4,6,6]);for(const tier of SUDOKU_BANK){assert.equal(tier.templates.length,12);for(const puzzle of tier.templates){assert.equal(countSudokuSolutions(puzzle.clues,tier.size,tier.boxRows,tier.boxCols),1);assert.ok(puzzle.clues.some(x=>x===0));assert.ok(puzzle.clues.every((x,i)=>x===0||x===puzzle.solution[i]));}}
+});
+
+test('Original word searches are solvable on each difficulty and preserve canonical identities',async()=>{
+ const {WORD_SEARCH_BANK,verifyWordTemplate,buildFieldChallenge,FIELD_CHALLENGES}=await import('../scripts/kingdom-field-challenges.mjs');
+ let checked=0;for(const [id,tiers] of Object.entries(WORD_SEARCH_BANK)){assert.equal(buildFieldChallenge(id,FIELD_CHALLENGES[id]).type,'wordsearch');assert.deepEqual(tiers.map(x=>x.size),[5,6,7,7]);for(const [tier,bank] of tiers.entries())for(const template of bank.templates){assert.equal(template.words.length,tier+1);assert.ok(verifyWordTemplate(template,bank.size));checked++;}}assert.equal(checked,144);
+ const s=read('godot/empire-arena/scripts/kingdom_field_challenge.gd');for(const x of ['func choose_word_cell','func _choose_code','func _choose_domino','code_locked','word_found.has(found)','domino_ends.pop_back()'])assert.ok(s.includes(x),x);
 });
