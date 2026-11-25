@@ -12,7 +12,7 @@ export function verifyOriginalKingdomMedia(entries, manifest) {
   if(b.byteLength>4000000||v.getUint32(0,true)!==0x46546c67||v.getUint32(4,true)!==2||v.getUint32(8,true)!==b.length)fail(name+" GLB header");
   const len=v.getUint32(12,true);if(v.getUint32(16,true)!==0x4e4f534a)fail(name+" JSON");const j=JSON.parse(decode(b.subarray(20,20+len))),base=28+len;
   if(v.getUint32(base-4,true)!==0x004e4942||base+v.getUint32(base-8,true)!==b.length)fail(name+" BIN");
-  if(j.skins.length!==1||j.meshes.length!==1||j.skins[0].joints.length<15||j.images.length!==12||j.animations.length!==5)fail(name+" incomplete rig");
+  if(j.skins.length!==1||j.meshes.length!==1||j.skins[0].joints.length!==22||j.images.length!==12||j.animations.length!==5)fail(name+" incomplete rig");
   const joints=j.skins[0].joints.length,ib=j.accessors[j.skins[0].inverseBindMatrices];if(ib.count!==joints||ib.type!=="MAT4")fail(name+" inverse bind");
   const get=(ix,k)=>{const a=j.accessors[ix],view=j.bufferViews[a.bufferView],w=a.componentType===5123?2:4,off=base+(view.byteOffset||0)+k*w;if(off+w>base+view.byteOffset+view.byteLength)fail(name+" accessor overflow");return w===2?v.getUint16(off,true):v.getFloat32(off,true)};
   for(const bv of j.bufferViews)if(bv.byteOffset%4||bv.byteOffset+bv.byteLength>j.buffers[0].byteLength)fail(name+" buffer bounds");
@@ -30,10 +30,12 @@ export function verifyOriginalKingdomMedia(entries, manifest) {
   if(blend<500||tri<14000||vertex<9000)fail(name+" detail floor");
   const clipNames=["Idle","Walk","Run","Interact","Celebrate"];
   for(const [index,clip] of j.animations.entries()){
-   if(clip.name!==clipNames[index]||clip.channels.length<14)fail(name+" missing animation");
-   for(const channel of clip.channels){const s=clip.samplers[channel.sampler],n=j.accessors[s.input].count;if(n<25||j.accessors[s.output].count!==n)fail(name+" keys");
+   if(clip.name!==clipNames[index]||clip.channels.length<20)fail(name+" missing animation");
+   for(const bone of ["BlinkL","BlinkR","Mouth","HairSwing","CoatL","CoatR"]){const joint=j.nodes.findIndex(n=>n.name===bone);if(joint<0||!clip.channels.some(c=>c.target.node===joint&&c.target.path===(["BlinkL","BlinkR","Mouth"].includes(bone)?"scale":"rotation")))fail(name+" missing secondary motion "+bone);}
+   for(const channel of clip.channels){const s=clip.samplers[channel.sampler],n=j.accessors[s.input].count;if(n<49||j.accessors[s.output].count!==n)fail(name+" keys");
     for(let k=1;k<n;k++)if(!(get(s.input,k)>get(s.input,k-1)))fail(name+" unordered animation");
     if(channel.target.path==="rotation")for(let k=0;k<n;k++){let mag=0;for(let l=0;l<4;l++)mag+=get(s.output,k*4+l)**2;if(Math.abs(mag-1)>1e-4)fail(name+" quaternion");}
+    if(channel.target.path==="scale"){let lo=Infinity,hi=-Infinity;for(let k=0;k<n;k++)for(let a=0;a<3;a++){const value=get(s.output,k*3+a);if(!Number.isFinite(value)||value<.05||value>3)fail(name+" unsafe scale");if(a===1){lo=Math.min(lo,value);hi=Math.max(hi,value);}}const target=j.nodes[channel.target.node].name;if(target.startsWith("Blink")&&(lo>.4||hi<.99))fail(name+" static blink");}
     if(index<3){const width=channel.target.path==="rotation"?4:3;for(let k=0;k<width;k++)if(Math.abs(get(s.output,k)-get(s.output,(n-1)*width+k))>1e-4)fail(name+" loop seam");}
    }
   }

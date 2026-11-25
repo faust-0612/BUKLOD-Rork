@@ -140,6 +140,8 @@ export function createOriginalHero(id, d) {
  const node=(name,t,parent)=>{const n={name,translation:t,children:[]};nodes.push(n);const i=nodes.length-1;if(parent>=0)nodes[parent].children.push(i);return i};
  const root=node(id,[0,0,0],-1), pelvis=node("Pelvis",[0,.90*height,0],root),torso=node("Spine",[0,.22*height,0],pelvis),head=node("Head",[0,.47*height,0],torso);
  const joints={};
+ // All secondary joints have a real pivot, bind matrix and weighted geometry.
+ const eyeL=node("BlinkL",[-.059,.144,.123],head),eyeR=node("BlinkR",[.059,.144,.123],head),mouth=node("Mouth",[0,.022,.130],head),hairSwing=node("HairSwing",[0,.197,-.021],head),coatL=node("CoatL",[-.128,-.025,-.028],pelvis),coatR=node("CoatR",[.128,-.025,-.028],pelvis);
  const geoms=new Map();
  const parents=new Map();
  const bindPositions=()=>{const positions=[];for(let i=0;i<nodes.length;i++){const parent=nodes.findIndex(n=>n.children?.includes(i));parents.set(i,parent);const t=nodes[i].translation;positions.push(t.map((v,k)=>v+(parent<0?0:positions[parent][k])));}return positions;};
@@ -187,8 +189,9 @@ export function createOriginalHero(id, d) {
  sculpt(pelvis,leather,[0,.035,0],[.237*hipWidth,.045,.164],(x,y,z)=>[x,y,z],24,14);
  ell(pelvis,metal,[0,.035,.164],[.052,.033,.022],16,10);
  for(let s of [-1,1]){
-  sculpt(pelvis,cloth,[s*.128,-.16,-.028],[.12*hipWidth,.285+(variant%3)*.018,.101],(x,y,z)=>[x*(1-.35*y),y,z],20,16);
-  ell(pelvis,metal,[s*.19,-.17,.047],[.012,.19,.014],12,10,s*.14);
+  const coat=s<0?coatL:coatR;
+  sculpt(coat,cloth,[0,-.135,0],[.12*hipWidth,.285+(variant%3)*.018,.101],(x,y,z)=>[x*(1-.35*y),y,z],20,16);
+  ell(coat,metal,[s*.062,-.145,.075],[.012,.19,.014],12,10,s*.14);
   if(armored)sculpt(torso,metal,[s*.238,.285,.0],[.113,.06,.102],plate,20,14);
  }
  // Tailored identity: 13 different modeled costume cuts, not recolors.
@@ -217,20 +220,21 @@ export function createOriginalHero(id, d) {
  const faceProfile=(x,y,z)=>{const front=Math.max(0,z),jaw=.86+.12*Math.cos(y*2.1)+(.055+.018*(variant%4))*y+.035*(variant%3)*(1-y*y);const cheek=(.025+.01*(variant%5))*gauss(Math.abs(x)-.56,y+.01,.07,.14)*front,bridge=(.13+.02*(variant%4))*gauss(x,y+.06,.038,.20)*front,tip=(.075+.012*(variant%5))*gauss(x,y+.22,.025,.045)*front,orbit=-.075*gauss(Math.abs(x)-.42,y-.14,.055,.035)*front,mouth=.022*gauss(x,y+.49,.10,.035)*front;return [x*jaw,y,z+cheek+bridge+tip+orbit+mouth];};
  sculpt(head,skin,[0,.112,0],[.146*facial,.181,.139],faceProfile,40,30);
  const lips=material("Lip tone","#80504a",0,.72);
- ell(head,lips,[0,.022,.130],[.043,.0055,.008],20,8);
+ ell(mouth,lips,[0,0,0],[.043,.0055,.008],20,8);
  for(let s of [-1,1]){
   sculpt(head,skin,[s*.141,.094,-.003],[.024,.046,.024],limb,16,12);
   ell(head,lips,[s*.151,.094,.018],[.008,.024,.008],12,8);
-  ell(head,white,[s*.059,.144,.123],[.030,.0135,.013],20,10,s*.055);
-  ell(head,ink,[s*.060,.144,.135],[.0105,.012,.006],16,8);
-  ell(head,white,[s*.057,.149,.140],[.003,.003,.002],10,6);
+  const eye=s<0?eyeL:eyeR;
+  ell(eye,white,[0,0,0],[.030,.0135,.013],20,10,s*.055);
+  ell(eye,ink,[s*.001,0,.012],[.0105,.012,.006],16,8);
+  ell(eye,white,[-s*.002,.005,.017],[.003,.003,.002],10,6);
   ell(head,hairM,[s*.058,.164,.126],[.035,.0055,.0065],16,8,s*.09);
  }
  sculpt(head,hairM,[0,.197,-.021],[.155,.119,.143],(x,y,z)=>[x*(1+.06*y),y,z*(1+.1*y)],28,20);
- for(let i=0;i<7;i++){const side=(i-3)/3;sculpt(head,hairM,[side*.104,.218+.028*Math.cos(i*.6),.077],[.027+.008*Math.cos(i),.075+(variant%4)*.008,.061],(x,y,z)=>[x+.24*y,y,z*(1+.1*y)],16,12);}
+ for(let i=0;i<7;i++){const side=(i-3)/3;sculpt(hairSwing,hairM,[side*.104,.021+.028*Math.cos(i*.6),.098],[.027+.008*Math.cos(i),.075+(variant%4)*.008,.061],(x,y,z)=>[x+.24*y,y,z*(1+.1*y)],16,12);}
  if([3,5,10].includes(variant)){ell(head,metal,[0,.242,.081],[.158,.025,.093],24,10);ell(head,accent,[0,.25,.164],[.026,.045,.018],14,10);}
  if([1,7,9].includes(variant)){sculpt(head,cloth,[0,.247,-.03],[.178,.081,.153],plate,24,16);ell(head,metal,[0,.215,.095],[.152,.015,.034],20,10);}
- if([4,8,12].includes(variant)){for(let s of [-1,1])sculpt(head,hairM,[s*.116,.055,-.085],[.046,.15+.025*(variant%3),.055],(x,y,z)=>[x*(1+.35*y),y,z],18,14);}
+ if([4,8,12].includes(variant)){for(let s of [-1,1])sculpt(hairSwing,hairM,[s*.116,-.142,-.064],[.046,.15+.025*(variant%3),.055],(x,y,z)=>[x*(1+.35*y),y,z],18,14);}
  for(const s of [-1,1]){
   const side=s<0?"L":"R";
   const sh=node("Shoulder"+side,[s*.244*physique,.235,0],torso),el=node("Elbow"+side,[0,-.277,0],sh),hand=node("Hand"+side,[0,-.252,0],el);
@@ -294,12 +298,21 @@ export function createOriginalHero(id, d) {
  let floor=Infinity;for(const b of batches.values())for(let k=1;k<b.p.length;k+=3)floor=Math.min(floor,b.p[k]);nodes[root].translation[1]=-floor;
  const quat=(x,y,z)=>{const sx=Math.sin(x/2),cx=Math.cos(x/2),sy=Math.sin(y/2),cy=Math.cos(y/2),sz=Math.sin(z/2),cz=Math.cos(z/2);return [sx*cy*cz-cx*sy*sz,cx*sy*cz+sx*cy*sz,cx*cy*sz-sx*sy*cz,cx*cy*cz+sx*sy*sz]};
  for(const [name,dur] of [["Idle",2.4],["Walk",.92],["Run",.64],["Interact",1.1],["Celebrate",1.4]]){
-  const times=Array.from({length:25},(_,i)=>dur*i/24),input=ac(times,5126,"SCALAR",[0],[dur]),samplers=[],channels=[];
-  const track=(joint,fn)=>{const output=ac(times.flatMap((_,i)=>quat(...fn(i/24))),5126,"VEC4");samplers.push({input,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:joint,path:"rotation"}})};
+  const times=Array.from({length:49},(_,i)=>dur*i/48),input=ac(times,5126,"SCALAR",[0],[dur]),samplers=[],channels=[];
+  const track=(joint,fn)=>{const output=ac(times.flatMap((_,i)=>quat(...fn(i/48))),5126,"VEC4");samplers.push({input,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:joint,path:"rotation"}})};
   const gait=name==="Walk"||name==="Run",stride=[1.0,.94,.98,.90,.87,1.10,1.04,.97,.86,1.02,.89,1.06,.82][variant],amp=(name==="Run"?.68:.36)*stride;
-  const bob=times.flatMap((_,i)=>{const t=i/24;return [0,.90*height+(gait?.024*(1-Math.cos(t*TAU*2)):name==="Celebrate"?.055*Math.sin(Math.PI*t):.009*Math.sin(t*TAU)),0]});const bobOut=ac(bob,5126,"VEC3");samplers.push({input,output:bobOut,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:pelvis,path:"translation"}});
+  const bob=times.flatMap((_,i)=>{const t=i/48;return [0,.90*height+(gait?.024*(1-Math.cos(t*TAU*2)):name==="Celebrate"?.055*Math.sin(Math.PI*t):.009*Math.sin(t*TAU)),0]});const bobOut=ac(bob,5126,"VEC3");samplers.push({input,output:bobOut,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:pelvis,path:"translation"}});
   for(const side of ["L","R"]){const sign=side==="L"?1:-1;track(joints["hip"+side],t=>[gait?amp*Math.sin(t*TAU)*sign:0,0,0]);track(joints["knee"+side],t=>[gait?Math.max(0,-Math.sin(t*TAU)*sign)*.62:0,0,0]);track(joints["foot"+side],t=>[gait?-.15*Math.sin(t*TAU+.4)*sign:0,0,0]);track(joints["hand"+side],t=>[name==="Interact"?.12*Math.sin(Math.PI*t):0,0,gait?.025*Math.sin(t*TAU)*sign:0]);track(joints["sh"+side],t=>[gait?-amp*.7*Math.sin(t*TAU)*sign:name==="Interact"&&side==="R"?-(.62+.06*(variant%5))*Math.sin(Math.PI*t):name==="Celebrate"?-(.72+.08*(variant%4))*Math.sin(Math.PI*t):.035*Math.sin(t*TAU),0,sign*(.12+(name==="Celebrate"?.65*Math.sin(Math.PI*t):0))]);track(joints["el"+side],t=>[gait?-.18-.16*Math.max(0,Math.sin(t*TAU)*sign):name==="Interact"?-.65*Math.sin(Math.PI*t):-.12,0,0]);}
-  track(torso,t=>[gait?.04:0,gait?.055*Math.sin(t*TAU):.03*Math.sin(t*TAU),0]);track(head,t=>[name==="Interact"?.12*Math.sin(Math.PI*t):.025*Math.sin(t*TAU),.05*Math.sin(t*TAU),0]);anims.push({name,samplers,channels});
+  track(torso,t=>[gait?.04:0,gait?.055*Math.sin(t*TAU):.03*Math.sin(t*TAU),0]);track(head,t=>[name==="Interact"?.12*Math.sin(Math.PI*t):.025*Math.sin(t*TAU),.05*Math.sin(t*TAU),0]);
+  const vectorTrack=(joint,path,fn)=>{const output=ac(times.flatMap((_,i)=>fn(i/48)),5126,"VEC3");samplers.push({input,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:joint,path}})};
+  // Blink at a deterministic, character-specific instant; fast eyelid closure,
+  // no scale-to-zero and no discontinuity across looping locomotion clips.
+  const blinkCenter=.34+.018*(variant%7),blink=t=>{const d=Math.abs(t-blinkCenter),width=name==="Idle"?.045:.08;return d>=width?1:1-.94*(.5+.5*Math.cos(Math.PI*d/width))};
+  for(const joint of [eyeL,eyeR])vectorTrack(joint,"scale",t=>[1,blink(t),1]);
+  vectorTrack(mouth,"scale",t=>[1,name==="Interact"?1+1.8*Math.sin(Math.PI*t)**2*(.5+.5*Math.sin(t*TAU*4)):name==="Celebrate"?1+.9*Math.sin(Math.PI*t):1,1]);
+  track(hairSwing,t=>[gait?.065*Math.sin(t*TAU-.6):.018*Math.sin(t*TAU),0,(gait?.045:.012)*Math.sin(t*TAU)]);
+  for(const [joint,sign] of [[coatL,-1],[coatR,1]])track(joint,t=>[gait?.13*Math.sin(t*TAU-.65)*sign:0,0,(gait?.07:.024)*Math.sin(t*TAU)*sign]);
+  anims.push({name,samplers,channels});
  }
  for(const n of nodes)if(!n.children.length)delete n.children;
  const doc={asset:{version:"2.0",generator:"BUKLOD Original Living Kingdom Sculpted Character Workshop v3 - distinctive roles"},scene:0,scenes:[{nodes:[root]}],nodes,meshes,skins:[{name:id+"_Skeleton",joints:boneIds,skeleton:pelvis,inverseBindMatrices:skinIndex}],materials:mats,images,textures,samplers:[{magFilter:9729,minFilter:9987,wrapS:10497,wrapT:10497}],animations:anims,buffers:[{byteLength:bin.length}],bufferViews:views,accessors:access};

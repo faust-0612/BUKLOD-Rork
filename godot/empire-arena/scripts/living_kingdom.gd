@@ -42,6 +42,9 @@ var mission_targets: Array[Vector3] = []
 var guide_label: Label3D
 var guide_near := false
 var guide_talking := false
+var guide_talk_left := 0.0
+var guide_clip := ""
+var guide_dialogue_step := 0
 var day_phase := 0.22
 var sky_auto := true
 var realm_profile: Dictionary = {}
@@ -249,6 +252,9 @@ func _set_guide(id: String) -> void:
         guide.remove_child(child)
         child.queue_free()
     guide_anim = null
+    guide_clip = ""
+    guide_talk_left = 0.0
+    guide_dialogue_step = 0
     var model := _original_hero(id)
     guide.visible = model != null
     if model == null:
@@ -258,13 +264,19 @@ func _set_guide(id: String) -> void:
     for candidate in model.find_children("*", "AnimationPlayer", true, false):
         if candidate is AnimationPlayer:
             guide_anim = candidate
-            for clip in guide_anim.get_animation_list():
-                if "idle" in str(clip).to_lower():
-                    var animation := guide_anim.get_animation(clip)
-                    animation.loop_mode = Animation.LOOP_LINEAR
-                    guide_anim.play(clip)
-                    break
+            _play_guide_animation("Idle")
             break
+
+func _play_guide_animation(desired: String) -> void:
+    if guide_anim == null or guide_clip == desired:
+        return
+    for clip in guide_anim.get_animation_list():
+        if desired.to_lower() in str(clip).to_lower():
+            var animation: Animation = guide_anim.get_animation(clip)
+            animation.loop_mode = Animation.LOOP_LINEAR if desired == "Idle" else Animation.LOOP_NONE
+            guide_anim.play(clip,0.15)
+            guide_clip = desired
+            return
 
 func _play_avatar_animation(desired: String) -> void:
     if player == null or desired == motion_clip or (action_hold > 0.0 and desired in ["Idle","Walk","Run"]):
@@ -496,10 +508,24 @@ func _talk_to_guide() -> void:
         guide_notice.text = "Walk to the guide to talk."
         return
     guide_talking = true
+    guide_talk_left = 1.1
+    _play_guide_animation("Interact")
     _play_avatar_animation("Interact")
     action_hold = 1.1
     _play_original_sound("guide")
-    guide_notice.text = str(realm_profile.get("dialogue", ""))
+    var realm: Dictionary = realms[realm_index]
+    var missions: Array = realm.get("missions",[])
+    if quest.phase == "return":
+        guide_notice.text = "Your work is ready. Return to the green beacon to finish."
+    elif quest.phase == "active":
+        guide_notice.text = "Continue " + str(quest.mission.get("title","")) + ": " + str(quest.visited.size()) + "/" + str(quest.mission.get("count",0)) + " objectives."
+    elif quest.phase == "complete":
+        guide_notice.text = "Well done. Continue your adventure or revisit a previous challenge."
+    elif guide_dialogue_step % 2 == 0:
+        guide_notice.text = str(realm_profile.get("dialogue", ""))
+    elif mission_index >= 0 and mission_index < missions.size():
+        guide_notice.text = "Your next challenge is " + str(missions[mission_index].get("title","")) + ". Prepare to explore."
+    guide_dialogue_step += 1
 
 func _select_realm(index: int) -> void:
     if quest.phase in ["active", "return"]:
@@ -622,8 +648,17 @@ func _process(delta: float) -> void:
     if guide != null:
         guide_near = player.position.distance_to(Vector3(0, 0, -1.5)) <= 3.2
         talk_button.disabled = not guide_near or not _adventure_ready()
+        if guide_near and guide.visible:
+            var face := player.position - guide.position
+            if face.length_squared() > 0.04:
+                guide.rotation.y = lerp_angle(guide.rotation.y,atan2(face.x,face.z)-PI,minf(1.0,dt*6.0))
+        guide_talk_left = maxf(0.0,guide_talk_left-dt)
+        if guide_talk_left <= 0.0:
+            _play_guide_animation("Idle")
         if guide_talking and not guide_near:
             guide_talking = false
+            guide_talk_left = 0.0
+            _play_guide_animation("Idle")
             guide_notice.text = str(realm_profile.get("biome", ""))
     if moving and moving_speed > 0.7:
         footstep_time += dt
@@ -693,6 +728,7 @@ func get_dev_snapshot() -> Dictionary:
     result["practice_avatar_id"] = original_character_id
     result["skinned_avatar"] = player != null and not player.find_children("*", "Skeleton3D", true, false).is_empty()
     result["guide_near"] = guide_near
+    result["guide_clip"] = guide_clip
     result["adventure_ready"] = _adventure_ready()
     result["landmark_id"] = realm_landmark
     result["fx_count"] = cinematic_fx.count if cinematic_fx != null else 0

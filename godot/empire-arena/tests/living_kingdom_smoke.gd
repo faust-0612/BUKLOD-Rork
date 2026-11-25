@@ -64,7 +64,7 @@ func _run() -> void:
     world._select_realm(0)
     world._process(0.04)
     world._talk_to_guide()
-    if not world.guide_talking or world.guide_notice.text.is_empty():
+    if not world.guide_talking or world.guide_notice.text.is_empty() or world.get_dev_snapshot().get("guide_clip") != "Interact":
         quit(12)
         return
     world._start_or_cancel()
