@@ -30,6 +30,10 @@ jobs:
           PR_BASE: ${{ github.base_ref || 'main' }}
         run: |
           case "$PR_HEAD" in
+            integration/main-conso-backlog-20261125)
+              if [ "$PR_BASE" = "main" ]; then
+                echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/main-conso-backlog-20261125.json" >> "$GITHUB_ENV"
+              fi;;
             integration/nov16-current-wall-ads-zoom-rc-safe)
               if [ "$PR_BASE" = "main" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/nov16-all-recent-wall-character-ads-rc.json" >> "$GITHUB_ENV"
