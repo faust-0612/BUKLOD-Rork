@@ -16,6 +16,7 @@ import { ARENA_PICKUP_CATALOG } from '../experiments/empire-arena-v2/arena-v2-pi
 import { ARENA_SFX_IDS, arenaSfxEntries } from './arena-library-audio-pack.mjs';
 import { buildLivingKingdomCatalog } from './kingdom-living-realms-catalog.mjs';
 import { originalKingdomEntries } from './kingdom-original-media.mjs';
+import { verifyOriginalKingdomMedia } from './kingdom-original-media-quality.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const project = path.join(root, 'godot/empire-arena');
@@ -73,6 +74,8 @@ const entries = [{ name: 'data/catalog.json', bytes: data }];
 const kingdom = buildLivingKingdomCatalog(JSON.parse(readFileSync(path.join(root,'src/features/games/kingdom/platform/game-catalog.json'),'utf8')));
 entries.push({name:'data/kingdom_realms.json',bytes:Buffer.from(JSON.stringify(kingdom),'utf8')});
 const originalKingdom = originalKingdomEntries();
+const originalQuality = verifyOriginalKingdomMedia(originalKingdom.entries, originalKingdom.manifest);
+console.log('BUKLOD_ORIGINAL_KINGDOM_MEDIA_QUALITY_PASS '+JSON.stringify(originalQuality));
 assert.equal(originalKingdom.manifest.heroes.length,13);
 assert.equal(originalKingdom.manifest.cues.length,7);
 assert.equal(originalKingdom.manifest.soundscapes.length,13);

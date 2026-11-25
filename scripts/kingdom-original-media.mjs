@@ -144,9 +144,9 @@ export function createOriginalHero(id, d) {
  const parents=new Map();
  const bindPositions=()=>{const positions=[];for(let i=0;i<nodes.length;i++){const parent=nodes.findIndex(n=>n.children?.includes(i));parents.set(i,parent);const t=nodes[i].translation;positions.push(t.map((v,k)=>v+(parent<0?0:positions[parent][k])));}return positions;};
  function ell(j,m,c,s,segments=16,rings=10,tilt=0){
-  const key=j+":"+m;let g=geoms.get(key);if(!g){g={p:[],n:[],uv:[],i:[],j,m};geoms.set(key,g)}
+  const key=j+":"+m;let g=geoms.get(key);if(!g){g={p:[],n:[],uv:[],tan:[],i:[],j,m};geoms.set(key,g)}
   const off=g.p.length/3,cs=Math.cos(tilt),sn=Math.sin(tilt);
-  for(let iy=0;iy<=rings;iy++){const th=Math.PI*iy/rings,sy=Math.cos(th),sr=Math.sin(th);for(let ix=0;ix<=segments;ix++){const a=TAU*ix/segments,x=sr*Math.cos(a),y=sy,z=sr*Math.sin(a);const px=x*s[0],py=y*s[1];g.p.push(c[0]+px*cs-py*sn,c[1]+px*sn+py*cs,c[2]+z*s[2]);let nx=x/s[0],ny=y/s[1],nz=z/s[2],l=Math.hypot(nx,ny,nz)||1;g.n.push((nx*cs-ny*sn)/l,(nx*sn+ny*cs)/l,nz/l);g.uv.push(ix/segments,iy/rings);}}
+  for(let iy=0;iy<=rings;iy++){const th=Math.PI*iy/rings,sy=Math.cos(th),sr=Math.sin(th);for(let ix=0;ix<=segments;ix++){const a=TAU*ix/segments,x=sr*Math.cos(a),y=sy,z=sr*Math.sin(a);const px=x*s[0],py=y*s[1];g.p.push(c[0]+px*cs-py*sn,c[1]+px*sn+py*cs,c[2]+z*s[2]);let nx=x/s[0],ny=y/s[1],nz=z/s[2],l=Math.hypot(nx,ny,nz)||1;g.n.push((nx*cs-ny*sn)/l,(nx*sn+ny*cs)/l,nz/l);g.uv.push(ix/segments,iy/rings);let tx=-Math.sin(a)*s[0],tz=Math.cos(a)*s[2],tl=Math.hypot(tx,tz)||1;g.tan.push(tx*cs/tl,tx*sn/tl,tz/tl,1);}}
   for(let iy=0;iy<rings;iy++)for(let ix=0;ix<segments;ix++){const a=off+iy*(segments+1)+ix,b=a+segments+1;if(iy>0)g.i.push(a,a+1,b);if(iy<rings-1)g.i.push(a+1,b+1,b);}
  }
  // Fully modeled volumes: articulated body, sculpted face, fitted garments,
@@ -206,12 +206,12 @@ export function createOriginalHero(id, d) {
  const batches=new Map();
  const colorFor=(mat,u,v)=>{const pattern=.5+.5*Math.sin(u*TAU*12)*Math.sin(v*TAU*17),grain=.5+.5*Math.sin(u*TAU*37+v*TAU*19);let light=mat===cloth?.82+.13*pattern+.05*grain:mat===leather?.80+.13*grain:mat===metal?.86+.14*pattern:.94+.06*grain;return [light,light,light,1]};
  for(const g of geoms.values()){
-  let b=batches.get(g.m);if(!b){b={p:[],n:[],uv:[],c:[],j:[],w:[],i:[]};batches.set(g.m,b);}
+  let b=batches.get(g.m);if(!b){b={p:[],n:[],uv:[],tan:[],c:[],j:[],w:[],i:[]};batches.set(g.m,b);}
   const offset=b.p.length/3,parent=parents.get(g.j),joint=boneIndex.get(g.j),parentJoint=boneIndex.get(parent)??joint;
   const name=nodes[g.j].name,soft=(g.m===cloth||g.m===leather||g.m===dark)&&/^(Shoulder|Elbow|Hip|Knee)/.test(name);
   for(let k=0;k<g.p.length/3;k++){
    const q=g.p.slice(k*3,k*3+3),u=g.uv[k*2],v=g.uv[k*2+1];
-   b.p.push(...q.map((x,axis)=>x+bind[g.j][axis]));b.n.push(...g.n.slice(k*3,k*3+3));b.uv.push(u,v);b.c.push(...colorFor(g.m,u,v));
+   b.p.push(...q.map((x,axis)=>x+bind[g.j][axis]));b.n.push(...g.n.slice(k*3,k*3+3));b.uv.push(u,v);b.tan.push(...g.tan.slice(k*4,k*4+4));b.c.push(...colorFor(g.m,u,v));
    const parentWeight=soft?Math.max(0,Math.min(.46,(q[1]+.055)*3.5)):0;
    b.j.push(joint,parentJoint,0,0);b.w.push(1-parentWeight,parentWeight,0,0);
   }
@@ -222,7 +222,7 @@ export function createOriginalHero(id, d) {
   const min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
   for(let k=0;k<b.p.length;k++){const axis=k%3;min[axis]=Math.min(min[axis],b.p[k]);max[axis]=Math.max(max[axis],b.p[k]);}
   if(b.p.length/3>=65536)throw Error("Kingdom material index overflow");
-  primitives.push({attributes:{POSITION:ac(b.p,5126,"VEC3",min,max),NORMAL:ac(b.n,5126,"VEC3"),TEXCOORD_0:ac(b.uv,5126,"VEC2"),COLOR_0:ac(b.c,5126,"VEC4"),JOINTS_0:ac(b.j,5123,"VEC4"),WEIGHTS_0:ac(b.w,5126,"VEC4")},indices:ac(b.i,5123,"SCALAR",[0],[Math.max(...b.i)]),material:mat});
+  primitives.push({attributes:{POSITION:ac(b.p,5126,"VEC3",min,max),NORMAL:ac(b.n,5126,"VEC3"),TEXCOORD_0:ac(b.uv,5126,"VEC2"),TANGENT:ac(b.tan,5126,"VEC4"),COLOR_0:ac(b.c,5126,"VEC4"),JOINTS_0:ac(b.j,5123,"VEC4"),WEIGHTS_0:ac(b.w,5126,"VEC4")},indices:ac(b.i,5123,"SCALAR",[0],[Math.max(...b.i)]),material:mat});
  }
  meshes.push({name:id+"_SkinnedGeometry",primitives});
  const inverseBind=boneIds.flatMap(id=>{const [x,y,z]=bind[id];return [1,0,0,0,0,1,0,0,0,0,1,0,-x,-y,-z,1];});
@@ -245,7 +245,7 @@ export function createOriginalHero(id, d) {
  return {bytes,meta:{id,meshes:meshes.length,primitives:primitives.length,bones:boneIds.length,textures:textures.length,vertices:[...geoms.values()].reduce((s,g)=>s+g.p.length/3,0),triangles:[...geoms.values()].reduce((s,g)=>s+g.i.length/3,0),nodes:nodes.length,clips:anims.map(x=>x.name),prop}};
 }
 export function createOriginalCue(id,index){
- const rate=24000,dur=id==="complete"?2.4:id==="ambience"?8:id==="footstep"?.28:1.15,n=Math.floor(rate*dur),samples=new Float64Array(n);let seed=1234567+index*991,low=0,slow=0;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296*2-1};
+ const rate=44100,dur=id==="complete"?2.4:id==="ambience"?8:id==="footstep"?.28:1.15,n=Math.floor(rate*dur),samples=new Float64Array(n);let seed=1234567+index*991,low=0,slow=0;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296*2-1};
  const notes=id==="complete"?[261.63,329.63,392,523.25]:id==="discover"?[392,523.25,659.25]:id==="guide"?[329.63,392]:id==="start"?[196,293.66,392]:[220,330,440];
  for(let i=0;i<n;i++){const t=i/rate,r=rand();low=.91*low+.09*r;slow=.997*slow+.003*r;let v=0;
  if(id==="footstep"){v=(low*.8+Math.sin(2*Math.PI*(110*t-55*t*t))*0.18)*Math.exp(-t*19);}
@@ -338,22 +338,22 @@ export const REALM_AMBIENCE_PROFILES = Object.freeze({
   ]
 });
 export function createRealmAmbience(id,profile) {
- const rate=24000,dur=8,n=rate*dur,[wind,birds,water,mode]=profile;
- const left=new Float32Array(n),right=new Float32Array(n);
+ const rate=44100,dur=8,n=rate*dur,fade=Math.floor(rate/5),[wind,birds,water,mode]=profile;
+ const left=new Float32Array(n+fade),right=new Float32Array(n+fade);
  let seed=(1103515245+mode*3299+id.split("").reduce((a,c)=>a+c.charCodeAt(0)*97,0))>>>0;
  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296*2-1};
- const tau=2*Math.PI;let low=0,mid=0,fluid=0;const calls=Array.from({length:6},(_,i)=>({start:.5+i*1.13+random()*.22,freq:1500+mode*57+i*92+random()*140,pan:random()*.85}));
- for(let i=0;i<n;i++){const t=i/rate,r=random();low=.997*low+.003*r;mid=.965*mid+.035*r;fluid=.77*fluid+.23*r;
+ const tau=2*Math.PI;let low=0,mid=0,fluid=0,sidewind=0;const calls=Array.from({length:6},(_,i)=>({start:.5+i*1.13+random()*.22,freq:1500+mode*57+i*92+random()*140,pan:random()*.85}));
+ for(let i=0;i<n+fade;i++){const t=i/rate,r=random();low=.9984*low+.0016*r;mid=.981*mid+.019*r;fluid=.86*fluid+.14*r;sidewind=.989*sidewind+.011*random();
   const drift=.64+.23*Math.sin(tau*t/4+mode)+.1*Math.sin(tau*t/2);
   let base=wind*(low*1.15+mid*.21)*drift;
   base+=water*(mid*.27+fluid*.12)*(.7+.3*Math.sin(tau*t/1.6+mode));
   const root=48+mode*4;const harm=.018*(Math.sin(tau*root*t)+.3*Math.sin(tau*(root*1.5)*t));
-  let l=base+harm,rch=base+harm;
+  let l=base+harm+sidewind*.04*wind,rch=base+harm-sidewind*.04*wind;
   for(const c of calls){const d=t-c.start;if(d>=0&&d<.26){const en=Math.sin(Math.PI*d/.26)**2;const sweep=tau*(c.freq*d+170*Math.sin(d*15)*d);const q=birds*.11*en*(Math.sin(sweep)+.15*Math.sin(sweep*2));l+=q*(.7-.3*c.pan);rch+=q*(.7+.3*c.pan);}}
   left[i]=l;right[i]=rch;
  }
- // Make both loop endpoints match with a symmetric crossfade; no restart click.
- const fade=rate/4;for(let i=0;i<fade;i++){const x=i/(fade-1),gain=.5-.5*Math.cos(Math.PI*x);left[i]*=gain;right[i]*=gain;left[n-1-i]*=gain;right[n-1-i]*=gain;}
+ // Crossfade extra tail into head; continuous sound without a silent gap.
+ for(let i=0;i<fade;i++){const x=i/(fade-1),gain=.5-.5*Math.cos(Math.PI*x);left[i]=left[n+i]*(1-gain)+left[i]*gain;right[i]=right[n+i]*(1-gain)+right[i]*gain;}
  let peak=0;for(let i=0;i<n;i++)peak=Math.max(peak,Math.abs(left[i]),Math.abs(right[i]));
  const gain=.53/Math.max(.018,peak);
  const bytes=new Uint8Array(44+n*4),d=new DataView(bytes.buffer),str=(o,s)=>{for(let i=0;i<s.length;i++)bytes[o+i]=s.charCodeAt(i)};

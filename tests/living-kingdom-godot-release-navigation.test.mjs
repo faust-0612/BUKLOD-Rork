@@ -31,7 +31,7 @@ test('13 realm visual profiles use distinct authored environments and guide dial
  const approved=new Set(['kingdom_tree','house_path','kingdom_chest','house_fence','kingdom_rocks','arena_crystal','arena_tower','arena_flag','house_building','arena_gate','kingdom_wall','house_tree']);
  assert.ok(profiles.every(p=>p.props.length===4&&p.props.every(x=>approved.has(x))&&p.dialogue.length>40));
  const s=read('godot/empire-arena/scripts/living_kingdom.gd');
- for(const token of ['_apply_realm_visuals','_original_hero','_talk_to_guide','guide_near','guide.remove_child(child)','mission_targets[i] = TARGETS[i].rotated','absf(point.z) > 17.5','_apply_daylight','original_environment.build(realm_profile)'])assert.ok(s.includes(token),token);
+ for(const token of ['_apply_realm_visuals','_original_hero','_talk_to_guide','guide_near','guide.remove_child(child)','mission_targets[i] = TARGETS[i].rotated','absf(point.z) > 11.5','_apply_daylight','original_environment.build(realm_profile)'])assert.ok(s.includes(token),token);
  assert.doesNotMatch(s,/HTTPRequest|FileAccess\.WRITE|user:\/\/|grant_bp|supabase/i);
 });
 
@@ -64,4 +64,8 @@ test('Original textured glTF materials embed valid PNG color, normal and packed 
  const {originalKingdomEntries}=await import('../scripts/kingdom-original-media.mjs');const {entries}=originalKingdomEntries();
  for(const {name,bytes:b} of entries.filter(x=>x.name.endsWith('.glb'))){const n=b.readUInt32LE(12),j=JSON.parse(b.toString('utf8',20,20+n)),base=28+n;assert.equal(j.images.length,12);assert.equal(j.textures.length,12);for(const im of j.images){const v=j.bufferViews[im.bufferView],png=b.subarray(base+v.byteOffset,base+v.byteOffset+v.byteLength);assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');assert.equal(png.readUInt32BE(16),96);assert.equal(png.readUInt32BE(20),96);}assert.ok(j.materials.filter(m=>m.normalTexture&&m.pbrMetallicRoughness.metallicRoughnessTexture).length>=4,name);}
  const env=read('godot/empire-arena/scripts/kingdom_original_environment.gd');for(const q of ['SurfaceTool.new()','generate_normals()','MultiMesh.new()','kingdom_original_water.gdshader','func _rugged_peak','func _leaf_clusters'])assert.ok(env.includes(q));
+});
+
+test('Exact generated assets pass strict topology, rig, PBR, animation and audio quality gate',async()=>{
+ const {originalKingdomEntries}=await import('../scripts/kingdom-original-media.mjs');const {verifyOriginalKingdomMedia}=await import('../scripts/kingdom-original-media-quality.mjs');const {entries,manifest}=originalKingdomEntries();const report=verifyOriginalKingdomMedia(entries,manifest);assert.equal(report.models,13);assert.equal(report.bones,208);assert.equal(report.textures,156);assert.equal(report.clips,65);assert.equal(report.sounds,20);assert.ok(report.triangles>190000);
 });

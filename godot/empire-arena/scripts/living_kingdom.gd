@@ -394,7 +394,7 @@ func _start_or_cancel() -> void:
     _update_quest_status()
 
 func move_to(point: Vector3) -> bool:
-    if not point.is_finite() or absf(point.x) > 24.0 or absf(point.z) > 17.5:
+    if not point.is_finite() or absf(point.x) > 11.5 or absf(point.z) > 11.5:
         return false
     if not super.move_to(point):
         return false
