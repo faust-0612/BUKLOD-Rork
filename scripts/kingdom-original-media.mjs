@@ -149,43 +149,85 @@ export function createOriginalHero(id, d) {
   for(let iy=0;iy<=rings;iy++){const th=Math.PI*iy/rings,sy=Math.cos(th),sr=Math.sin(th);for(let ix=0;ix<=segments;ix++){const a=TAU*ix/segments,x=sr*Math.cos(a),y=sy,z=sr*Math.sin(a);const px=x*s[0],py=y*s[1];g.p.push(c[0]+px*cs-py*sn,c[1]+px*sn+py*cs,c[2]+z*s[2]);let nx=x/s[0],ny=y/s[1],nz=z/s[2],l=Math.hypot(nx,ny,nz)||1;g.n.push((nx*cs-ny*sn)/l,(nx*sn+ny*cs)/l,nz/l);g.uv.push(ix/segments,iy/rings);let tx=-Math.sin(a)*s[0],tz=Math.cos(a)*s[2],tl=Math.hypot(tx,tz)||1;g.tan.push(tx*cs/tl,tx*sn/tl,tz/tl,1);}}
   for(let iy=0;iy<rings;iy++)for(let ix=0;ix<segments;ix++){const a=off+iy*(segments+1)+ix,b=a+segments+1;if(iy>0)g.i.push(a,a+1,b);if(iy<rings-1)g.i.push(a+1,b+1,b);}
  }
- // Fully modeled volumes: articulated body, sculpted face, fitted garments,
- // separate metal trims, boots, gloves and role-specific silhouette pieces.
- ell(pelvis,cloth,[0,0,0],[.26,.20,.17]);ell(torso,dark,[0,.03,0],[.27,.32,.17]);ell(torso,cloth,[0,.13,0],[.34,.29,.205]);
- ell(torso,metal,[0,.12,.185],[.17,.19,.034],12,8);ell(torso,accent,[0,.15,.221],[.055,.065,.024],10,7);
- const shoulderShape=[.10,.08,.13,.15,.07,.19,.14,.085,.075,.11,.12,.09,.065][variant];
- for(let s of [-1,1])ell(torso,cloth,[s*.26,.24,-.09],[shoulderShape,.24+(variant%5)*.024,.12],16,10,s*.16);
- if([1,3,7,9,10].includes(variant)){ell(torso,cloth,[0,-.13,-.16],[.29,.41+(variant%3)*.08,.085],18,12);for(let s of [-1,1])ell(torso,metal,[s*.23,-.10,-.18],[.032,.36,.04],10,9,s*.10);}
- if([0,6,11].includes(variant)){ell(pelvis,leather,[.28,-.11,-.01],[.13,.17,.14],14,9);ell(pelvis,metal,[.28,-.06,.11],[.06,.045,.025],12,6);}
- if(variant===4||variant===8||variant===12){for(let s of [-1,1])ell(torso,accent,[s*.19,.19,.17],[.04,.11,.034],10,7,s*.6);}
- ell(pelvis,leather,[0,.02,0],[.28,.057,.19]);ell(pelvis,metal,[0,.02,.184],[.095,.056,.035],12,6);
- // Asymmetric coat tails and embroidered collar; real geometry instead of flat art.
- for(let s of [-1,1]){ell(pelvis,cloth,[s*.17,-.15,-.018],[.135,.29+(variant%3)*.025,.13],14,9,s*.13);ell(torso,metal,[s*.23,.35,.05],[.11,.055,.105],12,7,s*.27);}
- const facial=[.95,1.03,1.02,1.05,.92,1.08,1.04,.97,.94,1.02,.98,1.01,.91][variant];
- ell(head,skin,[0,.12,0],[.175*facial,.205,.166],32,20);
- ell(head,skin,[0,.035,.075],[.136*facial,.105,.114],22,14);
- for(let s of [-1,1])ell(head,skin,[s*.101,.101,.106],[.076,.069,.054],16,10,s*.12);
- ell(head,skin,[0,.093,.162],[.045,.052,.042],12,8);
- ell(head,skin,[0,.015,.144],[.079,.034,.027],16,10);
+ // Anatomical surface sculpting: different cross-sections, fitted clothing,
+ // integral facial landmarks and a proper neck rather than disconnected ovals.
+ function sculpt(j,m,c,s,profile,segments=24,rings=16){
+  const key=j+":"+m;let g=geoms.get(key);if(!g){g={p:[],n:[],uv:[],tan:[],i:[],j,m};geoms.set(key,g)}
+  const off=g.p.length/3,eps=.0004;
+  const point=(a,t)=>{const v=profile(Math.sin(t)*Math.cos(a),Math.cos(t),Math.sin(t)*Math.sin(a));return [c[0]+s[0]*v[0],c[1]+s[1]*v[1],c[2]+s[2]*v[2]]};
+  const sub=(a,b)=>a.map((x,i)=>x-b[i]),unit=v=>{const l=Math.hypot(...v)||1;return v.map(x=>x/l)},cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+  for(let y=0;y<=rings;y++)for(let x=0;x<=segments;x++){const a=TAU*x/segments,t=Math.PI*y/rings,tt=Math.max(eps,Math.min(Math.PI-eps,t));const tang=unit(sub(point(a+eps,tt),point(a-eps,tt))),dv=sub(point(a,Math.min(Math.PI,tt+eps)),point(a,Math.max(0,tt-eps))),normal=unit(cross(tang,dv));g.p.push(...point(a,t));g.n.push(...normal);g.uv.push(x/segments,y/rings);g.tan.push(...tang,1);}
+  for(let y=0;y<rings;y++)for(let x=0;x<segments;x++){const a=off+y*(segments+1)+x,b=a+segments+1;if(y>0)g.i.push(a,a+1,b);if(y<rings-1)g.i.push(a+1,b+1,b);}
+ }
+ const physique=[.98,.91,.96,1.02,.84,1.14,1.07,.92,.87,.98,.94,1.01,.80][variant];
+ const hipWidth=[.96,.94,.95,.98,1.05,1.00,1.02,.93,1.04,.96,1.02,1.01,.89][variant];
+ const tailored=(x,y,z)=>[x*(.87+.14*y+.12*(1-y*y)),y,z*(.9+.08*y)];
+ const limb=(x,y,z)=>[x*(1+.18*y),y,z*(1+.14*y)];
+ const plate=(x,y,z)=>[x*(.93+.2*y),y,z*(.88+.12*y)];
+ sculpt(pelvis,cloth,[0,-.015,0],[.225*hipWidth,.22,.145],tailored,24,18);
+ sculpt(torso,cloth,[0,.10,0],[.268*physique,.355,.155],tailored,28,20);
+ sculpt(torso,skin,[0,.425,0],[.069,.115,.073],limb,20,14);
+ sculpt(torso,cloth,[0,.365,0],[.112,.089,.104],tailored,20,14);
+ const armored=[3,5,6].includes(variant);
+ if(armored){
+  sculpt(torso,metal,[0,.135,.128],[.215*physique,.213,.058],plate,26,18);
+  sculpt(torso,dark,[0,.085,.169],[.149,.158,.021],plate,20,14);
+  for(let s of [-1,1]){ell(torso,metal,[s*.105,.18,.177],[.017,.134,.013],12,10,s*.21);ell(torso,metal,[s*.14,.025,.15],[.059,.052,.026],14,10,s*.18);}
+ }else{
+  for(let s of [-1,1]){
+   sculpt(torso,leather,[s*.104,.10,.125],[.103*physique,.245,.045],tailored,20,16);
+   ell(torso,metal,[s*.065,.125,.173],[.012,.182,.012],12,10,s*(.18+(variant%3)*.10));
+   for(let k=0;k<4;k++)ell(torso,metal,[s*.128,.02+k*.06,.164],[.012,.012,.009],8,6);
+  }
+ }
+ ell(torso,accent,[0,.19,.183],[.033,.043,.018],14,10);
+ if([1,3,7,9,10].includes(variant)){sculpt(torso,cloth,[0,-.095,-.131],[.245,.43+(variant%3)*.05,.055],(x,y,z)=>[x*(1-.25*y),y,z],24,18);for(let s of [-1,1])ell(torso,metal,[s*.185,-.12,-.171],[.013,.32,.012],12,10,s*.12);}
+ if([0,6,11].includes(variant)){sculpt(pelvis,leather,[.22,-.10,-.01],[.10,.12,.097],plate,18,14);ell(pelvis,metal,[.22,-.065,.08],[.035,.024,.017],12,8);}
+ if([4,8,12].includes(variant)){for(let s of [-1,1])ell(torso,accent,[s*.15,.17,.142],[.016,.075,.016],12,10,s*.48);}
+ sculpt(pelvis,leather,[0,.035,0],[.237*hipWidth,.045,.164],(x,y,z)=>[x,y,z],24,14);
+ ell(pelvis,metal,[0,.035,.164],[.052,.033,.022],16,10);
+ for(let s of [-1,1]){
+  sculpt(pelvis,cloth,[s*.128,-.16,-.028],[.12*hipWidth,.285+(variant%3)*.018,.101],(x,y,z)=>[x*(1-.35*y),y,z],20,16);
+  ell(pelvis,metal,[s*.19,-.17,.047],[.012,.19,.014],12,10,s*.14);
+  if(armored)sculpt(torso,metal,[s*.238,.285,.0],[.113,.06,.102],plate,20,14);
+ }
+ const facial=[.99,1.04,.99,1.07,.91,1.10,1.06,.96,.93,1.01,.96,1.03,.88][variant];
+ const gauss=(a,b,w,h)=>Math.exp(-(a*a/w+b*b/h));
+ const faceProfile=(x,y,z)=>{const front=Math.max(0,z),jaw=.90+.12*Math.cos(y*2.1)+.075*y;const cheek=.04*gauss(Math.abs(x)-.56,y+.01,.07,.14)*front,bridge=.19*gauss(x,y+.06,.038,.20)*front,tip=.12*gauss(x,y+.22,.025,.045)*front,orbit=-.075*gauss(Math.abs(x)-.42,y-.14,.055,.035)*front,mouth=.022*gauss(x,y+.49,.10,.035)*front;return [x*jaw,y,z+cheek+bridge+tip+orbit+mouth];};
+ sculpt(head,skin,[0,.112,0],[.146*facial,.181,.139],faceProfile,40,30);
  const lips=material("Lip tone","#80504a",0,.72);
- ell(head,lips,[0,.012,.170],[.055,.009,.009],16,6);
- for(let s of [-1,1]){ell(head,skin,[s*.172,.105,0],[.035,.07,.032],12,8);ell(head,white,[s*.073,.15,.139],[.045,.026,.018],12,6);ell(head,ink,[s*.07,.15,.156],[.018,.02,.009],10,6);ell(head,hairM,[s*.073,.188,.139],[.051,.012,.012],10,5,s*.10);}
- ell(head,hairM,[0,.23,-.032],[.191,.14,.17],20,12);
- for(let i=0;i<5;i++)ell(head,hairM,[(i-2)*.065,.248+(i%2)*.025,.095],[.055,.085+(variant%4)*.012,.08],12,8,-.35+i*.13);
- if(variant%4===0||variant%4===3){ell(head,metal,[0,.28,0],[.20,.047,.17],18,7);ell(head,accent,[0,.294,.154],[.05,.08,.033],10,7);}
- if(variant%4===1){ell(head,cloth,[0,.27,-.03],[.22,.12,.19],18,10);ell(head,metal,[0,.225,.11],[.195,.028,.04],16,7);}
- if(variant%4===2){for(let s of [-1,1])ell(head,hairM,[s*.145,.08,-.09],[.065,.19,.085],14,10,s*.16);}
+ ell(head,lips,[0,.022,.130],[.043,.0055,.008],20,8);
+ for(let s of [-1,1]){
+  sculpt(head,skin,[s*.141,.094,-.003],[.024,.046,.024],limb,16,12);
+  ell(head,lips,[s*.151,.094,.018],[.008,.024,.008],12,8);
+  ell(head,white,[s*.059,.144,.123],[.030,.0135,.013],20,10,s*.055);
+  ell(head,ink,[s*.060,.144,.135],[.0105,.012,.006],16,8);
+  ell(head,white,[s*.057,.149,.140],[.003,.003,.002],10,6);
+  ell(head,hairM,[s*.058,.164,.126],[.035,.0055,.0065],16,8,s*.09);
+ }
+ sculpt(head,hairM,[0,.197,-.021],[.155,.119,.143],(x,y,z)=>[x*(1+.06*y),y,z*(1+.1*y)],28,20);
+ for(let i=0;i<7;i++){const side=(i-3)/3;sculpt(head,hairM,[side*.104,.218+.028*Math.cos(i*.6),.077],[.027+.008*Math.cos(i),.075+(variant%4)*.008,.061],(x,y,z)=>[x+.24*y,y,z*(1+.1*y)],16,12);}
+ if([3,5,10].includes(variant)){ell(head,metal,[0,.242,.081],[.158,.025,.093],24,10);ell(head,accent,[0,.25,.164],[.026,.045,.018],14,10);}
+ if([1,7,9].includes(variant)){sculpt(head,cloth,[0,.247,-.03],[.178,.081,.153],plate,24,16);ell(head,metal,[0,.215,.095],[.152,.015,.034],20,10);}
+ if([4,8,12].includes(variant)){for(let s of [-1,1])sculpt(head,hairM,[s*.116,.055,-.085],[.046,.15+.025*(variant%3),.055],(x,y,z)=>[x*(1+.35*y),y,z],18,14);}
  for(const s of [-1,1]){
   const side=s<0?"L":"R";
-  const sh=node("Shoulder"+side,[s*.34,.22,0],torso),el=node("Elbow"+side,[0,-.245,0],sh),hand=node("Hand"+side,[0,-.235,0],el);
-  const hip=node("Hip"+side,[s*.145,-.1,0],pelvis),knee=node("Knee"+side,[0,-.37*height,0],hip),foot=node("Foot"+side,[0,-.32*height,0],knee);
+  const sh=node("Shoulder"+side,[s*.244*physique,.235,0],torso),el=node("Elbow"+side,[0,-.277,0],sh),hand=node("Hand"+side,[0,-.252,0],el);
+  const hip=node("Hip"+side,[s*.119*hipWidth,-.085,0],pelvis),knee=node("Knee"+side,[0,-.38*height,0],hip),foot=node("Foot"+side,[0,-.345*height,0],knee);
   joints["sh"+side]=sh;joints["el"+side]=el;joints["hip"+side]=hip;joints["knee"+side]=knee;joints["foot"+side]=foot;joints["hand"+side]=hand;
-  ell(sh,cloth,[0,-.105,0],[.105,.19,.106]);ell(sh,metal,[s*.025,.025,.01],[.15+(variant%3)*.012,.095,.14],14,9,s*.2);
-  ell(el,leather,[0,-.10,0],[.081,.158,.08]);ell(el,metal,[0,-.07,.062],[.072,.11,.042],12,8);
-  ell(hand,skin,[0,-.035,0],[.061,.09,.055],16,10);
-  for(let finger=0;finger<4;finger++)ell(hand,skin,[(finger-1.5)*.024,-.102,.012],[.013,.047-(finger===3?.009:0),.015],10,7);ell(hand,skin,[-s*.056,-.035,.023],[.018,.04,.021],10,7,s*.46);
-  ell(hip,dark,[0,-.17,0],[.115,.24,.12]);ell(knee,leather,[0,-.14,0],[.09,.20,.10]);ell(knee,metal,[0,.01,.077],[.09,.078,.047],12,7);
-  ell(foot,leather,[0,-.015,.065],[.107,.078,.17],16,9);ell(foot,metal,[0,-.015,.179],[.096,.05,.065],12,7);
+  sculpt(sh,cloth,[0,-.12,0],[.079*physique,.193,.081],limb,22,16);
+  if(armored)sculpt(sh,metal,[s*.018,.014,.014],[.107*physique,.065,.104],plate,20,14);
+  sculpt(el,cloth,[0,-.111,0],[.062*physique,.168,.066],limb,22,16);
+  sculpt(el,leather,[0,-.157,0],[.064,.095,.068],plate,18,14);
+  ell(el,metal,[0,-.16,.062],[.039,.061,.012],14,10);
+  sculpt(hand,skin,[0,-.033,0],[.047,.070,.034],limb,18,14);
+  for(let finger=0;finger<4;finger++)ell(hand,skin,[(finger-1.5)*.018,-.088,.008],[.0095,.037-(finger===3?.007:0),.011],12,8);ell(hand,skin,[-s*.041,-.032,.018],[.013,.032,.013],12,8,s*.46);
+  sculpt(hip,dark,[0,-.177,0],[.097*hipWidth,.245,.102],limb,24,18);
+  sculpt(knee,dark,[0,-.14,0],[.073,.218,.081],(x,y,z)=>[x*(1-.12*y),y,z],22,16);
+  sculpt(knee,leather,[0,-.227,0],[.076,.147,.082],plate,22,16);
+  if(armored)sculpt(knee,metal,[0,.015,.072],[.067,.070,.025],plate,20,14);
+  sculpt(foot,leather,[0,-.012,.056],[.083,.055,.136],(x,y,z)=>[x,y<0?y*.62:y,z],22,16);
+  ell(foot,dark,[0,-.045,.058],[.086,.015,.14],20,10);
   if(s===1){
    const held=node("Signature_"+prop,[0,-.025,.07],hand);
    if(["staff","signal","hammer","harvest"].includes(prop)){ell(held,leather,[0,-.18,0],[.035,.39,.035],10,8);ell(held,metal,[0,.19,0],[prop==="hammer"?.18:.12,prop==="hammer"?.068:.15,.085],12,9);ell(held,accent,[0,.28,0],[.065,.07,.064],10,8);if(prop==="harvest"){for(let k=0;k<5;k++)ell(held,accent,[(k-2)*.035,.28+(k%2)*.08,0],[.025,.10,.027],10,7,(k-2)*.23);}if(prop==="signal"){for(let k=0;k<3;k++)ell(held,accent,[0,.20+k*.065,.07],[.10-k*.023,.024,.024],12,6);}if(prop==="staff"){ell(held,metal,[0,.36,0],[.11,.045,.07],14,7);}}
@@ -239,7 +281,7 @@ export function createOriginalHero(id, d) {
   track(torso,t=>[gait?.04:0,gait?.055*Math.sin(t*TAU):.03*Math.sin(t*TAU),0]);track(head,t=>[name==="Interact"?.12*Math.sin(Math.PI*t):.025*Math.sin(t*TAU),.05*Math.sin(t*TAU),0]);anims.push({name,samplers,channels});
  }
  for(const n of nodes)if(!n.children.length)delete n.children;
- const doc={asset:{version:"2.0",generator:"BUKLOD Original Living Kingdom Skinned Mesh Workshop v2"},scene:0,scenes:[{nodes:[root]}],nodes,meshes,skins:[{name:id+"_Skeleton",joints:boneIds,skeleton:pelvis,inverseBindMatrices:skinIndex}],materials:mats,images,textures,samplers:[{magFilter:9729,minFilter:9987,wrapS:10497,wrapT:10497}],animations:anims,buffers:[{byteLength:bin.length}],bufferViews:views,accessors:access};
+ const doc={asset:{version:"2.0",generator:"BUKLOD Original Living Kingdom Sculpted Character Workshop v3"},scene:0,scenes:[{nodes:[root]}],nodes,meshes,skins:[{name:id+"_Skeleton",joints:boneIds,skeleton:pelvis,inverseBindMatrices:skinIndex}],materials:mats,images,textures,samplers:[{magFilter:9729,minFilter:9987,wrapS:10497,wrapT:10497}],animations:anims,buffers:[{byteLength:bin.length}],bufferViews:views,accessors:access};
  const json=JSON.stringify(doc),jb=Array.from(json,c=>c.charCodeAt(0));while(jb.length%4)jb.push(32);while(bin.length%4)bin.push(0);
  const bytes=new Uint8Array(12+8+jb.length+8+bin.length),dv=new DataView(bytes.buffer);dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,bytes.length,true);dv.setUint32(12,jb.length,true);dv.setUint32(16,0x4e4f534a,true);bytes.set(jb,20);const o=20+jb.length;dv.setUint32(o,bin.length,true);dv.setUint32(o+4,0x004e4942,true);bytes.set(bin,o+8);
  return {bytes,meta:{id,meshes:meshes.length,primitives:primitives.length,bones:boneIds.length,textures:textures.length,vertices:[...geoms.values()].reduce((s,g)=>s+g.p.length/3,0),triangles:[...geoms.values()].reduce((s,g)=>s+g.i.length/3,0),nodes:nodes.length,clips:anims.map(x=>x.name),prop}};

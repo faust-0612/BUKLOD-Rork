@@ -21,6 +21,7 @@ var pending_target := -1
 var realm_visuals: Node3D
 var guide: Node3D
 var original_character_id := "phan"
+var avatar_picker: OptionButton
 var sound_player: AudioStreamPlayer
 var sound_enabled := false
 var sound_button: Button
@@ -109,21 +110,47 @@ func _build_avatar() -> void:
     player = Node3D.new()
     player.name = "OriginalLocalExplorer"
     add_child(player)
-    var model := _original_hero(original_character_id)
-    if model != null:
-        player.add_child(model)
-        visual_count += 1
-        for candidate in model.find_children("*", "AnimationPlayer", true, false):
-            if candidate is AnimationPlayer:
-                avatar_anim = candidate
-                break
-    _play_avatar_animation("Idle")
+    _replace_explorer(original_character_id)
     sound_player = AudioStreamPlayer.new()
     sound_player.volume_db = -13.0
     add_child(sound_player)
     ambient_player = AudioStreamPlayer.new()
     ambient_player.volume_db = -24.0
     add_child(ambient_player)
+
+func _replace_explorer(id: String) -> bool:
+    var model := _original_hero(id)
+    if model == null:
+        return false
+    var next_anim: AnimationPlayer
+    for candidate in model.find_children("*", "AnimationPlayer", true, false):
+        if candidate is AnimationPlayer:
+            next_anim = candidate
+            break
+    if next_anim == null:
+        model.free()
+        return false
+    for child in player.get_children():
+        player.remove_child(child)
+        child.queue_free()
+    player.add_child(model)
+    original_character_id = id
+    avatar_anim = next_anim
+    motion_clip = ""
+    action_hold = 0.0
+    _play_avatar_animation("Idle")
+    return true
+
+func _choose_practice_avatar(index: int) -> void:
+    if index < 0 or index >= realms.size() or quest.phase in ["active", "return"]:
+        return
+    var id := str(realms[index].get("id", ""))
+    if not _replace_explorer(id):
+        guide_notice.text = "Explorer model unavailable. Previous model retained."
+        for i in range(realms.size()):
+            if str(realms[i].get("id", "")) == original_character_id:
+                avatar_picker.select(i)
+                break
 
 func _set_guide(id: String) -> void:
     for child in guide.get_children():
@@ -275,8 +302,13 @@ func _install_controls() -> void:
     panel.add_child(title)
     realm_picker = OptionButton.new()
     mission_picker = OptionButton.new()
+    avatar_picker = OptionButton.new()
+    avatar_picker.tooltip_text = "Local practice appearance only; does not change your BUKLOD character."
     for realm in realms:
         realm_picker.add_item(str(realm.get("title", "")))
+        avatar_picker.add_item("Explorer: " + str(realm.get("id", "")).capitalize())
+    panel.add_child(avatar_picker)
+    avatar_picker.item_selected.connect(_choose_practice_avatar)
     panel.add_child(realm_picker)
     panel.add_child(mission_picker)
     realm_picker.item_selected.connect(_select_realm)
@@ -500,6 +532,7 @@ func _update_quest_status() -> void:
     var active: bool = quest.phase in ["active", "return"]
     realm_picker.disabled = active
     mission_picker.disabled = active
+    avatar_picker.disabled = active
     action_button.text = "CANCEL ADVENTURE" if active else "START ADVENTURE"
     next_button.visible = quest.phase == "complete"
     session_label.text = "SESSION DISCOVERIES: %d / 39" % quest.completed.size()
@@ -528,6 +561,7 @@ func get_dev_snapshot() -> Dictionary:
     result["realm_props"] = realm_visuals.get_child(0).get_child_count() if realm_visuals != null and realm_visuals.get_child_count() > 0 else 0
     result["guide_ready"] = guide != null and guide.get_child_count() > 0 and guide_anim != null
     result["original_avatar"] = player != null and player.get_child_count() > 0
+    result["practice_avatar_id"] = original_character_id
     result["skinned_avatar"] = player != null and not player.find_children("*", "Skeleton3D", true, false).is_empty()
     result["guide_near"] = guide_near
     return result

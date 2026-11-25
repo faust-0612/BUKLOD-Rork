@@ -46,6 +46,11 @@ func _run() -> void:
     if biomes.size() != 13 or world.move_to(Vector3(0, 0, 23)):
         quit(11)
         return
+    world._choose_practice_avatar(1)
+    if world.get_dev_snapshot().get("practice_avatar_id") != str(raw.realms[1].id) or not world.get_dev_snapshot().get("skinned_avatar", false):
+        quit(15)
+        return
+    world._choose_practice_avatar(0)
     world._select_realm(0)
     world._process(0.04)
     world._talk_to_guide()

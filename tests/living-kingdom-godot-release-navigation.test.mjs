@@ -69,3 +69,7 @@ test('Original textured glTF materials embed valid PNG color, normal and packed 
 test('Exact generated assets pass strict topology, rig, PBR, animation and audio quality gate',async()=>{
  const {originalKingdomEntries}=await import('../scripts/kingdom-original-media.mjs');const {verifyOriginalKingdomMedia}=await import('../scripts/kingdom-original-media-quality.mjs');const {entries,manifest}=originalKingdomEntries();const report=verifyOriginalKingdomMedia(entries,manifest);assert.equal(report.models,13);assert.equal(report.bones,208);assert.equal(report.textures,156);assert.equal(report.clips,65);assert.equal(report.sounds,20);assert.ok(report.triangles>190000);
 });
+
+test('Sculpted original character surfaces and local avatar selection preserve account authority',()=>{
+ const source=read('scripts/kingdom-original-media.mjs');const world=read('godot/empire-arena/scripts/living_kingdom.gd');for(const token of ['function sculpt','faceProfile','const physique=','const hipWidth=','Sculpted Character Workshop v3'])assert.ok(source.includes(token),token);for(const token of ['_replace_explorer','_choose_practice_avatar','avatar_picker.disabled = active','Local practice appearance only'])assert.ok(world.includes(token),token);assert.doesNotMatch(world,/grant_bp|update_wallet|supabase/i);
+});
