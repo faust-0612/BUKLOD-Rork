@@ -1136,7 +1136,7 @@ function LegacyPublicBuklodScreen(){
    setWallAudioError('');
    try{
      await setIsAudioActiveAsync(true);
-     await setAudioModeAsync({playsInSilentMode:true,shouldRouteThroughEarpiece:false});
+     await setAudioModeAsync({playsInSilentMode:true,shouldRouteThroughEarpiece:false,interruptionMode:'mixWithOthers'});
      const player=ensureWallAudioPlayer();
      if(wallLoadedTrackIdRef.current!==track.id||!player.isLoaded){
        pauseWallAudio();
@@ -1174,7 +1174,8 @@ function LegacyPublicBuklodScreen(){
      wallClipLoopingRef.current=false;
      player.loop=false;
      requestBuklodAudioFocus('wall-post');
-     player.volume=1;
+     player.volume=Math.max(0,Math.min(1,ownerKey==='composer'
+       ?composerMusicVolume:(postCreatives[ownerKey]?.music_volume??1)));
      player.play();
      setWallAudioPlaying(true);
      wallAudioOwnerRef.current=ownerKey;
@@ -1302,6 +1303,8 @@ function LegacyPublicBuklodScreen(){
  const [composerMusicTrack,setComposerMusicTrack]=useState<BuklodPostMusicTrack|null>(null);
  const [composerClipStartSeconds,setComposerClipStartSeconds]=useState(0);
  const [composerClipDurationSeconds,setComposerClipDurationSeconds]=useState(30);
+ const [composerMusicVolume,setComposerMusicVolume]=useState(0.7);
+ const [composerVideoVolume,setComposerVideoVolume]=useState(1);
  const [composerMotionPreset,setComposerMotionPreset]=useState<BuklodPostMotionPreset>('none');
  const [composerMotionDrawerOpen,setComposerMotionDrawerOpen]=useState(false);
 
@@ -1633,6 +1636,9 @@ function LegacyPublicBuklodScreen(){
  },[videoViewerPosts,videoViewerAdsEnabled]);
  const videoViewerActiveRow=videoViewerFeedRows[videoViewerIndex];
  const videoViewerActiveIsAd=isReelsFeedInlineAdRow(videoViewerActiveRow);
+ const fullscreenAudioPostIdRef=useRef('');
+ fullscreenAudioPostIdRef.current=videoViewerOpen&&!videoViewerActiveIsAd?
+   String(videoViewerActiveRow?.id??''):'';
  // Native player tap area and metadata footer must both page the same list.
  const swipeVideoViewer=useCallback((direction:FullscreenVideoSwipeDirection)=>{
   if(!videoViewerOpen || videoViewerActiveIsAd)return;
@@ -3067,6 +3073,8 @@ const load=useCallback(async(options?:{
    musicTrack:composerMusicTrack,
    clipStartSeconds:composerClipStartSeconds,
    clipDurationSeconds:composerClipDurationSeconds,
+   musicVolume:composerMusicVolume,
+   videoVolume:composerVideoVolume,
    motionPreset:wallVideo186O?'none' as BuklodPostMotionPreset:composerMotionPreset,
    wallVideo:
     wallVideo186O as {
@@ -3096,6 +3104,8 @@ const load=useCallback(async(options?:{
  setComposerMusicTrack(null);
  setComposerClipStartSeconds(0);
  setComposerClipDurationSeconds(30);
+ setComposerMusicVolume(0.7);
+ setComposerVideoVolume(1);
  setComposerMotionPreset('none');
  setComposerMotionDrawerOpen(false);
  setComposerMusicPickerOpen(false);
@@ -3376,6 +3386,8 @@ const load=useCallback(async(options?:{
        musicTrackId:snapshot.musicTrack?.id??null,
        clipStartSeconds:snapshot.musicTrack?snapshot.clipStartSeconds:null,
        clipDurationSeconds:snapshot.musicTrack?snapshot.clipDurationSeconds:null,
+       musicVolume:snapshot.musicTrack?snapshot.musicVolume:null,
+       videoVolume:snapshot.musicTrack?snapshot.videoVolume:null,
        motionPreset:snapshot.motionPreset,
      });
      setPostCreatives(previous=>({
@@ -3386,6 +3398,8 @@ const load=useCallback(async(options?:{
          motion_preset:snapshot.motionPreset,
          music_clip_start_seconds:snapshot.musicTrack?snapshot.clipStartSeconds:null,
          music_clip_duration_seconds:snapshot.musicTrack?snapshot.clipDurationSeconds:null,
+         music_volume:snapshot.musicTrack?snapshot.musicVolume:null,
+         video_volume:snapshot.musicTrack?snapshot.videoVolume:null,
          music:snapshot.musicTrack,
        },
      }));
@@ -3430,6 +3444,8 @@ const load=useCallback(async(options?:{
    setComposerMusicTrack(current=>current??snapshot.musicTrack);
    setComposerClipStartSeconds(snapshot.clipStartSeconds);
    setComposerClipDurationSeconds(snapshot.clipDurationSeconds);
+   setComposerMusicVolume(snapshot.musicVolume);
+   setComposerVideoVolume(snapshot.videoVolume);
    setComposerMotionPreset(snapshot.motionPreset);
    setCommunityComposerOpen(true);
    setPostFeedback('Post failed — your draft was restored');
@@ -4956,6 +4972,7 @@ const load=useCallback(async(options?:{
               }
               uri={wallUri}
               playbackKey={postId}
+               audioVolume={postCreatives[postId]?.video_volume??1}
                posterUri={wallVideo.media?.preview_url ?? null}
                onPosterGenerated={thumbnail => {
                  if (!user?.id || String(wallVideo.post?.user_id ?? '') !== String(user.id)) return;
@@ -5445,8 +5462,8 @@ const communityFeedRows =
      setVisibleCreativePostIds(nextIds);
    }
    const owner=wallAudioOwnerRef.current||wallAudioPendingOwnerRef.current;
-   if(owner&&owner!=='composer'&&
-     !event.viewableItems.some(row=>String(row.item?.id??'')===owner)){
+   if(owner&&owner!=='composer'&&owner!==fullscreenAudioPostIdRef.current&&
+      !event.viewableItems.some(row=>String(row.item?.id??'')===owner)){
      wallAudioRequestEpochRef.current++;
      wallAudioPendingOwnerRef.current='';
      wallAudioForVisibility.current();
@@ -5489,11 +5506,12 @@ const communityFeedRows =
  // player; no hidden-card downloads or repeated auto-retries on failures.
  useEffect(()=>{
    if(!wallScreenFocused||Platform.OS==='web'||!user?.id||
-     communityComposerOpen||maritesViewerOpen||visibleVideoPostId||peekDzasPlaying())return;
+     communityComposerOpen||maritesViewerOpen||videoViewerOpen||peekDzasPlaying())return;
    if(wallAudioOwnerRef.current&&
       visibleCreativeIdsRef.current.includes(wallAudioOwnerRef.current))return;
    const candidate=visibleCreativePostIds.map(id=>({id,creative:postCreatives[id]}))
-     .find(row=>row.creative?.music&&!wallAutoMusicSuppressedRef.current.has(row.id));
+     .find(row=>(!visibleVideoPostId||row.id===visibleVideoPostId)&&
+        row.creative?.music&&!wallAutoMusicSuppressedRef.current.has(row.id));
    if(!candidate?.creative?.music)return;
    const track=candidate.creative.music;
    const key=candidate.id+':'+track.id;
@@ -5514,8 +5532,33 @@ const communityFeedRows =
        candidate.creative!.music_clip_duration_seconds??undefined);
    },200);
    return ()=>clearTimeout(timer);
- },[wallScreenFocused,user?.id,communityComposerOpen,maritesViewerOpen,visibleVideoPostId,
+ },[wallScreenFocused,user?.id,communityComposerOpen,maritesViewerOpen,videoViewerOpen,visibleVideoPostId,
     visibleCreativePostIds,postCreatives,wallAudioSettledTick]);
+ // Fullscreen soundtrack always follows the active video and stops on ad slides.
+ useEffect(()=>{
+   if(!videoViewerOpen||!wallScreenFocused||wallAudioOwnerRef.current==='composer')return;
+   const postId=fullscreenAudioPostIdRef.current;
+   const creative=postId?postCreatives[postId]:null;
+   const canPlay=!!creative?.music&&!peekDzasPlaying()&&!maritesViewerOpen;
+   const owner=wallAudioOwnerRef.current;
+   if(!canPlay){
+     if(owner&&owner!=='composer'){
+       wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+       pauseWallAudio();wallAudioOwnerRef.current='';setWallAudioOwner('');
+     }
+     return;
+   }
+   if(owner===postId&&wallAudioPlaying)return;
+   if(wallAudioBusyRef.current)return;
+   if(owner&&owner!=='composer'){
+     wallAudioRequestEpochRef.current++;wallAudioPendingOwnerRef.current='';
+     pauseWallAudio();wallAudioOwnerRef.current='';setWallAudioOwner('');
+   }
+   void toggleWallMusic(creative!.music!,postId,
+     creative!.music_clip_start_seconds??0,
+     creative!.music_clip_duration_seconds??undefined);
+ },[videoViewerOpen,videoViewerIndex,videoViewerActiveIsAd,postCreatives,wallScreenFocused,
+    wallAudioSettledTick,maritesViewerOpen]);
  const communityCreativeExtraData=useMemo(
    ()=>[communityAdExtraData,visibleCreativePostIds],
    [communityAdExtraData,visibleCreativePostIds]
@@ -5726,6 +5769,15 @@ const communityFeedRows =
       selectedTrack={composerMusicTrack}
       clipStartSeconds={composerClipStartSeconds}
       clipDurationSeconds={composerClipDurationSeconds}
+      musicVolume={composerMusicVolume}
+      videoVolume={composerVideoVolume}
+      videoPreviewUri={wallVideo186O?.uri??null}
+      onVolumeChange={(music,video)=>{
+        setComposerMusicVolume(music);setComposerVideoVolume(video);
+        if(wallAudioOwnerRef.current==='composer'&&wallAudioPlayerRef.current){
+          try{wallAudioPlayerRef.current.volume=music;}catch{/* released */}
+        }
+      }}
       onClipChange={(start,duration)=>{
          setComposerClipStartSeconds(start);setComposerClipDurationSeconds(30);
        }}
@@ -6550,7 +6602,8 @@ const communityFeedRows =
           fullscreenUri
          }
          playbackKey={postId}
-         posterUri={descriptor.media?.preview_url ?? null}
+          audioVolume={postCreatives[postId]?.video_volume??1}
+          posterUri={descriptor.media?.preview_url ?? null}
          onPosterGenerated={thumbnail => {
           if (!user?.id || String(descriptor.post?.user_id ?? '') !== String(user.id)) return;
           void persistCommunityVideoPoster({

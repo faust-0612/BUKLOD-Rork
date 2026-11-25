@@ -11,6 +11,7 @@ export default function BuklodMusicClipTimeline({start,length,total,fixedLength,
  const safeTotal=clamp(Math.round(total||120),30,21600);
  const [width,setWidth]=useState(260);
  const latest=useRef(start);
+ const [draggedStart,setDraggedStart]=useState<number|null>(null);
  const lastSeekAt=useRef(0);
  const data=useRef({start,length,total:safeTotal,width,onChange,onScrub,fixedLength});
  data.current={start,length,total:safeTotal,width,onChange,onScrub,fixedLength};
@@ -27,7 +28,7 @@ export default function BuklodMusicClipTimeline({start,length,total,fixedLength,
    const duration=n.fixedLength??clamp(Math.round(durationSeconds),5,Math.min(60,n.total));
    const next=clamp(Math.round(s),0,Math.max(0,n.total-duration));
    latest.current=next;
-   n.onChange(next,duration);
+   setDraggedStart(next);
    emitPreview(next,false);
  };
  const responder=useMemo(()=>PanResponder.create({
@@ -59,22 +60,31 @@ export default function BuklodMusicClipTimeline({start,length,total,fixedLength,
        apply(s,clamp(d+seconds,5,Math.min(60,data.current.total-s)));
      }else{apply(s+seconds,d);}
    },
-   onPanResponderRelease:()=>emitPreview(latest.current,true),
-   onPanResponderTerminate:()=>emitPreview(latest.current,true),
+   onPanResponderRelease:()=>{
+     data.current.onChange(latest.current,data.current.fixedLength??data.current.length);
+     setDraggedStart(null);emitPreview(latest.current,true);
+   },
+   onPanResponderTerminate:()=>{
+     data.current.onChange(latest.current,data.current.fixedLength??data.current.length);
+     setDraggedStart(null);emitPreview(latest.current,true);
+   },
  }),[]);
- const left=(clamp(start,0,safeTotal)/safeTotal)*100;
- const right=(clamp(start+length,0,safeTotal)/safeTotal)*100;
+ const shownStart=draggedStart??start;
+ const left=(clamp(shownStart,0,safeTotal)/safeTotal)*100;
+ const right=(clamp(shownStart+length,0,safeTotal)/safeTotal)*100;
  const nudge=(seconds:number)=>{
    const n=data.current;
    const next=clamp(n.start+seconds,0,Math.max(0,n.total-n.length));
-   apply(next,n.length);
+   latest.current=next;
+   n.onChange(next,n.fixedLength??n.length);
+   setDraggedStart(null);
    emitPreview(next,true);
  };
  return <View>
    <View accessibilityLabel="Music clip waveform timeline. Drag to hear the chosen part immediately."
      onLayout={e=>setWidth(Math.max(120,e.nativeEvent.layout.width))}
      {...responder.panHandlers}
-     style={{height:76,backgroundColor:'#E4EDE8',borderRadius:12,overflow:'hidden',
+     style={{height:61,backgroundColor:'#E4EDE8',borderRadius:12,overflow:'hidden',
        flexDirection:'row',alignItems:'center',justifyContent:'space-around',paddingHorizontal:3}}>
      {HEIGHTS.map((h,i)=><View key={i} pointerEvents="none" style={{width:3,height:h,
        backgroundColor:i/HEIGHTS.length*100>=left&&i/HEIGHTS.length*100<=right?'#155F47':'#9CB7A9',borderRadius:3}}/>)}
@@ -86,7 +96,7 @@ export default function BuklodMusicClipTimeline({start,length,total,fixedLength,
        <View style={{width:5,height:34,borderRadius:4,backgroundColor:'#155F47',marginRight:-2}}/>
      </View>
    </View>
-   <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:7,gap:7}}>
+   <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:4,gap:7}}>
      <Pressable onPress={()=>nudge(-5)} accessibilityRole="button"
        accessibilityLabel="Move music selection 5 seconds earlier"
        style={{minWidth:42,minHeight:34,paddingHorizontal:8,borderRadius:10,
@@ -95,7 +105,7 @@ export default function BuklodMusicClipTimeline({start,length,total,fixedLength,
      </Pressable>
      <View style={{flex:1,alignItems:'center'}}>
        <Text style={{color:'#175E45',fontSize:12,fontWeight:'900'}}>
-         {Math.round(start)}s – {Math.round(start+length)}s
+         {Math.round(shownStart)}s – {Math.round(shownStart+length)}s
        </Text>
        <Text style={{color:'#567567',fontSize:10}}>Drag bar • {Math.round(safeTotal)}s track</Text>
      </View>

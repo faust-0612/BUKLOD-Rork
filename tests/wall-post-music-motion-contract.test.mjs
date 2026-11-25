@@ -95,6 +95,7 @@ test('Native audio autostarts only on a settled visible card; web remains opt-in
  assert.match(wall,/wallAudioSettledTick/);
  assert.match(wall,/setTimeout\(\(\)=>\{/);
  assert.match(wall,/visibleCreativeIdsRef\.current\.includes/);
- assert.match(wall,/communityComposerOpen\|\|visibleVideoPostId/);
+ assert.match(wall,/communityComposerOpen\|\|maritesViewerOpen\|\|videoViewerOpen/);
+ assert.match(wall,/!visibleVideoPostId\|\|row\.id===visibleVideoPostId/);
  assert.match(wall,/wallScreenFocused/);
 });

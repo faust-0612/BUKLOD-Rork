@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 type Props = {
   uri: string;
+  audioVolume?: number;
   height?: number;
   autoPlay?: boolean;
   expectedDurationSeconds?: number;
@@ -36,6 +37,7 @@ export function enableCommunityVideoSound() {}
 export function CommunityVideo({
   uri,
   height = 380,
+  audioVolume = 1,
   autoPlay = false,
   expectedDurationSeconds,
   fullscreen = false,
@@ -48,6 +50,7 @@ export function CommunityVideo({
   onPosterGenerated,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  useEffect(()=>{if(videoRef.current)videoRef.current.volume=Math.max(0,Math.min(1,Number(audioVolume)));},[audioVolume,uri,active]);
   const [ready, setReady] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   useEffect(() => {
@@ -119,6 +122,7 @@ export function CommunityVideo({
       autoPlay: autoPlay && active,
       onLoadedData: () => {
         setReady(true);
+        if(videoRef.current)videoRef.current.volume=Math.max(0,Math.min(1,Number(audioVolume)));
         const video = videoRef.current;
         if (posterUri || posterGeneratedRef.current || !onPosterGenerated || !video ||
             !(video.videoWidth > 0 && video.videoHeight > 0)) return;
