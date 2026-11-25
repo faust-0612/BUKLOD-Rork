@@ -25,6 +25,8 @@ const files = execFileSync('unzip', ['-Z1', dest], { encoding: 'utf8', timeout: 
   .trim().split(/\r?\n/);
 for (const entry of [
   'project.godot', 'scenes/Arena.tscn', 'scenes/WorldPreview.tscn',
+  'scenes/LivingKingdom.tscn', 'scripts/living_kingdom.gd', 'scripts/kingdom_mission_state.gd', 'data/kingdom_realms.json', 'tests/living_kingdom_smoke.gd',
+  'data/kingdom_original_media.json', 'kingdom-original/heroes/phan.glb', 'kingdom-original/audio/complete.wav', 'kingdom-original/ambience/phan.wav', 'shaders/kingdom_original_water.gdshader', 'scripts/kingdom_cinematic_fx.gd', 'scripts/kingdom_field_challenge.gd', 'scripts/kingdom_adventure_progression.gd', 'scripts/kingdom_interactive_stage.gd',
   'scripts/world_explore_controller.gd', 'scripts/arena_root.gd',
   'world-art/kingdom.webp', 'world-art/house.webp', 'splash/buklod-green-b.png',
   'world-audio/kingdom_ambience.wav', 'world-audio/house_ambience.wav'
@@ -32,6 +34,9 @@ for (const entry of [
 assert.equal(files.filter(x => /^art\/(fullbody|sprite|scene)\/.*\.png$/.test(x)).length, 68);
 assert.equal(files.filter(x => /^audio\/sfx\/.*\.wav$/.test(x)).length, 70);
 assert.equal(files.filter(x => /^kingdom-items\/(badge|bond|book|chest|crystal|light|relic)-[1-6]\.webp$/.test(x)).length, 42);
+assert.equal(files.filter(x=>/^kingdom-original\/heroes\/[a-z]+\.glb$/.test(x)).length,13);
+assert.equal(files.filter(x=>/^kingdom-original\/ambience\/[a-z]+\.wav$/.test(x)).length,13);
+assert.equal(files.filter(x=>/^kingdom-original\/audio\/[a-z]+\.wav$/.test(x)).length,7);
 if(process.env.BUKLOD_GENESIS_PREMIUM_3D === 'true') {
   assert.equal(files.filter(x=>/^3d\/kenney\/[a-z0-9_]+\.glb$/.test(x)).length,20);
   assert.equal(files.filter(x=>/^3d\/kaykit\/rig_[a-z0-9_]+\.glb$/.test(x)).length,2);

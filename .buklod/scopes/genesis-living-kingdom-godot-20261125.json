@@ -1,0 +1,106 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",
+  "objective": "Build first playable Living Kingdom Godot DEV vertical slice with 13 realm identities and 39 canonical game-linked local adventure specifications, without retiring original games or reopening Arena/estate. Add 13 distinct procedural realm art directions, bounded props, guide dialogue, dynamic lighting and realm-specific mission layouts. Replace existing sprite guides and shared explorer rig with 13 original generated articulated GLBs, new animation tracks and original synthesized audio. Replace imported Kingdom environment props with original procedural geometry and surface shader, and wire interactive animation and sound. Upgrade character mesh topology to actual glTF skinned skeletons, material-batched surfaces, blended joint weights, facial and hand detail, denser authored motion. Add 13 original realm audio soundscapes and acceleration/deceleration matched to native animation. Embed original procedural PBR texture maps, fit bind-pose ground alignment, sculpt irregular terrain, instanced foliage, masonry windows and flowing water effects. Add tangent-correct original PBR meshes, 44.1 kHz audio, continuous loop crossfades and fail-closed binary validation. Refine toy-like silhouettes with continuous sculpted sections, tailored costumes, facial anatomy, tapered limbs and session-local explorer selection. Add 13 distinct landmark architectures, gradient sky and cinematic event FX, separate cached footsteps and crossfaded realm ambience. Tailor all thirteen costumes, facial contours and role motion amplitudes; enforce original costume uniqueness in media validation. Reject incomplete catalogs or missing skeletons, guides, and landmarks before enabling native adventures. Add six weighted secondary joints per hero for blinks, mouth movement, hair and coat follow-through; make NPCs turn toward the explorer and respond to mission context. Author 39 canonical mission-specific field challenges across six actual interaction rule families, with progress credited only after a valid local solution and physical arrival. Vary encounter tile layouts, conceal pair values, validate challenge input, prevent out-of-order marker access and exercise all 104 field objectives in headless smoke. Replace nine generic objectives with native match-three swap/clear puzzles, adjacent equal-tier merges, timed planting/watering/harvest and beat-window rhythm interactions. Add exhaustive advanced board solvability gates, three board orientations, explicit negative runtime checks and original pitched rhythm tones. Add per-game per-difficulty endless session levels, quick play, scalable encounter generation and immediate explicitly local practice score; document secure real per-round BP settlement without backend deployment. Replace the Sudoku trivia substitute with actual unique-solution 4x4/6x6 gameplay, editable clue-safe cells, four difficulty banks and direct Quick Game entry; no fabricated traversal proof. Preserve the vetted full chess game and its real AI, add selectable single-match or classic three-match flow with one local result per quick match, exercise actual Sudoku/Quick Game controls and shuffle guaranteed resource solutions. Replace five more simplified field games with actual word-search boards, code deduction with exact/misplaced feedback and reversible legal domino chaining. Preserve session-only score and original full game routes. Add original instanced ground blades, stones and canopy leaves, differentiated pavement shader and state-specific tile styling; exercise 80 generated genre variants in headless tests with negative code and domino scenarios. Increase original embedded character textures from 96 to 320 square with deterministic lossless compression, preserving 4 MB per-model and 64 MiB aggregate caps. Render current native field rules on an original interactive 3D board in a 1600x800 isolated viewport with animated scenario props, actual projected mesh picking, state-reactive pieces and optional accessible text controls. Author 26 distinct narrative story beats across thirteen realms, actual character action animation and skippable real-time camera shots, plus crop-growth and route-token animations bound to field state. Upgrade the real-time 3D field stage to 1920x960 with original chamfered geometry, metal trim and three-point lighting; retain accessible text controls and existing rule engine.",
+  "baseRef": "c9bc8a6c01a3c8465240b3984a76b76688539f77",
+  "productionBaselineEvidence": "Kingdom restoration source c9bc8a6c is DEV only; last verified staging runtime 2.0.6 group cc65a12a-3e1b-45fa-aa6a-1e2ed27f0f31. No production change authorized.",
+  "chosenApproach": "Generate original indexed 3D character meshes and five articulated animation clips per design, integrate direct GLB loading and seven original layered PCM cues, retain old games as fallback; gate native release.",
+  "selectionRationale": "Highest practical gain from existing Godot bridge while device startup remains unverified. Preserve original 39 games and Character authority.",
+  "alternativeApproaches": [
+    "Replace existing games wholesale: rejected before gameplay parity.",
+    "New native APK or backend reward settlement: deferred until compatibility and security verification."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "app-runtime",
+    "kingdom-character",
+    "godot-content"
+  ],
+  "preserveBehaviors": [
+    "Original Kingdom routes, ads, character progression and collection remain; offline adventures never modify BP or reward ledgers.",
+    "Arena, Entry Map and estate routes remain retired in Genesis MAIN. Native package unchanged."
+  ],
+  "acceptanceChecks": [
+    "Run Node catalogue/source tests and Godot 4.7.2 headless scene smoke against the exact generated pack.",
+    "Physical Android verification is explicitly waived by owner for final staging OTA only. Keep native compatibility, exact staging identity, source/CI, ad/navigation, signing and pack integrity gates. No production release.",
+    "Require 13 original modeled characters with skeletons, 13 original environments and landmarks, 39 unique canonical mission IDs and fail-closed native content readiness.",
+    "Strict binary media quality gate validates skin weights, topology, normals/tangents, animation loops, PNG CRC, audio peak/loop boundaries and bounded pack size.",
+    "Verify actual runtime scene import, movement and mission interactions in automated Godot smoke; keep original Kingdom games available.",
+    "Verify reusable event FX, distinct original costume geometry, audio lifecycle, and isolation of session practice from account progression.",
+    "Final staging OTA only after implementation scope is complete; do not represent waived device tests as passed.",
+    "Validate 22 joints per hero, 49 motion samples per clip, real blink excursion and closed animation loops; exercise NPC interaction in Godot smoke.",
+    "All 39 field challenges must be solvable, reject invalid moves, and preserve the original full games as fallback; field interactions are not full native legacy-game ports.",
+    "Automated Godot smoke must solve 104 field objective variants across 39 missions and reject invalid actions. No release without CI.",
+    "Exercise all advanced variants in Godot smoke; invalid swaps must revert, merges conserve value, crops cannot be harvested early, rhythm requires timing and correct note.",
+    "Run dedicated advanced-field Node suite plus Godot negative tests. The current scope delivers compact field games, not full-sized native versions of all legacy games.",
+    "Validate difficulty-specific constraints, 150 consecutive session levels, duplicate score prevention, quick-play completion, no account/reward writes; implement server-authoritative real BP before promising credit.",
+    "48 unique-solution Sudoku templates validated; test direct quick completion, cancellation, duplicate settlement rejection, fixed clues, row/column/region rules, and touch layout. Existing native bridge does not carry authenticated progress or receipts: real BP and persistent account progression remain release blockers.",
+    "Chess quick match should record one completion using existing account-scoped local history; preserve all legal chess rules and original three-match mode. No real BP awarded by local chess result. Verify chess rule suite and Quick Game UI/regression tests before release.",
+    "Validate 144 word-search templates, variable code lengths/attempt limits and solvable domino paths across difficulty tiers. Native runtime must exercise actual word cells, guess inputs and domino moves; no automatic answer completion.",
+    "Ground detail uses bounded 288 instances per realm and <=700 canopy instances; validate actual visual rendering and touch readability in automated scene QA, not geometry counts alone.",
+    "Validate all high-resolution PNG dimensions, CRC, lossless independent decompression and unchanged GLB/pack limits.",
+    "Verify 3D stage construction, bounded meshes, camera-projected tile picks, hidden viewport shutdown and touch deduplication. Actual GPU appearance and full cinematic genre fidelity remain gates; do not equate stage geometry with finished premium art.",
+    "Exercise story briefing, skip on movement and victory camera states; verify actual GPU scenes, touch readability, all genres and final account rewards before declaring complete.",
+    "Full-HD-width field render, 4x MSAA, original bevel meshes and three-point lighting require actual Godot render and Android memory/interaction verification; no native renderer changes or paid assets."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",
+    ".github/workflows/genesis-living-kingdom-godot-dev-qa-20261125.yml",
+    "docs/kingdom-per-round-bp-settlement-20261125.md",
+    "godot/empire-arena/scenes/LivingKingdom.tscn",
+    "godot/empire-arena/scripts/kingdom_adventure_progression.gd",
+    "godot/empire-arena/scripts/kingdom_cinematic_fx.gd",
+    "godot/empire-arena/scripts/kingdom_field_challenge.gd",
+    "godot/empire-arena/scripts/kingdom_interactive_stage.gd",
+    "godot/empire-arena/scripts/kingdom_mission_state.gd",
+    "godot/empire-arena/scripts/kingdom_original_environment.gd",
+    "godot/empire-arena/scripts/living_kingdom.gd",
+    "godot/empire-arena/scripts/world_preview.gd",
+    "godot/empire-arena/shaders/kingdom_original_ground.gdshader",
+    "godot/empire-arena/shaders/kingdom_original_water.gdshader",
+    "godot/empire-arena/tests/living_kingdom_smoke.gd",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/genesis-prepare-godot-ota-pack.mjs",
+    "scripts/kingdom-field-challenges.mjs",
+    "scripts/kingdom-living-realms-catalog.mjs",
+    "scripts/kingdom-original-media-quality.mjs",
+    "scripts/kingdom-original-media.mjs",
+    "scripts/kingdom-realm-visual-profiles.mjs",
+    "src/app/games/ace-rescue-grid.tsx",
+    "src/features/games/ace/ChessMasterGameV1.tsx",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "tests/kingdom-chess-quick-round.test.mjs",
+    "tests/kingdom-native-advanced-field.test.mjs",
+    "tests/kingdom-native-progression.test.mjs",
+    "tests/living-kingdom-godot-release-navigation.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/living-kingdom-godot-release-navigation.test.mjs",
+    "tests/kingdom-chess-quick-round.test.mjs",
+    "tests/kingdom-native-progression.test.mjs",
+    "tests/kingdom-native-advanced-field.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add explicitly gated optional native launcher and preserve the original Kingdom experience.",
+      "preservedBehaviors": [
+        "No changes to existing navigation or rewards."
+      ],
+      "tests": [
+        "tests/living-kingdom-godot-release-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add required Godot content entries to deterministic pack validation without publication changes.",
+      "preservedBehaviors": [
+        "Native identity, signed bridge and existing content gates remain."
+      ],
+      "tests": [
+        "tests/living-kingdom-godot-release-navigation.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_SCOPE_INCOMPLETE_CI_REQUIRED_PHYSICAL_DEVICE_WAIVER_FOR_FINAL_STAGING_ONLY"
+}

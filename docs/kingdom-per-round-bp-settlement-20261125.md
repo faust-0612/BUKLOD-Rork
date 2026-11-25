@@ -1,0 +1,14 @@
+# Kingdom unlimited progression and reward settlement
+Status: proposed real BP policy; **not deployed**. Native DEV practice is session-local and visibly labeled non-BP.
+## Owner direction
+Quick play: one meaningful successful round, immediate feedback and next level. Story expeditions remain optional. Four difficulty tiers, selected before the round, with different challenge constraints where meaningful. Endless per-game/per-tier progression, no arbitrary 39-game terminal state. Account-scoped persistent progression must be provided by an authenticated bridge or existing RN account storage; no unscoped Godot user:// record.
+## Proposed BP rule (server authority only)
++1 BP on each eligible verified successful round; +1 additional BP for a server-issued Hard/Expert round that meets its actual difficulty criteria. No points for loss, cancellation, replayed proof, tutorial, or offline unverified practice. Display earned/unclaimed amount immediately from the server receipt; existing manual Points claim remains. No QMP or cash conversion. Do not pay an extra legacy mastery credit for the same qualifying event. A server-side rolling quota (proposed 12 BP/day for Kingdom games, owner may adjust after observation), minimum plausible activity duration and server-issued per-user unique round IDs prevent farming. An exhausted quota never blocks gameplay, levels or practice score.
+## Required technical implementation before enabling actual BP
+- Authenticated start RPC issues opaque round ID, validated game/tier, seed and expiry; server keeps canonical solution/state.
+- Submit bounded input transcript, not a client win flag or score. Server validates deterministic state transition and actual success using the same versioned rules; timing-sensitive games require server-observed timing or remain unverified.
+- Atomic ledger credit with unique round source key, per-user serialization, rule-active check, existing admin exclusion and server-side quota; return explicit receipt, no duplicated points on retry. Preserve claim and Circle Rank/Character System authority.
+- Secure account-bound native bridge or existing RN authoritative flow must transport only minimal proof and server receipt. Never store auth tokens in the pack or trust local progression.
+- Existing mastery v1 awards +2 once per game for 3/3 server-scored answers (migration 20261108030000). No change to live backend in staging-only work; reconcile prior credits before enabling replacement. Validate all 39 game-specific validators before enabling their corresponding reward.
+## Release gates
+Server transaction/replay/ownership/quota tests, existing points and ads gates, native compatibility, staging isolation, no production migration. Physical-device verification waiver does not authorize bypassing these gates.
