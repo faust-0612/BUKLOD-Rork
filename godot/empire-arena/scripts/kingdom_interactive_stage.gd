@@ -1,7 +1,7 @@
 ## Real-time original 3D field table. Existing FieldChallenge remains the only rules engine.
 extends TextureRect
 signal tile_pressed(index: int, is_cell: bool)
-const RENDER_SIZE := Vector2i(1600,800)
+const RENDER_SIZE := Vector2i(1920,960)
 const MAX_TILES := 56
 var render_view: SubViewport
 var stage_root: Node3D
@@ -59,6 +59,11 @@ func _ready() -> void:
     fill.light_color = Color("#bcd8ff")
     fill.light_energy = 0.62
     stage_root.add_child(fill)
+    var rim := DirectionalLight3D.new()
+    rim.rotation_degrees = Vector3(-25,65,0)
+    rim.light_color = Color("#ffd9a1")
+    rim.light_energy = 0.42
+    stage_root.add_child(rim)
     view_camera = Camera3D.new()
     view_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
     view_camera.size = 8.2
@@ -66,9 +71,13 @@ func _ready() -> void:
     stage_root.add_child(view_camera)
     view_camera.look_at(Vector3.ZERO,Vector3.UP)
     view_camera.make_current()
-    _mesh(stage_root,"box",Vector3(0,-0.36,0),Vector3(14,0.66,8.4),Color("#253b42"),0.15)
-    _mesh(stage_root,"box",Vector3(0,-0.045,0),Vector3(13.78,0.12,8.18),Color("#b28b4c"),0.55)
-    _mesh(stage_root,"box",Vector3(0,0.025,0),Vector3(13.5,0.09,7.9),Color("#344d43"))
+    _mesh(stage_root,"bevel",Vector3(0,-0.36,0),Vector3(14,0.66,8.4),Color("#253b42"),0.15)
+    _mesh(stage_root,"bevel",Vector3(0,-0.045,0),Vector3(13.78,0.12,8.18),Color("#b28b4c"),0.55)
+    _mesh(stage_root,"bevel",Vector3(0,0.025,0),Vector3(13.5,0.09,7.9),Color("#344d43"))
+    for side in [-1,1]:
+        for end in [-1,1]:
+            _mesh(stage_root,"coin",Vector3(side*6.48,0.11,end*3.72),Vector3(0.34,0.13,0.34),Color("#d9b86e"),0.78)
+            _mesh(stage_root,"gem",Vector3(side*6.48,0.23,end*3.72),Vector3(0.19,0.21,0.19),Color("#8acdb5"),0.38)
     board_root = Node3D.new()
     stage_root.add_child(board_root)
     scenario = Node3D.new()
@@ -92,6 +101,28 @@ func _shape(id: String) -> Mesh:
         return meshes[id]
     var shape: Mesh
     match id:
+        "bevel":
+            var surface := SurfaceTool.new()
+            surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+            var rings := [[-0.5,0.88],[-0.36,1.0],[0.36,1.0],[0.5,0.88]]
+            var outline := [Vector2(-0.42,-0.5),Vector2(0.42,-0.5),Vector2(0.5,-0.42),Vector2(0.5,0.42),Vector2(0.42,0.5),Vector2(-0.42,0.5),Vector2(-0.5,0.42),Vector2(-0.5,-0.42)]
+            for ring in range(3):
+                for i in range(8):
+                    var j := (i+1)%8
+                    var a := Vector3(outline[i].x*rings[ring][1],rings[ring][0],outline[i].y*rings[ring][1])
+                    var b := Vector3(outline[j].x*rings[ring][1],rings[ring][0],outline[j].y*rings[ring][1])
+                    var c := Vector3(outline[i].x*rings[ring+1][1],rings[ring+1][0],outline[i].y*rings[ring+1][1])
+                    var d := Vector3(outline[j].x*rings[ring+1][1],rings[ring+1][0],outline[j].y*rings[ring+1][1])
+                    for v in [a,b,c,b,d,c]:
+                        surface.add_vertex(v)
+            for i in range(8):
+                var j := (i+1)%8
+                for v in [Vector3(0,0.5,0),Vector3(outline[i].x*0.88,0.5,outline[i].y*0.88),Vector3(outline[j].x*0.88,0.5,outline[j].y*0.88)]:
+                    surface.add_vertex(v)
+                for v in [Vector3(0,-0.5,0),Vector3(outline[j].x*0.88,-0.5,outline[j].y*0.88),Vector3(outline[i].x*0.88,-0.5,outline[i].y*0.88)]:
+                    surface.add_vertex(v)
+            surface.generate_normals()
+            shape = surface.commit()
         "gem","coin":
             var cylinder := CylinderMesh.new()
             cylinder.top_radius = 0.28 if id=="gem" else 0.5
@@ -160,8 +191,8 @@ func _new_tile(index: int, cell: bool, at: Vector3, half: Vector2) -> void:
     var root := Node3D.new()
     root.position = at
     board_root.add_child(root)
-    _mesh(root,"box",Vector3(0,0.08,0),Vector3(half.x*2,0.16,half.y*2),Color("#9d8050"),0.58)
-    var cap := _mesh(root,"box",Vector3(0,0.205,0),Vector3(half.x*1.88,0.17,half.y*1.88),Color("#46675c"))
+    _mesh(root,"bevel",Vector3(0,0.08,0),Vector3(half.x*2,0.16,half.y*2),Color("#9d8050"),0.58)
+    var cap := _mesh(root,"bevel",Vector3(0,0.205,0),Vector3(half.x*1.88,0.17,half.y*1.88),Color("#46675c"))
     var actor := Node3D.new()
     actor.position.y = 0.34
     root.add_child(actor)
