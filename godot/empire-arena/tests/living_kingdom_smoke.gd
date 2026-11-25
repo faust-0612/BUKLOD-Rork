@@ -35,6 +35,23 @@ func _run() -> void:
     if world.get_dev_snapshot().get("realms") != 13 or world.get_dev_snapshot().get("server_settlement") != false:
         quit(7)
         return
+    var biomes := {}
+    for i in range(13):
+        world._select_realm(i)
+        var snap: Dictionary = world.get_dev_snapshot()
+        if snap.get("realm_props", 0) < 8 or not snap.get("guide_ready", false):
+            quit(10)
+            return
+        biomes[snap.get("biome")] = true
+    if biomes.size() != 13 or world.move_to(Vector3(0, 0, 23)):
+        quit(11)
+        return
+    world._select_realm(0)
+    world._process(0.04)
+    world._talk_to_guide()
+    if not world.guide_talking or world.guide_notice.text.is_empty():
+        quit(12)
+        return
     world._start_or_cancel()
     if not world.move_to(Vector3(-5, 0, -5)) or world.quest.visited.size() != 0:
         quit(8)

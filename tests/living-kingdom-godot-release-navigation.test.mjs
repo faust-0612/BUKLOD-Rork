@@ -23,3 +23,14 @@ test('Native Kingdom uses isolated scene, physical arrival and no reward writes'
  assert.doesNotMatch(portal,/\/games\/empire-arena|\/buklod-map/);
  assert.ok(portal.includes('kingdom_map_footer'));
 });
+
+test('13 realm visual profiles use distinct authored environments and guide dialogue',()=>{
+ const c=buildLivingKingdomCatalog(JSON.parse(read('src/features/games/kingdom/platform/game-catalog.json')));
+ const profiles=c.realms.map(r=>r.profile);
+ for(const key of ['biome','ground','sky','accent','dialogue','layout'])assert.equal(new Set(profiles.map(x=>x[key])).size,13,key);
+ const approved=new Set(['kingdom_tree','house_path','kingdom_chest','house_fence','kingdom_rocks','arena_crystal','arena_tower','arena_flag','house_building','arena_gate','kingdom_wall','house_tree']);
+ assert.ok(profiles.every(p=>p.props.length===4&&p.props.every(x=>approved.has(x))&&p.dialogue.length>40));
+ const s=read('godot/empire-arena/scripts/living_kingdom.gd');
+ for(const token of ['_apply_realm_visuals','_guide_texture','_talk_to_guide','guide_near','guide_texture_cache.size() >= 2','mission_targets[i] = TARGETS[i].rotated','absf(point.z) > 17.5','_apply_daylight','realm_visuals.get_child_count() >= 20'])assert.ok(s.includes(token),token);
+ assert.doesNotMatch(s,/HTTPRequest|FileAccess\.WRITE|user:\/\/|grant_bp|supabase/i);
+});

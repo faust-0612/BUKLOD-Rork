@@ -18,6 +18,20 @@ var return_marker: Node3D
 var world_sun: DirectionalLight3D
 var night := false
 var pending_target := -1
+var realm_visuals: Node3D
+var guide: Sprite3D
+var guide_texture_cache: Dictionary = {}
+var ground_material: StandardMaterial3D
+var realm_environment: Environment
+var guide_notice: Label
+var talk_button: Button
+var mission_targets: Array[Vector3] = []
+var guide_label: Label3D
+var guide_near := false
+var guide_talking := false
+var day_phase := 0.22
+var sky_auto := true
+var realm_profile: Dictionary = {}
 
 func _get_world() -> String:
     return "kingdom"
@@ -29,25 +43,119 @@ func _ready() -> void:
         realms = parsed.get("realms", [])
     super._ready()
     _refresh_missions()
+    _apply_realm_visuals()
     _update_quest_status()
     print("BUKLOD_LIVING_KINGDOM_READY: realms=", realms.size())
 
+func _setup_world() -> void:
+    var floor := MeshInstance3D.new()
+    var plane := PlaneMesh.new()
+    plane.size = Vector2(55, 38)
+    floor.mesh = plane
+    ground_material = StandardMaterial3D.new()
+    ground_material.roughness = 0.92
+    floor.material_override = ground_material
+    floor.position.y = -0.04
+    add_child(floor)
+
 func _build_props() -> void:
-    # Perimeter props leave mission corridors unobstructed; real navmesh is a later gate.
-    _place("arena_gate", Vector3(0, 0, -15), 2.2)
-    for x in [-15.0, 15.0]:
-        for z in [-11.0, 11.0]:
-            _place("arena_tower", Vector3(x, 0, z), 2.0)
-        for z in [-6.0, 0.0, 6.0]:
-            _place("kingdom_tree", Vector3(x, 0, z), 2.2)
-    for x in [-9.0, 0.0, 9.0]:
-        _place("kingdom_wall", Vector3(x, 0, -16), 1.8)
     for i in range(TARGETS.size()):
         var marker := _marker(TARGETS[i], Color("#f7d68b"))
         target_nodes.append(marker)
         marker.visible = false
+        mission_targets.append(TARGETS[i])
     return_marker = _marker(START, Color("#77f1c5"))
     return_marker.visible = false
+    guide = Sprite3D.new()
+    guide.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    guide.hframes = 4
+    guide.vframes = 2
+    guide.position = Vector3(0, 1.65, -1.5)
+    add_child(guide)
+    guide_label = Label3D.new()
+    guide_label.position = Vector3(0, 3.3, -1.5)
+    guide_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    guide_label.font_size = 40
+    guide_label.pixel_size = 0.012
+    guide_label.outline_size = 9
+    add_child(guide_label)
+
+func _guide_texture(id: String) -> Texture2D:
+    if guide_texture_cache.has(id):
+        return guide_texture_cache[id]
+    var bytes := FileAccess.get_file_as_bytes("res://art/fullbody/" + id + "_idle.png")
+    var img := Image.new()
+    if bytes.is_empty() or img.load_png_from_buffer(bytes) != OK or img.get_width() % 4 != 0 or img.get_height() % 2 != 0:
+        return null
+    var texture := ImageTexture.create_from_image(img)
+    # Keep only two decoded atlases; never load all 13 at once.
+    if guide_texture_cache.size() >= 2:
+        guide_texture_cache.clear()
+    guide_texture_cache[id] = texture
+    return texture
+
+func _realm_prop(id: String, at: Vector3, size: float, angle: float) -> void:
+    if realm_visuals.get_child_count() >= 20:
+        return
+    var template: Node3D = _model(id)
+    if template == null:
+        return
+    var prop: Node3D = template.duplicate()
+    prop.position = at
+    prop.scale = Vector3.ONE * size
+    prop.rotation.y = angle
+    realm_visuals.add_child(prop)
+
+func _apply_realm_visuals() -> void:
+    if realm_index < 0 or realm_index >= realms.size():
+        return
+    var realm: Dictionary = realms[realm_index]
+    realm_profile = realm.get("profile", {})
+    if realm_visuals != null:
+        remove_child(realm_visuals)
+        realm_visuals.queue_free()
+    realm_visuals = Node3D.new()
+    add_child(realm_visuals)
+    ground_material.albedo_color = Color(str(realm_profile.get("ground", "#6b8b45")))
+    var accent := Color(str(realm_profile.get("accent", "#ffe1a0")))
+    var props: Array = realm_profile.get("props", [])
+    var layout := int(realm_profile.get("layout", 0))
+    # Real imported props and varied perimeter arrangements. Keep open mission corridors.
+    if props.size() == 4:
+        for i in range(12):
+            var side := -1.0 if i < 6 else 1.0
+            var z := -13.0 + float(i % 6) * 5.2
+            var x := side * (13.0 + float((i + layout) % 3))
+            _realm_prop(str(props[(i + layout) % 4]), Vector3(x, 0, z), 1.5 + float((i + layout) % 3) * 0.3, float(i + layout) * 0.54)
+        for i in range(3):
+            _realm_prop(str(props[i]), Vector3(-8.0 + i * 8.0, 0, -15.0), 1.8, float(layout) * 0.3)
+    # Different layouts, all within visible traversable ground. Phan retains original coordinates.
+    var angle := 0.0 if str(realm.get("id")) == "phan" else float(layout) * 0.48
+    for i in range(TARGETS.size()):
+        mission_targets[i] = TARGETS[i].rotated(Vector3.UP, angle)
+        target_nodes[i].position = mission_targets[i] + Vector3(0, 0.12, 0)
+        var mat: StandardMaterial3D = target_nodes[i].material_override
+        mat.albedo_color = accent
+        mat.emission = accent
+    guide.texture = _guide_texture(str(realm.get("id", "")))
+    if guide.texture != null:
+        guide.pixel_size = 2.5 / float(guide.texture.get_height() / 2)
+    guide.visible = guide.texture != null
+    guide_label.text = str(realm.get("theme", "")) + " GUIDE"
+    guide_label.modulate = accent
+    guide_talking = false
+    guide_notice.text = str(realm_profile.get("biome", "")) + " • " + str(realm.get("theme", ""))
+    _apply_daylight()
+
+func _apply_daylight() -> void:
+    if world_sun == null or realm_environment == null:
+        return
+    var sun_amount := 0.0 if night else (0.65 + 0.35 * sin(day_phase * TAU))
+    world_sun.light_energy = lerpf(0.27, 1.7, sun_amount)
+    world_sun.light_color = Color("#b3cbff").lerp(Color("#fff3d2"), sun_amount)
+    var sky := Color(str(realm_profile.get("sky", "#a6d3f0")))
+    realm_environment.background_color = Color("#172440").lerp(sky, sun_amount)
+    realm_environment.ambient_light_energy = lerpf(0.42, 0.82, sun_amount)
 
 func _marker(at: Vector3, tint: Color) -> Node3D:
     var node := MeshInstance3D.new()
@@ -102,6 +210,15 @@ func _install_controls() -> void:
     quest_status.custom_minimum_size = Vector2(390, 0)
     quest_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     panel.add_child(quest_status)
+    guide_notice = Label.new()
+    guide_notice.custom_minimum_size = Vector2(390, 0)
+    guide_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    panel.add_child(guide_notice)
+    talk_button = Button.new()
+    talk_button.text = "TALK TO GUIDE"
+    talk_button.custom_minimum_size = Vector2(180, 48)
+    talk_button.pressed.connect(_talk_to_guide)
+    panel.add_child(talk_button)
     var back := Button.new()
     back.text = "BACK TO BUKLOD"
     back.position = Vector2(1000, 20)
@@ -111,18 +228,29 @@ func _install_controls() -> void:
     for child in get_children():
         if child is DirectionalLight3D:
             world_sun = child
+        if child is WorldEnvironment:
+            realm_environment = child.environment
 
 func _toggle_sky() -> void:
+    sky_auto = false
     night = not night
-    if world_sun != null:
-        world_sun.light_energy = 0.35 if night else 1.7
-        world_sun.light_color = Color("#b3cbff") if night else Color("#fff3d2")
+    _apply_daylight()
+
+func _talk_to_guide() -> void:
+    if not guide_near:
+        guide_notice.text = "Walk to the guide to talk."
+        return
+    guide_talking = true
+    guide_notice.text = str(realm_profile.get("dialogue", ""))
 
 func _select_realm(index: int) -> void:
     if quest.phase in ["active", "return"]:
         return
+    if index < 0 or index >= realms.size():
+        return
     realm_index = index
     _refresh_missions()
+    _apply_realm_visuals()
 
 func _refresh_missions() -> void:
     mission_picker.clear()
@@ -145,14 +273,16 @@ func _start_or_cancel() -> void:
     _update_quest_status()
 
 func move_to(point: Vector3) -> bool:
+    if not point.is_finite() or absf(point.x) > 24.0 or absf(point.z) > 17.5:
+        return false
     if not super.move_to(point):
         return false
     pending_target = -1
     if quest.phase == "active":
         for i in range(int(quest.mission.get("count", 0))):
-            if not quest.visited.has(i) and point.distance_to(TARGETS[i]) <= 2.2:
+            if not quest.visited.has(i) and point.distance_to(mission_targets[i]) <= 2.2:
                 pending_target = i
-                destination = TARGETS[i]
+                destination = mission_targets[i]
                 break
     elif quest.phase == "return" and point.distance_to(START) <= 2.2:
         pending_target = 3
@@ -173,6 +303,16 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
     super._process(delta)
+    if sky_auto:
+        day_phase = fposmod(day_phase + minf(delta, 0.05) / 240.0, 1.0)
+        _apply_daylight()
+    if guide != null:
+        guide.frame = int(elapsed * 5.0) % 8
+        guide_near = player.position.distance_to(Vector3(0, 0, -1.5)) <= 3.2
+        talk_button.disabled = not guide_near
+        if guide_talking and not guide_near:
+            guide_talking = false
+            guide_notice.text = str(realm_profile.get("biome", ""))
     if pending_target < 0 or player.position.distance_to(destination) > 1.0:
         return
     var index := pending_target
@@ -180,7 +320,7 @@ func _process(delta: float) -> void:
     if index == 3:
         quest.finish(player.position.distance_to(START))
     else:
-        quest.visit(index, player.position.distance_to(TARGETS[index]))
+        quest.visit(index, player.position.distance_to(mission_targets[index]))
     _update_quest_status()
 
 func _update_quest_status() -> void:
@@ -209,4 +349,8 @@ func get_dev_snapshot() -> Dictionary:
     result["realms"] = realms.size()
     result["phase"] = quest.phase
     result["local_completed"] = quest.completed.duplicate()
+    result["biome"] = realm_profile.get("biome", "")
+    result["realm_props"] = realm_visuals.get_child_count() if realm_visuals != null else 0
+    result["guide_ready"] = guide != null and guide.texture != null
+    result["guide_near"] = guide_near
     return result

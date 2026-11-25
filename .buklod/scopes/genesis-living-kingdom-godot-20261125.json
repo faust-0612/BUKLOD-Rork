@@ -1,7 +1,7 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",
-  "objective": "Build first playable Living Kingdom Godot DEV vertical slice with 13 realm identities and 39 canonical game-linked local adventure specifications, without retiring original games or reopening Arena/estate.",
+  "objective": "Build first playable Living Kingdom Godot DEV vertical slice with 13 realm identities and 39 canonical game-linked local adventure specifications, without retiring original games or reopening Arena/estate. Add 13 distinct procedural realm art directions, bounded props, guide dialogue, dynamic lighting and realm-specific mission layouts.",
   "baseRef": "c9bc8a6c01a3c8465240b3984a76b76688539f77",
   "productionBaselineEvidence": "Kingdom restoration source c9bc8a6c is DEV only; last verified staging runtime 2.0.6 group cc65a12a-3e1b-45fa-aa6a-1e2ed27f0f31. No production change authorized.",
   "chosenApproach": "Use existing approved GLB environment and shared explorer rig, deterministic catalogue, separate scene and session-only mission state. Gate native launcher explicitly; no native ABI changes.",
@@ -22,7 +22,8 @@
   ],
   "acceptanceChecks": [
     "Run Node catalogue/source tests and Godot 4.7.2 headless scene smoke against exact generated pack.",
-    "Android startup, rendering, touch, audio and ads verified before enabling DEV launcher in release."
+    "Android startup, rendering, touch, audio and ads verified before enabling DEV launcher in release.",
+    "Verify each realm has imported props, original character guide texture, unique biome and correct movement bounds; no fake entitlement."
   ],
   "allowedPaths": [
     ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",
@@ -35,6 +36,7 @@
     "scripts/build-empire-godot-pack.mjs",
     "scripts/genesis-prepare-godot-ota-pack.mjs",
     "scripts/kingdom-living-realms-catalog.mjs",
+    "scripts/kingdom-realm-visual-profiles.mjs",
     "src/features/season2/genesis/GenesisKingdomPortal.tsx",
     "tests/living-kingdom-godot-release-navigation.test.mjs"
   ],

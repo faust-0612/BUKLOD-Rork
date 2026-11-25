@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { KINGDOM_REALM_PROFILES } from './kingdom-realm-visual-profiles.mjs';
 export const REALM_DESIGN = Object.freeze({
  phan:['First Harvest','Stewardship','grain crates','market ledgers','delivery supplies'],
  quin:['Beyond the Horizon','Discovery','trail markers','ancient clues','expedition samples'],
@@ -18,8 +19,8 @@ export function buildLivingKingdomCatalog(catalog){
  assert.equal(catalog.characters.length,13);
  const realms=catalog.characters.map(c=>{
   const key=c.characterId==='elesur'?'ellusur':c.characterId;
-  const d=REALM_DESIGN[key];assert.ok(d,c.characterId);assert.equal(c.games.length,3);
-  return {id:key,stationId:c.stationId,title:d[0],theme:d[1],missions:c.games.map((g,i)=>({id:g.id,title:g.title,kind:['collect','sequence','delivery'][i],object:d[i+2],count:[3,3,2][i],legacyGenre:g.genre}))};
+  const d=REALM_DESIGN[key],profile=KINGDOM_REALM_PROFILES[key];assert.ok(d&&profile,c.characterId);assert.equal(c.games.length,3);
+  return {id:key,stationId:c.stationId,title:d[0],theme:d[1],profile,missions:c.games.map((g,i)=>({id:g.id,title:g.title,kind:['collect','sequence','delivery'][i],object:d[i+2],count:[3,3,2][i],legacyGenre:g.genre}))};
  });
  assert.equal(new Set(realms.map(x=>x.id)).size,13);
  assert.equal(new Set(realms.flatMap(x=>x.missions.map(m=>m.id))).size,39);
