@@ -993,7 +993,7 @@ export default function KlReaderScreen() {
                         <Text style={{color:'#f1d39b'}}>Open prepared Admin Preview</Text>
                       </Pressable>
                       {previewTarget===episode.id && serverChapter
-                        ? <KlAdminPreview episodeId={serverChapter.id} />
+                        ? <KlAdminPreview episodeId={serverChapter.id} season={1} chapter={episode.episodeNumber} />
                         : previewTarget===episode.id
                           ? <Text style={styles.meta}>Chapter not found on server. Create it in KL Studio first.</Text>
                           : null}
