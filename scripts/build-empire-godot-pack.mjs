@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { HEROES, MODES, COSTS, BUFFS, STARTER_HERO_KITS, ARENA_MAPS, BUILD_COSTS } from '../experiments/empire-arena-v2/arena-v2-engine.mjs';
 import { ARENA_PICKUP_CATALOG } from '../experiments/empire-arena-v2/arena-v2-pickups.mjs';
 import { ARENA_SFX_IDS, arenaSfxEntries } from './arena-library-audio-pack.mjs';
+import { buildLivingKingdomCatalog } from './kingdom-living-realms-catalog.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const project = path.join(root, 'godot/empire-arena');
@@ -68,6 +69,8 @@ assert.ok(catalog.pickups.every(x => !x.transferable && x.temporary));
 assert.ok(output.endsWith('.zip'), 'Godot --main-pack requires a .zip archive');
 const data = Buffer.from(JSON.stringify(catalog), 'utf8');
 const entries = [{ name: 'data/catalog.json', bytes: data }];
+const kingdom = buildLivingKingdomCatalog(JSON.parse(readFileSync(path.join(root,'src/features/games/kingdom/platform/game-catalog.json'),'utf8')));
+entries.push({name:'data/kingdom_realms.json',bytes:Buffer.from(JSON.stringify(kingdom),'utf8')});
 const splashSource = path.join(root,'assets/season2/genesis/genesis-green-b-transparent.png');
 const nativeSplash = readFileSync(splashSource);
 assert.ok(nativeSplash.length > 1024 &&

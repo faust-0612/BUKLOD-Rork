@@ -1,0 +1,76 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",
+  "objective": "Build first playable Living Kingdom Godot DEV vertical slice with 13 realm identities and 39 canonical game-linked local adventure specifications, without retiring original games or reopening Arena/estate.",
+  "baseRef": "c9bc8a6c01a3c8465240b3984a76b76688539f77",
+  "productionBaselineEvidence": "Kingdom restoration source c9bc8a6c is DEV only; last verified staging runtime 2.0.6 group cc65a12a-3e1b-45fa-aa6a-1e2ed27f0f31. No production change authorized.",
+  "chosenApproach": "Use existing approved GLB environment and shared explorer rig, deterministic catalogue, separate scene and session-only mission state. Gate native launcher explicitly; no native ABI changes.",
+  "selectionRationale": "Highest practical gain from existing Godot bridge while device startup remains unverified. Preserve original 39 games and Character authority.",
+  "alternativeApproaches": [
+    "Replace existing games wholesale: rejected before gameplay parity.",
+    "New native APK or backend reward settlement: deferred until compatibility and security verification."
+  ],
+  "riskAreas": [
+    "release-identity",
+    "app-runtime",
+    "kingdom-character",
+    "godot-content"
+  ],
+  "preserveBehaviors": [
+    "Original Kingdom routes, ads, character progression and collection remain; offline adventures never modify BP or reward ledgers.",
+    "Arena, Entry Map and estate routes remain retired in Genesis MAIN. Native package unchanged."
+  ],
+  "acceptanceChecks": [
+    "Run Node catalogue/source tests and Godot 4.7.2 headless scene smoke against exact generated pack.",
+    "Android startup, rendering, touch, audio and ads verified before enabling DEV launcher in release."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/genesis-living-kingdom-godot-20261125.json",
+    "godot/empire-arena/scenes/LivingKingdom.tscn",
+    "godot/empire-arena/scripts/kingdom_mission_state.gd",
+    "godot/empire-arena/scripts/living_kingdom.gd",
+    "godot/empire-arena/scripts/world_preview.gd",
+    "godot/empire-arena/tests/living_kingdom_smoke.gd",
+    "scripts/build-empire-godot-pack.mjs",
+    "scripts/genesis-prepare-godot-ota-pack.mjs",
+    "scripts/kingdom-living-realms-catalog.mjs",
+    "src/features/season2/genesis/GenesisKingdomPortal.tsx",
+    "tests/living-kingdom-godot-release-navigation.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/living-kingdom-godot-release-navigation.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add explicitly gated optional native launcher and preserve the original Kingdom experience.",
+      "preservedBehaviors": [
+        "No changes to existing navigation or rewards."
+      ],
+      "tests": [
+        "tests/living-kingdom-godot-release-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "kingdom-character",
+      "reason": "Implement independent session-only Kingdom adventure catalogue and scene integration.",
+      "preservedBehaviors": [
+        "Character progression and original game routes remain authoritative."
+      ],
+      "tests": [
+        "tests/living-kingdom-godot-release-navigation.test.mjs"
+      ]
+    },
+    {
+      "id": "production-release",
+      "reason": "Add required Godot content entries to deterministic pack validation without publication changes.",
+      "preservedBehaviors": [
+        "Native identity, signed bridge and existing content gates remain."
+      ],
+      "tests": [
+        "tests/living-kingdom-godot-release-navigation.test.mjs"
+      ]
+    }
+  ],
+  "publicationStatus": "DEV_ONLY_NATIVE_RUNTIME_VERIFICATION_REQUIRED"
+}

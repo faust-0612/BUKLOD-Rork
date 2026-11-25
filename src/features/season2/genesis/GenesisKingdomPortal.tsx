@@ -1,6 +1,7 @@
 /** Season 2 non-production Kingdom entry: illustrated character portals, not the legacy cartoon map.
  * Route IDs and earned reward logic stay owned by the existing Kingdom backend. */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { openBundledBuklodWorld } from '../../../../modules/buklod-genesis-godot';
 import { AccessibilityInfo, AppState, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -79,6 +80,18 @@ function RealmCharacter({ character }: { character: Realm['character'] }) {
 
 export default function GenesisKingdomPortal() {
   const { width } = useWindowDimensions();
+  const nativeBusy = useRef(false);
+  const [nativeNotice, setNativeNotice] = useState('');
+  const openLivingKingdom = async () => {
+    if (nativeBusy.current) return;
+    nativeBusy.current = true;
+    setNativeNotice('Opening native Kingdom…');
+    try {
+      const accepted = await openBundledBuklodWorld('kingdom');
+      setNativeNotice(accepted ? 'Native launch requested. Existing Kingdom games remain available.' : 'Native Kingdom unavailable. Use the original stations below.');
+    } catch { setNativeNotice('Native Kingdom unavailable. Use the original stations below.'); }
+    finally { nativeBusy.current = false; }
+  };
   const [selected, setSelected] = useState<Realm>(GENESIS_REALMS[0]);
   const [mapMode,setMapMode]=useState<KingdomMapKind>('core');
   const [visibleSpecialIds,setVisibleSpecialIds]=useState<readonly string[]>([]);
@@ -276,6 +289,13 @@ export default function GenesisKingdomPortal() {
         </Pressable>
       </View>:null}
       <View style={styles.actions}>
+        {process.env.EXPO_PUBLIC_BUKLOD_LIVING_KINGDOM_DEV === 'true' ? <>
+          <Pressable accessibilityRole="button" accessibilityLabel="Open experimental Living Kingdom" onPress={openLivingKingdom} style={styles.action}>
+            <MaterialCommunityIcons name="compass-outline" size={24} color="#FFE3A3"/>
+            <View style={{flex:1}}><Text style={styles.actionTitle}>Living Kingdom · DEV</Text><Text style={styles.actionSub}>3D exploration and local adventures; original games remain available.</Text></View>
+          </Pressable>
+          {nativeNotice ? <Text accessibilityLiveRegion="polite" style={styles.disclaimer}>{nativeNotice}</Text> : null}
+        </> : null}
         <Pressable accessibilityRole="switch" accessibilityLabel="Genesis cinematic ambience"
           accessibilityState={{checked:musicEnabled}} onPress={toggleMusic}
           style={[styles.action,styles.soundAction]}>
