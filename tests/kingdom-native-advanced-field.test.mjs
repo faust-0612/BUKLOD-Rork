@@ -34,3 +34,10 @@ test('Original word searches are solvable on each difficulty and preserve canoni
  let checked=0;for(const [id,tiers] of Object.entries(WORD_SEARCH_BANK)){assert.equal(buildFieldChallenge(id,FIELD_CHALLENGES[id]).type,'wordsearch');assert.deepEqual(tiers.map(x=>x.size),[5,6,7,7]);for(const [tier,bank] of tiers.entries())for(const template of bank.templates){assert.equal(template.words.length,tier+1);assert.ok(verifyWordTemplate(template,bank.size));checked++;}}assert.equal(checked,144);
  const s=read('godot/empire-arena/scripts/kingdom_field_challenge.gd');for(const x of ['func choose_word_cell','func _choose_code','func _choose_domino','code_locked','word_found.has(found)','domino_ends.pop_back()'])assert.ok(s.includes(x),x);
 });
+
+test('Realm visuals use bounded original blade, leaf and rock meshes, with readable state-specific field controls',()=>{
+ const env=read('godot/empire-arena/scripts/kingdom_original_environment.gd'),w=read('godot/empire-arena/scripts/living_kingdom.gd'),sm=read('godot/empire-arena/tests/living_kingdom_smoke.gd');
+ for(const x of ['func _blade_mesh','func _detail_instances','ground_detail_count = 288','canopy_detail_count += 48','SHADOW_CASTING_SETTING_OFF'])assert.ok(env.includes(x),x);
+ for(const x of ['field:disabled:','field:hover:','realm_ground_details'])assert.ok(w.includes(x),x);
+ assert.ok(sm.includes('count!=80'));assert.ok(sm.includes('1 exact · 2 misplaced'));
+});

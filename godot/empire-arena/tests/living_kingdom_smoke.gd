@@ -67,6 +67,9 @@ func _run() -> void:
         if snap.get("realm_props", 0) < 8 or not snap.get("guide_ready", false) or not snap.get("original_avatar", false) or not snap.get("skinned_avatar", false):
             quit(10)
             return
+        if int(snap.get("ground_detail_count",0))!=288 or int(snap.get("canopy_detail_count",0))>700:
+            quit(27)
+            return
         biomes[snap.get("biome")] = true
         landmarks[snap.get("landmark_id")] = true
     if biomes.size() != 13 or landmarks.size() != 13 or landmarks.has("") or world.move_to(Vector3(0, 0, 23)):
@@ -137,7 +140,7 @@ func _run() -> void:
     if world.quest.phase != "idle" or world.progression.practice_score != 1:
         quit(26)
         return
-    if not _progression_checks():
+    if not _new_genre_checks(raw) or not _progression_checks():
         quit(22)
         return
     print("BUKLOD_LIVING_KINGDOM_39_MISSIONS_AND_ARRIVAL_PASS")
@@ -383,3 +386,41 @@ func _domino_solution(data: Dictionary, tail: int, used: Dictionary, answer: Arr
         answer.pop_back()
         used.erase(i)
     return false
+
+func _new_genre_checks(raw: Dictionary) -> bool:
+    var progress = preload("res://scripts/kingdom_adventure_progression.gd").new()
+    var field = Field.new()
+    var count := 0
+    for realm in raw.realms:
+        for mission in realm.missions:
+            if not mission.challenge.type in ["wordsearch","codebreaker","domino"]:
+                continue
+            for tier in range(4):
+                for level in [1,2,50,10000]:
+                    var data: Dictionary = progress.prepare(mission.challenge,level,tier,0)
+                    if not field.begin(data,0) or not _solve_field(field):
+                        return false
+                    count += 1
+    if count!=80:
+        return false
+    if not field.begin({"type":"codebreaker","items":[1,2,3,4,0],"secret":[1,1,2],"attemptLimit":2}):
+        return false
+    for digit in [1,2,1]:
+        field.choose(field.spec.items.find(digit))
+    if field.solved or not field.code_history[0].contains("1 exact · 2 misplaced"):
+        return false
+    for digit in [4,4,4]:
+        field.choose(field.spec.items.find(digit))
+    if not field.code_locked or field.choose(0):
+        return false
+    if not field.begin({"type":"domino","items":[[1,2],[2,3],[3,4],"Undo"],"start":1,"target":4}):
+        return false
+    field.choose(2)
+    if not field.picks.is_empty():
+        return false
+    field.choose(0)
+    field.choose(0)
+    if field.picks.size()!=1:
+        return false
+    field.choose(3)
+    return field.picks.is_empty() and field.domino_ends==[1]

@@ -10,6 +10,8 @@ var waterfall: MeshInstance3D
 var feature_nodes: Array[Node3D] = []
 var landmark_id := ""
 var landmark_motion: Array[Node3D] = []
+var ground_detail_count := 0
+var canopy_detail_count := 0
 func _material(color: Color, rough: float = 0.75, metallic: float = 0.0) -> StandardMaterial3D:
     var mat := StandardMaterial3D.new()
     mat.albedo_color = color
@@ -59,6 +61,81 @@ func _rugged_peak(seed: int, radius: float, height: float) -> ArrayMesh:
     surface.generate_normals()
     return surface.commit()
 
+# Actual blade and leaf geometry rather than textured billboards or spheres.
+func _blade_mesh(is_leaf: bool) -> ArrayMesh:
+    var surface := SurfaceTool.new()
+    surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for i in range(3 if not is_leaf else 1):
+        var angle := float(i)*TAU/3.0
+        var right := Vector3(cos(angle),0,sin(angle))
+        var forward := Vector3(-sin(angle),0,cos(angle))
+        var width := 0.11 if is_leaf else 0.035
+        var h := 0.32 if is_leaf else 0.46+float(i)*0.10
+        var points := [Vector3.ZERO,-right*width+Vector3.UP*h*0.43+forward*0.04,right*width+Vector3.UP*h*0.43+forward*0.04,Vector3.UP*h+forward*0.10]
+        for idx in [0,2,1,1,2,3]:
+            surface.set_color(Color("#c8d7a2") if idx==3 else Color("#8fa773"))
+            surface.add_vertex(points[idx])
+    surface.generate_normals()
+    return surface.commit()
+
+func _detail_instances(shape: Mesh, count: int, mat: Material) -> MultiMeshInstance3D:
+    var multi := MultiMesh.new()
+    multi.transform_format = MultiMesh.TRANSFORM_3D
+    multi.use_colors = true
+    multi.mesh = shape
+    multi.instance_count = count
+    var inst := MultiMeshInstance3D.new()
+    inst.multimesh = multi
+    inst.material_override = mat
+    inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    add_child(inst)
+    return inst
+
+func _ground_detail(layout: int, winter: bool) -> void:
+    # Low, nonblocking decorative vegetation near the traversable area's rim.
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 23171+layout*1931
+    var mat := _material(Color.WHITE,0.88)
+    mat.vertex_color_use_as_albedo = true
+    mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+    var grass := _detail_instances(_blade_mesh(false),240,mat)
+    var stone := _rugged_peak(layout+90,0.25,0.18)
+    var stone_mat := _material(Color.WHITE,0.94)
+    stone_mat.vertex_color_use_as_albedo = true
+    var rocks := _detail_instances(stone,48,stone_mat)
+    for i in range(240):
+        var edge := -1.0 if i%2==0 else 1.0
+        var x := edge*rng.randf_range(11.9,14.3)
+        var z := rng.randf_range(-14.1,14.1)
+        var scale_value := rng.randf_range(0.48,1.4)
+        var basis := Basis(Vector3.UP,rng.randf_range(0,TAU)).scaled(Vector3.ONE*scale_value)
+        grass.multimesh.set_instance_transform(i,Transform3D(basis,Vector3(x,0.01,z)))
+        var tint := Color("#b4d0db") if winter else palette.lightened(rng.randf_range(0.07,0.35))
+        grass.multimesh.set_instance_color(i,tint)
+        if i<48:
+            var rock_basis := Basis(Vector3.UP,rng.randf_range(0,TAU)).scaled(Vector3.ONE*rng.randf_range(0.65,1.5))
+            rocks.multimesh.set_instance_transform(i,Transform3D(rock_basis,Vector3(x+edge*0.3,0.01,z+0.15)))
+            rocks.multimesh.set_instance_color(i,palette.darkened(0.23).lerp(Color("#b8ae99"),rng.randf_range(0.15,0.6)))
+    ground_detail_count = 288
+
+func _canopy_leaves(at: Vector3, size: float, seed_value: int, winter: bool) -> void:
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 6193+seed_value*157
+    var mat := _material(Color.WHITE,0.78)
+    mat.vertex_color_use_as_albedo = true
+    mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+    var inst := _detail_instances(_blade_mesh(true),48,mat)
+    inst.position = at
+    for i in range(48):
+        var angle := float(i)*2.399963
+        var h := rng.randf_range(2.15,4.2)*size
+        var radius := rng.randf_range(0.55,1.4)*size
+        var basis := Basis(Vector3.UP,angle).rotated(Vector3.RIGHT,rng.randf_range(-0.8,0.8)).scaled(Vector3.ONE*rng.randf_range(0.8,1.65)*size)
+        inst.multimesh.set_instance_transform(i,Transform3D(basis,Vector3(cos(angle)*radius,h,sin(angle)*radius)))
+        var tint := Color("#d7e9f0") if winter else palette.lightened(rng.randf_range(0.04,0.32))
+        inst.multimesh.set_instance_color(i,tint)
+    canopy_detail_count += 48
+
 func _leaf_clusters(at: Vector3, size: float, seed: int, winter: bool) -> void:
     var leaves := SphereMesh.new()
     leaves.radius = 0.75
@@ -100,6 +177,7 @@ func _tree(at: Vector3, size: float, seed: int, winter: bool) -> void:
         n.rotation.y = float(seed + layer)*0.51
     if not winter:
         _leaf_clusters(at,size,seed,winter)
+    _canopy_leaves(at,size,seed,winter)
 func _spire(at: Vector3, size: float, tint: Color) -> void:
     var rock := PrismMesh.new()
     rock.size = Vector3(0.9, 2.4, 0.8)
@@ -288,6 +366,7 @@ func build(profile: Dictionary) -> void:
         var rim := _rugged_peak(layout+77,3.0,5.6)
         _mesh(self,rim,Vector3(-5.0,0,-18.6),_material(palette.darkened(0.37)))
     _landmark(layout,accent)
+    _ground_detail(layout,winter)
 func _process(delta: float) -> void:
     clock += minf(delta,0.05)
     if water != null and waterfall_material == null:

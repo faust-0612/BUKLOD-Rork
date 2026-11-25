@@ -58,6 +58,8 @@ var sky_band := -1
 var fill_light: DirectionalLight3D
 var cinematic_fx
 var realm_landmark := ""
+var realm_ground_details := 0
+var realm_canopy_details := 0
 var sfx_cache: Dictionary = {}
 var steps_player: AudioStreamPlayer
 var rhythm_player: AudioStreamPlayer
@@ -397,6 +399,8 @@ func _apply_realm_visuals() -> void:
     realm_visuals.add_child(original_environment)
     original_environment.build(realm_profile)
     realm_landmark = str(original_environment.landmark_id)
+    realm_ground_details = int(original_environment.ground_detail_count)
+    realm_canopy_details = int(original_environment.canopy_detail_count)
     realm_ready = not realm_landmark.is_empty() and original_environment.get_child_count() >= 8
     sky_band = -1
     cinematic_fx.clear()
@@ -695,6 +699,18 @@ func _refresh_field() -> void:
             continue
         var selected: bool = field.picks.has(i) or field.matched.has(i)
         button.text = ("✓ " if selected else "") + field.tile_label(i)
+        var state_key := "selected" if selected or field.selected_tile==i else "normal"
+        if field.spec.type=="farm":
+            state_key = "growing" if field.crop_stage[i]==2 else ("ready" if field.crop_stage[i]>=3 else state_key)
+        elif field.spec.type=="route" and field.spec.items[i]=="Blocked":
+            state_key = "blocked"
+        var palette := {"normal":Color("#304951"),"selected":Color("#72643b"),"growing":Color("#365c70"),"ready":Color("#306a4c"),"blocked":Color("#463c40")}
+        var tint: Color = palette[state_key]
+        button.add_theme_stylebox_override("normal",_tile_style("field:"+state_key,tint,Color("#d7b575") if state_key=="selected" else Color("#67818a")))
+        button.add_theme_stylebox_override("hover",_tile_style("field:hover:"+state_key,tint.lightened(0.16),Color("#d7b575")))
+        button.add_theme_stylebox_override("pressed",_tile_style("field:press:"+state_key,tint.lightened(0.24),Color("#f4d68c")))
+        button.add_theme_stylebox_override("disabled",_tile_style("field:disabled:"+state_key,tint.darkened(0.18),Color("#576970")))
+        button.add_theme_color_override("font_disabled_color",Color("#b8c9c5"))
         button.disabled = field.preview_left > 0.0 or field.reveal_left > 0.0 or field.solved or field.matched.has(i)
         if field.spec.type == "domino" and field.picks.has(i):
             button.disabled = true
@@ -1052,5 +1068,7 @@ func get_dev_snapshot() -> Dictionary:
     result["difficulty"] = progression.difficulty
     result["adventure_ready"] = _adventure_ready()
     result["landmark_id"] = realm_landmark
+    result["ground_detail_count"] = realm_ground_details
+    result["canopy_detail_count"] = realm_canopy_details
     result["fx_count"] = cinematic_fx.count if cinematic_fx != null else 0
     return result
