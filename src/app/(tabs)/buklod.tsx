@@ -175,6 +175,8 @@ import {
   encodeBuklodCommentMediaBody,
   buklodCommentHasSendableContent,
 } from '@/lib/buklodCommentMediaBody';
+import { uploadBuklodCommentVideo } from '@/lib/buklodCommentVideo';
+import { stopBuklodCommentVideos } from '@/lib/buklodCommentVideoPlaybackSignal';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -3946,7 +3948,16 @@ const load=useCallback(async(options?:{
      await uploadCommunityGifFile({path,uri:initialMedia.ref});
      mediaForBody={kind:'gif',ref:path};
     }
-    const body=encodeBuklodCommentMediaBody(mediaForBody,finalBody);
+    if(initialMedia?.kind==='video'){
+      if(!user?.id)throw new Error('Please sign in to post a short video.');
+      if(isLocalMediaUri(initialMedia.ref)){
+       mediaForBody=await uploadBuklodCommentVideo(
+        initialMedia,
+        user.id+'/comment-video-'+Date.now()+'-'+Math.random().toString(36).slice(2),
+       );
+      }
+     }
+     const body=encodeBuklodCommentMediaBody(mediaForBody,finalBody);
     const {error}=await communityRpc('add_buklod_post_comment_v4',{
      p_post_id:postId,
      p_body:body,
@@ -7036,6 +7047,7 @@ const communityFeedRows =
      <ScrollView
       style={{flex:1}}
       keyboardShouldPersistTaps="handled"
+      onScrollBeginDrag={stopBuklodCommentVideos}
       contentContainerStyle={s.communityCommentList}
      >
       {!!commentLoadError&&(

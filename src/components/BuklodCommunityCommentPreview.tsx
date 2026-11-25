@@ -54,7 +54,9 @@ export function BuklodCommunityCommentPreview({
   const encoded = String(preview.body || '').startsWith('[[BUKLOD_COMMENT_MEDIA:v1:');
   const isGif = parsed.media?.kind === 'gif' ||
     String(preview.body || '').startsWith('[[BUKLOD_COMMENT_MEDIA:v1:gif:');
-  const isPhoto = parsed.media?.kind === 'image' || (encoded && !isGif);
+  const isVideo = parsed.media?.kind === 'video' ||
+    String(preview.body || '').startsWith('[[BUKLOD_COMMENT_MEDIA:v1:video:');
+  const isPhoto = parsed.media?.kind === 'image' || (encoded && !isGif && !isVideo);
   const visibleCaption = encoded && !parsed.media ? '' : parsed.caption;
 
   return (
@@ -104,7 +106,12 @@ export function BuklodCommunityCommentPreview({
           )}
         </View>
 
-        {isGif ? (
+        {isVideo ? (
+          <View style={styles.mediaRow}>
+            <MaterialCommunityIcons name="video-outline" size={23} color={isReel ? '#FFFFFF' : accentTextColor} />
+            <Text style={[styles.mediaLabel, isReel ? styles.reelBody : { color: accentTextColor }]}>Short video · Tap to play</Text>
+          </View>
+        ) : isGif ? (
           <View style={styles.mediaRow}>
             {parsed.media?.kind === 'gif' && /^https:\/\//i.test(parsed.media.ref) ? (
               <ExpoImage source={{ uri: parsed.media.ref }} style={styles.gifThumb} contentFit="cover" />

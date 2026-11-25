@@ -1,0 +1,86 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/short-video-comments-20261123.json",
+  "objective": "Private 30s / 25MB videos in Public and scoped Community Wall comments and replies.",
+  "baseRef": "7b224c39624827282c3cbf003060317045b0a73f",
+  "productionBaselineEvidence": "GitHub main source baseline only; no verified live runtime.",
+  "chosenApproach": "Extend versioned comment attachment tag; reuse existing private Supabase upload/signed media, lazy Expo Video.",
+  "preserveBehaviors": [
+    "Existing text/photo/GIF comments, replies, moderation",
+    "Existing scoped RLS, private media and navigation",
+    "AdMob and other Wall video playback"
+  ],
+  "acceptanceChecks": [
+    "Duration/size validated before upload",
+    "Public/scoped upload paths remain private",
+    "Manual playback and signed URL retry",
+    "No new native modules or production OTA",
+    "Scroll pauses every comment video and only one player can run at a time."
+  ],
+  "regressionTests": [
+    "tests/short-video-comment-navigation-scope.test.mjs"
+  ],
+  "allowedPaths": [
+    "src/lib/buklodCommentMediaBody.ts",
+    "src/lib/buklodCommentVideo.ts",
+    "src/components/BuklodCommunityCommentComposer.tsx",
+    "src/components/BuklodCommunityCommentBubble.tsx",
+    "src/components/BuklodCommentVideoAttachment.tsx",
+    "src/components/BuklodCommunityCommentPreview.tsx",
+    "src/app/(tabs)/buklod.tsx",
+    "src/components/BuklodExclusiveScopeCommunity.tsx",
+    "src/lib/__tests__/buklodCommentShortVideo.test.ts",
+    ".buklod/scopes/short-video-comments-20261123.json",
+    "src/lib/buklodCommentVideoPlaybackSignal.ts",
+    "src/lib/buklodCommentVideoValidation.ts",
+    "tests/short-video-comment-navigation-scope.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add short video attachment validation and lazy player using already-bundled native modules",
+      "preservedBehaviors": [
+        "Keep current Expo runtime and no new native dependencies",
+        "Preserve first-paint speed, AdMob and comment media compatibility"
+      ],
+      "tests": [
+        "tests/short-video-comment-navigation-scope.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Enable private short video replies in public Wall composer without changing auth or navigation",
+      "preservedBehaviors": [
+        "Preserve account-bound comment sheet, existing routes and media signing"
+      ],
+      "tests": [
+        "tests/short-video-comment-navigation-scope.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Enable short video comments in scoped communities using existing scoped storage/RLS",
+      "preservedBehaviors": [
+        "Preserve Cluster/Org membership isolation, comment RPC and moderation"
+      ],
+      "tests": [
+        "tests/short-video-comment-navigation-scope.test.mjs"
+      ]
+    }
+  ],
+  "releaseTarget": "DEV review only",
+  "publicationStatus": "SOURCE_ONLY_NO_OTA",
+  "selectionRationale": "The app already has private community-media signed uploads, authenticated comment RPCs, and expo-video included in its native runtime. Extend the versioned comment attachment format and lazy playback to avoid new tables, runtime plugins, media exposure, or costly autoplay while retaining scope RLS and backward compatibility.",
+  "alternativeApproaches": [
+    "New comment_video database table and migration: rejected because it requires schema and RLS rollout and increases release risk; existing comment body media header supports backward-compatible attachments.",
+    "Host public MP4 links or use autoplaying Community Wall video player for every comment: rejected due to privacy exposure, excessive bandwidth and media initialization affecting scroll and AdMob.",
+    "Use inline base64 blob in comment body: rejected because it bypasses private storage, inflates RPC payload and breaks mobile network reliability."
+  ],
+  "riskAreas": [
+    "wall-media",
+    "navigation-scroll",
+    "faith-cluster",
+    "video-playback",
+    "comment-privacy"
+  ]
+}

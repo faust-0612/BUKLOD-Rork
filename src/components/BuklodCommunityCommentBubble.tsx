@@ -28,6 +28,7 @@ import {
 } from '@/components/BuklodReactionAction';
 import BuklodTappablePersonName from '@/components/BuklodTappablePersonName';
 import BuklodMentionText from '@/components/BuklodMentionText';
+import BuklodCommentVideoAttachment from '@/components/BuklodCommentVideoAttachment';
 import {
   visitMemberProfile,
 } from '@/lib/buklodMemberProfile';
@@ -43,6 +44,7 @@ import {
 } from '@/lib/buklodCommentMediaBody';
 import {
   resolveCommunityMediaUrl,
+  resignCommunityMediaUrl,
 } from '@/lib/buklodMediaUrl';
 
 export type BuklodCommunityCommentModel = {
@@ -304,7 +306,8 @@ export function BuklodCommunityCommentBubble({
 
     // Catalog GIFs are HTTPS; phone GIFs need a signed private Storage URL.
     if (/^https?:\/\//i.test(media.ref)) {
-      setMediaUri(media.ref);
+      // Video comments use authenticated private storage only.
+      setMediaUri(media.kind === 'video' ? null : media.ref);
       return;
     }
 
@@ -477,13 +480,26 @@ export function BuklodCommunityCommentBubble({
           </Text>
         )}
 
-        {!!mediaUri && (
+        {(!!mediaUri || parsedBody.media?.kind === 'video') && (
           <View style={styles.media}>
-            <ExpoImage
-              source={{ uri: mediaUri }}
-              style={styles.mediaImage}
-              contentFit="cover"
-            />
+            {parsedBody.media?.kind === 'video' ? (
+              <BuklodCommentVideoAttachment
+                uri={mediaUri || ''}
+                onRetry={async () => {
+                  const path = parsedBody.media?.ref;
+                  if (!path || /^https?:\/\//i.test(path)) return null;
+                  const fresh = await resignCommunityMediaUrl(path);
+                  if (fresh) setMediaUri(fresh);
+                  return fresh;
+                }}
+              />
+            ) : mediaUri ? (
+              <ExpoImage
+                source={{ uri: mediaUri }}
+                style={styles.mediaImage}
+                contentFit="cover"
+              />
+            ) : null}
           </View>
         )}
 
