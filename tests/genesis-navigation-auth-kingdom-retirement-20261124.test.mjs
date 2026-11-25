@@ -1,19 +1,29 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {getBuklodFeatureLinks,findBuklodFeatures} from '../src/lib/buklodNavigationV2.ts';
+import {readFileSync,readdirSync} from 'node:fs';
+import {BUKLOD_FEATURE_LINKS,findBuklodFeatures} from '../src/lib/buklodNavigationV2.ts';
+import {GENESIS_KINGDOM_ROUTES,isGenesisKingdomRoute} from '../src/lib/buklodKingdomRoutePolicy.ts';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-test('Genesis filters game links before matching or restoring saved shortcuts, Season 1 retains the existing route',()=>{
- const genesis=getBuklodFeatureLinks(true),legacy=getBuklodFeatureLinks(false);
- assert.equal(genesis.some(x=>x.route==='/games'),false);
- assert.equal(findBuklodFeatures('laro',5,genesis).some(x=>x.route==='/games'),false);
- assert.equal(findBuklodFeatures('kingdom',5,genesis).some(x=>x.route==='/games'),false);
- assert.equal(findBuklodFeatures('laro',5,legacy)[0]?.route,'/games');
- for(const q of ['chat','basa','kontribusyon','tulong'])assert.equal(findBuklodFeatures(q,5,genesis)[0]?.route,findBuklodFeatures(q,5,legacy)[0]?.route);
- const finder=read('src/components/BuklodFeatureFinder.tsx');assert.ok(finder.includes('VISIBLE_FEATURE_LINKS.map(item => item.id)'));assert.ok(finder.includes('findBuklodFeatures(query, 5, VISIBLE_FEATURE_LINKS)'));assert.ok(finder.includes('if (!PINNABLE_FEATURE_IDS.includes(item.id)) return;'));
+test('Kingdom search and menu return without Arena or retired world doors',()=>{
+ assert.equal(findBuklodFeatures('laro')[0]?.route,'/games');
+ assert.equal(findBuklodFeatures('kingdom')[0]?.route,'/games');
+ assert.ok(BUKLOD_FEATURE_LINKS.every(x=>! /empire-arena|buklod-map|my-world|community-village/.test(x.route)));
+ for(const q of ['chat','basa','kontribusyon','tulong'])assert.ok(findBuklodFeatures(q)[0]?.route);
+ assert.ok(read('src/components/BuklodNavigationSideMenu.tsx').includes("route: '/games'"));
+ const finder=read('src/components/BuklodFeatureFinder.tsx');assert.ok(finder.includes("BUKLOD_FEATURE_LINKS.map(item => item.id)"));assert.ok(finder.includes("'kingdom'"));
 });
-test('game routes are retired in Genesis before children mount; legacy game routes remain intact',()=>{
- const s=read('src/app/games/_layout.tsx');assert.match(s,/if \(isGenesisPreviewBuild\(\)\) return <Redirect href="\/\(tabs\)\/hub"/);assert.match(s,/return <Slot \/>/);
- const menu=read('src/components/BuklodNavigationSideMenu.tsx');assert.ok(menu.includes("!genesisMain || item.route !== '/games'"));assert.ok(menu.includes("if (genesisMain && item.route === '/games') return;"));
+test('All 13 Kingdom stations and four support routes are allowed; Arena and unknown routes fail closed',()=>{
+ const routes=readdirSync(new URL('../src/app/games/',import.meta.url)).filter(x=>x.endsWith('.tsx')&&!['_layout.tsx','empire-arena.tsx'].includes(x)).map(x=>x==='index.tsx'?'/games':'/games/'+x.slice(0,-4)).sort();
+ assert.equal(routes.length,18);assert.deepEqual([...GENESIS_KINGDOM_ROUTES].sort(),routes);
+ for(const p of routes){assert.ok(isGenesisKingdomRoute(p));assert.ok(isGenesisKingdomRoute(p+'/'));}
+ for(const p of ['/games/empire-arena','/games/empire-arena/','/games/unknown','/games/empire-arena/anything','/buklod-map','/season2/my-world','/community-village'])assert.equal(isGenesisKingdomRoute(p),false);
+ const layout=read('src/app/games/_layout.tsx');assert.ok(layout.includes('isGenesisPreviewBuild() && !isGenesisKingdomRoute(pathname)'));assert.ok(layout.includes('return <Slot />'));
+});
+test('Kingdom retains original 13 stations, local progression, ads and direct Home return',()=>{
+ const portal=read('src/features/season2/genesis/GenesisKingdomPortal.tsx');
+ assert.doesNotMatch(portal,/Empire Arena|\/games\/empire-arena|\/buklod-map/);
+ assert.ok(portal.includes("router.replace('/(tabs)/hub')"));
+ for(const t of ['13 CHARACTER STATIONS','loadBuklodKingdomPreviewProgress','getMyBuklodCharacterSelectionV2','kingdom_map_footer','/games/genesis-collection','/games/legacy'])assert.ok(portal.includes(t),t);
+ assert.ok(read('src/app/games/index.tsx').includes('<GenesisKingdomPortal />'));
  const tabs=read('src/app/(tabs)/_layout.tsx');assert.ok(tabs.includes("? { initialRouteName: 'hub' }"));assert.ok(tabs.includes(": { initialRouteName: 'buklod' }"));
 });

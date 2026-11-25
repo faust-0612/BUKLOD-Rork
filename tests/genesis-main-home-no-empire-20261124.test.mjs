@@ -13,11 +13,12 @@ test('Retired routes redirect without mounting game or map UI',()=>{
   const s=read(p);assert.match(s,/<Redirect href="\/\(tabs\)\/hub"/);assert.doesNotMatch(s,/\bSlot\b|\bStack\b|require\(|features\/games/);
  }
 });
-test('Home, menu, finder and shell have no retired shortcuts; Home ads remain',()=>{
+test('Home and shell have no retired shortcuts; Home ads remain and Kingdom menu returns',()=>{
  const home=read('src/app/(tabs)/hub.tsx');assert.doesNotMatch(home,/onExplore=|['"]\/games/);assert.ok(home.includes('new_home_first_view'));assert.ok(home.includes('hub_mid_native'));
- assert.ok(read('src/components/BuklodNavigationSideMenu.tsx').includes("!genesisMain || item.route !== '/games'"));
- assert.ok(read('src/components/BuklodFeatureFinder.tsx').includes('getBuklodFeatureLinks(isGenesisPreviewBuild())'));
- assert.ok(read('src/app/games/_layout.tsx').includes('if (isGenesisPreviewBuild()) return <Redirect'));
+ assert.ok(read('src/components/BuklodNavigationSideMenu.tsx').includes("route: '/games'"));
+ assert.ok(read('src/components/BuklodFeatureFinder.tsx').includes("'kingdom'"));
+ assert.ok(read('src/app/games/_layout.tsx').includes('!isGenesisKingdomRoute(pathname)'));
+ assert.doesNotMatch(read('src/features/season2/genesis/GenesisKingdomPortal.tsx'),/\/games\/empire-arena|\/buklod-map/);
  const shell=read('src/components/BuklodNavSafeShell.tsx');assert.doesNotMatch(shell,/worldReturnEligible|Return to BUKLOD Map|['"]\/buklod-map/);assert.ok(shell.includes('<BuklodPersistentBottomNav />'));assert.ok(shell.includes('<BuklodFocusAppAdStrip />'));
 });
 

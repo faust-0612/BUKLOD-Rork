@@ -6,8 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { useAuth } from '@/providers/AuthProvider';
-import { getBuklodFeatureLinks, findBuklodFeatures, type BuklodFeatureLink } from '@/lib/buklodNavigationV2';
-import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { BUKLOD_FEATURE_LINKS, findBuklodFeatures, type BuklodFeatureLink } from '@/lib/buklodNavigationV2';
 import {
   buklodPinnedNavigationStorageKey,
   normalizeBuklodPinnedNavigation,
@@ -21,11 +20,9 @@ import { BUKLOD_LONG_PRESS_MS } from '@/lib/buklodTouch';
 import { isBuklodNavigationOptionsSwipe } from '@/lib/buklodNavSwipe';
 import BuklodNavigationContextSheet, { type BuklodNavigationContextAction } from '@/components/BuklodNavigationContextSheet';
 
-const VISIBLE_FEATURE_LINKS = getBuklodFeatureLinks(isGenesisPreviewBuild());
-const PINNABLE_FEATURE_IDS = VISIBLE_FEATURE_LINKS.map(item => item.id);
+const PINNABLE_FEATURE_IDS = BUKLOD_FEATURE_LINKS.map(item => item.id);
 const GLOBAL_DESTINATIONS = new Set(['/buklod', '/messages', '/clusters', '/me']);
 function openFeature(item: BuklodFeatureLink) {
-  if (!PINNABLE_FEATURE_IDS.includes(item.id)) return;
   if (GLOBAL_DESTINATIONS.has(item.route)) router.navigate(item.route as any);
   else router.push(item.route as any);
 }
@@ -124,17 +121,17 @@ export default function BuklodFeatureFinder({ autoFocus = false, showSuggestions
       .catch(() => undefined);
   }, [accountId, loadedFor, pinned]);
 
-  const results = useMemo(() => findBuklodFeatures(query, 5, VISIBLE_FEATURE_LINKS), [query]);
-  const savedLinks = useMemo(() => pinned.map(id => VISIBLE_FEATURE_LINKS.find(item => item.id === id))
+  const results = useMemo(() => findBuklodFeatures(query), [query]);
+  const savedLinks = useMemo(() => pinned.map(id => BUKLOD_FEATURE_LINKS.find(item => item.id === id))
     .filter((item): item is BuklodFeatureLink => Boolean(item)), [pinned]);
   const recentLinks = useMemo(() => recent
     .filter(id => !pinned.includes(id))
-    .map(id => VISIBLE_FEATURE_LINKS.find(item => item.id === id))
+    .map(id => BUKLOD_FEATURE_LINKS.find(item => item.id === id))
     .filter((item): item is BuklodFeatureLink => Boolean(item)), [recent, pinned]);
   const searching = query.trim().length >= 2;
   const suggestions = useMemo(() => (
     ['bible', 'stories', 'wall', 'connect', 'drawer', 'contribution', 'health', 'support', 'kingdom']
-      .map(id => VISIBLE_FEATURE_LINKS.find(item => item.id === id))
+      .map(id => BUKLOD_FEATURE_LINKS.find(item => item.id === id))
       .filter((item): item is BuklodFeatureLink => Boolean(item))
   ), []);
   const canPin = loadedFor !== null && loadedFor === accountId;
