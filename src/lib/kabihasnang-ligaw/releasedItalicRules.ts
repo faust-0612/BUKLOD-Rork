@@ -1,7 +1,7 @@
-/** Reviewed presentation-only ranges of the approved S1 manuscripts (2026-11-26).
+/** Reviewed presentation-only ranges of S1 manuscripts (2026-11-26).
  * Exact paragraph matching fails closed on future editorial changes.
  * Raw database text, media anchors, quiz hashes, releases and progress remain unchanged.
- * Source snapshot MD5 by chapter: 0:8db3ae536eb1e72daf39ab0109d53ba5, 1:7a582ffecba1eb1bc701b5b155257925, 2:97a1c1d847d778d2fc6d16aba27048e6, 3:4630ba20df1df0174c9fe36aefded57d, 4:e1b4824cd7bf0e5b37c5831504cf52d5, 5:50ca786dde8943699e7ea1ed09576c5b, 6:5a6a7354f7c3d44d978fef0c8073f2c5, 7:d45bc406f1da6afa48fa98af59770a37, 8:61363ad433d1c5457cb3dcf93b9f76bd, 9:f202c8811e5c4b277c53338b5353ab02, 10:b30ca05f7f8ca2663e25f07f9bfff2e1, 11:1ac72b0bb6afd516e517c841d9270d8a, 12:a247c779cb493a7d6ffdabae3658bdbc, 13:1e9cc2eb57be0285818e4edf89718e99
+ * Source snapshot MD5 by chapter: 0:8db3ae536eb1e72daf39ab0109d53ba5, 1:7a582ffecba1eb1bc701b5b155257925, 2:97a1c1d847d778d2fc6d16aba27048e6, 3:4630ba20df1df0174c9fe36aefded57d, 4:e1b4824cd7bf0e5b37c5831504cf52d5, 5:50ca786dde8943699e7ea1ed09576c5b, 6:5a6a7354f7c3d44d978fef0c8073f2c5, 7:d45bc406f1da6afa48fa98af59770a37, 8:61363ad433d1c5457cb3dcf93b9f76bd, 9:fcc9e0c47b34b8fc99f2dab8065053df, 10:b30ca05f7f8ca2663e25f07f9bfff2e1, 11:1ac72b0bb6afd516e517c841d9270d8a, 12:a247c779cb493a7d6ffdabae3658bdbc, 13:1e9cc2eb57be0285818e4edf89718e99, 14:07e18eb43dbf49fcb01ece349a245275
  */
 export const KL_RELEASED_ITALIC_RULES: Readonly<Record<number, readonly {paragraph:string;spans:readonly string[]}[]>> = {
   "1": [
@@ -173,6 +173,25 @@ export const KL_RELEASED_ITALIC_RULES: Readonly<Record<number, readonly {paragra
       "spans": [
         "Ito ang kanilang tipan, na itinala ng unang tagapag-alaga ng mga balon: na walang sinuman sa Lunawen ang magtatanong kung saan nagmula ang mga balon, sapagkat ang tubig ay hindi nagmula sa lupa, kundi sa—"
       ]
+    },
+    {
+      "paragraph": "Hindi katotohanan ang tala. Bakas ito ng taong nais mag-alaala, at kasama sa bakas ang dahilan ng pag-alala. — kasabihan sa Salindaw",
+      "spans": [
+        "Hindi katotohanan ang tala. Bakas ito ng taong nais mag-alaala, at kasama sa bakas ang dahilan ng pag-alala."
+      ]
+    },
+    {
+      "paragraph": "“May tawag ang matatandang tagapag-ingat sa hugis na ito. Yam.”",
+      "spans": [
+        "Yam"
+      ]
+    },
+    {
+      "paragraph": "“El. Yam.”",
+      "spans": [
+        "El",
+        "Yam"
+      ]
     }
   ],
   "10": [
@@ -226,6 +245,110 @@ export const KL_RELEASED_ITALIC_RULES: Readonly<Record<number, readonly {paragra
       "paragraph": "Kapag bumalik ang tagapag-alaga mula sa Lunawen, huwag nang hintayin ang pagkawala ng tubig.",
       "spans": [
         "Kapag bumalik ang tagapag-alaga mula sa Lunawen, huwag nang hintayin ang pagkawala ng tubig."
+      ]
+    }
+  ],
+  "14": [
+    {
+      "paragraph": "Isinusulat ko ito, ako na pinagkatiwalaan ng mga balon, upang malaman ng mga darating kung ano ang ginawa namin sa lupang ipinagkaloob sa amin.",
+      "spans": [
+        "Isinusulat ko ito, ako na pinagkatiwalaan ng mga balon, upang malaman ng mga darating kung ano ang ginawa namin sa lupang ipinagkaloob sa amin."
+      ]
+    },
+    {
+      "paragraph": "Ang Lunawen na ito ay hindi ang una.",
+      "spans": [
+        "Ang Lunawen na ito ay hindi ang una."
+      ]
+    },
+    {
+      "paragraph": "Sa naunang Lunawen, masagana ang tubig. Hindi kami nagkukulang ng pagkain. Ang mga punong tumutubo sa aming bakuran ay namumunga maging sa mga panahong walang ulan.",
+      "spans": [
+        "Sa naunang Lunawen, masagana ang tubig. Hindi kami nagkukulang ng pagkain. Ang mga punong tumutubo sa aming bakuran ay namumunga maging sa mga panahong walang ulan."
+      ]
+    },
+    {
+      "paragraph": "Tinuruan kami ng aming mga magulang na magpasalamat sa Lumalang sa bawat pag-aani, at huwag ipagkait sa uhaw ang tubig na hindi naman namin nilikha.",
+      "spans": [
+        "Tinuruan kami ng aming mga magulang na magpasalamat sa Lumalang sa bawat pag-aani, at huwag ipagkait sa uhaw ang tubig na hindi naman namin nilikha."
+      ]
+    },
+    {
+      "paragraph": "Ngunit dumami ang aming mga bahay. Lumawak ang aming mga bukid. Natutuhan naming maghukay ng malalalim na balon at mag-imbak ng tubig.",
+      "spans": [
+        "Ngunit dumami ang aming mga bahay. Lumawak ang aming mga bukid. Natutuhan naming maghukay ng malalalim na balon at mag-imbak ng tubig."
+      ]
+    },
+    {
+      "paragraph": "Ang mga unang nagbabantay sa mga balon ay naging mga namumuno. Sinimulan nilang bilangin ang bawat sisidlang inilalabas at singilin ang mga taong kumukuha.",
+      "spans": [
+        "Ang mga unang nagbabantay sa mga balon ay naging mga namumuno. Sinimulan nilang bilangin ang bawat sisidlang inilalabas at singilin ang mga taong kumukuha."
+      ]
+    },
+    {
+      "paragraph": "May mga nagkasakit sa mga bahaging malayo sa mga balon. Sinabi naming kulang ang kanilang pagsisikap.",
+      "spans": [
+        "May mga nagkasakit sa mga bahaging malayo sa mga balon. Sinabi naming kulang ang kanilang pagsisikap."
+      ]
+    },
+    {
+      "paragraph": "At nang magtanong ang aming mga anak kung sino ang nagbigay sa amin ng tubig, itinuro namin sa kanila ang aming mga kamay.",
+      "spans": [
+        "At nang magtanong ang aming mga anak kung sino ang nagbigay sa amin ng tubig, itinuro namin sa kanila ang aming mga kamay."
+      ]
+    },
+    {
+      "paragraph": "Itinuring naming amin ang lupa, ang tubig, ang binhi at maging ang buhay na tumutubo mula sa mga ito.",
+      "spans": [
+        "Itinuring naming amin ang lupa, ang tubig, ang binhi at maging ang buhay na tumutubo mula sa mga ito."
+      ]
+    },
+    {
+      "paragraph": "May mga nagpaalala sa amin tungkol sa Lumalang. Pinagbawalan namin silang magsalita sa tabi ng mga balon.",
+      "spans": [
+        "May mga nagpaalala sa amin tungkol sa Lumalang. Pinagbawalan namin silang magsalita sa tabi ng mga balon."
+      ]
+    },
+    {
+      "paragraph": "Sinabi naming hindi na namin kailangan ang itinuro ng aming mga ninuno.",
+      "spans": [
+        "Sinabi naming hindi na namin kailangan ang itinuro ng aming mga ninuno."
+      ]
+    },
+    {
+      "paragraph": "At nang tumigil ang pag-ahon ng tubig, naghukay pa kami.",
+      "spans": [
+        "At nang tumigil ang pag-ahon ng tubig, naghukay pa kami."
+      ]
+    },
+    {
+      "paragraph": "Nang matuyo ang aming mga bagong balon, naghukay kami nang higit na malalim.",
+      "spans": [
+        "Nang matuyo ang aming mga bagong balon, naghukay kami nang higit na malalim."
+      ]
+    },
+    {
+      "paragraph": "Hanggang sa hindi na kayanin ng lupa ang bigat ng aming mga tahanan.",
+      "spans": [
+        "Hanggang sa hindi na kayanin ng lupa ang bigat ng aming mga tahanan."
+      ]
+    },
+    {
+      "paragraph": "Sa gabing lumubog ang unang bahay, marami pa rin sa amin ang nag-aakalang sapat ang aming karunungan upang mailigtas ang lahat.",
+      "spans": [
+        "Sa gabing lumubog ang unang bahay, marami pa rin sa amin ang nag-aakalang sapat ang aming karunungan upang mailigtas ang lahat."
+      ]
+    },
+    {
+      "paragraph": "Hindi na namin naabutan ang sumunod na pag-aani.",
+      "spans": [
+        "Hindi na namin naabutan ang sumunod na pag-aani."
+      ]
+    },
+    {
+      "paragraph": "Tinuruan kami ng aming mga magulang na magpasalamat sa Lumalang sa bawat pag-aani.",
+      "spans": [
+        "Tinuruan kami ng aming mga magulang na magpasalamat sa Lumalang sa bawat pag-aani."
       ]
     }
   ]
