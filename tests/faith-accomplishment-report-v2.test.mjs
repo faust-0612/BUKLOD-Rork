@@ -12,3 +12,14 @@ test('authorization, unavailable sources, and export contracts',()=>{
  for(const field of ['reading_approved_count','devotion_completed_count','abaka_completed_count','saliksik_completed_count','children_story_count','bible_chapter_count','children_teaching_count','mentor_session_count','mentee_session_count','mentees_reached_count']) assert.ok(lib.includes('displayAccomplishment(member.'+field+')'));
  assert.match(ui,/ACCOMPLISHMENT_METRICS.map/);assert.match(lib,/Not available/);assert.match(lib,/members.some/);
 });
+
+test('children completion source is server verified and deduplicated',()=>{
+ const child=fs.readFileSync(new URL('../supabase/migrations/20261125141700_children_story_verified_accomplishments.sql',import.meta.url),'utf8');
+ const reader=fs.readFileSync(new URL('../src/app/children-stories/[id].tsx',import.meta.url),'utf8');
+ const coordinator=fs.readFileSync(new URL('../src/components/BuklodSyncCoordinator.tsx',import.meta.url),'utf8');
+ assert.equal((child.match(/array\[[012,]+\]::smallint\[\]/g)||[]).length,144);
+ assert.match(child,/actor is distinct from p_expected_user/);assert.match(child,/p_answers is distinct from expected/);
+ assert.match(child,/primary key\(user_id,story_id\)/);assert.match(sql,/count\(distinct c.story_id\)/);
+ assert.match(reader,/enqueueOfflineAction\(\{kind:'children_story_completion_v1'/);
+ assert.match(coordinator,/data\?\.recorded!==true/);
+});

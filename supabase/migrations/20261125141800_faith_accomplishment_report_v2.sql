@@ -12,6 +12,7 @@ declare
  v_scopes uuid[];
  v_members jsonb;
  v_saliksik jsonb;
+ v_children jsonb;
  v_has_saliksik boolean;
 begin
  if auth.uid() is null then raise exception 'Authentication required' using errcode='42501'; end if;
@@ -106,6 +107,25 @@ begin
  left join devotion d on d.user_id=u.uid left join abc a on a.user_id=u.uid
  left join bible b on b.user_id=u.uid left join mentors m on m.mentor_id=u.uid
  left join mentees t on t.mentee_id=u.uid;
+ -- Story assessments are recorded on server confirmation. Never import local
+ -- completed flags as verified historical accomplishments.
+ if to_regclass('private.buklod_children_story_completions') is not null then
+  execute $q$
+   select coalesce(jsonb_object_agg(user_id,n),'{}'::jsonb)
+   from (
+    select c.user_id,count(distinct c.story_id) n
+    from private.buklod_children_story_completions c
+    where c.completed_at >= $1 and c.completed_at < $2
+    and exists(select 1 from public.buklod_scope_memberships m where m.user_id=c.user_id
+      and m.scope_id=any($3) and m.membership_status='ACTIVE'
+      and c.completed_at>=coalesce(m.joined_at,m.created_at))
+    group by c.user_id
+   ) counts
+  $q$ into v_children using v_start_ts,v_end_ts,v_scopes;
+  select coalesce(jsonb_agg(item || jsonb_build_object('children_story_count',
+    coalesce((v_children->>(item->>'user_id'))::bigint,0)) order by lower(item->>'member_name'),item->>'user_id'),'[]'::jsonb)
+  into v_members from jsonb_array_elements(v_members) item;
+ end if;
  -- SALIKSIK can be rolled out independently. Never turn a missing source into zero.
  v_has_saliksik := to_regclass('public.saliksik_mastery') is not null
  and to_regclass('public.saliksik_attempts') is not null
