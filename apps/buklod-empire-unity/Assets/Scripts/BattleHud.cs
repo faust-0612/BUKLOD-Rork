@@ -3,7 +3,7 @@ using UnityEngine.UI;
 namespace Buklod.Empire {
     public sealed class BattleHud:MonoBehaviour {
         private BattleView view; private MobileBattleInput input;
-        private Canvas canvas;private Sprite circle;
+        private Canvas canvas;private Sprite circle,reviewControl;
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
@@ -39,14 +39,40 @@ namespace Buklod.Empire {
             if(review)BuildReview();
             Layout();
         }
+        private static Sprite MakeReviewControl(){
+            const int size=128;
+            var texture=new Texture2D(size,size,TextureFormat.RGBA32,false);
+            texture.name="Review control frame";texture.wrapMode=TextureWrapMode.Clamp;
+            var pixels=new Color[size*size];
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++){
+                float d=Vector2.Distance(new Vector2(x,y),new Vector2(63.5f,63.5f))/63.5f;
+                float alpha=Mathf.Clamp01((1-d)*63.5f);
+                var fill=Color.Lerp(new Color(.035f,.075f,.105f,.94f),new Color(.13f,.25f,.30f,.94f),y/127f);
+                if(d>.82f)fill=Color.Lerp(new Color(.18f,.31f,.34f,.96f),new Color(.76f,.60f,.32f,.98f),Mathf.Clamp01((y/127f)*.8f+.1f));
+                if(d>.95f)fill=new Color(.07f,.13f,.16f,.96f);
+                fill.a*=alpha;pixels[y*size+x]=fill;
+            }
+            texture.SetPixels(pixels);texture.Apply(false,true);
+            return Sprite.Create(texture,new Rect(0,0,size,size),Vector2.one*.5f);
+        }
+        private static void ImproveText(Text t){
+            var shadow=t.gameObject.AddComponent<Outline>();
+            shadow.effectColor=new Color(.015f,.025f,.035f,.95f);
+            shadow.effectDistance=new Vector2(1,-1);
+            t.color=new Color(.95f,.98f,1);
+        }
         private void BuildReview(){
+            reviewControl=MakeReviewControl();
+            foreach(var button in buttons){button.sprite=reviewControl;button.color=Color.white;}
+            foreach(var label in labels)if(label)ImproveText(label);
+            ImproveText(status);
             healthTrack=ImageAt("Health track",canvas.transform,new Color(.08f,.13f,.13f,.85f));healthTrack.sprite=null;healthTrack.transform.SetAsFirstSibling();
             manaTrack=ImageAt("Mana track",canvas.transform,new Color(.08f,.13f,.13f,.85f));manaTrack.sprite=null;manaTrack.transform.SetAsFirstSibling();
             xpTrack=ImageAt("Experience track",canvas.transform,new Color(.08f,.13f,.13f,.85f));xpTrack.sprite=null;xpTrack.transform.SetAsFirstSibling();
             xp=ImageAt("Experience",canvas.transform,new Color(.96f,.72f,.28f));xp.sprite=null;
             var mapGo=new GameObject("Fog-safe minimap",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewMinimap));
             mapGo.transform.SetParent(canvas.transform,false);minimap=mapGo.GetComponent<ReviewMinimap>();minimap.Bind(view);
-            objective=TextAt("Objective status",canvas.transform);objective.horizontalOverflow=HorizontalWrapMode.Wrap;
+            objective=TextAt("Objective status",canvas.transform);objective.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(objective);
             for(int i=0;i<3;i++){
                 var go=new GameObject("Skill glyph",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewSkillGlyph));
                 go.transform.SetParent(buttons[i+2].transform,false);go.transform.SetSiblingIndex(0);
@@ -120,6 +146,6 @@ namespace Buklod.Empire {
             mana.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),height*.013f);
             if(review)ReviewUpdate(b);
         }
-        private void OnDestroy(){if(circle){Destroy(circle.texture);Destroy(circle);}}
+        private void OnDestroy(){if(circle){Destroy(circle.texture);Destroy(circle);}if(reviewControl){Destroy(reviewControl.texture);Destroy(reviewControl);}}
     }
 }

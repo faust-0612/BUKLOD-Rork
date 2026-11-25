@@ -80,13 +80,13 @@ namespace Buklod.Empire.Editor {
             else AssetDatabase.CreateAsset(surface.navMeshData,navPath);
             VerifyRoutes();
             var camera=new GameObject("Review camera",typeof(Camera),typeof(AudioListener)).GetComponent<Camera>();
-            camera.tag="MainCamera";camera.fieldOfView=48;camera.farClipPlane=250;
+            camera.tag="MainCamera";camera.fieldOfView=46;camera.farClipPlane=250;
             var sun=new GameObject("Review sunlight",typeof(Light)).GetComponent<Light>();
-            sun.type=LightType.Directional;sun.color=new Color(1,.93f,.82f);sun.intensity=1.35f;sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(48,-35,0);
-            RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.44f,.53f,.65f);RenderSettings.ambientEquatorColor=new Color(.34f,.38f,.4f);RenderSettings.ambientGroundColor=new Color(.21f,.24f,.19f);
+            sun.type=LightType.Directional;sun.color=new Color(1,.93f,.82f);sun.intensity=1.12f;sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(48,-35,0);
+            RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.38f,.46f,.58f);RenderSettings.ambientEquatorColor=new Color(.28f,.32f,.34f);RenderSettings.ambientGroundColor=new Color(.18f,.21f,.17f);
             EnvironmentReviewLook.Apply(map,camera);
             var root=new GameObject("UNAPPROVED EDITOR OFFLINE MATCH",typeof(BattleView),typeof(BattleEffects),typeof(WorldInteractionEffects),typeof(ReviewContactShadows));
-            var view=root.GetComponent<BattleView>();view.visuals=c;view.battleCamera=camera;view.ConfigureEditorReview();
+            var view=root.GetComponent<BattleView>();view.visuals=c;view.battleCamera=camera;view.cameraHeight=19.5f;view.ConfigureEditorReview();
             var shader=Shader.Find("BUKLOD/CombatPulse");if(!shader)throw new InvalidOperationException("Combat shader missing.");
             var mat=AssetDatabase.LoadAssetAtPath<Material>(Out+"/ReviewPulse.mat");
             if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,Out+"/ReviewPulse.mat");}

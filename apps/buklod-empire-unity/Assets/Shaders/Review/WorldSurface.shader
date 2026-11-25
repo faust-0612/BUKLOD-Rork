@@ -36,6 +36,13 @@ Shader "BUKLOD/Review/WorldSurface" {
                 o.positionCS=p.positionCS;o.positionWS=p.positionWS;
                 o.normalWS=TransformObjectToWorldNormal(i.normalOS);o.fog=ComputeFogFactor(p.positionCS.z);return o;
             }
+            // Low-frequency world variation breaks uniform color without changing map geometry.
+            float Hash2(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
+            float FieldNoise(float2 p){
+                float2 c=floor(p), f=frac(p);f=f*f*(3.0-2.0*f);
+                return lerp(lerp(Hash2(c),Hash2(c+float2(1,0)),f.x),
+                            lerp(Hash2(c+float2(0,1)),Hash2(c+float2(1,1)),f.x),f.y);
+            }
             half4 Frag(Varyings i):SV_Target{
                 half3 n=normalize(i.normalWS);
                 float3 w=pow(abs(n),4.0);w/=max(.0001,w.x+w.y+w.z);
@@ -44,6 +51,10 @@ Shader "BUKLOD/Review/WorldSurface" {
                              SAMPLE_TEXTURE2D(_Detail,sampler_Detail,p.xz)*w.y+
                              SAMPLE_TEXTURE2D(_Detail,sampler_Detail,p.xy)*w.z;
                 half3 baseColor=_BaseColor.rgb*detail.rgb;
+                float patch=FieldNoise(i.positionWS.xz*.11);
+                float grain=FieldNoise(i.positionWS.xz*.57);
+                half ground=saturate(abs(n.y))* (1-_Metallic);
+                baseColor*=lerp(1.0,lerp(.74,1.12,patch)*lerp(.90,1.06,grain),ground*.8);
                 #if defined(_MAIN_LIGHT_SHADOWS_SCREEN)
                     float4 shadowCoord=ComputeScreenPos(TransformWorldToHClip(i.positionWS));
                 #else
