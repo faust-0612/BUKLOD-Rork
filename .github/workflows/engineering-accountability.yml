@@ -33,6 +33,7 @@ jobs:
             integration/main-conso-backlog-20261125)
               if [ "$PR_BASE" = "main" ]; then
                 echo "BUKLOD_SCOPE_MANIFEST=.buklod/scopes/main-conso-backlog-20261125.json" >> "$GITHUB_ENV"
+                echo "BUKLOD_CONSOLIDATED_RC_GATE=true" >> "$GITHUB_ENV"
               fi;;
             integration/nov16-current-wall-ads-zoom-rc-safe)
               if [ "$PR_BASE" = "main" ]; then
