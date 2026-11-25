@@ -1,0 +1,69 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/video-thumbnail-firstframe-20261122.json",
+  "objective": "Implement thumbnail-first autoplay on BUKLOD Wall and Marites video surfaces, suppress black flashes and startup play indicators, and preserve native controls/ad lifecycle.",
+  "baseRef": "main",
+  "productionBaselineEvidence": "verified: GitHub main source SHA 7b224c39624827282c3cbf003060317045b0a73f inspected 2026-11-22. This is source-only evidence, not proof of the installed app, active Android runtime, AdMob delivery or production OTA.",
+  "chosenApproach": "Keep the existing expo-video textureView + first-frame callback for Wall; overlay a stable neutral backdrop and private thumbnail until the frame renders. Marites uses the same poster cache, bounded upload preview sidecars, near-viewport frame capture and delayed nonblocking loading indicator. Do not touch IMA, AdMob SDK, backend SQL or native configuration.",
+  "selectionRationale": "A source-ready player can still show its native black surface before a frame is decoded; readiness/playing events do not guarantee a rendered first frame. Existing Marites rows lacked signed thumbnail propagation and used a manual-play placeholder.",
+  "riskAreas": [
+    "app-runtime",
+    "wall-media",
+    "android-first-frame",
+    "slow-network",
+    "fullscreen-swipe"
+  ],
+  "allowedPaths": [
+    "src/components/CommunityVideo.tsx",
+    "src/components/BuklodMaritesBoard.tsx",
+    "src/lib/buklodMaritesBoard.ts",
+    "tests/video-thumbnail-first-frame-20261122.test.mjs",
+    ".buklod/scopes/video-thumbnail-firstframe-20261122.json"
+  ],
+  "regressionTests": [
+    "tests/video-thumbnail-first-frame-20261122.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Change only poster overlays, load indicators and video autoplay/control behavior within existing Android community media components.",
+      "preservedBehaviors": [
+        "Preserve tab/navigation lifecycle, AppState pause semantics, player reuse, consent and AdMob placements without changing native runtime.",
+        "No Expo config or native module changes, no release workflow edits and no OTP/authorization changes."
+      ],
+      "tests": [
+        "tests/video-thumbnail-first-frame-20261122.test.mjs"
+      ]
+    },
+    {
+      "id": "wall-media",
+      "reason": "Add first-frame cover and private video previews to Marites feed and viewer while respecting signed media and existing video cache limits.",
+      "preservedBehaviors": [
+        "Preserve public Wall media visibility, Marites 72-hour feed filters, owner edit/delete controls, upload fallback and native IMA ad lifecycle.",
+        "Private poster metadata remains scoped to existing author-verified media RPC and storage policy."
+      ],
+      "tests": [
+        "tests/video-thumbnail-first-frame-20261122.test.mjs"
+      ]
+    }
+  ],
+  "preserveBehaviors": [
+    "Wall/Marites scrolling stops videos immediately; offscreen warm preloading remains bounded.",
+    "Keep foreground AppState, fullscreen swipe/navigation, media authorization, upload cleanup, retries and app-wide ad/consent policies.",
+    "No New Native binary or Season2 material, no production or staging OTA publication."
+  ],
+  "acceptanceChecks": [
+    "Run changed static regression test and existing community video poster, first-frame, handoff, scroll, ad and navigation tests.",
+    "Required Engineering Accountability protected-feature gate passes with exact scope manifest.",
+    "Android cold swipe, missing preview, weak network and fullscreen gestures require on-device QA before release.",
+    "Commit identity and staging runtime compatibility must be verified before any staging or production OTA."
+  ],
+  "alternativeApproaches": [
+    "Keep showing native VideoView immediately: rejected due to black flashes before first frame.",
+    "Mount an extra player per card to capture posters: rejected for memory, battery and network cost.",
+    "Publish unverified production OTA: rejected by permanent release gates."
+  ],
+  "releaseMode": "DEV_BRANCH_PR_NO_OTA",
+  "publicationStatus": "DEV_ONLY_NOT_PUBLISHED",
+  "physicalDeviceVerification": "NOT_PERFORMED"
+}
