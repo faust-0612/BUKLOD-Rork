@@ -41,3 +41,7 @@ test('Realm visuals use bounded original blade, leaf and rock meshes, with reada
  for(const x of ['field:disabled:','field:hover:','realm_ground_details'])assert.ok(w.includes(x),x);
  assert.ok(sm.includes('count!=80'));assert.ok(sm.includes('1 exact · 2 misplaced'));
 });
+
+test('Original interactive 3D stage uses geometry, camera-projected taps, animated scenarios and disabled hidden rendering',()=>{
+ const stage=read('godot/empire-arena/scripts/kingdom_interactive_stage.gd'),world=read('godot/empire-arena/scripts/living_kingdom.gd'),smoke=read('godot/empire-arena/tests/living_kingdom_smoke.gd');for(const x of ['Vector2i(1600,800)','Viewport.MSAA_4X','SubViewport.UPDATE_DISABLED','MeshInstance3D.new()','Label3D.new()','project_ray_origin','tile_pressed.emit','MAX_TILES := 56','scene_actor.rotation.y','func _actor'])assert.ok(stage.includes(x),x);assert.ok(world.includes('interactive_stage.sync(field)'));assert.ok(world.includes('interactive_stage.tile_pressed.connect(_stage_input)'));assert.ok(world.includes('Accessible text controls'));assert.ok(smoke.includes('stage.pick_at(screen)'));assert.doesNotMatch(stage,/HTTPRequest|FileAccess|supabase|grant_bp/i);
+});

@@ -5,6 +5,7 @@ extends "res://scripts/premium_world_3d.gd"
 const MissionState = preload("res://scripts/kingdom_mission_state.gd")
 const FieldChallenge = preload("res://scripts/kingdom_field_challenge.gd")
 const AdventureProgress = preload("res://scripts/kingdom_adventure_progression.gd")
+const InteractiveStage = preload("res://scripts/kingdom_interactive_stage.gd")
 const START := Vector3(0, 0, 0)
 const TARGETS := [Vector3(-5, 0, -5), Vector3(5, 0, -6), Vector3(0, 0, 7)]
 var quest = MissionState.new()
@@ -84,6 +85,9 @@ var field_buttons: Array[Button] = []
 var sudoku_grid_ui: GridContainer
 var sudoku_buttons: Array[Button] = []
 var tile_style_cache: Dictionary = {}
+var interactive_stage
+var text_controls: CheckButton
+var field_button_bar: HBoxContainer
 
 func _get_world() -> String:
     return "kingdom"
@@ -555,8 +559,8 @@ func _install_controls() -> void:
 
 func _install_field_panel(layer: CanvasLayer) -> void:
     field_panel = PanelContainer.new()
-    field_panel.position = Vector2(725,105)
-    field_panel.custom_minimum_size = Vector2(490,0)
+    field_panel.position = Vector2(180,58)
+    field_panel.custom_minimum_size = Vector2(910,0)
     var panel_style := StyleBoxFlat.new()
     panel_style.bg_color = Color("#172b32")
     panel_style.border_color = Color("#d7b575")
@@ -571,13 +575,16 @@ func _install_field_panel(layer: CanvasLayer) -> void:
     var body := VBoxContainer.new()
     field_panel.add_child(body)
     field_prompt = Label.new()
-    field_prompt.custom_minimum_size = Vector2(455,0)
+    field_prompt.custom_minimum_size = Vector2(880,0)
     field_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     field_prompt.add_theme_font_size_override("font_size",20)
     body.add_child(field_prompt)
     field_status = Label.new()
     field_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     body.add_child(field_status)
+    interactive_stage = InteractiveStage.new()
+    body.add_child(interactive_stage)
+    interactive_stage.tile_pressed.connect(_stage_input)
     sudoku_grid_ui = GridContainer.new()
     sudoku_grid_ui.columns = 4
     sudoku_grid_ui.add_theme_constant_override("h_separation",3)
@@ -600,14 +607,21 @@ func _install_field_panel(layer: CanvasLayer) -> void:
         button.pressed.connect(_choose_field.bind(i))
         field_grid.add_child(button)
         field_buttons.append(button)
+    field_button_bar = HBoxContainer.new()
+    body.add_child(field_button_bar)
     var retry := Button.new()
     retry.text = "RESTART CHALLENGE"
     retry.pressed.connect(_restart_field)
-    body.add_child(retry)
+    field_button_bar.add_child(retry)
     var close := Button.new()
     close.text = "RETURN TO EXPLORATION"
     close.pressed.connect(_leave_field)
-    body.add_child(close)
+    field_button_bar.add_child(close)
+    text_controls = CheckButton.new()
+    text_controls.text = "Accessible text controls"
+    text_controls.toggled.connect(func(_enabled: bool) -> void: _refresh_field())
+    field_button_bar.add_child(text_controls)
+    interactive_stage.set_active(false)
     field_panel.hide()
 
 func _open_field(index: int) -> bool:
@@ -628,6 +642,14 @@ func _tile_style(key: String, color: Color, border_color: Color) -> StyleBoxFlat
         style.set_corner_radius_all(6)
         tile_style_cache[key] = style
     return tile_style_cache[key]
+
+func _stage_input(index: int, is_cell: bool) -> void:
+    if field_index<0 or quest.phase!="active":
+        return
+    if is_cell:
+        _select_sudoku_cell(index)
+    else:
+        _choose_field(index)
 
 func _select_sudoku_cell(index: int) -> void:
     if field_index < 0 or quest.phase!="active":
@@ -721,6 +743,12 @@ func _refresh_field() -> void:
         if field.spec.type == "match3" and str(field.board[i]).is_empty():
             button.disabled = true
 
+    var use_text: bool = text_controls.button_pressed
+    sudoku_grid_ui.visible = use_text and field.spec.type in ["sudoku","wordsearch"]
+    field_grid.visible = use_text and field.spec.type!="wordsearch"
+    interactive_stage.set_active(not use_text)
+    interactive_stage.sync(field)
+
 func _play_rhythm_note(index: int) -> void:
     if not sound_enabled or rhythm_player == null or index < 0 or index > 2:
         return
@@ -800,6 +828,8 @@ func _leave_field() -> void:
 func _close_field() -> void:
     field_index = -1
     field.clear()
+    if interactive_stage != null:
+        interactive_stage.set_active(false)
     if field_panel != null:
         field_panel.hide()
 
@@ -1063,6 +1093,7 @@ func get_dev_snapshot() -> Dictionary:
     result["guide_near"] = guide_near
     result["guide_clip"] = guide_clip
     result["field_index"] = field_index
+    result["interactive_3d"] = interactive_stage.snapshot() if interactive_stage!=null else {}
     result["practice_score"] = progression.practice_score
     result["practice_rounds"] = progression.total_rounds
     result["difficulty"] = progression.difficulty

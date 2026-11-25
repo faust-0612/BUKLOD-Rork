@@ -100,10 +100,22 @@ func _run() -> void:
     if world.quest.visited.size() != 0 or world.get_dev_snapshot().get("field_index") != 0:
         quit(9)
         return
-    # Solve the actual Phan budget challenge, not just a marker arrival.
+    # Project actual 3D tiles to screen coordinates and use the real input route.
+    var stage = world.interactive_stage
+    var stage_snapshot: Dictionary = stage.snapshot()
+    if stage_snapshot.get("resolution")!="1600x800" or stage_snapshot.get("tiles")!=4 or stage_snapshot.get("actual_meshes",0)<15 or not stage_snapshot.get("active",false):
+        quit(28)
+        return
     for choice in [0,1,2]:
-        world._choose_field(choice)
-    if world.quest.visited.size() != 1 or world.get_dev_snapshot().get("field_index") != -1:
+        var tile: Dictionary = stage.tiles[choice]
+        var at: Vector3 = tile.at
+        var screen: Vector2 = stage.view_camera.unproject_position(stage.board_root.to_global(at+Vector3.UP*0.30))
+        var picked: Dictionary = stage.pick_at(screen)
+        if picked.is_empty() or int(picked.index)!=choice:
+            quit(29)
+            return
+        world._stage_input(int(picked.index),bool(picked.cell))
+    if world.quest.visited.size() != 1 or world.get_dev_snapshot().get("field_index") != -1 or stage.snapshot().get("active",true):
         quit(19)
         return
     # The next-adventure action must keep all earlier session clears.
