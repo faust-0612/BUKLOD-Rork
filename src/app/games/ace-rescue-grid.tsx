@@ -8,8 +8,8 @@ import {BuklodGameStage} from '@/features/games/runtime/BuklodGameStage';
 const GAME_ID='ace-rescue-grid';
 const OPTIONS:readonly KingdomInteriorOption[]=[
  {id:'ace-chess-master',title:'Chess Master',
-  descriptionEn:'Three fully legal chess matches vs local AI',
-  descriptionTl:'Tatlong tunay na laro ng chess laban sa offline AI',
+  descriptionEn:'Full legal chess • selectable AI difficulty • quick match or classic series',
+  descriptionTl:'Tunay na chess • piliin ang AI difficulty • isang laban o classic series',
   kind:'pilot',render:finish=><ChessMasterGameV1 onFinish={finish}/>},
  {id:'ace-tower-tactics',title:'Tower Tactics',
   descriptionEn:'Place towers and defend three escalating waves',

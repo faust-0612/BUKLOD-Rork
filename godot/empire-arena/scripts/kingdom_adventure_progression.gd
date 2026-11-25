@@ -82,6 +82,13 @@ func prepare(base: Dictionary, level: int, tier: int, objective: int) -> Diction
             var goal := 0
             for i in range(needed):
                 goal += int(values[i])
+            var rng := RandomNumberGenerator.new()
+            rng.seed = seed_value+7919
+            for i in range(values.size()-1,0,-1):
+                var j := rng.randi_range(0,i)
+                var item: Variant = values[i]
+                values[i] = values[j]
+                values[j] = item
             data.items = values
             data.limit = needed
             data.goal = goal

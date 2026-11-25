@@ -970,7 +970,7 @@ func _update_quest_status() -> void:
     avatar_picker.disabled = active
     difficulty_picker.disabled = active
     mode_picker.disabled = active
-    action_button.text = "CANCEL ADVENTURE" if active else "START ADVENTURE"
+    action_button.text = "CANCEL GAME" if active and progression.quick_play else ("CANCEL ADVENTURE" if active else ("PLAY ROUND" if progression.quick_play else "START ADVENTURE"))
     action_button.disabled = not _adventure_ready()
     next_button.visible = quest.phase == "complete"
     session_label.text = "SESSION DISCOVERIES: %d / 39" % quest.completed.size()
@@ -995,7 +995,7 @@ func _update_quest_status() -> void:
     elif quest.phase == "return":
         quest_status.text = "Return to the green beacon to finish."
     elif quest.phase == "complete":
-        quest_status.text = "Adventure complete! Continue to the next challenge or replay. No BP, XP or wallet credit."
+        quest_status.text = "Round cleared! Continue to the next level or choose a different difficulty. Practice only; no BP credit." if progression.quick_play else "Adventure complete! Continue to the next challenge or replay. No BP, XP or wallet credit."
     else:
         quest_status.text = "Choose a realm and adventure. Session practice, no account rewards."
 

@@ -116,6 +116,27 @@ func _run() -> void:
     if world.mission_index != 1 or world.quest.completed.size() != 1 or world.quest.phase != "idle":
         quit(14)
         return
+    # Exercise actual direct Quick Game path, not a fabricated distance or direct state write.
+    world.progression.quick_play = true
+    world.mode_picker.select(0)
+    world._select_realm(0)
+    world._start_or_cancel()
+    if world.field_index != 0 or world.quest.phase != "active":
+        quit(23)
+        return
+    for choice in [0,1,2]:
+        world._choose_field(choice)
+    if world.quest.phase != "complete" or world.progression.practice_score != 1 or world.field_index != -1:
+        quit(24)
+        return
+    world._next_adventure()
+    if world.field_index != 0 or world.progression.active_level != 2:
+        quit(25)
+        return
+    world._leave_field()
+    if world.quest.phase != "idle" or world.progression.practice_score != 1:
+        quit(26)
+        return
     if not _progression_checks():
         quit(22)
         return
@@ -126,8 +147,19 @@ func _solve_field(field) -> bool:
     var data: Dictionary = field.spec
     match str(data.type):
         "sudoku":
+            var original: Array = field.sudoku_grid.duplicate()
             if not _solve_sudoku(field,0):
                 return false
+            var solution: Array = field.sudoku_grid.duplicate()
+            field.sudoku_grid = original.duplicate()
+            for i in range(solution.size()):
+                if field.sudoku_fixed.has(i):
+                    if field.select_sudoku_cell(i):
+                        return false
+                    continue
+                if not field.select_sudoku_cell(i):
+                    return false
+                field.choose(field.spec.items.find(solution[i]))
         "match3":
             var found := false
             for i in range(9):
@@ -298,8 +330,6 @@ func _solve_sudoku(field, index: int) -> bool:
             continue
         field.sudoku_grid[index] = value
         if _solve_sudoku(field,index+1):
-            if index == 0 or field.sudoku_selected < 0:
-                field.solved = true
             return true
         field.sudoku_grid[index] = 0
     return false

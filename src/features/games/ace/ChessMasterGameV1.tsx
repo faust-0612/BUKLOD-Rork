@@ -14,12 +14,14 @@ const PIECES:Record<string,string>={
  bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟',
 };
 const FILES='abcdefgh';
-const LEVEL_NAMES=['CADET','TACTICIAN','STRATEGIST'];
+const LEVEL_NAMES=['EASY • CADET','NORMAL • TACTICIAN','HARD • STRATEGIST'];
 const PROMOTIONS:['q'|'r'|'b'|'n',string][]=[['q','♕'],['r','♖'],['b','♗'],['n','♘']];
 export function ChessMasterGameV1({onFinish}:Props){
  const {t}=useBuklodGameLanguage();
  const [phase,setPhase]=useState<Phase>('ready');const phaseRef=useRef<Phase>('ready');
- const [level,setLevel]=useState(0);
+ const [level,setLevel]=useState(1);
+ const [difficulty,setDifficulty]=useState(1);
+ const [mode,setMode]=useState<'quick'|'series'>('quick');
  const gameRef=useRef(new Chess());
  const [fen,setFen]=useState(gameRef.current.fen());
  const [selected,setSelected]=useState<ChessSquare|null>(null),selectedRef=useRef<ChessSquare|null>(null);
@@ -43,8 +45,8 @@ export function ChessMasterGameV1({onFinish}:Props){
  const start=useCallback(()=>{
   scoreRef.current=0;setTotal(0);finished.current=false;
   receipt.current='ch-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
-  beginLevel(0);
- },[beginLevel]);
+  beginLevel(mode==='quick'?difficulty:0);
+ },[beginLevel,mode,difficulty]);
  const finish=useCallback((status:'won'|'lost',points:number)=>{
   if(finished.current)return;
   finished.current=true;setGamePhase(status);
@@ -58,14 +60,14 @@ export function ChessMasterGameV1({onFinish}:Props){
    setRoundOutcome('checkmate');
    const points=Math.max(250,2500-chess.history().length*12-undosRef.current*115);
    scoreRef.current+=points;setTotal(scoreRef.current);
-   if(level===2)finish('won',scoreRef.current);
+   if(mode==='quick'||level===2)finish('won',scoreRef.current);
    else setGamePhase('clear');
   }else{
    setRoundOutcome(outcome==='draw'?'draw':'loss');
    const next=attemptsRef.current+1;attemptsRef.current=next;setAttempts(next);
-   if(next>=3)finish('lost',scoreRef.current);else setGamePhase('retry');
+   if(mode==='quick'||next>=3)finish('lost',scoreRef.current);else setGamePhase('retry');
   }
- },[finish,level]);
+ },[finish,level,mode]);
  const execute=useCallback((input:ChessInput)=>{
   if(phaseRef.current!=='playing'&&phaseRef.current!=='promotion')return;
   const game=gameRef.current;
@@ -121,21 +123,24 @@ export function ChessMasterGameV1({onFinish}:Props){
  return <View style={s.root}>
   <View style={s.head}><View style={s.headText}><Text style={s.eyebrow}>ACE • STRATEGY FORTRESS</Text>
    <Text style={s.title}>CHESS MASTER</Text>
-   <Text style={s.subtitle}>{t('Real chess rules. Three increasingly challenging opponents.','Tunay na tuntunin ng chess. Tatlong kalabang may iba-ibang antas.')}</Text></View>
+   <Text style={s.subtitle}>{t('Real chess rules. Choose your opponent or play a three-match series.','Tunay na tuntunin ng chess. Piliin ang kalaban o maglaro ng tatlong laban.')}</Text></View>
    <View style={s.scoreCard}><Text style={s.score}>{total}</Text><Text style={s.scoreLabel}>MASTERY</Text></View></View>
   {phase==='ready'?<View style={s.panel}><Text style={s.panelTitle}>{t('Outthink the fortress chess masters','Daigin ang mga master ng chess')}</Text>
-   <Text style={s.body}>{t('You play White against a local, legal-move-only AI. Complete three matches against Cadet, Tactician and Strategist. Real rules include check, castling, en passant, selectable pawn promotion and game draws. Tap a white piece to see legal moves; you may undo your last turn. You must checkmate to win a match. No clock and no connection required.','Ikaw ang White laban sa offline AI na legal moves lamang. Tatlong kalaban: Cadet, Tactician at Strategist. May check, castling, en passant, pagpili ng promotion at mga draw. I-tap ang puting piyesa upang makita ang legal moves. Puwedeng i-undo ang huling turn. Kailangan ng checkmate para manalo. Walang timer o internet.')}</Text>
+   <Text style={s.body}>{t('Choose a single match for immediate local progress, or the original three-opponent series. You play White. Legal moves are highlighted; castling, en passant, promotion and draws are supported. No connection required.','Pumili ng isang laban para sa agarang local progress, o ang orihinal na tatlong laban. Ikaw ang White. Naka-highlight ang legal moves; may castling, en passant, promotion at draw. Hindi kailangan ng internet.')}</Text>
+   <View style={s.choiceRow}>{(['quick','series'] as const).map(value=><Pressable key={value} accessibilityRole="button" accessibilityState={{selected:mode===value}} onPress={()=>setMode(value)} style={[s.choice,mode===value&&s.choiceSelected]}><Text style={s.choiceText}>{value==='quick'?t('QUICK MATCH','ISANG LABAN'):t('CLASSIC SERIES','TATLONG LABAN')}</Text></Pressable>)}</View>
+   {mode==='quick'&&<><Text style={s.eyebrow}>{t('CHOOSE AI DIFFICULTY','PILIIN ANG ANTAS NG AI')}</Text><View style={s.choiceRow}>{LEVEL_NAMES.map((name,index)=><Pressable key={name} accessibilityRole="button" accessibilityState={{selected:difficulty===index}} onPress={()=>setDifficulty(index)} style={[s.choice,difficulty===index&&s.choiceSelected]}><Text style={s.choiceText}>{name}</Text></Pressable>)}</View></>}
    <Pressable onPress={start} style={s.primary}><Text style={s.primaryText}>{t('START CHESS MASTER','SIMULAN ANG CHESS')}</Text></Pressable></View>
   :phase==='paused'?<View style={s.panel}><Text style={s.panelTitle}>{t('Match paused','Naka-pause ang laban')}</Text>
    <Pressable onPress={()=>setGamePhase('playing')} style={s.primary}><Text style={s.primaryText}>{t('RESUME','ITULOY')}</Text></Pressable></View>
   :phase==='clear'||phase==='retry'?<View style={s.panel}><Text style={s.panelTitle}>{phase==='clear'?t('CHECKMATE! YOU WIN','CHECKMATE! PANALO KA'):roundOutcome==='draw'?t('MATCH DRAWN','TABLA ANG LABAN'):t('OPPONENT CHECKMATED','PANALO ANG KALABAN')}</Text>
    <Text style={s.body}>{phase==='clear'?t('The next opponent plans further ahead.','Mas mahusay magplano ang susunod na kalaban.'):t('Review your openings and try again.','Suriin ang opening at subukan muli.')}</Text>
    <Pressable onPress={()=>beginLevel(phase==='clear'?level+1:level,phase==='retry')} style={s.primary}><Text style={s.primaryText}>{phase==='clear'?t('NEXT OPPONENT','SUSUNOD NA KALABAN'):t('RETRY CHESS','ULITIN ANG CHESS')}</Text></Pressable></View>
-  :phase==='won'||phase==='lost'?<View style={s.panel}><Text style={s.panelTitle}>{phase==='won'?t('FORTRESS CHESS CHAMPION!','KAMPEON SA CHESS!'):t('MATCH SERIES ENDED','TAPOS ANG LABAN')}</Text>
-   <Text style={s.final}>{total}</Text><Text style={s.body}>{t('Practice-only mastery. No Character Points, cash or redeemable rewards.','Mastery score lamang. Walang Character Points, cash o redeemable reward.')}</Text>
-   <Pressable onPress={start} style={s.primary}><Text style={s.primaryText}>{t('PLAY AGAIN','ULITIN')}</Text></Pressable></View>
+  :phase==='won'||phase==='lost'?<View style={s.panel}><Text style={s.panelTitle}>{phase==='won'?t('CHECKMATE! VICTORY','CHECKMATE! PANALO KA'):roundOutcome==='draw'?t('MATCH DRAWN','TABLA ANG LABAN'):t('MATCH ENDED','TAPOS ANG LABAN')}</Text>
+   <Text style={s.final}>{total}</Text><Text style={s.body}>{phase==='won'?t('One completed win recorded in your local Kingdom game history. Play again at any difficulty. Real BP still requires the separate verified Mastery Check.','Isang panalo ang itinatala sa local Kingdom game history. Maglaro muli sa anumang antas. Ang totoong BP ay nangangailangan pa ng hiwalay na verified Mastery Check.'):t('No win or BP was earned. Try again at your preferred difficulty.','Walang panalo o BP na nakuha. Subukan muli sa gusto mong antas.')}</Text>
+   <Pressable onPress={start} style={s.primary}><Text style={s.primaryText}>{t('PLAY AGAIN','ULITIN')}</Text></Pressable>
+   <Pressable onPress={()=>setGamePhase('ready')} style={s.minor}><Text style={s.minorText}>{t('CHANGE DIFFICULTY OR MODE','PALITAN ANG ANTAS O MODE')}</Text></Pressable></View>
   :<>
-   <View style={s.stats}><Text style={s.stat}>{LEVEL_NAMES[level]} • {level+1}/3</Text>
+   <View style={s.stats}><Text style={s.stat}>{LEVEL_NAMES[level]}{mode==='series'?` • ${level+1}/3`:''}</Text>
     <Text style={s.stat}>{game.isCheck()?'CHECK!':t('WHITE TO MOVE','GALAW NG WHITE')}</Text>
     <Text style={s.stat}>{t('UNDO','BAWI')}: {undos}</Text>
     <Pressable onPress={()=>{clearSelection();setGamePhase('paused');}} style={s.minor}><Text style={s.minorText}>{t('PAUSE','IHINTO')}</Text></Pressable></View>
@@ -169,6 +174,7 @@ const s=StyleSheet.create({
  panelTitle:{fontSize:21,color:'#ffefce',fontWeight:'900'},body:{fontSize:13,color:'#dfe5e0',lineHeight:21},
  primary:{backgroundColor:'#e8d6af',padding:13,borderRadius:11,alignItems:'center'},
  primaryText:{fontSize:12,color:'#31454d',fontWeight:'900'},final:{fontSize:43,color:'#ffe1ac',fontWeight:'900'},
+ choiceRow:{flexDirection:'row',flexWrap:'wrap',gap:8},choice:{flexGrow:1,minHeight:44,borderWidth:1,borderColor:'#83999d',borderRadius:9,paddingHorizontal:9,paddingVertical:10,justifyContent:'center',alignItems:'center',backgroundColor:'#203640'},choiceSelected:{borderColor:'#f3d391',backgroundColor:'#465d4c',borderWidth:2},choiceText:{fontSize:11,fontWeight:'800',color:'#fff1d7',textAlign:'center'},
  stats:{flexDirection:'row',flexWrap:'wrap',gap:8,justifyContent:'space-between',alignItems:'center'},
  stat:{fontSize:11,color:'#e2e9e3',fontWeight:'900'},minor:{padding:9,borderColor:'#b7c7c7',borderWidth:1,borderRadius:9},
  minorText:{fontSize:10,color:'#ebebdd',fontWeight:'900'},
