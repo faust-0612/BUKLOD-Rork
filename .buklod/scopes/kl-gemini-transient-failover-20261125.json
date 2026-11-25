@@ -1,0 +1,64 @@
+{
+  "contractVersion": 2,
+  "objective": "Restore KL question generation during transient Gemini provider unavailability using existing Flash-Lite fallback",
+  "baseRef": "main",
+  "productionBaselineEvidence": "Live Supabase KL generator version 3 exact source matched MAIN blob 35f05658a96cd20a3e9f0882333ef6bce28425dc; four 503 provider errors in logs 2026-11-25 15:01–15:03 UTC. No production deployment authorized by this scope.",
+  "chosenApproach": "Bounded provider failover with existing models; preserve authorization and exact evidence validation",
+  "selectionRationale": "Isolated server-side change without new dependencies or client OTA; no extra paid provider",
+  "alternativeApproaches": [
+    "Retry the same unavailable model repeatedly",
+    "Switch all application AI traffic to another provider"
+  ],
+  "acceptanceChecks": [
+    "503 or transport failure switches model and stores five only on validation success",
+    "429 and credential failures stop without additional calls",
+    "No repeat store after ambiguous write outcome; unauthorized and ready requests avoid AI calls"
+  ],
+  "preserveBehaviors": [
+    "Active system admin and approved manuscript checks are unchanged",
+    "Exactly five validated manuscript-grounded questions stored with current manuscript hash; no answer leakage",
+    "No additional provider calls on quota or credential failures; bounded at three requests",
+    "Existing client, rewards and release gate unchanged"
+  ],
+  "riskAreas": [
+    "KL question generation",
+    "provider quotas",
+    "admin authorization"
+  ],
+  "regressionTests": [
+    "tests/kl-generator-supabase-security-failover.test.mjs"
+  ],
+  "allowedPaths": [
+    "supabase/functions/kl-generate-reading-quiz/index.ts",
+    "tests/kl-generator-supabase-security-failover.test.mjs",
+    ".buklod/scopes/kl-gemini-transient-failover-20261125.json"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Handle observed transient Gemini errors without modifying protected validation or access rules",
+      "preservedBehaviors": [
+        "Active system admin and approved manuscript checks are unchanged",
+        "Exactly five validated manuscript-grounded questions stored with current manuscript hash; no answer leakage",
+        "No additional provider calls on quota or credential failures; bounded at three requests",
+        "Existing client, rewards and release gate unchanged"
+      ],
+      "tests": [
+        "tests/kl-generator-supabase-security-failover.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Handle observed transient Gemini errors without modifying protected validation or access rules",
+      "preservedBehaviors": [
+        "Active system admin and approved manuscript checks are unchanged",
+        "Exactly five validated manuscript-grounded questions stored with current manuscript hash; no answer leakage",
+        "No additional provider calls on quota or credential failures; bounded at three requests",
+        "Existing client, rewards and release gate unchanged"
+      ],
+      "tests": [
+        "tests/kl-generator-supabase-security-failover.test.mjs"
+      ]
+    }
+  ]
+}
