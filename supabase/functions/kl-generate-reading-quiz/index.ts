@@ -139,7 +139,7 @@ Deno.serve(async (request: Request) => {
   if (!key) return reply(503, { ok: false, reason: "generator_not_configured" });
 
   // Gemini 2.5 access is restricted for newer projects. Use affordable, current
-  // Flash-Lite models; fall back only when a requested model returns HTTP 404.
+  // Flash-Lite models; fail over on missing models or transient provider outages.
   const configuredModel = (Deno.env.get("KL_QUIZ_GEMINI_MODEL") || "").trim();
   const modelCandidates = [...new Set([
     configuredModel || "gemini-3.5-flash-lite",
@@ -152,9 +152,14 @@ Deno.serve(async (request: Request) => {
   const collected: Question[] = [];
   const usedQuestions = new Set<string>();
   const usedEvidence = new Set<string>();
-  for (const model of modelCandidates) {
+  let providerCalls = 0;
+  let lastFailure = "generator_model_unavailable";
+  modelLoop: for (const model of modelCandidates) {
     let unsupportedModel = false;
     for (let attempt = 0; attempt < 2; attempt++) {
+    if (providerCalls >= 3) break modelLoop;
+    providerCalls++;
+    let providerPending = true;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 24000);
     try {
@@ -191,6 +196,7 @@ Deno.serve(async (request: Request) => {
       if (!response.ok) {
         if (response.status === 404) {
           console.warn("kl_question_model_not_found", model, response.status);
+          lastFailure = "generator_model_unavailable";
           unsupportedModel = true;
           break;
         }
@@ -199,9 +205,15 @@ Deno.serve(async (request: Request) => {
         if (response.status === 401 || response.status === 403)
           return reply(503, { ok: false, reason: "generator_credentials_unavailable" });
         if (response.status === 400) return reply(502, { ok: false, reason: "generator_bad_request" });
+        if ([500, 502, 503, 504].includes(response.status)) {
+          lastFailure = "generator_unavailable";
+          console.warn("kl_question_model_failover", model, response.status);
+          continue modelLoop;
+        }
         return reply(502, { ok: false, reason: "generator_unavailable" });
       }
       const data = await response.json();
+      providerPending = false;
       let parsed: unknown;
       try { parsed = JSON.parse(extractText(data)); } catch { parsed = null; }
       const valid = validatedItems(parsed, context.manuscript, excerpts);
@@ -228,6 +240,13 @@ Deno.serve(async (request: Request) => {
       return reply(200, { ok: true, status: "ready", count: 5, changed: stored?.changed === true });
     } catch (cause) {
       console.error("kl_question_request_error", cause instanceof Error ? cause.name : "unknown");
+      if (providerPending && cause instanceof Error && (cause.name === "AbortError" || cause.name === "TypeError")) {
+        lastFailure = cause.name === "AbortError" ? "generator_timeout" : "generator_unavailable";
+        console.warn("kl_question_model_failover", model, cause.name);
+        continue modelLoop;
+      }
+      // Do not repeat a possibly committed database write after an unknown failure.
+      if (!providerPending) return reply(502, { ok: false, reason: "generator_unavailable" });
       if (attempt === 1) return reply(504, { ok: false, reason: "generator_timeout" });
     } finally {
       clearTimeout(timeout);
@@ -240,5 +259,5 @@ Deno.serve(async (request: Request) => {
       valid_candidates: collected.length,
     });
   }
-  return reply(502, { ok: false, reason: "generator_model_unavailable" });
+  return reply(lastFailure === "generator_timeout" ? 504 : 502, { ok: false, reason: lastFailure });
 });
