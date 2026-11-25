@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/main-conso-backlog-20261125.json",
-  "objective": "Consolidate reviewed MAIN-compatible Connect, Wall/Marites and manual Points client source for independent QA; no release.",
+  "objective": "Consolidate reviewed MAIN-compatible Connect, Wall/Marites, manual Points and pressable Word Scripture client source for independent QA; no release.",
   "baseRef": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
   "productionBaselineEvidence": "Verified GitHub source baseline only; current served production and staging identities not independently verified.",
-  "chosenApproach": "Combine exact disjoint source commits on isolated integration branch, with no new backend or native dependencies.",
+  "chosenApproach": "Combine exact disjoint source commits on isolated integration branch, with no new backend or native dependencies. Intake only the five Word source/test blobs after exact ancestor match; do not import standalone publishing workflow.",
   "allowedPaths": [
     ".buklod/scopes/connect-inbox-staging-20261123.json",
     ".buklod/scopes/main-conso-backlog-20261125.json",
@@ -17,6 +17,7 @@
     "docs/release/BUKLOD_POINTS_STAGING_NO_NEW_SUPABASE_20261124.md",
     "scripts/engineering-regression-gate.mjs",
     "src/app/(tabs)/messages.tsx",
+    "src/app/devotional/[id].tsx",
     "src/components/BuklodConnectThread.tsx",
     "src/components/BuklodMaritesBoard.tsx",
     "src/components/points/BuklodPointsRewardsScreen.tsx",
@@ -27,11 +28,13 @@
     "src/lib/buklodPointsRewardedAd.ts",
     "src/lib/buklodPointsRewardedAd.web.ts",
     "src/lib/buklodRewards.ts",
+    "src/lib/buklodWordBibleReference.ts",
     "src/lib/connectInboxActivity.ts",
     "src/lib/connectInboxSearch.ts",
     "src/lib/connectInboxSignal.ts",
     "src/lib/uploadCommunityVideoFile.ts",
     "src/providers/NotificationProvider.tsx",
+    "tests/bible-navigation.test.cjs",
     "tests/buklod-ad-opportunities.test.cjs",
     "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
@@ -41,12 +44,15 @@
     "tests/marites-wall-upload-behavior-20261124.test.mjs",
     "tests/marites-wall-upload-fastpath-20261124.test.mjs",
     "tests/messenger-inbox-density-20261117.test.mjs",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/protected-feature-lock.test.mjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-scripture-link-20261123.test.cjs"
   ],
   "regressionTests": [
     "__tests__/connectInboxActivity.test.ts",
     "__tests__/connectInboxSearch.test.ts",
     "__tests__/connectInboxSignal.test.ts",
+    "tests/bible-navigation.test.cjs",
     "tests/buklod-ad-opportunities.test.cjs",
     "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
     "tests/cluster-connect-notifications-points-20261108.test.mjs",
@@ -56,7 +62,9 @@
     "tests/marites-wall-upload-behavior-20261124.test.mjs",
     "tests/marites-wall-upload-fastpath-20261124.test.mjs",
     "tests/messenger-inbox-density-20261117.test.mjs",
-    "tests/protected-feature-lock.test.mjs"
+    "tests/protected-feature-lock.test.mjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-scripture-link-20261123.test.cjs"
   ],
   "lockedFeatureChanges": [
     {
@@ -120,12 +128,24 @@
       "tests": [
         "tests/protected-feature-lock.test.mjs"
       ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Open exact Word passage or key verse in existing My Bible reader, without invoking Daily Reading completion.",
+      "preservedBehaviors": [
+        "Preserve Word content, offline cache, Bible translation, reader navigation and assignment completion protections."
+      ],
+      "tests": [
+        "tests/word-bible-navigation-20261123.test.cjs",
+        "tests/bible-navigation.test.cjs"
+      ]
     }
   ],
   "acceptanceChecks": [
     "Verify exact combined source, TypeScript, protected feature tests, media and points regression, AdMob and navigation gates.",
     "No deployment or production merge until exact frozen runtime and live baseline are verified.",
-    "Rewarded bonus remains disabled; no live balance-changing QA."
+    "Rewarded bonus remains disabled; no live balance-changing QA.",
+    "Word verse links open the exact chapter and verse using My Bible and preserve daily assignment, ads and offline behavior."
   ],
   "publicationStatus": "DEV_ONLY_NO_PUBLISH",
   "releaseMode": "consolidated-main-rc",
@@ -145,10 +165,17 @@
     "ads-monetization",
     "app-runtime",
     "ads-finance-points",
-    "governance-lock"
+    "governance-lock",
+    "cluster-faith",
+    "bible-reader-navigation"
   ],
   "preserveBehaviors": [
     "Keep existing account isolation, native/runtime configuration, private media, current Points claim RPC and mandatory protected feature gates.",
     "Do not publish or activate the rewarded bonus, modify the live backend or release Season 2."
-  ]
+  ],
+  "sourceIntakeWord": {
+    "pr": 1143,
+    "sourceSha": "fea85540730a6eb8d6afa832ea16226467dfee7f",
+    "excludedStandalonePublisher": true
+  }
 }
