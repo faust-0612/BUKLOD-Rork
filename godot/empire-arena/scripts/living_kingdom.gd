@@ -545,7 +545,7 @@ func _install_field_panel(layer: CanvasLayer) -> void:
     field_panel.hide()
 
 func _open_field(index: int) -> bool:
-    if not field.begin(quest.mission.get("challenge",{})):
+    if not field.begin(quest.mission.get("challenge",{}),index):
         return false
     field_index = index
     field_panel.show()
@@ -563,8 +563,8 @@ func _refresh_field() -> void:
         if not button.visible:
             continue
         var selected: bool = field.picks.has(i) or field.matched.has(i)
-        button.text = ("✓ " if selected else "") + str(field.spec.items[i])
-        button.disabled = field.preview_left > 0.0 or field.solved or field.matched.has(i)
+        button.text = ("✓ " if selected else "") + field.tile_label(i)
+        button.disabled = field.preview_left > 0.0 or field.reveal_left > 0.0 or field.solved or field.matched.has(i)
 
 func _choose_field(index: int) -> void:
     if field_index < 0 or quest.phase != "active":
@@ -583,7 +583,7 @@ func _choose_field(index: int) -> void:
 
 func _restart_field() -> void:
     if field_index >= 0:
-        field.begin(quest.mission.get("challenge",{}))
+        field.begin(quest.mission.get("challenge",{}),field_index)
         _refresh_field()
 
 func _close_field() -> void:
@@ -682,7 +682,8 @@ func move_to(point: Vector3) -> bool:
     pending_target = -1
     if quest.phase == "active":
         for i in range(int(quest.mission.get("count", 0))):
-            if not quest.visited.has(i) and point.distance_to(mission_targets[i]) <= 2.2:
+            var eligible: bool = quest.mission.get("kind") == "collect" or i == quest.visited.size()
+            if eligible and not quest.visited.has(i) and point.distance_to(mission_targets[i]) <= 2.2:
                 pending_target = i
                 destination = mission_targets[i]
                 break

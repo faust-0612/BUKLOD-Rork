@@ -1,5 +1,6 @@
 extends SceneTree
 const State = preload("res://scripts/kingdom_mission_state.gd")
+const Field = preload("res://scripts/kingdom_field_challenge.gd")
 func _initialize() -> void:
     call_deferred("_run")
 func _run() -> void:
@@ -9,8 +10,19 @@ func _run() -> void:
         quit(1)
         return
     var total := 0
+    var field_total := 0
+    var field = Field.new()
     for realm in raw.realms:
         for mission in realm.missions:
+            for variant in range(int(mission.count)):
+                if not field.begin(mission.challenge,variant) or field.choose(-1):
+                    quit(20)
+                    return
+                if not _solve_field(field):
+                    push_error("Unsolved field challenge: " + str(mission.id))
+                    quit(21)
+                    return
+                field_total += 1
             state.cancel()
             if not state.begin(mission) or state.visit(0, 20.0) or state.finish(0.0):
                 quit(2)
@@ -26,7 +38,7 @@ func _run() -> void:
                 quit(5)
                 return
             total += 1
-    if total != 39 or state.completed.size() != 39:
+    if total != 39 or state.completed.size() != 39 or field_total != 104:
         quit(6)
         return
     var world = load("res://scenes/LivingKingdom.tscn").instantiate()
@@ -100,3 +112,56 @@ func _run() -> void:
         return
     print("BUKLOD_LIVING_KINGDOM_39_MISSIONS_AND_ARRIVAL_PASS")
     quit(0)
+
+func _solve_field(field) -> bool:
+    var data: Dictionary = field.spec
+    match str(data.type):
+        "select":
+            field.choose(int(data.answer))
+        "sequence","memory":
+            if data.type == "memory":
+                if field.choose(0):
+                    return false
+                field.tick(3.1)
+            for x in data.answer:
+                field.choose(int(x))
+        "budget":
+            for mask_value in range(1,1 << data.items.size()):
+                var ids: Array[int] = []
+                var total := 0
+                for i in range(data.items.size()):
+                    if mask_value & (1 << i):
+                        ids.append(i)
+                        total += int(data.items[i])
+                if ids.size() == int(data.limit) and total == int(data.goal):
+                    for i in ids:
+                        field.choose(i)
+                    break
+        "pair":
+            for i in range(data.items.size()):
+                if field.matched.has(i):
+                    continue
+                for j in range(i+1,data.items.size()):
+                    if data.items[i] == data.items[j]:
+                        field.choose(i)
+                        field.choose(j)
+                        break
+        "route":
+            var queue: Array = [[0]]
+            var seen := {0:true}
+            while not queue.is_empty():
+                var path: Array = queue.pop_front()
+                var current: int = path.back()
+                if current == 8:
+                    for i in range(1,path.size()):
+                        field.choose(int(path[i]))
+                    break
+                for i in range(9):
+                    if seen.has(i) or data.items[i] == "Blocked":
+                        continue
+                    if absi(current%3-i%3)+absi(floori(float(current)/3.0)-floori(float(i)/3.0)) == 1:
+                        seen[i] = true
+                        var next := path.duplicate()
+                        next.append(i)
+                        queue.append(next)
+    return field.solved and not field.choose(0)

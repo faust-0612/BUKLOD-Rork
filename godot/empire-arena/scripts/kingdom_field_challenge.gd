@@ -7,19 +7,64 @@ var matched: Dictionary = {}
 var preview_left := 0.0
 var solved := false
 var feedback := ""
-func begin(data: Dictionary) -> bool:
+var reveal_left := 0.0
+var wrong_pair: Array[int] = []
+func begin(data: Dictionary, variant: int = 0) -> bool:
     clear()
     if not str(data.get("type","")) in TYPES or not data.get("items",[]) is Array:
         return false
     var items: Array = data.items
     if items.size() < 2 or items.size() > 9:
         return false
+    var kind := str(data.get("type",""))
+    if kind == "select" and (int(data.get("answer",-1)) < 0 or int(data.get("answer",-1)) >= items.size()):
+        return false
+    if kind in ["sequence","memory"]:
+        var answer: Variant = data.get("answer",[])
+        if not answer is Array or answer.is_empty() or answer.size() > 9:
+            return false
+        for item in answer:
+            if int(item) < 0 or int(item) >= items.size():
+                return false
+    if kind == "budget":
+        if int(data.get("limit",0)) < 1 or int(data.get("limit",0)) > items.size() or int(data.get("goal",0)) <= 0:
+            return false
+        for item in items:
+            if int(item) <= 0:
+                return false
+    if kind == "route" and (items.size() != 9 or str(items[0]) != "Start" or str(items[8]) != "Goal"):
+        return false
+    if kind == "pair":
+        for item in items:
+            if items.count(item) != 2:
+                return false
     spec = data.duplicate(true)
+    _vary(maxi(0,variant))
     if spec.type == "memory":
         preview_left = 3.0
     if spec.type == "route":
         picks.append(0)
     return true
+func _vary(variant: int) -> void:
+    if variant == 0:
+        return
+    if spec.type == "route":
+        if variant % 2 == 1:
+            var original: Array = spec.items.duplicate()
+            for i in range(9):
+                var transposed := (i%3)*3+floori(float(i)/3.0)
+                spec.items[transposed] = original[i]
+        return
+    var old: Array = spec.items.duplicate()
+    var shift := variant % old.size()
+    for i in range(old.size()):
+        spec.items[(i+shift)%old.size()] = old[i]
+    if spec.type == "select":
+        spec.answer = (int(spec.answer)+shift)%old.size()
+    elif spec.type in ["sequence","memory"]:
+        for i in range(spec.answer.size()):
+            spec.answer[i] = (int(spec.answer[i])+shift)%old.size()
+
 func clear() -> void:
     spec.clear()
     picks.clear()
@@ -27,13 +72,21 @@ func clear() -> void:
     preview_left = 0.0
     solved = false
     feedback = ""
+    wrong_pair.clear()
+    reveal_left = 0.0
 func tick(delta: float) -> bool:
-    if preview_left <= 0.0:
-        return false
-    preview_left = maxf(0.0,preview_left-maxf(0.0,delta))
-    return preview_left == 0.0
+    var changed := false
+    if preview_left > 0.0:
+        preview_left = maxf(0.0,preview_left-maxf(0.0,delta))
+        changed = preview_left == 0.0
+    if reveal_left > 0.0:
+        reveal_left = maxf(0.0,reveal_left-maxf(0.0,delta))
+        if reveal_left == 0.0:
+            wrong_pair.clear()
+            changed = true
+    return changed
 func choose(index: int) -> bool:
-    if spec.is_empty() or solved or preview_left > 0.0 or index < 0 or index >= spec.items.size():
+    if spec.is_empty() or solved or preview_left > 0.0 or reveal_left > 0.0 or index < 0 or index >= spec.items.size():
         return false
     feedback = ""
     match str(spec.type):
@@ -71,6 +124,8 @@ func choose(index: int) -> bool:
                     matched[picks[0]] = true
                     matched[picks[1]] = true
                 else:
+                    wrong_pair.assign(picks)
+                    reveal_left = 0.75
                     feedback = "Those do not match. Try again."
                 picks.clear()
             solved = matched.size() == spec.items.size()
@@ -84,6 +139,11 @@ func choose(index: int) -> bool:
             picks.append(index)
             solved = index == 8
     return solved
+func tile_label(index: int) -> String:
+    if spec.type == "pair" and not picks.has(index) and not matched.has(index) and not wrong_pair.has(index):
+        return "Tile " + str(index+1)
+    return str(spec.items[index])
+
 func status() -> String:
     if spec.is_empty():
         return ""

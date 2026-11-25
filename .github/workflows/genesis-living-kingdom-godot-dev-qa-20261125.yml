@@ -6,6 +6,7 @@ on:
       - '.github/workflows/genesis-living-kingdom-godot-dev-qa-20261125.yml'
       - 'godot/empire-arena/**'
       - 'scripts/kingdom-living-realms-catalog.mjs'
+      - 'scripts/kingdom-field-challenges.mjs'
       - 'scripts/kingdom-realm-visual-profiles.mjs'
       - 'scripts/kingdom-original-media.mjs'
       - 'scripts/kingdom-original-media-quality.mjs'
