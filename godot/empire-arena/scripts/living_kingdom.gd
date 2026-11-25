@@ -470,5 +470,6 @@ func get_dev_snapshot() -> Dictionary:
     result["realm_props"] = realm_visuals.get_child(0).get_child_count() if realm_visuals != null and realm_visuals.get_child_count() > 0 else 0
     result["guide_ready"] = guide != null and guide.get_child_count() > 0 and guide_anim != null
     result["original_avatar"] = player != null and player.get_child_count() > 0
+    result["skinned_avatar"] = player != null and not player.find_children("*", "Skeleton3D", true, false).is_empty()
     result["guide_near"] = guide_near
     return result
