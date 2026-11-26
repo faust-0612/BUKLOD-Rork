@@ -6,6 +6,7 @@ import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks
 import { supabase } from '@/lib/supabase';
 import KlAdminMediaUpload from './KlAdminMediaUpload';
 import KlAdminPreview from './KlAdminPreview';
+import { KlSeriesAdmin } from './KlSeriesShelf';
 import { klPreviewReadyForEpisode } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -291,6 +292,7 @@ export default function KlPublishingStudio() {
     <View style={{ gap: 12, padding: 16, backgroundColor: '#182537', borderRadius: 12 }}>
       <Text style={{ color: '#f1d39b', fontWeight: 'bold', fontSize: 18 }}>KL · Content Creation Studio</Text>
       <Text style={{ color: '#e3e8ef' }}>Create, edit and review private media here. Chapter approval and public release remain in Community Wall KL Admin.</Text>
+      <KlSeriesAdmin disabled={workspaceBusy || dirty} onSelect={n=>{if(!id)setSeason(String(n));}}/>
       {feedback ? (
         <Text accessibilityRole="alert" style={{
           padding: 10, borderRadius: 8,
