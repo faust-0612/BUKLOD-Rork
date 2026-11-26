@@ -4,8 +4,8 @@ import { BuklodMentionText } from '@/components/BuklodMentionText';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { readableAccentOnSurface } from '@/lib/buklodTheme';
 
-import { WallPostDesignSurface } from '@/components/BuklodWallPostDesignPicker';
-import { visibleWallPostDesign } from '@/lib/buklodWallPostDesigns';
+import { WallPostDesignSurface, wallFontTextStyle } from '@/components/BuklodWallPostDesignPicker';
+import { visibleWallPostDesign, wallFontForViewer } from '@/lib/buklodWallPostDesigns';
 
 type Props = React.ComponentProps<typeof BuklodMentionText> & {
   /** Media captions stay on one line; short text-only posts use larger type. */
@@ -13,6 +13,7 @@ type Props = React.ComponentProps<typeof BuklodMentionText> & {
   /** Stored author-selected design; no viewer rank gate. */
   designId?: string | null;
   animationActive?: boolean;
+  fontId?: string | null;
 };
 
 const LARGE_TEXT_LIMIT = 80;
@@ -27,6 +28,7 @@ export function BuklodExpandableWallCaption({
   hasMedia = false,
   designId = null,
   animationActive = false,
+  fontId = 'standard',
   ...mentionProps
 }: Props) {
   const { theme } = useBuklodTheme();
@@ -59,9 +61,10 @@ export function BuklodExpandableWallCaption({
         <BuklodMentionText
           {...mentionProps}
           mentionStyle={design ? { color: design.ink, fontWeight: '800' } : mentionStyle}
+          preserveMentionColor={!!design}
           text={visibleText}
           numberOfLines={undefined}
-          style={[mentionProps.style, largeText && styles.largeText, { fontSize: size, lineHeight: Math.round(size * 1.32), textAlign: charCount <= 180 ? 'center' : 'left' }, design && { color: design.ink }]}
+          style={[mentionProps.style, largeText && styles.largeText, { fontSize: size, lineHeight: Math.round(size * 1.32), textAlign: charCount <= 180 ? 'center' : 'left' }, wallFontTextStyle(wallFontForViewer(fontId)), design && { color: design.ink }]}
         />
         {codepoints.length > limit && <Pressable accessibilityRole="button"
           accessibilityLabel={expanded ? 'See less' : 'See more'}
