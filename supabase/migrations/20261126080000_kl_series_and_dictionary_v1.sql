@@ -62,7 +62,10 @@ declare v_published boolean;
 begin
  select published into v_published from public.kl_series_v1 where season_number=new.season_number;
  if not found then raise exception 'Create the series in KL Studio first'; end if;
- if new.status='approved' and new.approved_at is not null and new.release_at is not null and not v_published then raise exception 'Publish the series cover first'; end if;
+ if new.status='approved' and new.approved_at is not null and new.release_at is not null then
+  if not v_published then raise exception 'Publish the series cover first'; end if;
+  if new.season_number>1 and not exists(select 1 from public.kl_quiz_sets q where q.episode_id=new.id and q.status='ready' and q.manuscript_hash=md5(new.manuscript)) then raise exception 'Prepare validated reading quiz before release'; end if;
+ end if;
  return new;
 end $$;
 revoke all on function private.kl_require_series_v1() from public,anon,authenticated;
@@ -282,12 +285,13 @@ begin
  where e.status='approved' and e.release_at<=now() and src.manuscript is not null and length(src.manuscript) between 100 and 200000
  on conflict do nothing;
  select j.* into v from private.kl_dictionary_jobs_v1 j
- where j.attempts<5 and j.next_attempt<=now() and (j.state in ('pending','failed') or (j.state='running' and j.lease_until<now()))
+ where j.next_attempt<=now() and (j.state in ('pending','failed') or (j.state='running' and j.lease_until<now()))
  and j.source_hash=md5(private.kl_dictionary_source_v1(j.episode_id))
  order by j.next_attempt,(select season_number from public.kl_episodes e where e.id=j.episode_id),(select episode_number from public.kl_episodes e where e.id=j.episode_id) limit 1 for update skip locked;
  if not found then return null; end if;
  v_source:=private.kl_dictionary_source_v1(v.episode_id);
- update private.kl_dictionary_jobs_v1 set state='running',attempts=attempts+1,lease_until=now()+interval '3 minutes',lease_token=gen_random_uuid(),updated_at=now() where episode_id=v.episode_id and source_hash=v.source_hash returning * into v;
+ update private.kl_dictionary_jobs_v1 set state='running',attempts=case when attempts>=5 then 1 else attempts+1 end,
+ next_attempt=case when attempts=4 then now()+interval '24 hours' else now() end,lease_until=now()+interval '3 minutes',lease_token=gen_random_uuid(),updated_at=now() where episode_id=v.episode_id and source_hash=v.source_hash returning * into v;
  return jsonb_build_object('episode_id',v.episode_id,'source_hash',v.source_hash,'lease_token',v.lease_token,'manuscript',v_source,'known_names',(select coalesce(jsonb_agg(name order by name),'[]') from (
  select name from private.kl_dictionary_curated_v1
  union select unnest(array['Calen','Balat-batong','Gagambang Pisi','Hindi Nakalimot','ilog na umaakyat','ilog na dumadaloy paakyat','mga ilog na dumadaloy paakyat','mga ilog na hindi dumadaloy pababa','ilog na hindi dumadaloy pababa','pulang latak','Katipunan','pilak na hiblang','tagapag-alaga ng balon'])
@@ -320,7 +324,7 @@ begin
  end if;
  update private.kl_dictionary_jobs_v1 set state=case when p_error is null then 'ready' else 'failed' end,
  entries=coalesce(v_entries,'[]'),last_error=left(p_error,160),lease_until=null,lease_token=null,
- next_attempt=now()+interval '30 minutes'*greatest(attempts,1),updated_at=now()
+ next_attempt=case when attempts>=5 then now()+interval '24 hours' else now()+interval '30 minutes'*greatest(attempts,1) end,updated_at=now()
  where episode_id=p_episode and source_hash=p_hash and lease_token=p_lease and state='running' and lease_until>=now();
  get diagnostics v_count=row_count; return v_count=1;
 end $$;
