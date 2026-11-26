@@ -4,6 +4,7 @@ namespace Buklod.Empire {
     public sealed class BattleHud:MonoBehaviour {
         private BattleView view; private MobileBattleInput input;
         private Canvas canvas;private Sprite circle,reviewControl;
+        internal Sprite ControlPreviewSprite=>reviewControl?reviewControl:circle;
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
@@ -38,7 +39,7 @@ namespace Buklod.Empire {
             mana=ImageAt("Mana",canvas.transform,new Color(.2f,.55f,.95f));mana.sprite=null;
             if(review)BuildReview();
             infoRoot=new GameObject("Safe HUD information",typeof(RectTransform)).GetComponent<RectTransform>();infoRoot.SetParent(canvas.transform,false);infoRoot.SetAsFirstSibling();
-            foreach(var item in new Component[]{status,health,mana,healthTrack,manaTrack,xpTrack,xp,minimap,objective})if(item)item.transform.SetParent(infoRoot,false);
+            foreach(var item in new Component[]{healthTrack,manaTrack,xpTrack,health,mana,xp,minimap,status,objective})if(item)item.transform.SetParent(infoRoot,false);
             Layout();
         }
         private static Sprite MakeReviewControl(){
@@ -82,6 +83,7 @@ namespace Buklod.Empire {
             }
         }
         private void ReviewLayout(){
+            float width=safeArea.width,height=safeArea.height;
             var st=status.rectTransform;st.anchorMin=st.anchorMax=new Vector2(.55f,.94f);st.sizeDelta=new Vector2(width*.63f,height*.065f);
             status.horizontalOverflow=HorizontalWrapMode.Wrap;status.resizeTextForBestFit=true;status.resizeTextMinSize=10;status.resizeTextMaxSize=Mathf.Max(12,(int)(height*.03f));
             var map=minimap.rectTransform;map.anchorMin=new Vector2(.025f,.60f);map.anchorMax=new Vector2(.025f,.60f);map.pivot=Vector2.zero;
@@ -109,9 +111,9 @@ namespace Buklod.Empire {
             if(s.Level>lastLevel){lastLevel=s.Level;announcement="LEVEL "+s.Level+(s.Level==6?"  |  ULTIMATE UNLOCKED":"");announcementUntil=b.Time+2.5f;xpShown=x;nextObjectiveAt=0;}
             float rate=1-Mathf.Exp(-12*Time.unscaledDeltaTime);
             healthShown=Mathf.Lerp(healthShown,h,rate);manaShown=Mathf.Lerp(manaShown,m,rate);xpShown=Mathf.Lerp(xpShown,x,rate);
-            health.rectTransform.sizeDelta=new Vector2(width*.18f*healthShown,height*.018f);
-            mana.rectTransform.sizeDelta=new Vector2(width*.18f*manaShown,height*.013f);
-            xp.rectTransform.sizeDelta=new Vector2(width*.18f*xpShown,height*.009f);
+            health.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*healthShown,safeArea.height*.018f);
+            mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*manaShown,safeArea.height*.013f);
+            xp.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*xpShown,safeArea.height*.009f);
             for(int i=0;i<3;i++)if(cooldown[i+2].fillAmount<=.001f)labels[i+2].text=i==2?"ULT":i==0?"S1":"S2";
             if(b.Time<nextObjectiveAt&&!fresh)return;
             nextObjectiveAt=b.Time+.15f;
@@ -131,7 +133,7 @@ namespace Buklod.Empire {
                 if(i==0)continue;cooldown[i].rectTransform.sizeDelta=t.sizeDelta;labels[i].rectTransform.sizeDelta=t.sizeDelta;labels[i].fontSize=Mathf.Max(12,(int)(height*.025f));
             }
             knob.rectTransform.sizeDelta=Vector2.one*MobileBattleInput.Radius(0)*.7f;
-            var st=status.rectTransform;st.anchorMin=st.anchorMax=new Vector2(.5f,.94f);st.sizeDelta=new Vector2(width*.8f,height*.06f);status.fontSize=Mathf.Max(15,(int)(height*.033f));
+            var st=status.rectTransform;st.anchorMin=st.anchorMax=new Vector2(.5f,.94f);st.sizeDelta=new Vector2(safeArea.width*.8f,safeArea.height*.06f);status.fontSize=Mathf.Max(15,(int)(safeArea.height*.033f));
             if(review)ReviewLayout();
             foreach(var bar in new[]{health,mana}){var t=bar.rectTransform;t.anchorMin=t.anchorMax=new Vector2(.025f,bar==health?.94f:.905f);t.pivot=new Vector2(0,.5f);t.anchoredPosition=Vector2.zero;}
         }
@@ -150,8 +152,8 @@ namespace Buklod.Empire {
             labels[6].text=b.Player.IsRecalling?Mathf.CeilToInt(b.Player.RecallEnds-b.Time).ToString():"RECALL";cooldown[6].fillAmount=0;
             labels[7].text="MINION";labels[8].text="TOWER";cooldown[7].fillAmount=cooldown[8].fillAmount=0;
             int seconds=Mathf.FloorToInt(b.Time);status.text=b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):$"{seconds/60:00}:{seconds%60:00}  Lv {s.Level}  Gold {b.Player.Gold}  K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists}  Units {b.RemainingUnits(ArenaTeam.Lux)}:{b.RemainingUnits(ArenaTeam.Tenebra)}";
-            health.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),height*.018f);
-            mana.rectTransform.sizeDelta=new Vector2(width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),height*.013f);
+            health.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),safeArea.height*.018f);
+            mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),safeArea.height*.013f);
             if(review)ReviewUpdate(b);
         }
         private void OnDestroy(){if(circle){Destroy(circle.texture);Destroy(circle);}if(reviewControl){Destroy(reviewControl.texture);Destroy(reviewControl);}}

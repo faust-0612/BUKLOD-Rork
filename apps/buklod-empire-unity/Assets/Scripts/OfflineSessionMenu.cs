@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
+        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -190,9 +190,16 @@ namespace Buklod.Empire {
             Cell(16,5,4,"ZOOM −",()=>{ArenaControlSettings.ChangeZoom(.1f);Rebuild();});
             Cell(17,5,4,ArenaControlSettings.DetailedInfo?"INFO FULL":"INFO MINIMAL",()=>{ArenaControlSettings.ToggleInfo();Rebuild();});
             Cell(18,5,4,ArenaControlSettings.Fullscreen?"FULLSCREEN ON":"FULLSCREEN OFF",()=>{ArenaControlSettings.ToggleFullscreen();Rebuild();});
-            Cell(19,5,4,"RESET HUD",()=>{ArenaControlSettings.Reset();feedback.text="Default layout restored";Rebuild();});
+            Cell(19,5,4,"DRAG EDITOR",OpenLayoutEditor);
         }
-        private void Resume(){if(Active)Close();}
+        private void OpenLayoutEditor(){
+            if(layoutEditor!=null)return;
+            var hud=view.GetComponent<BattleHud>();
+            if(!hud)return;
+            panelGroup.interactable=false;
+            layoutEditor=new ArenaHudLayoutEditor(safeRoot,font,hud.ControlPreviewSprite,()=>{layoutEditor=null;panelGroup.interactable=true;Rebuild();});
+        }
+        private void Resume(){if(Active&&layoutEditor==null)Close();}
         private void StartNew(){
             if(starting)return;
             if(view.IsEditorReview){StartCoroutine(PrepareReviewMatch());return;}
@@ -226,8 +233,8 @@ namespace Buklod.Empire {
         }
         private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void Update(){
-            if(lastSafe!=MobileBattleInput.SafeArea)ApplySafeArea();
-            if(starting)return;
+            if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
+            if(starting||layoutEditor!=null)return;
             bool finished=view.Battle!=null&&view.Battle.Finished;
             if(finished&&!lastFinished&&view.IsEditorReview){showResult=true;resultRevealAt=Time.unscaledTime;}
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();lastFinished=finished;
