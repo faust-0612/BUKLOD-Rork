@@ -42,7 +42,9 @@ import {
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
 import { memberReadable } from '@/lib/kabihasnang-ligaw/gates';
 import { isLowBandwidth, resolveLivingMotion, visibleLivingLayers } from '@/lib/kabihasnang-ligaw/livingMotion';
-import { dictionaryByName, dictionaryForManuscript, splitDictionaryTerms } from '@/lib/kabihasnang-ligaw/dictionary';
+import { useKlChapterDictionary } from '@/lib/kabihasnang-ligaw/useKlChapterDictionary';
+import { KlSeriesShelf, type KlSeries } from './KlSeriesShelf';
+import KlDynamicLibrary from './KlDynamicLibrary';
 import { KL_SCENE_STILLS } from '@/lib/kabihasnang-ligaw/sceneStills';
 import { splitKlItalics } from '@/lib/kabihasnang-ligaw/italicFormatting';
 import { paragraphDisplayText, splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
@@ -129,6 +131,7 @@ export default function KlReaderScreen() {
   const [previewTarget,setPreviewTarget]=useState<string|null>(null);
   const [cache, setCache] = useState<ReaderCache>(DEFAULT_READER_CACHE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedSeries, setSelectedSeries] = useState<KlSeries | null>(null);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [openTerm, setOpenTerm] = useState<string | null>(null);
   const [lockedId, setLockedId] = useState<string | null>(null);
@@ -193,6 +196,7 @@ export default function KlReaderScreen() {
     bundledText: selected?.prose ?? null,
     cachedText: selected ? cache.releasedProse[selected.id] ?? null : null,
   });
+  const dictionary = useKlChapterDictionary(selectedDbId, reading.text, !!selectedSeries && online && routeFocused && appActive && serverState === 'readable');
   const paragraphs = reading.text ? splitCanonicalParagraphs(reading.text, selected?.episodeNumber ?? 0) : [];
   const sceneRows = STORYBOARD.filter((row) => row.episodeId === selected?.id);
   const revealStart = sceneRows.find((row) => row.spoiler)?.paragraphRange?.start ?? null;
@@ -239,12 +243,7 @@ export default function KlReaderScreen() {
       try {
         const parsed = sanitizeReaderCache(JSON.parse(raw) as ReaderCache);
         setCache(parsed);
-        const restored = EPISODES.find((episode) => episode.id === parsed.lastEpisodeId);
-        const restoredAssets = ASSETS.filter((asset) => asset.episodeId === restored?.id);
-        const restoredReadable = restored
-          ? memberReadable(restored, restoredAssets, new Date(), STORYBOARD).readable
-          : false;
-        setSelectedId(restoredReadable ? parsed.lastEpisodeId : null);
+        // Always enter the bookshelf. The existing Continue card retains the bookmark.
       } catch {
         setNotice(klCopy.couldNotOpen);
       }
@@ -604,6 +603,7 @@ export default function KlReaderScreen() {
     setMediaUrls({});
     setMediaErrors({});
     setSelectedId(episodeId);
+    setOpenTerm(null);
     setGlossaryOpen(false);
     let nextCache = rememberScroll(cache, episodeId, 0, readable);
     try {
@@ -694,7 +694,7 @@ export default function KlReaderScreen() {
   const nextEpisode = selectedIndex >= 0 && selectedIndex < EPISODES.length - 1
     ? EPISODES[selectedIndex + 1]
     : null;
-  const openTermEntry = openTerm ? dictionaryByName(openTerm) : null;
+  const openTermEntry = openTerm ? dictionary.byName(openTerm) : null;
   const readingOpen = Boolean(selected && paragraphs.length > 0);
   const liveReleased = Boolean(selected && (decision?.readable || releasedNumbers.has(selected.episodeNumber)));
 
@@ -719,7 +719,11 @@ export default function KlReaderScreen() {
         onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
       >
         <Stack.Screen options={{ title: selected ? selectedTitle : 'Kabihasnang Ligaw' }} />
-        {readingOpen && selected ? (
+        {!selectedSeries || (!selectedSeries.published && !isSystemAdmin) ? (
+          <KlSeriesShelf isAdmin={isSystemAdmin} onOpen={row=>{setSelectedSeries(row);scrollTop();}}/>
+        ) : selectedSeries.season_number !== 1 ? (
+          <KlDynamicLibrary key={selectedSeries.season_number} series={selectedSeries} isAdmin={isSystemAdmin} onBack={()=>{setSelectedSeries(null);scrollTop();}}/>
+        ) : readingOpen && selected ? (
           <View
             style={styles.reader}
             onLayout={(event) => {
@@ -783,7 +787,7 @@ export default function KlReaderScreen() {
               const hasAnchoredImage = beforeImages.length + afterImages.length > 0;
               const displayText = paragraphDisplayText(paragraph);
               const italicRuns = splitKlItalics(displayText, 1, selected?.episodeNumber);
-              const dictionaryParts = italicRuns.flatMap(run => splitDictionaryTerms(run.text).map(part => ({ ...part, italic: run.italic })) );
+              const dictionaryParts = italicRuns.flatMap(run => dictionary.split(run.text).map(part => ({ ...part, italic: run.italic })) );
               // Android can clip complex nested Text spans containing newlines.
               // Render ordinary prose as one direct Text child; only wrap inline
               // Text nodes when the paragraph actually contains glossary links.
@@ -905,7 +909,7 @@ export default function KlReaderScreen() {
               <View style={styles.panel}>
                 <Text style={styles.panelTitle}>{klCopy.glossary}</Text>
                 <Text style={styles.meta}>{klCopy.glossaryNote}</Text>
-                {dictionaryForManuscript(reading.text ?? '').map((entry) => (
+                {dictionary.forManuscript(reading.text ?? '').map((entry) => (
                   <Pressable key={entry.name} accessibilityRole="button" onPress={() => setOpenTerm(entry.name)}>
                     <Text style={styles.term}>{entry.name}</Text>
                     <Text style={styles.meta}>{entry.kind}</Text>
@@ -927,11 +931,12 @@ export default function KlReaderScreen() {
           </View>
         ) : (
           <View style={styles.list}>
+            <Pressable accessibilityRole="button" onPress={()=>{closeReader();setSelectedSeries(null);}}><Text style={styles.term}>‹ Bumalik sa mga serye</Text></Pressable>
             <View style={{ marginHorizontal: compact ? -16 : -24 }}>
               <KlCoverImage variant="hero" lowBandwidth={false} />
             </View>
             <Text style={styles.kicker}>{klCopy.libraryKicker} · MGA KABANATA</Text>
-            <Text style={[styles.title, compact && styles.titleCompact]}>{KL_SEASON_ONE_TITLE}</Text>
+            <Text style={[styles.title, compact && styles.titleCompact]}>{selectedSeries.title || KL_SEASON_ONE_TITLE}</Text>
             <Text style={styles.by}>{KL_AUTHOR}</Text>
             <Text style={styles.lede}>{klCopy.librarySubtitle}</Text>
             <Text style={styles.meta}>{klCopy.libraryHint}</Text>
