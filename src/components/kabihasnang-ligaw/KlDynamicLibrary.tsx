@@ -1,3 +1,4 @@
+import { splitKlItalics } from '@/lib/kabihasnang-ligaw/italicFormatting';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import { useFocusEffect } from 'expo-router';
 import {AppState,Pressable,Text,View} from 'react-native';
@@ -82,7 +83,7 @@ export default function KlDynamicLibrary(){
  {media.filter(m=>m.kind==='cover').map(image)}
  {paragraphs.map((p,i)=><View key={i} style={{gap:8}}>
  {illustrationsAtParagraph(media,p,'before').map(image)}
- <Text style={{color:'#fff',fontSize:18,lineHeight:29}}>{p}</Text>
+ <Text style={{color:'#fff',fontSize:18,lineHeight:29}}>{splitKlItalics(p,chapter.season_number,chapter.episode_number).some(run=>run.italic) ? splitKlItalics(p,chapter.season_number,chapter.episode_number).map((run,j)=><Text key={j} style={run.italic ? {fontStyle:'italic'} : undefined}>{run.text}</Text>) : p}</Text>
  {illustrationsAtParagraph(media,p,'after').map(image)}
  </View>)}
  <KlReadingQuiz key={chapter.id} episodeId={chapter.id}/>

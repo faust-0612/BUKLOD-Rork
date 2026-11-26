@@ -1,0 +1,70 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-kl-formatting-parity-20261126.json",
+  "objective": "Reconcile exact MAIN backlog KL glossary and manuscript italic rendering with Genesis staging, without modifying live content, database, native dependencies, release routing or publication.",
+  "baseRef": "c32641619544ca94ff965422734bb400ee205455",
+  "productionBaselineEvidence": "MAIN source 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04; source only. Existing staging signed runtime 2.0.6 remains unchanged; no new runtime or deployment proof.",
+  "chosenApproach": "Carry exact ten MAIN backlog blobs from frozen def54c7 after inspecting baseline, existing staging glossary and reader subset, and the updated renderer/clipboard dependency. Isolated QA branch only; no wholesale MAIN merge.",
+  "selectionRationale": "Three preview/admin components match baseline; staging reader already has glossary filtering, included in source; glossary evolution supersedes earlier definitions and tests, and no package changes needed because expo-clipboard and paragraphBlocks already exist.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-kl-formatting-parity-20261126.json",
+    "__tests__/klManuscriptItalics.test.ts",
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/lib/kabihasnang-ligaw/dictionary.ts",
+    "src/lib/kabihasnang-ligaw/dictionaryExtras.ts",
+    "src/lib/kabihasnang-ligaw/italicFormatting.ts",
+    "src/lib/kabihasnang-ligaw/releasedItalicRules.ts",
+    "tests/kl-dictionary-expansion-20261119.test.mjs"
+  ],
+  "regressionTests": [
+    "__tests__/klManuscriptItalics.test.ts",
+    "tests/kl-dictionary-expansion-20261119.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Port scoped KL dictionary and formatting from reviewed MAIN backlog without modifying native runtime.",
+      "preservedBehaviors": [
+        "Preserve approved manuscript text, quiz hashes, existing access rules and publishing protections; render-only legacy rules match exact paragraphs."
+      ],
+      "tests": [
+        "tests/kl-dictionary-expansion-20261119.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Run real dictionary and manuscript formatting tests, TypeScript, AdMob and navigation release guards for combined source.",
+    "Confirm protected chapter access, clipboard round trip and released manuscript wording; no live writes.",
+    "Keep KL backend source repair held; no shared backend changes or publication."
+  ],
+  "preserveBehaviors": [
+    "Existing released manuscript data, native runtime, account permissions and OTA isolation remain unchanged."
+  ],
+  "alternativeApproaches": [
+    "Wholesale MAIN merge rejected: Genesis-specific UI and rewards differ.",
+    "Skip all KL formatting rejected: existing parity gap remains."
+  ],
+  "riskAreas": [
+    "story",
+    "app-runtime"
+  ],
+  "publicationStatus": "QA_ONLY_NO_PUBLISH",
+  "sourceIntake": {
+    "sourceSha": "def54c7f83f49f1ea832bd6f8ece00a531912673",
+    "blobs": {
+      "__tests__/klManuscriptItalics.test.ts": "fe908649d752024ce44d79c7899348fcdc4955aa",
+      "src/components/kabihasnang-ligaw/KlAdminPreview.tsx": "90fc05413c6ebe320d9416b1477e207edc798156",
+      "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx": "7c1bc1c389a8537a7626e99642ad70516c4982b9",
+      "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx": "10dad97c842036cc26ff6f703c6dc3f12d83775e",
+      "src/components/kabihasnang-ligaw/KlReaderScreen.tsx": "befd92ad17389d51cf1d5819afaf56a0e2766fc2",
+      "src/lib/kabihasnang-ligaw/dictionary.ts": "b70e503a4e25a407718a8de53376da9328c49f6e",
+      "src/lib/kabihasnang-ligaw/dictionaryExtras.ts": "0e4c438af156f280bccdfb470511ad3e4a91eac0",
+      "src/lib/kabihasnang-ligaw/italicFormatting.ts": "32afdcc8a18dc169cf82df9fcb2476693f966353",
+      "src/lib/kabihasnang-ligaw/releasedItalicRules.ts": "4d763c76e6628113b0137d8649545ec18856ab80",
+      "tests/kl-dictionary-expansion-20261119.test.mjs": "04a2fc1b146cedbdffa6c64dd68f2ee1b6e50b32"
+    }
+  }
+}
