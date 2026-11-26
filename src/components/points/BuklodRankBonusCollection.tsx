@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { showBuklodRankBonusAd } from '@/lib/buklodRewardedAds';
+import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 import { RANK_BONUS_REMINDER_POLICY } from '@/lib/buklodRankBonusReminder';
 
 type Bonus = { bonus_key: string; title: string; available_at: string };
@@ -15,12 +17,20 @@ export default function BuklodRankBonusCollection() {
   return accountId ? <AccountCollection key={accountId} userId={accountId}/> : null;
 }
 function AccountCollection({userId}:{userId:string}) {
+  const {config}=useRuntimeConfig();
+  const redeemEnabled=config?.features?.rank_bonus_redemption===true&&config?.features?.rank_wall_designs===true;
   const [bonuses,setBonuses]=useState<Bonus[]>([]);
   const [pref,setPref]=useState<Preference>(EMPTY);
   const [loading,setLoading]=useState(true);
   const [loaded,setLoaded]=useState(false);
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState('');
+  const [redeeming,setRedeeming]=useState<string|null>(null);
+  const [verifyingUntil,setVerifyingUntil]=useState<Record<string,number>>({});
+  const [status,setStatus]=useState('');
+  const redeemLock=useRef(false);
+  const mounted=useRef(true);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   const epoch=useRef(0);
   const writeLock=useRef(false);
   const load=useCallback(async()=>{
@@ -54,19 +64,45 @@ function AccountCollection({userId}:{userId:string}) {
     }catch{if(seq===epoch.current)setError('Could not save reminder preference. Try again.');}
     finally{writeLock.current=false;if(seq===epoch.current)setSaving(false);}
   };
+  const redeem=async(bonusKey:string)=>{
+    if(!redeemEnabled||redeemLock.current||saving||loading||Date.now()<(verifyingUntil[bonusKey]??0))return;
+    redeemLock.current=true;setRedeeming(bonusKey);setStatus('');setError('');
+    try{
+      const result=await showBuklodRankBonusAd(userId,bonusKey);
+      if(!mounted.current)return;
+      if(!result.earned){setStatus('Bonus retained. You can redeem it later.');return;}
+      setVerifyingUntil(prev=>({...prev,[bonusKey]:Date.now()+120000}));
+      setStatus('Ad completed. Waiting for verified reward confirmation.');
+      let confirmed=false;
+      for(const wait of [800,1500,3000]){
+        await new Promise(resolve=>setTimeout(resolve,wait));
+        if(!mounted.current)return;
+        const {data,error}=await (supabase as any).from('buklod_rank_bonus_ledger_v1').select('redeemed_at,revoked_at').eq('user_id',userId).eq('bonus_key',bonusKey).maybeSingle();
+        if(!error&&data?.redeemed_at&&!data?.revoked_at){confirmed=true;break;}
+      }
+      if(!mounted.current)return;
+      if(confirmed){setStatus('Signature frame redeemed! Available in Wall post design.');await load();}
+      else setStatus('Verification pending. Refresh collections before watching again. Your reward is preserved.');
+    }catch{if(mounted.current)setStatus('Reward status unavailable. Refresh collections; do not repeat the ad yet.');}
+    finally{redeemLock.current=false;if(mounted.current)setRedeeming(null);}
+  };
   if(loading)return <ActivityIndicator accessibilityLabel="Loading bonus collections" color="#176C43"/>;
   if(!loaded)return <View style={styles.card}><Text style={styles.heading}>My Bonus Collections</Text><Text accessibilityRole="alert" style={styles.error}>{error || 'Collections unavailable.'}</Text><Pressable accessibilityRole="button" onPress={()=>void load()}><Text style={styles.action}>Try again</Text></Pressable></View>;
   return <View style={styles.card}>
     <Text style={styles.heading}>My Bonus Collections</Text>
     <Text style={styles.body}>{bonuses.length} unredeemed</Text>
-    {bonuses.map(b=><Text key={b.bonus_key} style={styles.item}>{b.title} · Pending</Text>)}
+    {bonuses.map(b=><View key={b.bonus_key} style={{gap:4}}><Text style={styles.item}>{b.title} · Pending</Text>
+      {redeemEnabled&&<Pressable accessibilityRole="button" disabled={!!redeeming||saving||Date.now()<(verifyingUntil[b.bonus_key]??0)} onPress={()=>void redeem(b.bonus_key)}>
+        <Text style={styles.action}>{redeeming===b.bonus_key?'Checking reward…':Date.now()<(verifyingUntil[b.bonus_key]??0)?'Verification pending':'Watch ad & redeem this frame'}</Text>
+      </Pressable>}</View>)}
+    {!!status&&<Text accessibilityLiveRegion="polite" style={styles.body}>{status}</Text>}
     {error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}
-    <Pressable accessibilityRole="button" disabled={saving} onPress={()=>void load()}><Text style={styles.action}>Refresh collections</Text></Pressable>
-    <Pressable accessibilityRole="switch" accessibilityState={{checked:pref.reminders_enabled,disabled:saving}} disabled={saving}
+    <Pressable accessibilityRole="button" disabled={saving||!!redeeming} onPress={()=>void load()}><Text style={styles.action}>Refresh collections</Text></Pressable>
+    <Pressable accessibilityRole="switch" accessibilityState={{checked:pref.reminders_enabled,disabled:saving||!!redeeming}} disabled={saving||!!redeeming}
       onPress={()=>void save({reminders_enabled:!pref.reminders_enabled,snoozed_until:null})}>
       <Text style={styles.action}>Reward reminders: {pref.reminders_enabled?'On':'Off'}</Text>
     </Pressable>
-    {pref.reminders_enabled&&bonuses.length>0?<Pressable accessibilityRole="button" disabled={saving}
+    {pref.reminders_enabled&&bonuses.length>0?<Pressable accessibilityRole="button" disabled={saving||!!redeeming}
       onPress={()=>void save({...pref,snoozed_until:new Date(Date.now()+RANK_BONUS_REMINDER_POLICY.snoozeDelayMs).toISOString()})}>
       <Text style={styles.action}>Remind me in 7 days</Text>
     </Pressable>:null}
