@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { AdminGate } from '@/components/AdminGate';
-import { Card, SectionTitle, shared } from '@/components/UI';
+import { Card, SectionTitle } from '@/components/UI';
+import { useAdminShared } from '@/components/useAdminShared';
 import { supabase } from '@/lib/supabase';
 
 export default function PilotContentAdmin(){
+  const shared = useAdminShared();
   const [templates,setTemplates]=useState<any[]>([]);
   const [articles,setArticles]=useState<any[]>([]);
 

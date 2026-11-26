@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { AdminGate } from '@/components/AdminGate';
-import { Button, Card, shared } from '@/components/UI';
+import { Button, Card } from '@/components/UI';
+import { useAdminShared } from '@/components/useAdminShared';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { supabase } from '@/lib/supabase';
 import { appEnvironment } from '@/lib/environment';
 import { colors } from '@/lib/theme';
 
 export default function RuntimeAdmin(){
+  const shared = useAdminShared();
+  const { theme } = useBuklodTheme();
+  const inputTheme = { color: theme.textPrimary, backgroundColor: theme.inputSurface, borderColor: theme.border };
   const [maintenance,setMaintenance]=useState(false);
   const [maintenanceMessage,setMaintenanceMessage]=useState('');
   const [minVersion,setMinVersion]=useState('1.0.0');
@@ -62,17 +67,17 @@ export default function RuntimeAdmin(){
             </View>
             <Switch value={maintenance} onValueChange={setMaintenance}/>
           </View>
-          <TextInput style={styles.area} multiline value={maintenanceMessage}
+          <TextInput style={[styles.area, inputTheme]} placeholderTextColor={theme.textMuted} multiline value={maintenanceMessage}
             onChangeText={setMaintenanceMessage} placeholder="Maintenance message"/>
         </Card>
 
         <Card>
           <Text style={shared.h2}>Version Gate</Text>
-          <TextInput style={styles.input} value={minVersion} onChangeText={setMinVersion}
+          <TextInput style={[styles.input, inputTheme]} placeholderTextColor={theme.textMuted} value={minVersion} onChangeText={setMinVersion}
             placeholder="Minimum supported version"/>
-          <TextInput style={styles.input} value={recommendedVersion} onChangeText={setRecommendedVersion}
+          <TextInput style={[styles.input, inputTheme]} placeholderTextColor={theme.textMuted} value={recommendedVersion} onChangeText={setRecommendedVersion}
             placeholder="Recommended version"/>
-          <TextInput style={styles.area} multiline value={updateMessage}
+          <TextInput style={[styles.area, inputTheme]} placeholderTextColor={theme.textMuted} multiline value={updateMessage}
             onChangeText={setUpdateMessage} placeholder="Update message"/>
         </Card>
 
@@ -88,9 +93,9 @@ export default function RuntimeAdmin(){
 
         <Card>
           <Text style={shared.h2}>Release Notes</Text>
-          <TextInput style={styles.input} value={releaseTitle} onChangeText={setReleaseTitle}
+          <TextInput style={[styles.input, inputTheme]} placeholderTextColor={theme.textMuted} value={releaseTitle} onChangeText={setReleaseTitle}
             placeholder="Release title"/>
-          <TextInput style={styles.area} multiline value={releaseNotes} onChangeText={setReleaseNotes}
+          <TextInput style={[styles.area, inputTheme]} placeholderTextColor={theme.textMuted} multiline value={releaseNotes} onChangeText={setReleaseNotes}
             placeholder="What's new in this pilot build?"/>
         </Card>
 
