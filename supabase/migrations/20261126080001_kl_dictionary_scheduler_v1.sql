@@ -14,7 +14,7 @@ begin
  if not exists(select 1 from public.kl_episodes e cross join lateral (select private.kl_dictionary_source_v1(e.id) manuscript) s
  left join private.kl_dictionary_jobs_v1 j on j.episode_id=e.id and j.source_hash=md5(s.manuscript)
  where s.manuscript is not null and length(s.manuscript) between 100 and 200000 and
- (j.episode_id is null or (j.attempts<5 and j.next_attempt<=now() and (j.state in ('pending','failed') or (j.state='running' and j.lease_until<now()))))) then return null; end if;
+ (j.episode_id is null or (j.next_attempt<=now() and (j.state in ('pending','failed') or (j.state='running' and j.lease_until<now()))))) then return null; end if;
  select net.http_post(url:=u,headers:=jsonb_build_object('Authorization','Bearer '||k,'Content-Type','application/json'),body:='{}'::jsonb,timeout_milliseconds:=60000) into r;
  return r;
 end $$;
