@@ -719,7 +719,7 @@ export default function KlReaderScreen() {
         onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => syncViewport(event.nativeEvent.contentOffset.y)}
       >
         <Stack.Screen options={{ title: selected ? selectedTitle : 'Kabihasnang Ligaw' }} />
-        {!selectedSeries ? (
+        {!selectedSeries || (!selectedSeries.published && !isSystemAdmin) ? (
           <KlSeriesShelf isAdmin={isSystemAdmin} onOpen={row=>{setSelectedSeries(row);scrollTop();}}/>
         ) : selectedSeries.season_number !== 1 ? (
           <KlDynamicLibrary key={selectedSeries.season_number} series={selectedSeries} isAdmin={isSystemAdmin} onBack={()=>{setSelectedSeries(null);scrollTop();}}/>
