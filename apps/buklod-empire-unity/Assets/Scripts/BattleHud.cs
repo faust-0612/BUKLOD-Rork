@@ -11,7 +11,7 @@ namespace Buklod.Empire {
         private ReviewMinimap minimap;private readonly ReviewSkillGlyph[] glyphs=new ReviewSkillGlyph[3];
         private OfflineBattle hudMatch;private int lastLevel;private float healthShown,manaShown,xpShown,announcementUntil,nextObjectiveAt;
         private string announcement="";private bool review;
-        private int width,height;private Rect safeArea;
+        private int width,height,layoutRevision=-1;private Rect safeArea;private RectTransform infoRoot;
         private Image ImageAt(string name,Transform parent,Color tint){
             var go=new GameObject(name,typeof(RectTransform),typeof(CanvasRenderer),typeof(Image));go.transform.SetParent(parent,false);
             var i=go.GetComponent<Image>();i.sprite=circle;i.color=tint;i.raycastTarget=false;return i;
@@ -37,6 +37,8 @@ namespace Buklod.Empire {
             health=ImageAt("Health",canvas.transform,new Color(.2f,.85f,.38f));health.sprite=null;
             mana=ImageAt("Mana",canvas.transform,new Color(.2f,.55f,.95f));mana.sprite=null;
             if(review)BuildReview();
+            infoRoot=new GameObject("Safe HUD information",typeof(RectTransform)).GetComponent<RectTransform>();infoRoot.SetParent(canvas.transform,false);infoRoot.SetAsFirstSibling();
+            foreach(var item in new Component[]{status,health,mana,healthTrack,manaTrack,xpTrack,xp,minimap,objective})if(item)item.transform.SetParent(infoRoot,false);
             Layout();
         }
         private static Sprite MakeReviewControl(){
@@ -123,7 +125,8 @@ namespace Buklod.Empire {
             objective.text=nearest!=null?$"{nearest.Kind}  |  HP {Mathf.CeilToInt(nearest.Health)}/{Mathf.CeilToInt(nearest.MaxHealth)}":$"GENESIS RIFT  |  Relics {p.Relics.Count}  |  Equipment {p.Gear.Count}/6";
         }
         private void Layout(){
-            width=Screen.width;height=Screen.height;safeArea=MobileBattleInput.SafeArea;
+            width=Screen.width;height=Screen.height;safeArea=MobileBattleInput.SafeArea;layoutRevision=ArenaControlSettings.Revision;
+            infoRoot.anchorMin=Normalized(safeArea.min);infoRoot.anchorMax=Normalized(safeArea.max);infoRoot.offsetMin=infoRoot.offsetMax=Vector2.zero;
             for(int i=0;i<buttons.Length;i++){var t=buttons[i].rectTransform;t.anchorMin=t.anchorMax=Normalized(MobileBattleInput.PixelCenter(i));t.anchoredPosition=Vector2.zero;t.sizeDelta=Vector2.one*MobileBattleInput.Radius(i)*2;
                 if(i==0)continue;cooldown[i].rectTransform.sizeDelta=t.sizeDelta;labels[i].rectTransform.sizeDelta=t.sizeDelta;labels[i].fontSize=Mathf.Max(12,(int)(height*.025f));
             }
@@ -134,7 +137,9 @@ namespace Buklod.Empire {
         }
         private Vector2 Normalized(Vector2 pixel)=>new Vector2(pixel.x/Mathf.Max(1,width),pixel.y/Mathf.Max(1,height));
         private void Update(){
-            if(width!=Screen.width||height!=Screen.height||safeArea!=MobileBattleInput.SafeArea)Layout();
+            if(width!=Screen.width||height!=Screen.height||safeArea!=MobileBattleInput.SafeArea||layoutRevision!=ArenaControlSettings.Revision)Layout();
+            if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
+            if(minimap)minimap.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
             var stick=buttons[0].rectTransform;stick.anchorMin=stick.anchorMax=Normalized(input.MovementCenter);
             for(int i=1;i<buttons.Length;i++)buttons[i].rectTransform.localScale=Vector3.one*(input.ActiveSkill==i?.92f:1f);
             var b=view.Battle;if(b==null)return;var s=b.Player.State;

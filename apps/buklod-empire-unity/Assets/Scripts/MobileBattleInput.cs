@@ -5,16 +5,16 @@ using Touch=UnityEngine.InputSystem.EnhancedTouch.Touch;
 namespace Buklod.Empire {
     // Independent fingers for movement and aimed skill; release-to-cast, cancel on focus loss.
     public sealed class MobileBattleInput:MonoBehaviour {
-        public static readonly Vector2[] Centers={new Vector2(.14f,.22f),new Vector2(.87f,.18f),new Vector2(.73f,.22f),new Vector2(.82f,.40f),new Vector2(.94f,.40f),new Vector2(.69f,.40f),new Vector2(.56f,.23f),new Vector2(.78f,.075f),new Vector2(.95f,.075f)};
+        public static Vector2[] Centers=>ArenaControlSettings.Centers;
         public static Rect SafeArea=>ArenaTouchLayout.Safe(Screen.safeArea,Screen.width,Screen.height);
-        public static float Radius(int index)=>ArenaTouchLayout.Radius(SafeArea,index);
-        public static Vector2 PixelCenter(int index)=>ArenaTouchLayout.Center(SafeArea,Centers[index]);
+        public static float Radius(int index)=>ArenaControlSettings.Radius(SafeArea,index);
+        public static Vector2 PixelCenter(int index)=>ArenaControlSettings.Center(SafeArea,index);
         public Vector2 MovementCenter=>movement==null?PixelCenter(0):origin;
         public Vector2 Joystick {get;private set;}
         public Vector2 Aim {get;private set;}
         public int ActiveSkill {get;private set;}=-1;
         private Finger movement,skill;
-        private Vector2 origin;
+        private Vector2 origin,contactOrigin;
         private Rect lastArea;
         private BattleView view;
         public void Bind(BattleView battle){view=battle;}
@@ -26,14 +26,13 @@ namespace Buklod.Empire {
         private void Down(Finger finger){
             var at=finger.currentTouch.screenPosition;
             if(!SafeArea.Contains(at))return;
-            if(movement==null&&ArenaTouchLayout.InMovementZone(SafeArea,at)){
-                movement=finger;origin=ArenaTouchLayout.ClampCenter(SafeArea,at,Radius(0));UpdateMove(at);return;
+            int button=ArenaControlSettings.Nearest(SafeArea,at);
+            if(button>0){if(skill==null){skill=finger;ActiveSkill=button;Aim=Vector2.zero;}return;}
+            if(movement==null&&ArenaControlSettings.InMovementZone(SafeArea,at)){
+                movement=finger;contactOrigin=at;origin=ArenaTouchLayout.ClampCenter(SafeArea,at,Radius(0));Joystick=Vector2.zero;
             }
-            if(skill!=null)return;
-            int button=ArenaTouchLayout.Nearest(SafeArea,Centers,at);
-            if(button>0){skill=finger;ActiveSkill=button;Aim=Vector2.zero;}
         }
-        private void UpdateMove(Vector2 at){Joystick=ArenaTouchLayout.Stick(at-origin,Radius(0));}
+        private void UpdateMove(Vector2 at){Joystick=ArenaTouchLayout.Stick(at-contactOrigin,Radius(0));}
         private void Move(Finger finger){
             var at=finger.currentTouch.screenPosition;
             if(finger==movement)UpdateMove(at);

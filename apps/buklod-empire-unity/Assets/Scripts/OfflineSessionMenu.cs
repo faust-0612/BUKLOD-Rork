@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
+        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -34,7 +34,7 @@ namespace Buklod.Empire {
             var btn=ButtonAt(text,body,new Vector2(x+.008f,y+.015f),new Vector2(x+1f/cols-.008f,y+1f/rows-.015f),text,action);btn.interactable=enabled;
         }
         private void Awake(){
-            view=GetComponent<BattleView>();reviewPortraits=view.IsEditorReview?GetComponent<ReviewPortraits>():null;font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");selected=view.selectedHero;
+            view=GetComponent<BattleView>();reviewPortraits=view.IsEditorReview?GetComponent<ReviewPortraits>():null;font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");selected=view.selectedHero;ArenaControlSettings.ApplyFullscreen();
             if(!EventSystem.current)ownedEventSystem=new GameObject("Offline UI EventSystem",typeof(EventSystem),typeof(InputSystemUIInputModule));
             canvas=Rect("Offline session UI",transform,Vector2.zero,Vector2.one);
             var c=canvas.gameObject.AddComponent<Canvas>();c.renderMode=RenderMode.ScreenSpaceOverlay;c.sortingOrder=100;
@@ -42,10 +42,12 @@ namespace Buklod.Empire {
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             safeRoot=Rect("Safe menu area",canvas,Vector2.zero,Vector2.one);ApplySafeArea();
             ButtonAt("Menu",safeRoot,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
+            ButtonAt("Zoom in",safeRoot,new Vector2(.91f,.81f),new Vector2(.99f,.89f),"+",()=>ArenaControlSettings.ChangeZoom(-.1f));
+            ButtonAt("Zoom out",safeRoot,new Vector2(.91f,.71f),new Vector2(.99f,.79f),"−",()=>ArenaControlSettings.ChangeZoom(.1f));
             panel=Rect("Session panel",safeRoot,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;panelGroup=panel.gameObject.AddComponent<CanvasGroup>();
             title=Label("Title",panel,new Vector2(.08f,.88f),new Vector2(.92f,.98f),"OFFLINE TRAINING",36);
             summary=Label("Summary",panel,new Vector2(.04f,.80f),new Vector2(.96f,.88f),"",21);
-            string[] tabs=view.IsEditorReview?new[]{"HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD"};
+            string[] tabs=view.IsEditorReview?new[]{"HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS","HUD"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","HUD"};
             for(int i=0;i<tabs.Length;i++){int tab=i;float step=.93f/tabs.Length;ButtonAt(tabs[i],panel,new Vector2(.035f+i*step,.72f),new Vector2(.035f+(i+1)*step-.01f,.79f),tabs[i],()=>{showResult=false;page=tab;feedback.text="";Rebuild();});}
             body=Rect("Commands",panel,new Vector2(.035f,.18f),new Vector2(.965f,.71f));
             feedback=Label("Feedback",panel,new Vector2(.03f,.10f),new Vector2(.97f,.18f),"",20);
@@ -153,6 +155,8 @@ namespace Buklod.Empire {
             }else if(page==4&&b!=null){
                 var bank=b.GetVillage(p.Team);summary.text=$"Village gold {bank.Gold:0}  •  Buy 10 units / 15 gold  •  Sell 10 units / 6 gold  •  Living market required";
                 int i=0;foreach(var kind in new[]{VillageResourceKind.Wood,VillageResourceKind.Stone,VillageResourceKind.Food,VillageResourceKind.Crystal}){var k=kind;Cell(i++,4,2,"Buy "+k,()=>Reply(b.TradePlayerResource(k,true),"Trade complete"),active);Cell(i++,4,2,"Sell "+k,()=>Reply(b.TradePlayerResource(k,false),"Trade complete"),active);}
+            }else if(page==(view.IsEditorReview?7:6)){
+                ControlSettingsPage();
             }else if(page==6&&b!=null&&view.IsEditorReview){
                 RelicInventory(b);
             }else if(page==5&&b!=null){
@@ -166,6 +170,27 @@ namespace Buklod.Empire {
                 foreach(var drop in b.RelicDrops.Where(x=>Vector2.Distance(p.Position,x.Position)<=ArenaRelicCatalog.Radius).Take(4)){var target=drop;Cell(i++,4,5,"Relic "+drop.Item.Name,()=>Reply(b.CollectPlayerRelic(target.Id),"Relic acquired"),active);}
                 if(i==0)Cell(0,4,5,"No nearby target",()=>{},false);
             }
+        }
+        private static readonly string[] ControlNames={"Move","Attack","Skill 1","Skill 2","Ultimate","Tactic","Recall","Minion","Tower"};
+        private void AdjustControl(Vector2 move,float size){
+            bool ok=ArenaControlSettings.Adjust(selectedControl,move,size,MobileBattleInput.SafeArea);
+            feedback.text=ok?"Saved on this device":"Cannot overlap another control or leave the play area";Rebuild();
+        }
+        private void ControlSettingsPage(){
+            var center=ArenaControlSettings.Centers[selectedControl];
+            summary.text=$"{ControlNames[selectedControl]}  X {center.x:P0} / Y {center.y:P0}  Size {ArenaControlSettings.Scale(selectedControl):P0}  Zoom {1/ArenaControlSettings.Zoom:0.00}x";
+            for(int i=0;i<ControlNames.Length;i++){int index=i;Cell(i,5,4,(i==selectedControl?"✓ ":"")+ControlNames[i],()=>{selectedControl=index;Rebuild();});}
+            Cell(9,5,4,"LEFT",()=>AdjustControl(new Vector2(-.025f,0),0));
+            Cell(10,5,4,"RIGHT",()=>AdjustControl(new Vector2(.025f,0),0));
+            Cell(11,5,4,"DOWN",()=>AdjustControl(new Vector2(0,-.025f),0));
+            Cell(12,5,4,"UP",()=>AdjustControl(new Vector2(0,.025f),0));
+            Cell(13,5,4,"SMALLER",()=>AdjustControl(Vector2.zero,-.1f));
+            Cell(14,5,4,"LARGER",()=>AdjustControl(Vector2.zero,.1f));
+            Cell(15,5,4,"ZOOM +",()=>{ArenaControlSettings.ChangeZoom(-.1f);Rebuild();});
+            Cell(16,5,4,"ZOOM −",()=>{ArenaControlSettings.ChangeZoom(.1f);Rebuild();});
+            Cell(17,5,4,ArenaControlSettings.DetailedInfo?"INFO FULL":"INFO MINIMAL",()=>{ArenaControlSettings.ToggleInfo();Rebuild();});
+            Cell(18,5,4,ArenaControlSettings.Fullscreen?"FULLSCREEN ON":"FULLSCREEN OFF",()=>{ArenaControlSettings.ToggleFullscreen();Rebuild();});
+            Cell(19,5,4,"RESET HUD",()=>{ArenaControlSettings.Reset();feedback.text="Default layout restored";Rebuild();});
         }
         private void Resume(){if(Active)Close();}
         private void StartNew(){

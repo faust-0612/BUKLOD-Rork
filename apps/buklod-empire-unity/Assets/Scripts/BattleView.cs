@@ -246,13 +246,14 @@ namespace Buklod.Empire {
             var at=Ground(Battle.Player.Position);
             if(StylizedBenchmark){
                 var cameraTransform=battleCamera.transform;
+                battleCamera.orthographicSize=StylizedArenaPresentation.OrthographicSize*ArenaControlSettings.Zoom;
                 var desiredPosition=at+StylizedArenaPresentation.CameraOffset;
                 cameraTransform.position=immediate?desiredPosition:Vector3.Lerp(cameraTransform.position,desiredPosition,StylizedArenaPresentation.FollowWeight(Time.deltaTime));
                 cameraTransform.rotation=StylizedArenaPresentation.CameraRotation;
                 return;
             }
             // Restrained spectator-only dolly. Keep the camera heading and human input projection unchanged.
-            float height=cameraHeight;
+            float height=cameraHeight*ArenaControlSettings.Zoom;
             if(ReviewOnly&&Battle.AutonomousTraining&&!Battle.Finished)
                 height+=Mathf.Min(1.1f,cameraHeight*.045f)*Mathf.Sin(Battle.Time*.24f);
             var desired=at+new Vector3(0,height,-height*.72f);
