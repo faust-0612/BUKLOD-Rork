@@ -3,6 +3,7 @@
 create table if not exists private.buklod_bible_hybrid_control (
  singleton boolean primary key default true check(singleton),
  enabled boolean not null default false,
+ deterministic_settlement_enabled boolean not null default false,
  daily_calls integer not null default 20 check(daily_calls between 0 and 20),
  provider_pause_until timestamptz,
  provider_blocked boolean not null default false
@@ -18,11 +19,12 @@ create table if not exists private.buklod_bible_hybrid_jobs (
  source_snapshot jsonb not null,
  answer_hash text not null,
  baseline_units integer not null check(baseline_units between 0 and 1),
- status text not null default 'queued' check(status in ('queued','leased','candidate','no_change','unresolved','stale')),
+ status text not null default 'queued' check(status in ('queued','leased','candidate','no_change','unresolved','stale','settled')),
  tries integer not null default 0 check(tries between 0 and 3),
  available_at timestamptz not null default now(),
  lease_id uuid, lease_until timestamptz,
  result jsonb,
+ deterministic_checked_at timestamptz,
  created_at timestamptz not null default now(),
  unique(attempt_id,question_id)
 );
@@ -147,3 +149,104 @@ end;
 $$;
 revoke all on function public.buklod_bible_hybrid_record(uuid,uuid,text,int,jsonb) from public,anon,authenticated;
 grant execute on function public.buklod_bible_hybrid_record(uuid,uuid,text,int,jsonb) to service_role;
+
+-- Full reviewed alias matching only, never a model-supplied score.
+-- An enumeration needs two different answer fields and two different concepts.
+create or replace function private.buklod_bible_hybrid_exact_units(p_source jsonb,p_answer jsonb)
+returns int language plpgsql immutable set search_path='' as $$
+declare answers jsonb; n int; score int;
+begin
+ if jsonb_typeof(p_source->'groups') is distinct from 'array' then return 0;end if;
+ if jsonb_array_length(p_source->'groups') not between 1 and 32 then return 0;end if;
+ if exists(select 1 from jsonb_array_elements(p_source->'groups') g where jsonb_typeof(g.value) is distinct from 'array') then return 0;end if;
+ if p_source->>'kind'='identification' then
+  if jsonb_typeof(p_answer) is distinct from 'string' then return 0;end if;
+  answers:=jsonb_build_array(p_answer);n:=1;
+ elsif p_source->>'kind'='enumeration' then
+  if jsonb_typeof(p_answer) is distinct from 'array' then return 0;end if;
+  answers:=p_answer;n:=2;
+ else return 0;end if;
+ if jsonb_array_length(answers)<>n then return 0;end if;
+ if exists(select 1 from jsonb_array_elements(answers) a where jsonb_typeof(a.value) is distinct from 'string' or length(a.value #>> '{}')>120 or private.buklod_bible_v4_enum_normalize(a.value #>> '{}')='') then return 0;end if;
+ if n=2 and private.buklod_bible_v4_enum_normalize(answers->>0)=private.buklod_bible_v4_enum_normalize(answers->>1) then return 0;end if;
+ with edges as (
+  select a.ordinality ai,g.ordinality gi
+  from jsonb_array_elements_text(answers) with ordinality a(value,ordinality)
+  cross join jsonb_array_elements(p_source->'groups') with ordinality g(value,ordinality)
+  where exists(select 1 from jsonb_array_elements_text(g.value) z(v)
+    where private.buklod_bible_v4_enum_normalize(z.v)=private.buklod_bible_v4_enum_normalize(a.value))
+ )
+ select case when n=1 then case when exists(select 1 from edges) then 2 else 0 end
+  when exists(select 1 from edges e join edges f on e.ai<>f.ai and e.gi<>f.gi) then 2
+  when exists(select 1 from edges) then 1 else 0 end into score;
+ return score;
+end;
+$$;
+revoke all on function private.buklod_bible_hybrid_exact_units(jsonb,jsonb) from public,anon,authenticated;
+
+-- No provider credential needed. Service role only. Independent switch OFF.
+-- Locks control -> job -> attempt; never accepts a user id, score, points or answer from caller.
+create or replace function public.buklod_bible_hybrid_settle_exact()
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare j record; a record; q record; r record; rule record; ans jsonb; n int; old int; score int;
+ review jsonb; credit int; desired int; bonus int:=0; original uuid; receipt uuid; k text; daykey text;
+begin
+ if auth.role() is distinct from 'service_role' then raise exception 'Service only';end if;
+ perform 1 from private.buklod_bible_hybrid_control where singleton and enabled and deterministic_settlement_enabled for update;
+ if not found then return jsonb_build_object('status','disabled');end if;
+ select * into j from private.buklod_bible_hybrid_jobs where status in ('queued','candidate','unresolved','no_change') and deterministic_checked_at is null order by created_at,id limit 1 for update skip locked;
+ if not found then return jsonb_build_object('status','idle');end if;
+ update private.buklod_bible_hybrid_jobs set deterministic_checked_at=now() where id=j.id;
+ select * into a from private.buklod_bible_v4_attempts where id=j.attempt_id and state='completed' for update;
+ if not found then return jsonb_build_object('status','stale');end if;
+ select * into q from private.buklod_bible_v4_questions where id=j.question_id and active and reviewed for share;
+ ans:=a.submitted_answers->j.question_id;
+ if not found or ans is null or j.answer_hash is distinct from encode(sha256(convert_to(ans::text,'UTF8')),'hex') or j.source_snapshot is distinct from private.buklod_bible_hybrid_source(j.question_id) then
+  update private.buklod_bible_hybrid_jobs set status='stale' where id=j.id;
+  return jsonb_build_object('status','stale');
+ end if;
+ n:=private.buklod_bible_hybrid_exact_units(j.source_snapshot,ans);
+ if jsonb_typeof(a.review_items) is distinct from 'array' or a.score_units is null or a.points_awarded is null then return jsonb_build_object('status','inconsistent');end if;
+ if (select count(*) from jsonb_array_elements(a.review_items) x where x.value->>'id'=j.question_id)<>1 then return jsonb_build_object('status','inconsistent');end if;
+ select item,ordinal into r from jsonb_array_elements(a.review_items) with ordinality t(item,ordinal) where item->>'id'=j.question_id and item->>'kind'=q.kind;
+ if not found then return jsonb_build_object('status','inconsistent');end if;
+ old:=(r.item->>'earned_units')::int;
+ if old is null or old not between 0 and 2 then return jsonb_build_object('status','inconsistent');end if;
+ if n<=old then return jsonb_build_object('status','no_exact_improvement');end if;
+ if jsonb_array_length(a.review_items)<>5 or (select count(distinct x.value->>'id') from jsonb_array_elements(a.review_items) x)<>5
+ or exists(select 1 from jsonb_array_elements(a.review_items) x where coalesce(x.value->>'earned_units','') not in ('0','1','2'))
+ or (select sum((x.value->>'earned_units')::int) from jsonb_array_elements(a.review_items) x) is distinct from a.score_units::bigint then
+ return jsonb_build_object('status','inconsistent');end if;
+ score:=a.score_units+n-old;
+ if score not between 0 and 10 then return jsonb_build_object('status','inconsistent');end if;
+ daykey:='bible_quiz:r3:'||a.local_date::text;
+ -- Include all same-day original credits and all previously versioned corrections for this attempt.
+ select coalesce(sum(l.points),0) into credit from public.buklod_points_ledger l where l.user_id=a.user_id and l.direction='credit' and (l.source_key=daykey or (l.source_key like 'bible_quiz:v4:%' and right(l.source_key,36)=a.id::text));
+ if credit<>a.points_awarded or exists(select 1 from public.buklod_points_ledger l where l.user_id=a.user_id and (l.source_key=daykey or (l.source_key like 'bible_quiz:v4:%' and right(l.source_key,36)=a.id::text)) and (l.direction<>'credit' or l.activity_type<>'bible_quiz_'||a.difficulty)) then return jsonb_build_object('status','ledger_mismatch');end if;
+ if a.ledger_id is not null and not exists(select 1 from public.buklod_points_ledger l where l.id=a.ledger_id and l.user_id=a.user_id and l.source_key=daykey and l.direction='credit' and l.activity_type='bible_quiz_'||a.difficulty) then return jsonb_build_object('status','ledger_mismatch');end if;
+ if a.ledger_id is null and (credit<>0 or exists(select 1 from public.buklod_points_ledger l where l.user_id=a.user_id and l.source_key=daykey)) then return jsonb_build_object('status','ledger_mismatch');end if;
+ select base_points,max_points_per_event,is_active into rule from public.buklod_point_rules where activity_type='bible_quiz_'||a.difficulty;
+ if found and rule.is_active then
+  desired:=least(private.buklod_bible_v4_points(a.difficulty,score),rule.base_points,coalesce(rule.max_points_per_event,12),12);
+  bonus:=greatest(desired-credit,0);
+ end if;
+ original:=a.ledger_id;
+ if bonus>0 then
+  k:=case when original is null then daykey else 'bible_quiz:v4:hybrid-exact:'||j.question_id||':'||a.id::text end;
+  insert into public.buklod_points_ledger(user_id,direction,points,activity_type,source_key,description,awarded_by)
+  values(a.user_id,'credit',bonus,'bible_quiz_'||a.difficulty,k,'Reviewed Bible Quiz equivalent answer correction',a.user_id)
+  on conflict(user_id,source_key) do nothing returning id into receipt;
+  if receipt is null then raise exception 'Correction ledger conflict';end if;
+  original:=coalesce(original,receipt);
+ end if;
+ review:=jsonb_set(a.review_items,array[(r.ordinal-1)::text],jsonb_set(jsonb_set(r.item,'{earned_units}',to_jsonb(n)),'{correct_answer}',q.answer_spec));
+ update private.buklod_bible_v4_attempts set review_items=review,score_units=score,points_awarded=credit+bonus,ledger_id=original where id=a.id;
+ update private.buklod_bible_hybrid_jobs set status='settled',result=jsonb_build_object('units',n,'old_units',old,'bonus',bonus,'policy','reviewed_exact_v1') where id=j.id;
+ begin
+  insert into public.notifications(user_id,title,body,kind,data) values(a.user_id,'Bible Quiz: inayos ang iyong marka','Naitama ang iyong quiz score sa '||score||'/10. '||case when bonus>0 then '+'||bonus||' BP ang naidagdag.' else 'Walang karagdagang BP.' end,'bible_quiz_result',jsonb_build_object('attempt_id',a.id,'score_units',score,'points_added',bonus,'route','/faith/bible-quiz','correction_version','hybrid_exact_v1'));
+ exception when others then raise warning 'Optional correction notification failed: %',sqlstate;end;
+ return jsonb_build_object('status','settled','units_added',n-old,'points_added',bonus);
+end;
+$$;
+revoke all on function public.buklod_bible_hybrid_settle_exact() from public,anon,authenticated;
+grant execute on function public.buklod_bible_hybrid_settle_exact() to service_role;
