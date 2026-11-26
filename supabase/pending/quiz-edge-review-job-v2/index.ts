@@ -272,6 +272,26 @@ async function chain(jobId: string, token: string) {
 }
 
 async function processBatch(jobId: string, token: string, userId: string) {
+  const { url } = projectConfig();
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!key) throw new Error('Worker service configuration missing.');
+  const service = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const lease = crypto.randomUUID();
+  const claim = await service.rpc('buklod_quiz_worker_claim_v1', { p_job_id: jobId, p_actor: userId, p_token: lease });
+  if (claim.error) throw claim.error;
+  if (claim.data !== true) return;
+  let continuation = false;
+  try {
+    continuation = await processLeasedBatch(jobId, token, userId) === true;
+  } finally {
+    const released = await service.rpc('buklod_quiz_worker_release_v1', { p_job_id: jobId, p_token: lease });
+    if (released.error) { console.error('[QUIZ_LEASE_RELEASE]', cleanError(released.error)); continuation = false; }
+    else if (released.data !== true) continuation = false;
+  }
+  if (continuation) await chain(jobId, token);
+}
+
+async function processLeasedBatch(jobId: string, token: string, userId: string) {
   const q = quizClient(token);
   const { data: job, error: jobErr } = await q.from('buklod_quiz_review_jobs').select('*').eq('id', jobId).single();
   if (jobErr || !job) throw jobErr ?? new Error('Review job not found.');
@@ -321,8 +341,7 @@ async function processBatch(jobId: string, token: string, userId: string) {
       heartbeat_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       completed_at: done ? new Date().toISOString() : null, last_error: null,
     }).eq('id', jobId);
-    if (!done) await chain(jobId, token);
-    return;
+    return !done;
   }
 
   await q.from('buklod_quiz_review_jobs').update({
@@ -375,7 +394,7 @@ async function processBatch(jobId: string, token: string, userId: string) {
     }).eq('id', jobId);
 
     console.log(`[REVIEW_JOB_V2_BATCH_OK_R3] job=${jobId} attempts=${batchAttempts.length} items=${out.length} model=${model} next=${idx}/${ids.length}`);
-    if (!done) await chain(jobId, token);
+    return !done;
   } catch (e) {
     const message = cleanError(e);
     const config = e instanceof ProviderConfigError || (e as any)?.providerConfig;
