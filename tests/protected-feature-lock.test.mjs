@@ -122,3 +122,68 @@ test('Nov17 quiet connection feedback has exact protected scope',()=>{
  assert.deepEqual(result.impacted,['app-runtime','navigation-auth','governance-lock']);
  assert.equal(scope.publicationStatus,'DEV_ONLY_NO_OTA');
 });
+
+test('Connect staging-only latest-activity scope enforces notification, chat and governance locks', () => {
+  const scope = JSON.parse(readFileSync(new URL('../.buklod/scopes/connect-inbox-staging-20261123.json', import.meta.url), 'utf8'));
+  const paths = [
+    'src/app/(tabs)/messages.tsx',
+    'src/components/BuklodConnectThread.tsx',
+    'src/providers/NotificationProvider.tsx',
+    'src/lib/connectInboxActivity.ts',
+    'src/lib/connectInboxSignal.ts',
+    'src/lib/connectInboxSearch.ts',
+    '__tests__/connectInboxSearch.test.ts',
+    'src/hooks/useBuklodConnectUnread.ts',
+    '__tests__/connectInboxActivity.test.ts',
+    '__tests__/connectInboxSignal.test.ts',
+    'tests/connect-inbox-realtime-staging-20261123.test.mjs',
+    'tests/connect-inbox-notification-navigation-20261123.test.mjs',
+    'tests/connect-inbox-ads-guard-20261123.test.mjs',
+    'tests/messenger-inbox-density-20261117.test.mjs',
+    'tests/protected-feature-lock.test.mjs',
+    '.github/workflows/engineering-accountability.yml',
+    '.buklod/scopes/connect-inbox-staging-20261123.json',
+  ];
+  const result = assessProtectedFeatureLock(paths.map(path => ({ status: 'M', path })), scope);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.impacted, ['app-runtime', 'navigation-auth', 'connect-ptt-calls', 'ads-finance-points', 'governance-lock']);
+  assert.equal(scope.publicationStatus, 'DEV_ONLY_STAGING_RC_PENDING');
+  const workflow = readFileSync(new URL('../.github/workflows/engineering-accountability.yml', import.meta.url), 'utf8');
+  assert.ok(workflow.includes('dev/connect-inbox-latest-activity-20261123'));
+  assert.ok(workflow.includes('BUKLOD_SCOPE_MANIFEST=.buklod/scopes/connect-inbox-staging-20261123.json'));
+});
+
+
+test('November 25 consolidated source candidate retains exact scope and explicit release isolation', () => {
+  const scope = JSON.parse(readFileSync(new URL('../.buklod/scopes/main-conso-backlog-20261125.json', import.meta.url), 'utf8'));
+  assert.equal(scope.releaseMode, 'consolidated-main-rc');
+  assert.equal(scope.publicationStatus, 'DEV_ONLY_NO_PUBLISH');
+  const paths = scope.allowedPaths;
+  assert.deepEqual(scope.componentScopePaths.slice().sort(), paths.filter(p => p.startsWith('.buklod/scopes/') && p !== scope.scopeManifestPath).sort());
+  // Only the separately tested, additive KL backend sources may enter this
+  // source-only candidate. This is NOT permission to apply or deploy them.
+  const klBackend = [
+    'supabase/functions/kl-dictionary-worker/index.ts',
+    'supabase/migrations/20261126080000_kl_series_and_dictionary_v1.sql',
+    'supabase/migrations/20261126080001_kl_dictionary_scheduler_v1.sql',
+    'supabase/tests/kl_series_dictionary_contract.sql',
+  ].sort();
+  assert.deepEqual(paths.filter(p => p.startsWith('supabase/')).sort(), klBackend);
+  assert.ok(paths.every(p => !/^(?:android\/|ios\/|modules\/|plugins\/|app\.config\.|eas\.json$|package(?:-lock)?\.json$)/.test(p)));
+  const backendLock = scope.lockedFeatureChanges.find(group => group.id === 'backend-security');
+  assert.ok(backendLock);
+  assert.ok(backendLock.tests.includes('supabase/tests/kl_series_dictionary_contract.sql'));
+  assert.ok(scope.regressionTests.includes('supabase/tests/kl_series_dictionary_contract.sql'));
+  assert.ok(scope.preserveBehaviors.some(text => /no publishing or backend mutation/i.test(text)));
+  assert.ok(scope.acceptanceChecks.some(text => /no deployment or production merge/i.test(text)));
+  // A foreign migration must fail even with valid existing backend evidence.
+  const unauthorized = [...paths, 'supabase/migrations/unauthorized.sql'];
+  assert.ok(assessProtectedFeatureLock(unauthorized.map(path=>({status:'M',path})),scope).failures.some(message=>message.includes('outside work scope')));
+  const missingProof = {...scope,lockedFeatureChanges:scope.lockedFeatureChanges.filter(group=>group.id!=='backend-security')};
+  assert.ok(assessProtectedFeatureLock(paths.map(path=>({status:'M',path})),missingProof).failures.includes('Undeclared protected feature change: backend-security'));
+  assert.deepEqual(assessProtectedFeatureLock(paths.map(path=>({status:'M',path})),scope).failures, []);
+  const flow=readFileSync(new URL('../.github/workflows/engineering-accountability.yml',import.meta.url),'utf8');
+  assert.match(flow,/integration\/main-conso-backlog-20261125\)[\s\S]*?if \[ "\$PR_BASE" = "main" \]; then[\s\S]*?BUKLOD_CONSOLIDATED_RC_GATE=true/);
+  const gate=readFileSync(new URL('../scripts/engineering-regression-gate.mjs',import.meta.url),'utf8');
+  assert.ok(gate.includes("'integration/main-conso-backlog-20261125'].includes(process.env.GITHUB_HEAD_REF)"));
+});

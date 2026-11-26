@@ -11,6 +11,7 @@ import { FAITH_NOTIFICATION_PATTERNS, isFaithNotificationKind } from '@/lib/bukl
 import { classifyBuklodNotificationSound, isBuklodMessageThreadOpen, playBuklodCue } from '@/lib/buklodSounds';
 import { syncScopeSelection } from '@/lib/buklodScopeRoute';
 import { resolveBuklodNotificationTarget } from '@/lib/buklodNotificationNavigation';
+import { isConnectMessageNotification, notifyConnectInboxChanged } from '@/lib/connectInboxSignal';
 import { runClusterJoinNotificationAction } from '@/lib/clusterJoinNotificationAction';
 import {
   CLUSTER_JOIN_APPROVE_ACTION,
@@ -160,6 +161,9 @@ export function NotificationProvider({children}:{children:ReactNode}){
    // Background PTT wake-up pushes must not inflate the app's unread badge.
    if(kind==='ptt_incoming')return;
    if(!faithEnabled && isFaithNotificationKind(kind))return;
+   // Push can announce new threads before known-thread subscriptions exist.
+   // Authenticated inbox RPC remains the sole source of conversation data.
+   if(isConnectMessageNotification(kind)) notifyConnectInboxChanged(user.id);
    setUnreadCount(current=>{
     const next=current+1;
     void badge(next);

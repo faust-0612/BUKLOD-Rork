@@ -267,7 +267,7 @@ async function convertWebPhotoToJpegBlob(source: Blob): Promise<Blob | null> {
 export async function prepareCommunityJpegUri(
   uri: string,
   webFile?: Blob | null,
-  hint?: {mimeType?: string; width?: number; height?: number},
+  hint?: {mimeType?: string; width?: number; height?: number; profile?: 'story'},
 ): Promise<{ uri: string; sizeBytes: number; webBlob?: Blob }> {
   // Expo's web picker provides a File. Keep the actual bytes instead of
   // loading a large base64 URI again in the iOS Messenger browser.
@@ -277,18 +277,22 @@ export async function prepareCommunityJpegUri(
   const existingBytes = webSelectedBlob
     ? Number(webSelectedBlob.size ?? 0)
     : await readBinarySizeBytes(uri).catch(() => 0);
+  const storyOptimized = hint?.profile === 'story';
+  const passthroughMaxBytes = storyOptimized ? 800 * 1024 : 2 * 1024 * 1024;
+  const longEdge = storyOptimized ? 1280 : 1440;
+  const jpegQuality = storyOptimized ? 0.78 : 0.82;
   const actualMime = String(webSelectedBlob?.type || hint?.mimeType || '').trim().toLowerCase();
   const isJpeg = actualMime
     ? /^image\/jpe?g$/.test(actualMime)
     : /\.jpe?g(?:[?#]|$)/i.test(uri) || /^data:image\/jpe?g[;,]/i.test(uri);
 
   // Small native JPEGs can upload unchanged; larger native images need compression.
-  if (Platform.OS !== 'web' && isJpeg && existingBytes > 0 && existingBytes <= 2 * 1024 * 1024) {
+  if (Platform.OS !== 'web' && isJpeg && existingBytes > 0 && existingBytes <= passthroughMaxBytes) {
     return { uri, sizeBytes: existingBytes };
   }
 
   // Browser JPEGs can bypass WebKit canvas recovery; never use the browser limit on native.
-  if (Platform.OS === 'web' && isJpeg && existingBytes > 0 && existingBytes <= 12 * 1024 * 1024) {
+  if (Platform.OS === 'web' && isJpeg && existingBytes > 0 && existingBytes <= (storyOptimized ? passthroughMaxBytes : 12 * 1024 * 1024)) {
     return { uri, sizeBytes: existingBytes, webBlob: webSelectedBlob ?? undefined };
   }
 
@@ -298,16 +302,16 @@ export async function prepareCommunityJpegUri(
     const dimensions = Number(hint?.width)>0 && Number(hint?.height)>0
       ? {width:Number(hint!.width),height:Number(hint!.height)}
       : await readCommunityPhotoDimensions(uri);
-    if (dimensions && Math.max(dimensions.width, dimensions.height) > 1440) {
+    if (dimensions && Math.max(dimensions.width, dimensions.height) > longEdge) {
       context.resize({
-        width: dimensions.width >= dimensions.height ? 1440 : null,
-        height: dimensions.height > dimensions.width ? 1440 : null,
+        width: dimensions.width >= dimensions.height ? longEdge : null,
+        height: dimensions.height > dimensions.width ? longEdge : null,
       });
     }
     const rendered = await context.renderAsync();
     const image = await rendered.saveAsync({
       format: M.SaveFormat.JPEG,
-      compress: 0.82,
+      compress: jpegQuality,
     });
     const fileUri = String(image.uri ?? '').trim();
     if (!fileUri) throw new Error('Photo conversion did not return an image.');
@@ -392,6 +396,7 @@ export async function uploadCommunityPhotoFile({
   height,
   onProgress,
   wallPreview = false,
+  profile,
 }: {
   path: string;
   uri: string;
@@ -403,8 +408,10 @@ export async function uploadCommunityPhotoFile({
     progress: CommunityVideoUploadProgress
   ) => void;
   wallPreview?: boolean;
+  /** Optional Marites-specific bounded size profile; the regular Wall keeps its existing output. */
+  profile?: 'story';
 }): Promise<{ sizeBytes: number; path: string }> {
-  const prepared = await prepareCommunityJpegUri(uri, webFile, {mimeType,width,height});
+  const prepared = await prepareCommunityJpegUri(uri, webFile, {mimeType,width,height,profile});
   let actualPath = path;
 
   // Upload preview first; only mark the original path with -p1 after Storage

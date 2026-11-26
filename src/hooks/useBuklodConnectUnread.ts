@@ -2,6 +2,7 @@
 import { acquireSharedRealtimeSubscription } from '@/lib/performance';
 import { supabase } from '@/lib/supabase';
 import { subscribeConnectRead } from '@/lib/connectReadSync';
+import { notifyConnectInboxChanged } from '@/lib/connectInboxSignal';
 import { invalidateBuklodConnectUnreadCaches } from '@/lib/buklodR4RequestShield';
 import { useAuth } from '@/providers/AuthProvider';
 import { SCALE_LIMITS } from '@/lib/performanceScale';
@@ -107,10 +108,16 @@ export function useBuklodConnectUnread() {
   }, [profileId]);
 
   const refreshSequenceRef = useRef(0);
+  const lastActivitySnapshotRef = useRef<{
+    profileId: string;
+    unread: number;
+    threadIds: Set<string>;
+  } | null>(null);
   const refresh = useCallback(
     async () => {
       const sequence = ++refreshSequenceRef.current;
       if (!profileId) {
+        lastActivitySnapshotRef.current = null;
         setUnreadCount(0);
         setPersonalUnread(0);
         setCommunityUnread(0);
@@ -125,6 +132,7 @@ export function useBuklodConnectUnread() {
 
       if (sequence !== refreshSequenceRef.current) return;
 
+      let activityIncreased = false;
       if (!countResult.error) {
         const data = countResult.data;
         const raw =
@@ -141,14 +149,33 @@ export function useBuklodConnectUnread() {
               : raw
           );
 
-        setUnreadCount(
-          Number.isFinite(numeric)
-            ? Math.max(0, numeric)
-            : 0
-        );
+        const nextUnread = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+        const prior = lastActivitySnapshotRef.current;
+        if (prior?.profileId === profileId && nextUnread > prior.unread) {
+          activityIncreased = true;
+        }
+        lastActivitySnapshotRef.current = {
+          profileId,
+          unread: nextUnread,
+          threadIds: prior?.profileId === profileId ? prior.threadIds : new Set<string>(),
+        };
+        setUnreadCount(nextUnread);
       }
 
       if (!personalResult.error) {
+        const ids = new Set<string>(
+          uniqueIds((personalResult.data ?? []).map((row: any) => row?.thread_id))
+        );
+        const prior = lastActivitySnapshotRef.current;
+        if (prior?.profileId === profileId && prior.threadIds.size > 0 &&
+            [...ids].some(id => !prior.threadIds.has(id))) {
+          activityIncreased = true;
+        }
+        lastActivitySnapshotRef.current = {
+          profileId,
+          unread: prior?.profileId === profileId ? prior.unread : 0,
+          threadIds: ids,
+        };
         setPersonalUnread(
           sumUnread(personalResult.data)
         );
@@ -159,6 +186,9 @@ export function useBuklodConnectUnread() {
           sumUnread(roomResult.data)
         );
       }
+      // Existing low-frequency fallback now also refreshes an open inbox
+      // if a push was not received. No extra polling or global Realtime.
+      if (activityIncreased) notifyConnectInboxChanged(profileId);
     },
     [
       profileId,
