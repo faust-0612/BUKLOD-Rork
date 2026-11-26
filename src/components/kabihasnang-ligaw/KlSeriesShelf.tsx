@@ -109,7 +109,7 @@ export function KlSeriesAdmin({disabled=false,onSelect}:{disabled?:boolean;onSel
   // Store immediately; retry save with the same path if the network is interrupted.
   setCover(path);setPreview(asset.uri);await save(false,path);
  });
- const button=(label:string,fn:()=>void,off=false)=><Pressable accessibilityRole="button" disabled={disabled||busy||off} onPress={fn} style={{alignSelf:'flex-start',backgroundColor:disabled||busy||off?'#45505d':'#385c55',borderRadius:9,padding:12}}><Text style={{color:'#ffe0a8',fontWeight:'700'}}>{label}</Text></Pressable>;
+ const button=(label:string,fn:()=>void,off=false)=><Pressable accessibilityRole="button" disabled={disabled||busy||off||loading} onPress={fn} style={{alignSelf:'flex-start',backgroundColor:disabled||busy||off||loading?'#45505d':'#385c55',borderRadius:9,padding:12}}><Text style={{color:'#ffe0a8',fontWeight:'700'}}>{label}</Text></Pressable>;
  return <View style={{gap:10,borderWidth:1,borderColor:'#718096',borderRadius:12,padding:12}}>
   <Text style={{fontSize:19,color:'#f1d39b',fontWeight:'800'}}>Series Management</Text>
   <Text style={{color:'#fff'}}>Ang bagong serye ay private hanggang piliin mo ang Publish Series. Hiwalay pa rin ang chapter approval at release.</Text>
@@ -121,7 +121,7 @@ export function KlSeriesAdmin({disabled=false,onSelect}:{disabled?:boolean;onSel
   {button('Save series',()=>void run(()=>save(false)))}
   {button('Upload cover photo',upload,!selected)}
   {!selected?.published?button(confirm?'Confirm publish series':'Publish series',()=>{if(!confirm){setConfirm(true);return;}void run(()=>save(true));},!selected||!cover):null}
-  {button('Refresh series',()=>void reload())}
+  <Pressable disabled={busy||loading} accessibilityRole="button" onPress={()=>void reload()}><Text style={{color:'#f1d39b'}}>Refresh series</Text></Pressable>
   {loading?<Text style={{color:'#ddd'}}>Loading series…</Text>:null}
   {message||error?<Text accessibilityRole="alert" style={{color:'#fff'}}>{message||error}</Text>:null}
  </View>;
