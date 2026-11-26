@@ -49,6 +49,7 @@ function AccountScopedAbakaAdminStudio(){
   const [hasMore,setHasMore]=useState(false);
   const [busy,setBusy]=useState(false);
   const [selectedId,setSelectedId]=useState('');
+  const [selectedSnapshot,setSelectedSnapshot]=useState<AdminLesson|null>(null);
   const [seriesKey,setSeriesKey]=useState('god-and-creation');
   const [seriesTitle,setSeriesTitle]=useState('Pagkilala sa Diyos');
   const [position,setPosition]=useState('3');
@@ -107,6 +108,7 @@ function AccountScopedAbakaAdminStudio(){
   }
 
   function loadDraft(row:AdminLesson){
+    setSelectedSnapshot(row);
     setSelectedId(row.lesson_id);
     setSeriesKey(row.series_key);
     setSeriesTitle(row.series_title);
@@ -128,13 +130,14 @@ function AccountScopedAbakaAdminStudio(){
   }
 
   function clearDraft(){
-    setSelectedId('');setTitle('');setBody('');setRefLabel('');
+    setSelectedSnapshot(null);setSelectedId('');setTitle('');setBody('');setRefLabel('');
     setBookNo('');setChapter('');setVerse('');setQuestion('');
     setOptions(['','','','']);setCorrect('A');setReviewNote('');
   }
 
   async function save(){
     if(busy||isAdmin!==true||!online||contentLocked)return;
+    if(selectedId&&!selected){Alert.alert('Reload draft','Select the existing draft before editing.');return;}
     const book=Number(bookNo),ch=Number(chapter),v=Number(verse);
     if(!title.trim()||body.trim().length<120||!question.trim()||
       !refLabel.trim()||!Number.isInteger(book)||book<1||book>66||
@@ -180,7 +183,11 @@ function AccountScopedAbakaAdminStudio(){
         p_correct_option:correct,
       });
       if(error)throw error;
-      setSelectedId(textString(data?.lesson_id));
+      const savedId=textString(data?.lesson_id);
+      if(!savedId)throw new Error('Missing saved lesson ID');
+      const saved:AdminLesson={lesson_id:savedId,series_key:seriesKey.trim().toLowerCase(),series_title:seriesTitle.trim(),position:Number(position),code:code.trim(),title:title.trim(),difficulty,prerequisite_id:prerequisiteId.trim(),body_blocks:bodyBlocks,assessment_prompt:question.trim(),assessment_options:options.map(x=>x.trim()),correct_option:correct,published:false,content_locked:false,content_version:Number(data?.content_version??1),review_note:null};
+      setSelectedSnapshot(saved);setSelectedId(savedId);
+      setRows(current=>current.map(row=>row.lesson_id===savedId?saved:row));
       await refresh();
       Alert.alert('Draft saved','Naitala ang unpublished draft. Hindi pa ito makikita ng ordinaryong members.');
     }catch(error:any){
@@ -200,6 +207,7 @@ function AccountScopedAbakaAdminStudio(){
         p_lesson_id:selectedId,p_publish:publishNow,p_review_note:reviewNote.trim(),
       });
       if(error)throw error;
+      if(selected){const updated={...selected,published:publishNow,content_locked:true,review_note:reviewNote.trim()};setSelectedSnapshot(updated);setRows(current=>current.map(row=>row.lesson_id===selectedId?updated:row));}
       await refresh();
       Alert.alert('Review recorded',publishNow?'Lesson published for members.':'Lesson unpublished; previous learning records remain preserved.');
     }catch(error:any){
@@ -207,7 +215,7 @@ function AccountScopedAbakaAdminStudio(){
     }finally{setBusy(false);}
   }
 
-  const selected=rows.find(row=>row.lesson_id===selectedId);
+  const selected=rows.find(row=>row.lesson_id===selectedId)??(selectedSnapshot?.lesson_id===selectedId?selectedSnapshot:undefined);
   const isPublished=Boolean(selected?.published);
   const contentLocked=Boolean(selected?.published||selected?.content_locked);
   if(!accountId)return <View style={styles.page}><Text style={styles.notice}>Mag-sign in bilang System Admin.</Text></View>;

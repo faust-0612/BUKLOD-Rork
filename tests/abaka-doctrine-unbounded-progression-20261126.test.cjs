@@ -17,3 +17,10 @@ test('historically published lessons are immutable and editor paging is bounded'
  assert.match(admin,/AccountScopedAbakaAdminStudio key=/);
  assert.match(admin,/prior.map\(\(block,i\)/);
 });
+
+test('editing older pages preserves selected source even after list refresh',()=>{
+ assert.match(admin,/setSelectedSnapshot\(row\)/);
+ assert.match(admin,/selectedSnapshot\?\.lesson_id===selectedId\?selectedSnapshot:undefined/);
+ assert.match(admin,/setSelectedSnapshot\(saved\)/);
+ assert.match(admin,/if\(selectedId&&!selected\)/);
+});
