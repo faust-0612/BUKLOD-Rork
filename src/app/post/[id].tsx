@@ -1,3 +1,5 @@
+import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
+import { useWallPostStyles } from '@/lib/buklodWallPostStylePersistence';
 /* PATCH_161A_COMMENT_REPLIES */
 /* PATCH_160_POST_AVATARS_TIME */
 import { formatSpecificDateTime, formatCompactWallDateTime } from '@/lib/dateTime';
@@ -86,6 +88,11 @@ export default function PostDetail(){
   reportSheet,
  } = useBuklodContentReport();
  const [post,setPost]=useState<any>(null),[comments,setComments]=useState<any[]>([]),[requests,setRequests]=useState<any[]>([]);
+ const postStyleRows=useMemo(()=>post?[post]:[],[post]);
+ const detailStyles=useWallPostStyles(user?.id,postStyleRows,false,'detail');
+ const [detailFocused,setDetailFocused]=useState(false);
+ const [detailNearTop,setDetailNearTop]=useState(true);
+ useFocusEffect(useCallback(()=>{setDetailFocused(true);return()=>setDetailFocused(false);},[]));
  const [comment,setComment]=useState(''),[busy,setBusy]=useState(false);
  const commentSendInFlightRef=useRef(false);
  const [replyTo,setReplyTo]=useState<any>(null);
@@ -415,7 +422,7 @@ export default function PostDetail(){
   : Math.max(0,Number(post.total_reactions??0)||0);
 
  return <>
- <ScrollView ref={detailScrollRef} style={shared.screen} contentContainerStyle={s.content}>
+ <ScrollView ref={detailScrollRef} style={shared.screen} contentContainerStyle={s.content} scrollEventThrottle={64} onScroll={detailStyles.enabled?event=>setDetailNearTop(event.nativeEvent.contentOffset.y<120):undefined}>
   <Text style={s.eyebrow}>BUKLOD POST</Text><Card><View
    style={{
      flexDirection:
@@ -503,7 +510,7 @@ export default function PostDetail(){
     {post.author_rank_name}
    </Text>
   }<Text style={s.meta} numberOfLines={1}>{String(post.audience).toUpperCase()} | {formatCompactWallDateTime(post.created_at)}</Text>
-   <Text style={s.body}>{post.body}</Text>{!!mentions.length&&<Text style={s.mentions}>{mentions.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}{/* PATCH_155C_POST_VIDEO */}
+   {detailStyles.enabled && !(post.media_url||post.media_path||post.media_mime_type||(Array.isArray(post.media_items)&&post.media_items.length)) ? <BuklodExpandableWallCaption text={String(post.body??'')} style={s.body} designId={detailStyles.styles[String(post.id)]?.designId} fontId={detailStyles.styles[String(post.id)]?.fontId} animationActive={detailFocused&&detailNearTop&&detailStyles.styles[String(post.id)]?.animated===true}/>:<Text style={s.body}>{post.body}</Text>}{!!mentions.length&&<Text style={s.mentions}>{mentions.map((x:any)=>`@${x.full_name}`).join(' ')}</Text>}{/* PATCH_155C_POST_VIDEO */}
   {!!(post.media_url || post.media_path || (Array.isArray(post.media_items) && post.media_items.length)) &&
    !String(post.media_mime_type||'').startsWith('video/') &&
    <BuklodCommunityPhotoCollage
