@@ -4,7 +4,8 @@ import { BuklodMentionText } from '@/components/BuklodMentionText';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { readableAccentOnSurface } from '@/lib/buklodTheme';
 
-import { WallPostDesignSurface, wallFontTextStyle } from '@/components/BuklodWallPostDesignPicker';
+import { WallPostDesignSurface, WallRankBonusFrame, wallFontTextStyle } from '@/components/BuklodWallPostDesignPicker';
+import { rankBonusFrameForViewer } from '@/lib/buklodRankBonusFrames';
 import { visibleWallPostDesign, wallFontForViewer } from '@/lib/buklodWallPostDesigns';
 
 type Props = React.ComponentProps<typeof BuklodMentionText> & {
@@ -14,6 +15,7 @@ type Props = React.ComponentProps<typeof BuklodMentionText> & {
   designId?: string | null;
   animationActive?: boolean;
   fontId?: string | null;
+  bonusKey?: string | null;
 };
 
 const LARGE_TEXT_LIMIT = 80;
@@ -29,6 +31,7 @@ export function BuklodExpandableWallCaption({
   designId = null,
   animationActive = false,
   fontId = 'standard',
+  bonusKey = null,
   ...mentionProps
 }: Props) {
   const { theme } = useBuklodTheme();
@@ -73,9 +76,11 @@ export function BuklodExpandableWallCaption({
         </Pressable>}
       </>
     );
-    return design
+    const surface=design
       ? <WallPostDesignSurface design={design} active={animationActive}>{content}</WallPostDesignSurface>
       : <View style={styles.textOnlySurface}>{content}</View>;
+    const frame=rankBonusFrameForViewer(bonusKey);
+    return frame?<WallRankBonusFrame frame={frame}>{surface}</WallRankBonusFrame>:surface;
   }
 
   if (expanded) {
