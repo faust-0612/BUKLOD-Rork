@@ -6344,6 +6344,7 @@ const communityFeedRows =
     designId={wallStyles.styles[String(item.id)]?.designId}
     fontId={wallStyles.styles[String(item.id)]?.fontId}
     bonusKey={wallStyles.styles[String(item.id)]?.bonusKey}
+    alignment={wallStyles.styles[String(item.id)]?.alignment}
     animationActive={wallScreenFocused && !communityComposerOpen && !commentOpen && !maritesViewerOpen && !videoViewerOpen && visibleCreativePostIds.find(id=>wallStyles.styles[id]?.animated)===String(item.id)}
     text={String(repairMojibakeText(item.body) ?? '').replace(
      /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
