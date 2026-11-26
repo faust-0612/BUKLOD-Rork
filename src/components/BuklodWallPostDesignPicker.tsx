@@ -1,8 +1,9 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ReactNode } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, Ellipse, Path } from 'react-native-svg';
+import BuklodLivingWallArt from '@/components/BuklodLivingWallArt';
 import { BUKLOD_CIRCLE_RANK_FAMILIES } from '@/lib/buklodCircleRankArt';
-import { availableWallPostDesigns, WALL_POST_DESIGNS, type WallPostDesign } from '@/lib/buklodWallPostDesigns';
+import { availableWallPostDesigns, resolveWallPostDesign, WALL_POST_DESIGNS, type WallPostDesign } from '@/lib/buklodWallPostDesigns';
 
 /** Lightweight vector artwork; no remote assets or animated feed overhead. */
 export function WallPostDesignArt({ design }: { design: WallPostDesign }) {
@@ -22,19 +23,24 @@ export function WallPostDesignArt({ design }: { design: WallPostDesign }) {
   </View>;
 }
 
-export function WallPostDesignSurface({ design, children }: { design: WallPostDesign; children: ReactNode }) {
+export function WallPostDesignSurface({ design, children, active=false }: { design: WallPostDesign; children: ReactNode; active?:boolean }) {
   return <View style={[styles.surface,{backgroundColor:design.start}]}>
     <WallPostDesignArt design={design}/>
+    {active&&<BuklodLivingWallArt design={design} active={active}/>}
     <View style={styles.content}>{children}</View>
   </View>;
 }
 
 /** Picker receives the canonical claimed rank; the server must independently authorize writes. */
-export function WallPostDesignPicker({ rankName, value, onChange, disabled=false }: {
-  rankName?:string|null; value:string|null; onChange:(id:string|null)=>void; disabled?:boolean;
+export function WallPostDesignPicker({ rankName, value, onChange, disabled=false, previewText }: {
+  rankName?:string|null; value:string|null; onChange:(id:string|null)=>void; disabled?:boolean; previewText?:string;
 }) {
   const allowed = new Set(availableWallPostDesigns(rankName).map(d=>d.id));
+  const selected=value&&allowed.has(value)?resolveWallPostDesign(value):null;
   return <View style={styles.picker}>
+    {selected&&<WallPostDesignSurface design={selected} active={!disabled}>
+      <Text numberOfLines={6} style={{color:selected.ink,fontSize:23,lineHeight:31,fontWeight:'800',textAlign:'center'}}>{previewText?.trim()||'Your words. Your story.'}</Text>
+    </WallPostDesignSurface>}
     <Pressable disabled={disabled} accessibilityRole="button" accessibilityState={{selected:value===null,disabled}}
       onPress={()=>onChange(null)} style={[styles.normal,value===null&&styles.selected]}>
       <Text style={styles.normalText}>Normal post</Text>
