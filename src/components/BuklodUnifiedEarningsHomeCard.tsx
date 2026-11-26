@@ -45,6 +45,12 @@ type ScopeFund = {
   is_member_personal_wallet: false;
   economics_enabled: boolean;
 };
+type RevenueBalances = { status: 'RECONCILED'; period_key: string; qmp_balance_minor: number; referral_balance_minor: number; other_balance_minor: number; available_minor: number };
+function validRevenueBalances(p: any): p is RevenueBalances {
+  return p?.status === 'RECONCILED' && /^\d{4}-\d{2}$/.test(p.period_key)
+    && [p.qmp_balance_minor, p.referral_balance_minor, p.other_balance_minor, p.available_minor].every(n => Number.isSafeInteger(n) && n >= 0)
+    && p.qmp_balance_minor + p.referral_balance_minor + p.other_balance_minor === p.available_minor;
+}
 type Props = { scopeId?: string | null; scopeType?: string | null; compact?: boolean };
 
 const php = (value: number | undefined | null) =>
@@ -70,6 +76,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
   const [monthly, setMonthly] = useState<BuklodMonthlyEarnings | null>(null);
   const [scopeFund, setScopeFund] = useState<ScopeFund | null>(null);
   const [clusterPreview, setClusterPreview] = useState<{ scopeId: string; userId: string; minor: number; observedAt: string } | null>(null);
+  const [sourceBalances, setSourceBalances] = useState<{ userId: string; report: RevenueBalances } | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [retries, setRetries] = useState(0);
@@ -81,7 +88,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       setLoading(false); return;
     }
     setLoading(true);
-    const [personal, community, month, group, preview] = await Promise.allSettled([
+    const [personal, community, month, group, preview, balances] = await Promise.allSettled([
       (supabase as any).rpc('get_my_buklod_financial_earnings_breakdown_v1'),
       loadMyCommunityContribution(),
       loadMyBuklodMonthlyEarnings(),
@@ -91,6 +98,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       scopeId && scopeType?.toUpperCase() === 'CLUSTER'
         ? withBuklodTimeout<{ data: any; error: any }>((supabase as any).rpc('get_buklod_cluster_revenue_preview_v1', { p_scope_id: scopeId }), 7000, 'Cluster revenue preview')
         : Promise.resolve({ data: null, error: null }),
+      withBuklodTimeout<{ data: any; error: any }>((supabase as any).rpc('get_my_buklod_revenue_balances_v1'), 7000, 'Revenue balances'),
     ]);
     if (id !== serial.current) return;
     const issues: string[] = [];
@@ -125,13 +133,15 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       && Number.isSafeInteger(p.estimated_cluster_minor) && p.estimated_cluster_minor >= 0
       && Number.isFinite(observed) && observed <= Date.now() + 60000 && observed >= Date.now() - 10800000
       ? { scopeId, userId, minor: p.estimated_cluster_minor, observedAt: p.observed_at } : null);
+    const b = balances.status === 'fulfilled' && !balances.value.error ? balances.value.data : null;
+    setSourceBalances(validRevenueBalances(b) ? { userId, report: b } : null);
     setErrors(issues);
     setLoading(false);
   }, [userId, scopeId, scopeType]);
 
   useEffect(() => {
     ++serial.current;
-    setCash(null); setContribution(null); setMonthly(null); setScopeFund(null); setClusterPreview(null); setErrors([]);
+    setCash(null); setContribution(null); setMonthly(null); setScopeFund(null); setClusterPreview(null); setSourceBalances(null); setErrors([]);
     void load();
     const listener = AppState.addEventListener('change', state => {
       if (state === 'active') void load();
@@ -149,6 +159,16 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
   const activeProvisional = contribution?.estimate_status === 'PROVISIONAL_ADMOB';
   const available = cash?.cash_status?.available_php;
   const projected = composeCurrentMonthProjectedBalance(monthly, contribution);
+  const breakdown = sourceBalances?.userId === userId && monthly
+    && sourceBalances.report.period_key === monthly.current_month_key
+    && sourceBalances.report.available_minor === monthly.available_finalized_minor
+    ? sourceBalances.report : null;
+  const clusterEstimate = clusterPreview?.scopeId === scopeId && clusterPreview.userId === userId
+    && Date.parse(clusterPreview.observedAt) >= Date.now() - 10800000 ? clusterPreview.minor : null;
+  const clusterTotal = clusterEstimate !== null && scopeFund?.scope_id === scopeId
+    && Number.isSafeInteger(scopeFund.available_fund_minor) && scopeFund.available_fund_minor >= 0
+    && Number.isSafeInteger(scopeFund.available_fund_minor + clusterEstimate)
+    ? scopeFund.available_fund_minor + clusterEstimate : null;
   const scopeIsSupported = !scopeType || ['ORGANIZATION', 'CLUSTER', 'SUB_ORGANIZATION'].includes(scopeType.toUpperCase());
 
   return (
@@ -203,7 +223,10 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
               value={projected ? formatMinorPhp(projected.currentEstimateMinor) : 'No fresh estimate'}
             />
           </View>
-          <Stat label="Total Estimated Revenue · Not Withdrawable"
+          <Stat label="Total Qualified QMP Shares Revenue Balance" value={breakdown ? formatMinorPhp(breakdown.qmp_balance_minor) : 'Awaiting source reconciliation'} />
+          <Stat label="Revenue from Referral · Available Finalized" value={breakdown ? formatMinorPhp(breakdown.referral_balance_minor) : 'Awaiting source reconciliation'} />
+          {breakdown && breakdown.other_balance_minor > 0 ? <Stat label="Other Funded Revenue" value={formatMinorPhp(breakdown.other_balance_minor)} /> : null}
+          <Stat label="Total Estimated Revenue · Not a payout balance"
             value={projected ? formatMinorPhp(projected.projectedTotalMinor) : 'Current estimate unavailable'} />
           <Stat label={`Available Finalized Balance · Minimum ${formatMinorPhp(monthly.minimum_withdrawal_minor)}`}
             value={formatMinorPhp(monthly.available_finalized_minor)} />
@@ -230,8 +253,9 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
           <Text style={styles.category}>THIS {scopeType?.toUpperCase() ?? 'SCOPE'} FUND · SEPARATE ACCOUNT</Text>
           {scopeType?.toUpperCase() === 'CLUSTER' ? (
             <>
-              <Stat label="Estimated Cluster Fund from BUKLOD This Month" value={clusterPreview?.scopeId === scopeId && clusterPreview.userId === userId && Date.parse(clusterPreview.observedAt) >= Date.now() - 10800000 ? formatMinorPhp(clusterPreview.minor) : 'No fresh estimate'} />
-              <Text style={styles.note}>Preliminary allocation only. Not included in finalized available funds.</Text>
+              <Stat label="Estimated Cluster Fund from BUKLOD This Month" value={clusterEstimate !== null ? formatMinorPhp(clusterEstimate) : 'No fresh estimate'} />
+              <Stat label="Total Est Cluster Fund from BUKLOD" value={clusterTotal !== null ? formatMinorPhp(clusterTotal) : 'Awaiting reconciliation'} />
+              <Text style={styles.note}>Total combines the available finalized fund and current estimate. Preliminary funds cannot be spent.</Text>
             </>
           ) : null}
           {scopeFund ? (
