@@ -50,6 +50,7 @@
     "supabase/functions/kl-dictionary-worker/index.ts",
     "supabase/migrations/20261126080000_kl_series_and_dictionary_v1.sql",
     "supabase/migrations/20261126080001_kl_dictionary_scheduler_v1.sql",
+    "supabase/tests/kl_series_dictionary_contract.sql",
     "tests/bible-navigation.test.cjs",
     "tests/buklod-ad-opportunities.test.cjs",
     "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
@@ -71,6 +72,7 @@
     "__tests__/connectInboxSearch.test.ts",
     "__tests__/connectInboxSignal.test.ts",
     "__tests__/klManuscriptItalics.test.ts",
+    "supabase/tests/kl_series_dictionary_contract.sql",
     "tests/bible-navigation.test.cjs",
     "tests/buklod-ad-opportunities.test.cjs",
     "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
@@ -79,7 +81,6 @@
     "tests/connect-inbox-notification-navigation-20261123.test.mjs",
     "tests/connect-inbox-realtime-staging-20261123.test.mjs",
     "tests/kl-dictionary-expansion-20261119.test.mjs",
-    "tests/kl-reader-paragraph-continuity-20261107.test.mjs",
     "tests/kl-series-auto-dictionary-20261126.test.mjs",
     "tests/marites-wall-upload-behavior-20261124.test.mjs",
     "tests/marites-wall-upload-fastpath-20261124.test.mjs",
@@ -238,6 +239,6 @@
       "tests/kl-dictionary-expansion-20261119.test.mjs",
       "tests/kl-series-auto-dictionary-20261126.test.mjs"
     ],
-    "verification": "Focused source/logic checks passed. Fixed a malformed SQL dollar quote in the staged migration. Local PostgreSQL fixture added; database execution, full CI and runtime gates remain pending."
+    "verification": "Isolated PostgreSQL fixture passed on 9d755b4; actual Node suite 14/14 passed on 8bd74e6; read-only pgTAP contract registered, pending authorized database CI. Full runtime and release verification remain pending."
   }
 }
