@@ -1,0 +1,168 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-cumulative-saliksik-20261126.json",
+  "objective": "Integrate exact SALIKSIK R1-R4 source into cumulative Genesis QA; run actual canonical mastery-to-Faith reporting and notifications in disposable PG17 only.",
+  "baseRef": "2e882e485c95fdb7312a4a4421a39715e47740c7",
+  "productionBaselineEvidence": "Cumulative ABaKa head 2e882e4 has verified isolated fixture receipt; older Faith QA cb7332d passed. Existing MAIN production and published staging unchanged. Both changed client ancestors match prior SALIKSIK base 77a4599a.",
+  "chosenApproach": "Copy 36 exact existing SALIKSIK blobs including preexisting isolated CI contract; add local socket-only runner and cross-feature fixture using real SALIKSIK R4-generated records with exact prior Faith report and trigger migrations. Keep other formation fixture tables minimal.",
+  "selectionRationale": "Avoid duplicate source work and preserve review/rights/rewards semantics; exact existing source remains rollout OFF. Verify real database-produced objective and Master records instead of relying solely on handcrafted SALIKSIK fixture inserts.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-cumulative-saliksik-20261126.json",
+    ".github/workflows/saliksik-sql-qa.yml",
+    "docs/saliksik/BUKLOD_SALIKSIK_AUTHORITATIVE_BLUEPRINT_20261112.md",
+    "docs/saliksik/BUKLOD_SALIKSIK_R4_CONSOLIDATED_STAGING_CONTRACT_20261124.md",
+    "docs/saliksik/SALIKSIK_R3_AUTOMATED_RESEARCH_OWNER_POLICY_20261124.md",
+    "scripts/local-genesis-saliksik-isolated-qa.sh",
+    "src/app/admin/index.tsx",
+    "src/app/admin/saliksik-library.tsx",
+    "src/app/scope/saliksik.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/components/BuklodSaliksikDoor.tsx",
+    "src/components/BuklodSaliksikResearchLab.tsx",
+    "src/lib/saliksikClient.ts",
+    "src/lib/saliksikMastery.mjs",
+    "supabase/functions/saliksik-auto-v1/index.ts",
+    "supabase/functions/saliksik-generate-v1/index.ts",
+    "supabase/functions/saliksik-manuscript-v1/index.ts",
+    "supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql",
+    "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql",
+    "supabase/migrations/20261124035000_saliksik_complete_manuscript_unlock_r3.sql",
+    "supabase/migrations/20261124051000_saliksik_r4_auto_research_corpus.sql",
+    "supabase/migrations/20261124052000_saliksik_r4_independent_master_grade.sql",
+    "supabase/tests/saliksik_auto_research_security_r4.sql",
+    "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql",
+    "supabase/tests/saliksik_faith_canonical_integration_20261126.sql",
+    "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
+    "supabase/tests/saliksik_written_master_r2.sql",
+    "tests/fixtures/saliksik_faith_bridge_postgres17_20261126.sql",
+    "tests/fixtures/saliksik_pg_integration.sql",
+    "tests/fixtures/saliksik_pg_seed.sql",
+    "tests/fixtures/saliksik_r4_auto_pg_integration.sql",
+    "tests/saliksik-adaptive-mastery-20261112.test.mjs",
+    "tests/saliksik-auto-research-e2e-20261124.test.mjs",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+    "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs",
+    "tests/saliksik-faith-canonical-integration-20261126.test.mjs",
+    "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "tests/saliksik-written-master-20261113.test.mjs"
+  ],
+  "regressionTests": [
+    "supabase/tests/saliksik_auto_research_security_r4.sql",
+    "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql",
+    "supabase/tests/saliksik_faith_canonical_integration_20261126.sql",
+    "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql",
+    "supabase/tests/saliksik_written_master_r2.sql",
+    "tests/saliksik-adaptive-mastery-20261112.test.mjs",
+    "tests/saliksik-auto-research-e2e-20261124.test.mjs",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+    "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs",
+    "tests/saliksik-faith-canonical-integration-20261126.test.mjs",
+    "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "tests/saliksik-written-master-20261113.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add scoped SALIKSIK screens and existing minimal Genesis door/admin link on exact matching ancestor.",
+      "preservedBehaviors": [
+        "Existing navigation, AdMob, offline ABaKa, Points claim and Genesis visuals unchanged. No new native dependency."
+      ],
+      "tests": [
+        "tests/saliksik-cluster-faith-20261112.test.mjs",
+        "tests/saliksik-faith-canonical-integration-20261126.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Add opt-in research door and verify canonical Faith reporting and notifications.",
+      "preservedBehaviors": [
+        "Faith opt-out, exact cluster authorization, no cross-cluster disclosure, manual reward claims."
+      ],
+      "tests": [
+        "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+        "tests/saliksik-faith-canonical-integration-20261126.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Intake five undeployed migrations and three Edge functions, isolated SQL integration only.",
+      "preservedBehaviors": [
+        "Service-role leases and private source/answer protections, rollout off and no live writes."
+      ],
+      "tests": [
+        "supabase/tests/saliksik_auto_research_security_r4.sql",
+        "supabase/tests/saliksik_faith_canonical_integration_20261126.sql"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Run all local source tests and disposable R1-R4 SQL fixtures plus actual canonical Faith cross-feature assertions.",
+    "Live AI provider quality, Deno runtime, DOCX actual rendering, native client, full ledger and deployment gates remain pending; no auto-enable."
+  ],
+  "preserveBehaviors": [
+    "Previous verified ABaKa and Faith sources unchanged, pending claims and Academy evidence without fabricated UC."
+  ],
+  "alternativeApproaches": [
+    "Deploy shared live Supabase rejected.",
+    "Replace cumulative branch with old Genesis 2.0.5 source rejected."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "app-runtime",
+    "backend-security",
+    "ads-finance-points"
+  ],
+  "publicationStatus": "QA_ONLY_BACKEND_DEPENDENCY_HOLD",
+  "sourceIntake": {
+    "sourceSha": "fd6c5f7e54548cd658f75d1a2a3f1a859396c4ca",
+    "exactBlobs": {
+      ".github/workflows/saliksik-sql-qa.yml": "d606f270e693d196370f48a631a6577cff1657a5",
+      "docs/saliksik/BUKLOD_SALIKSIK_AUTHORITATIVE_BLUEPRINT_20261112.md": "e804a9ee2592b889a00432f390eee9f89e4bacf8",
+      "docs/saliksik/BUKLOD_SALIKSIK_R4_CONSOLIDATED_STAGING_CONTRACT_20261124.md": "694c4eee2b76f5ad9e739b71f5a916672eb2b128",
+      "docs/saliksik/SALIKSIK_R3_AUTOMATED_RESEARCH_OWNER_POLICY_20261124.md": "7f1589e82ab362b59e25360e5abc768fd72d9203",
+      "src/app/admin/index.tsx": "972786c20875f6b6d6d679df1306609ccfab1894",
+      "src/app/admin/saliksik-library.tsx": "c28944e6f6878e7f43f47e19903b532cb9ab6498",
+      "src/app/scope/saliksik.tsx": "5943d1d0036a0a9286ed1832dd61a076a069e138",
+      "src/components/BuklodClusterHomeCommandCenterImpl.tsx": "5e17a47d0a2f289d0678bca8793895b0ba6a8c22",
+      "src/components/BuklodSaliksikDoor.tsx": "26b11fb1e0eb17851729df0c52c4f1c85265c2cd",
+      "src/components/BuklodSaliksikResearchLab.tsx": "61454aa919f7c7abdce32b36c706cf64be8eb103",
+      "src/lib/saliksikClient.ts": "4bee2341c107b1da1537868fc1739c2bd1e70136",
+      "src/lib/saliksikMastery.mjs": "385a2c60c19fa9b0748ecc8398589f4a8ca0d5c3",
+      "supabase/functions/saliksik-auto-v1/index.ts": "911fcc460da642897bc69441c091ac4358fe83a0",
+      "supabase/functions/saliksik-generate-v1/index.ts": "a24073ef7d3a392ba7bf2704c1e2176bb75ec6ea",
+      "supabase/functions/saliksik-manuscript-v1/index.ts": "cc8af2084e0df99b797694d9f79a255452a4199a",
+      "supabase/migrations/20261112221000_saliksik_private_vault_objective_mastery_r1.sql": "48e6634816092e6aa37218131c11d6f89ddf9dcb",
+      "supabase/migrations/20261113221000_saliksik_written_master_reward_r2.sql": "e22b3347b4b31dae8b303fd8a14804afaa2d3f09",
+      "supabase/migrations/20261124035000_saliksik_complete_manuscript_unlock_r3.sql": "870be0b0fcb41c4171c04286273f96b2135f228a",
+      "supabase/migrations/20261124051000_saliksik_r4_auto_research_corpus.sql": "a6e7fa2e41a054ea564a3412d3e29b10b5249d18",
+      "supabase/migrations/20261124052000_saliksik_r4_independent_master_grade.sql": "084f627672cb19a127247972d4f878ec12126761",
+      "supabase/tests/saliksik_auto_research_security_r4.sql": "caa49cfd100ea6bc408b4c0f6633af89af6dbd61",
+      "supabase/tests/saliksik_complete_manuscript_unlock_r3.sql": "d7ebfacf5cb8a958d6daefe8dc286b2cc60267c5",
+      "supabase/tests/saliksik_private_vault_objective_mastery_r1.sql": "ef0e5516d0798638a9073d56d32dbebd3a8e1e4e",
+      "supabase/tests/saliksik_written_master_r2.sql": "526271f8a6eb93c4adc1054aea9e7f732196337e",
+      "tests/fixtures/saliksik_pg_integration.sql": "c4ef0d6d54b58550fc2e4710224762a1d49c64ea",
+      "tests/fixtures/saliksik_pg_seed.sql": "fac3115e2ef0f968495b80d4530e39405a6adfd3",
+      "tests/fixtures/saliksik_r4_auto_pg_integration.sql": "9bcae6b632f52b7b5dcf86a49ea47a311eb6a1bd",
+      "tests/saliksik-adaptive-mastery-20261112.test.mjs": "2c10bd1899d7e7262abd9e7e5d7f6c034ff06c57",
+      "tests/saliksik-auto-research-e2e-20261124.test.mjs": "810fec33bf9eda7c997ae48d73e5a0626e17b5f6",
+      "tests/saliksik-backend-security-20261112.test.mjs": "c4f634ec61ea6afa2b4d4a6e3b093e2954dcecdd",
+      "tests/saliksik-cluster-faith-20261112.test.mjs": "c22a39fb386d9e0ad61fee556a2dcc1e4b679d60",
+      "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs": "21c1541a9ad352e0a2021989b6ec976c8573d641",
+      "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs": "57b7e3ce4d037f506ef44c19fb98165371057c21",
+      "tests/saliksik-manuscript-unlock-20261124.test.mjs": "b006d79dd172517d888df9a02d633ef047c00c9f",
+      "tests/saliksik-sql-pg-qa.test.mjs": "8a25ef702f935cac6718b5c2e632d41249270f92",
+      "tests/saliksik-written-master-20261113.test.mjs": "bae4a8e8a2e736c4481305ff509e9190f8b3df37"
+    }
+  },
+  "validation": {
+    "databaseRuntime": "NOT_RUN",
+    "edgeProvider": "NOT_RUN",
+    "nativeRuntime": "NOT_RUN"
+  }
+}

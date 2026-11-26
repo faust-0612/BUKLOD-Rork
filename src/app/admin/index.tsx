@@ -558,6 +558,13 @@ export default function AdminDashboard() {
               />
 
               <AdminRow
+                icon="book-search-outline"
+                title="SALIKSIK Knowledge Vault"
+                subtitle="Optional private source rights and legacy manuscript governance; member research runs automatically"
+                path="/admin/saliksik-library"
+              />
+
+              <AdminRow
                 icon="clipboard-check-outline"
                 title="Learning Progress Approval"
                 subtitle="Final System Admin review after Pastor validation"
