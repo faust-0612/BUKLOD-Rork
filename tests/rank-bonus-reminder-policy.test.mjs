@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {planRankBonusReminder as plan,RANK_BONUS_REMINDER_POLICY as policy} from '../src/lib/buklodRankBonusReminder.ts';
+const day=86400000, now=10*day;
+const b={id:'a',availableAtMs:now-day,status:'unredeemed'};
+const base={verifiedBonuses:[b],nowMs:now,localHour:8,remindersEnabled:true};
+const run=(x={})=>plan({...base,...x});
+test('initial 24h boundary',()=>{assert.equal(run().shouldNotify,true);assert.equal(run({nowMs:now-1}).shouldNotify,false)});
+test('72h repeat boundary',()=>{assert.equal(run({lastReminderMs:now-3*day}).shouldNotify,true);assert.equal(run({lastReminderMs:now-3*day+1}).shouldNotify,false)});
+test('quiet hours',()=>{for(const hour of [0,7,21,23])assert.equal(run({localHour:hour}).shouldNotify,false);assert.equal(run({localHour:20}).shouldNotify,true)});
+test('consent and snooze',()=>{assert.equal(run({remindersEnabled:false}).shouldNotify,false);assert.equal(run({snoozedUntilMs:now+1}).shouldNotify,false);assert.equal(run({snoozedUntilMs:now}).shouldNotify,true)});
+test('redeemed and revoked are excluded',()=>{for(const status of ['redeemed','revoked'])assert.equal(run({verifiedBonuses:[{...b,status}]}).pendingCount,0)});
+test('aggregate and deduplicate',()=>{const r=run({verifiedBonuses:[b,b,{...b,id:'b'}]});assert.equal(r.pendingCount,2);assert.ok(r.notification.body.includes('2 cosmetic'))});
+test('future and invalid data',()=>{assert.equal(run({verifiedBonuses:[{...b,availableAtMs:now+1}]}).pendingCount,0);assert.equal(run({nowMs:NaN}).shouldNotify,false);assert.equal(run({localHour:24}).shouldNotify,false)});
+test('skip and unavailable ad never remove reward',()=>{assert.equal(policy.retainOnSkip,true);assert.equal(policy.retainOnAdUnavailable,true);assert.equal(policy.automaticAd,false);assert.equal(policy.expireOnDismiss,false)});
