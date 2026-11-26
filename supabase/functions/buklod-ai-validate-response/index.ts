@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {cacheContext,reusablePositive} from '../_shared/hybrid-learning-grading.mjs';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +39,7 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=='POST') return json({error:'POST required.'},405);
  try{
   const supabaseUrl=Deno.env.get('SUPABASE_URL')??''; const serviceRole=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??''; const geminiKey=Deno.env.get('GEMINI_API_KEY')??''; const authHeader=req.headers.get('Authorization')??'';
-  if(!supabaseUrl||!serviceRole) throw new Error('Supabase function secrets are incomplete.'); if(!geminiKey) throw new Error('GEMINI_API_KEY is not configured.'); if(!authHeader.toLowerCase().startsWith('bearer ')) return json({error:'Authentication required.'},401);
+  if(!supabaseUrl||!serviceRole) throw new Error('Supabase function secrets are incomplete.'); if(!authHeader.toLowerCase().startsWith('bearer ')) return json({error:'Authentication required.'},401);
   const admin=createClient(supabaseUrl,serviceRole,{auth:{persistSession:false}}); const token=authHeader.replace(/^Bearer\s+/i,'').trim(); const {data:userData,error:userError}=await admin.auth.getUser(token); if(userError||!userData?.user) return json({error:'Invalid or expired session.'},401);
   const body=await req.json(); const incomingContext=body?.question_context??body?.questionContext??{}; const responseText=String(body?.response??'').trim(); const attachments=Array.isArray(body?.attachments)?body.attachments:[]; const questionId=String(incomingContext?.questionId??incomingContext?.question_id??'').trim(); const moduleName=String(incomingContext?.module??'other').trim()||'other';
   if(!questionId) return json({error:'questionId is required.'},400); if(!responseText) return json({error:'Response is required.'},400); if(responseText.length>12000) return json({error:'Response is too long.'},400);
@@ -88,18 +89,33 @@ Deno.serve(async(req:Request)=>{
   }
 
   const validationPayload={question_context:questionContext,authoritative_source:authoritativeSource,learner_response:responseText.slice(0,12000),attachments:attachments.slice(0,10)};
+  const answerHash=await sha256Hex(responseText); const userId=userData.user.id;
+  // Opt-in pilot. Only a server-verified generated lesson answer, same user, exact
+  // source/rubric/answer hash, no attachments. Personal reflections are never cached.
+  const material=Deno.env.get('BUKLOD_HYBRID_CACHE_ENABLED')==='true'
+    ?cacheContext({module:moduleName,questionContext,authoritativeSource,attachments}):null;
+  const gradingKey=material?await sha256Hex(material):null;
   let parsed:any=null; let modelUsed=''; const failures:string[]=[];
+  if(gradingKey){
+    const {data:cached,error:cacheError}=await admin.from('buklod_ai_validation_attempts')
+      .select('status,feedback,scores,model,fail_open').eq('user_id',userId)
+      .eq('module','lesson').eq('question_id',questionId).eq('answer_hash',answerHash)
+      .eq('question_context->>hybrid_grading_key',gradingKey).eq('status','acceptable')
+      .eq('fail_open',false).gte('created_at',new Date(Date.now()-24*60*60*1000).toISOString())
+      .order('created_at',{ascending:false}).limit(1).maybeSingle();
+    if(!cacheError&&reusablePositive(cached)){parsed=cached;modelUsed=cached!.model;}
+  }
+  if(!parsed&&!geminiKey) throw new Error('GEMINI_API_KEY is not configured.');
   // Bound both upstream attempts well below the Edge Function 150s idle timeout.
   // Never turn a timeout into approval: only a real Gemini result may be saved.
   const modelAttempts=[{name:'gemini-3.6-flash',timeoutMs:40000},{name:'gemini-3.5-flash-lite',timeoutMs:17000}];
-  for(const model of modelAttempts){try{parsed=await callGemini(geminiKey,model.name,validationPayload,model.timeoutMs);modelUsed=model.name;break;}catch(e){failures.push(`${model.name}: ${cleanError(e)}`);}}
+  if(!parsed) for(const model of modelAttempts){try{parsed=await callGemini(geminiKey,model.name,validationPayload,model.timeoutMs);modelUsed=model.name;break;}catch(e){failures.push(`${model.name}: ${cleanError(e)}`);}}
   if(!parsed) throw new Error(`AI_UPSTREAM_UNAVAILABLE (${failures.map((x)=>x.slice(0,160)).join(' | ')})`);
   const scores={relevance:clamp(parsed?.scores?.relevance),depth:clamp(parsed?.scores?.depth),clarity:clamp(parsed?.scores?.clarity),effort:clamp(parsed?.scores?.effort),overall:clamp(parsed?.scores?.overall)};
   let status=String(parsed?.status??'needs_improvement'); if(!['acceptable','needs_improvement','not_acceptable_yet'].includes(status)) status='needs_improvement'; if(status==='acceptable'&&(scores.overall<.82||scores.relevance<.78||scores.depth<.72)) status='needs_improvement';
   const rawGuidance=Array.isArray(parsed?.feedback?.guidance)?parsed.feedback.guidance.map((x:unknown)=>String(x).trim()).filter(Boolean):[];
   const feedback={headline:String(parsed?.feedback?.headline??(status==='acceptable'?'Your answer meets the BUKLOD lesson standard':'Improve this answer before submission')).slice(0,220),guidance:rawGuidance.length?rawGuidance.slice(0,4).map((x:string)=>x.slice(0,320)):(status==='acceptable'?[]:['Answer directly from the lesson and include the required points.']),encouragement:parsed?.feedback?.encouragement==null?(status==='acceptable'?'Ready to submit.':'Use the lesson and guidance above, then check again.'):String(parsed.feedback.encouragement).slice(0,260),language:['tl','en','taglish'].includes(String(parsed?.feedback?.language))?String(parsed.feedback.language):'taglish'};
-  const answerHash=await sha256Hex(responseText); const userId=userData.user.id;
-  const {data:attempt,error:insertError}=await admin.from('buklod_ai_validation_attempts').insert({user_id:userId,question_id:questionId,module:moduleName,answer_hash:answerHash,response_snapshot:responseText.slice(0,4000),status,feedback,scores,model:modelUsed,fail_open:false,attachments,question_context:{...questionContext,authoritative_content_hash:authoritativeSource?.content_hash??null}}).select('id,created_at').single(); if(insertError||!attempt) throw insertError??new Error('Could not record validation result.');
+  const {data:attempt,error:insertError}=await admin.from('buklod_ai_validation_attempts').insert({user_id:userId,question_id:questionId,module:moduleName,answer_hash:answerHash,response_snapshot:responseText.slice(0,4000),status,feedback,scores,model:modelUsed,fail_open:false,attachments,question_context:{...questionContext,authoritative_content_hash:authoritativeSource?.content_hash??null,...(gradingKey?{hybrid_grading_key:gradingKey}:{})}}).select('id,created_at').single(); if(insertError||!attempt) throw insertError??new Error('Could not record validation result.');
   await admin.from('buklod_question_validation_context').upsert({question_id:questionId,module:moduleName,context:{...questionContext,authoritative_content_hash:authoritativeSource?.content_hash??null},updated_at:new Date().toISOString()},{onConflict:'question_id'});
   return json({status,attempt_id:attempt.id,answer_hash:answerHash,feedback,scores,model:modelUsed,validated_at:attempt.created_at,fail_open:false,can_submit:status==='acceptable',source_of_truth:moduleName==='lesson'?'server_lesson':'server_context'});
  }catch(error){const message=cleanError(error);console.error(`[BUKLOD_FORMATION_AI_VALIDATION_ERROR] ${message}`);return json({error:'AI validation is temporarily unavailable. Your answer was not graded; please retry.',code:'AI_VALIDATION_TEMPORARILY_UNAVAILABLE'},503);}

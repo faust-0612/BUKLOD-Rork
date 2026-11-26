@@ -1,0 +1,13 @@
+# Hybrid Intelligent Grading — R1 DEV (November 26, 2026)
+
+## Implemented
+- Shared server-only objective grading primitive: reviewed exact equivalents, normalized full strings, maximum one-to-one concept matching. Unknown answers are unresolved, not automatically incorrect; duplicate answers invalid. No substring-only credit or reward writes.
+- Existing Formation AI validator: opt-in same-account positive answer cache for generated questions only, bound to exact server-owned source and rubric, answer hash, policy version and 24-hour expiry. Attachments, reflections and other modules excluded. Existing Gemini fallback and thresholds retained; a fresh server validation receipt is recorded, not a direct BP award. Default flag OFF.
+- Live Bible V4 migration 20261126055353 retained; 46 historical attempts and 142 BP were previously verified. Do not rerun this migration on production or replace it.
+- Existing RLS permits authenticated learners to select their own validation rows only; no learner insert/update policies observed. Recheck before cache activation.
+
+## Integration gates / incomplete work
+1. Bible V4: add server-owned unresolved-attempt queue; freeze source/rubric version and answer hash, preserve auth/one daily attempt and current points caps. Workers cannot accept client-supplied questions or scores. Model returns concept-level source evidence, not BP; ambiguous/failed checks remain pending and never silently become wrong or approved. Distinct concepts and contradictory answers tested. Only confirmed corrections use existing idempotent ledger. Do not use global AI-created aliases without independent source verification and versioned audit.
+2. Buklod Lesson: pilot current cache, then add reviewed objective rubric metadata; do not reuse personal reflections or cross-account private answers. Confirm existing validation receipt age/consumption and fresh receipt behavior. Implement durable concurrency lease, rate limits and global provider budget before broad activation.
+3. ABaKa, KL, Children's Story, SALIKSIK, Bible Reading, Daily Reading, Academy: individually integrate trusted source and their existing assessment policy. Keep objective/reflective/evidence requirements distinct; no reward changes. Preserve separate Classroom Quiz.
+4. Keep provider secrets private. AI availability, source-grounded model accuracy, timeout/429 retry policy, concurrency, historical score reconciliation, negative and adversarial tests, staging DB and exact RC verification required. No paid provider, live migration, Edge deployment or OTA authorized by this source commit.
