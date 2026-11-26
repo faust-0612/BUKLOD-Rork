@@ -25,7 +25,8 @@ type Episode = {
   preview_ready?: boolean;
 };
 type Feedback = { tone: 'success' | 'error' | 'info'; text: string };
-type Preview = { manuscript?: string | null; title?: string | null };
+type Preview = { manuscript?: string | null; title?: string | null; editorial_revision?: boolean; revision_id?: string | null };
+type EditorialResult = { ok?: boolean; changed?: boolean; editorial_revision?: boolean; revision_id?: string | null; published?: boolean; reason?: string; quiz_evidence_conflicts?: number; media_conflicts?: number };
 
 const field = {
   color: '#fff',
@@ -76,6 +77,9 @@ export default function KlPublishingStudio() {
   const [mediaKind, setMediaKind] = useState<'illustration' | 'cover' | 'music' | 'ambient'>('illustration');
   const [mediaBusy, setMediaBusy] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [editorialRevisionId, setEditorialRevisionId] = useState('');
+  const [editorialReviewOpen, setEditorialReviewOpen] = useState(false);
+  const [reviewedEditorialId, setReviewedEditorialId] = useState('');
   const [confirmedPreviewId, setConfirmedPreviewId] = useState('');
   const [approvalRefreshToken, setApprovalRefreshToken] = useState(0);
   const lock = useRef(false);
@@ -172,6 +176,8 @@ export default function KlPublishingStudio() {
       if (error) throw error;
       if (!data || typeof data !== 'object') throw new Error('Walang server record ng chapter.');
       const preview = data as Preview;
+      setEditorialRevisionId(preview.editorial_revision ? preview.revision_id ?? '' : '');
+      setEditorialReviewOpen(false); setReviewedEditorialId('');
       const nextTitle = preview.title ?? episode.title;
       const nextText = preview.manuscript ?? '';
       setId(episode.id);
@@ -214,6 +220,8 @@ export default function KlPublishingStudio() {
       const previewResult = await supabase.rpc('kl_admin_preview_v1', { p_episode_id: newId });
       if (previewResult.error) throw previewResult.error;
       const preview = previewResult.data as Preview | null;
+      setEditorialRevisionId(preview?.editorial_revision ? preview.revision_id ?? '' : '');
+      setEditorialReviewOpen(false); setReviewedEditorialId('');
       const nextTitle = preview?.title ?? title.trim();
       const nextText = preview?.manuscript ?? '';
       setId(newId);
@@ -242,7 +250,10 @@ export default function KlPublishingStudio() {
         p_episode_id: snapshot.id, p_title: snapshot.title, p_manuscript: snapshot.manuscript,
       });
       if (error) throw error;
-      if (!(data as { ok?: boolean } | null)?.ok) throw new Error('Hindi nakumpirma ng server ang save.');
+      const result = data as EditorialResult | null;
+      if (!result?.ok) throw new Error('Hindi nakumpirma ng server ang save.');
+      setEditorialRevisionId(result.editorial_revision ? result.revision_id ?? '' : '');
+      setEditorialReviewOpen(false); setReviewedEditorialId('');
       if ((data as { changed?: boolean }).changed !== false) {
         setPreviewOpen(false);
         setConfirmedPreviewId('');
@@ -257,7 +268,7 @@ export default function KlPublishingStudio() {
         await queueLocal(() => removeKlEditorDraft(user.id, snapshot.id)).catch(() => undefined);
         setRecoveryDraft(null);
       }
-      setFeedback({ tone: 'success', text: 'Manuscript saved on server. Draft pa ito; hindi pa public.' });
+      setFeedback({ tone: 'success', text: result.editorial_revision ? 'Editorial revision saved. Ang dating released version, quiz at rewards ay hindi nabago.' : 'Manuscript saved on server.' });
       await refresh().catch(() => undefined); // A failed list refresh must not undo a confirmed save.
     });
   };
@@ -276,6 +287,40 @@ export default function KlPublishingStudio() {
       // Avoid mounting all full-resolution scene artwork during manuscript editing.
       setPreviewOpen(false);
       setFeedback({ tone: 'success', text: 'Private preview prepared on server. Tap Open Private Preview & Media Approvals below; hindi pa public.' });
+      await refresh().catch(() => undefined);
+    });
+  };
+
+  const reviewEditorial = () => {
+    if (!saved || !editorialRevisionId) return;
+    const revision = editorialRevisionId;
+    void perform('Preparing editorial preview', async () => {
+      const { data, error } = await supabase.rpc('kl_admin_prepare_preview_v1', { p_episode_id: id });
+      if (error) throw error;
+      const result = data as { ready?: boolean; editorial_revision?: boolean; revision_id?: string };
+      if (!result?.ready || !result.editorial_revision || result.revision_id !== revision)
+        throw new Error('Nagbago ang saved revision. Buksan muli ang chapter.');
+      setReviewedEditorialId('');
+      setEditorialReviewOpen(true);
+      setFeedback({ tone: 'info', text: 'Suriin ang buong editorial preview. Ang dating version ay public pa rin.' });
+    });
+  };
+  const publishEditorial = () => {
+    if (!saved || !editorialReviewOpen || !editorialRevisionId || reviewedEditorialId !== editorialRevisionId) return;
+    const revision = editorialRevisionId;
+    void perform('Publishing reviewed editorial revision', async () => {
+      const { data, error } = await supabase.rpc('kl_admin_publish_editorial_revision_v1', {
+        p_episode_id: id, p_revision_id: revision,
+      });
+      if (error) throw error;
+      const result = data as EditorialResult | null;
+      if (result?.reason === 'compatibility_review_required') {
+        setFeedback({ tone: 'error', text: 'Saved ang revision, ngunit kailangan ng compatibility review: quiz passages ' + (result.quiz_evidence_conflicts ?? 0) + ', illustration/media ' + (result.media_conflicts ?? 0) + '. Hindi binago ang public version.' });
+        return;
+      }
+      if (!result?.ok || !result.published) throw new Error('Hindi nakumpirma ang publication.');
+      setEditorialRevisionId(''); setEditorialReviewOpen(false); setReviewedEditorialId('');
+      setFeedback({ tone: 'success', text: 'Editorial revision published. Napanatili ang dating assessment, reading progress at rewards.' });
       await refresh().catch(() => undefined);
     });
   };
@@ -418,6 +463,20 @@ export default function KlPublishingStudio() {
             {dirty ? ' · Local copy: ' + (localBackupStatus === 'saved' ? 'saved' : localBackupStatus === 'error' ? 'unavailable' : 'saving…') : ''}
           </Text>
           <Action label={busyAction === 'Sine-save ang manuscript' ? 'Saving manuscript…' : 'Save Manuscript'} disabled={workspaceBusy} onPress={save} />
+          {editorialRevisionId ? (
+            <View style={{ gap: 10, padding: 12, backgroundColor: '#243849', borderRadius: 8 }}>
+              <Text style={{ color: '#ffe0a8', fontWeight: '700' }}>Saved editorial revision — dating released chapter pa rin ang public.</Text>
+              <Action label="Review Editorial Revision" disabled={workspaceBusy || !saved} onPress={reviewEditorial} />
+              {editorialReviewOpen && saved ? (
+                <>
+                  <KlAdminPreview key={editorialRevisionId} episodeId={id} season={Number(season)} chapter={Number(chapter)}
+                    onEditorialLoaded={setReviewedEditorialId} />
+                  <Action label="Publish Reviewed Revision" disabled={workspaceBusy || reviewedEditorialId !== editorialRevisionId} onPress={publishEditorial} />
+                  <Text style={{color:'#b7c8cd'}}>Publication is allowed only when existing verified quiz evidence and illustration placements remain compatible.</Text>
+                </>
+              ) : null}
+            </View>
+          ) : null}
           {feedback ? (
             <Text accessibilityRole="alert" style={{ color: feedback.tone === 'error' ? '#ffb8b8' : '#c7f4d8' }}>
               {feedback.text}
