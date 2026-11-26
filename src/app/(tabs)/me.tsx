@@ -1747,6 +1747,7 @@ export default function MeScreen() {
               uri={profile?.avatar_url}
               name={profile?.full_name}
               size={buklodVisual.size.avatar}
+              animateRankFrame={genesisFocused&&!isBuklodOfficial}
               fallbackSource={fallbackPortrait}
               enableLongPressSheet={false}
               onPress={() => {
