@@ -232,11 +232,20 @@ alter table private.kl_dictionary_jobs_v1 enable row level security;
 revoke all on private.kl_dictionary_jobs_v1 from public,anon,authenticated;
 -- The displayed revision, not the historical quiz manuscript, defines the glossary.
 create function private.kl_dictionary_source_v1(p_episode uuid)
-returns text language sql stable security definer set search_path='' as $$
- select coalesce((private.kl_editorial_current_v1(e.id,false)).manuscript,e.manuscript)
+returns text language plpgsql stable security definer set search_path='' as $
+declare v_base text; v_revision text;
+begin
+ select e.manuscript into v_base
  from public.kl_episodes e join public.kl_series_v1 s using(season_number)
- where e.id=p_episode and s.published and e.status='approved' and e.approved_at is not null and e.release_at<=now()
-$$;
+ where e.id=p_episode and s.published and e.status='approved' and e.approved_at is not null and e.release_at<=now();
+ if not found then return null; end if;
+ -- Editorial revisions are already available in the shared production schema;
+ -- fresh staging installs may not yet have that independent migration.
+ if to_regprocedure('private.kl_editorial_current_v1(uuid,boolean)') is not null then
+  execute 'select (private.kl_editorial_current_v1($1,false)).manuscript' into v_revision using p_episode;
+ end if;
+ return coalesce(v_revision,v_base);
+end $;
 revoke all on function private.kl_dictionary_source_v1(uuid) from public,anon,authenticated;
 create function public.kl_dictionary_read_v1(p_episode_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
 declare v_source text; v_generated jsonb; v_curated jsonb; v_season integer; v_episode integer;
