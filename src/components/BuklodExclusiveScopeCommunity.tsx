@@ -3733,6 +3733,7 @@ return (
               designId={wallStyles.styles[String(item.id)]?.designId}
               fontId={wallStyles.styles[String(item.id)]?.fontId}
               bonusKey={wallStyles.styles[String(item.id)]?.bonusKey}
+              alignment={wallStyles.styles[String(item.id)]?.alignment}
               animationActive={styleScreenFocused&&!wallComposerOpen&&!commentOpen&&mode==='wall'&&styleVisibleIds.find(id=>wallStyles.styles[id]?.animated)===String(item.id)}
               text={repairMojibakeText(item.body)}
               style={[styles.body, { color: theme.textPrimary }]}
