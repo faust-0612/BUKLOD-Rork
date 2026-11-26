@@ -5,6 +5,7 @@ import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { readableAccentOnSurface } from '@/lib/buklodTheme';
 
 import { WallPostDesignSurface, WallRankBonusFrame, wallFontTextStyle } from '@/components/BuklodWallPostDesignPicker';
+import { wallAlignmentForViewer } from '@/lib/buklodWallPostStylePersistence';
 import { rankBonusFrameForViewer } from '@/lib/buklodRankBonusFrames';
 import { visibleWallPostDesign, wallFontForViewer } from '@/lib/buklodWallPostDesigns';
 
@@ -16,6 +17,7 @@ type Props = React.ComponentProps<typeof BuklodMentionText> & {
   animationActive?: boolean;
   fontId?: string | null;
   bonusKey?: string | null;
+  alignment?: string | null;
 };
 
 const LARGE_TEXT_LIMIT = 80;
@@ -32,6 +34,7 @@ export function BuklodExpandableWallCaption({
   animationActive = false,
   fontId = 'standard',
   bonusKey = null,
+  alignment = 'auto',
   ...mentionProps
 }: Props) {
   const { theme } = useBuklodTheme();
@@ -58,6 +61,7 @@ export function BuklodExpandableWallCaption({
     const codepoints = Array.from(fullText);
     const truncated = !expanded && codepoints.length > limit;
     const visibleText = truncated ? codepoints.slice(0, limit).join('').trimEnd() + '…' : fullText;
+    const align=wallAlignmentForViewer(alignment);
     const size = largeText ? 25 : charCount <= 180 ? 21 : 17;
     const content = (
       <>
@@ -67,7 +71,7 @@ export function BuklodExpandableWallCaption({
           preserveMentionColor={!!design}
           text={visibleText}
           numberOfLines={undefined}
-          style={[mentionProps.style, largeText && styles.largeText, { fontSize: size, lineHeight: Math.round(size * 1.32), textAlign: charCount <= 180 ? 'center' : 'left' }, wallFontTextStyle(wallFontForViewer(fontId)), design && { color: design.ink }]}
+          style={[mentionProps.style, largeText && styles.largeText, { fontSize: size, lineHeight: Math.round(size * 1.32), textAlign: align==='auto'?(charCount <= 180 ? 'center' : 'left'):align }, wallFontTextStyle(wallFontForViewer(fontId)), design && { color: design.ink }]}
         />
         {codepoints.length > limit && <Pressable accessibilityRole="button"
           accessibilityLabel={expanded ? 'See less' : 'See more'}
