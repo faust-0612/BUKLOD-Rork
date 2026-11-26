@@ -156,16 +156,16 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
   const estimate = contribution?.estimated_share_minor == null
     ? 'Source not available'
     : contribution.estimate_below_cent ? 'Below ₱0.01' : formatMinorPhp(contribution.estimated_share_minor);
-  const activeProvisional = contribution?.estimate_status === 'PROVISIONAL_ADMOB';
+  const activeProvisional = contribution?.estimate_status === 'PROVISIONAL_ADMOB' && contribution.estimate_source_mode === 'OFFICIAL_ADMOB_API';
   const available = cash?.cash_status?.available_php;
-  const projected = composeCurrentMonthProjectedBalance(monthly, contribution);
-  const breakdown = sourceBalances?.userId === userId && monthly
+  const projected = composeCurrentMonthProjectedBalance(monthly, activeProvisional ? contribution : null);
+  const breakdown = sourceBalances && sourceBalances.userId === userId && monthly
     && sourceBalances.report.period_key === monthly.current_month_key
     && sourceBalances.report.available_minor === monthly.available_finalized_minor
     ? sourceBalances.report : null;
-  const clusterEstimate = clusterPreview?.scopeId === scopeId && clusterPreview.userId === userId
+  const clusterEstimate = clusterPreview && clusterPreview.scopeId === scopeId && clusterPreview.userId === userId
     && Date.parse(clusterPreview.observedAt) >= Date.now() - 10800000 ? clusterPreview.minor : null;
-  const clusterTotal = clusterEstimate !== null && scopeFund?.scope_id === scopeId
+  const clusterTotal = clusterEstimate !== null && scopeFund && scopeFund.scope_id === scopeId
     && Number.isSafeInteger(scopeFund.available_fund_minor) && scopeFund.available_fund_minor >= 0
     && Number.isSafeInteger(scopeFund.available_fund_minor + clusterEstimate)
     ? scopeFund.available_fund_minor + clusterEstimate : null;
