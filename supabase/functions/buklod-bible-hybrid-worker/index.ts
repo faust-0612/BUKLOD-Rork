@@ -34,13 +34,17 @@ Deno.serve(async(req)=>{
  const settlement=await admin.rpc('buklod_bible_hybrid_settle_exact');
  if(settlement.error)return json({status:'settlement_not_confirmed'},503);
  if(settlement.data?.status==='settled')return json(settlement.data);
+ // Cache hits use zero external calls, including while the provider is paused.
+ const cached=await admin.rpc('buklod_bible_hybrid_reuse_candidate',{p_model:Deno.env.get('BUKLOD_HYBRID_FREE_GEMINI_MODEL')??null});
+ if(cached.error)return json({status:'cache_not_confirmed'},503);
+ if(cached.data?.status==='cache_hit')return json({status:'cache_hit'});
  if(!free)return json({status:'free_quota_not_verified'},503);
  const {key,model}=free;
  const {data:job,error}=await admin.rpc('buklod_bible_hybrid_claim');
  if(error)return json({status:'claim_failed'},503);
  if(!job)return json({status:'idle'});
  const record=async(status:string,units:number|null,concepts:number[]|null)=>{
-  const r=await admin.rpc('buklod_bible_hybrid_record',{p_job:job.job_id,p_lease:job.lease_id,p_status:status,p_units:units,p_concepts:concepts});
+  const r=await admin.rpc('buklod_bible_hybrid_record',{p_job:job.job_id,p_lease:job.lease_id,p_status:status,p_units:units,p_concepts:concepts,p_model:status==='candidate'||status==='no_change'?model:null});
   if(r.error||r.data!==true)return json({status:'receipt_not_confirmed'},503);
   return json({status});
  };

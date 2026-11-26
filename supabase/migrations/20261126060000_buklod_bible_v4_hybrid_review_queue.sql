@@ -4,6 +4,7 @@ create table if not exists private.buklod_bible_hybrid_control (
  singleton boolean primary key default true check(singleton),
  enabled boolean not null default false,
  deterministic_settlement_enabled boolean not null default false,
+ shadow_cache_enabled boolean not null default false,
  daily_calls integer not null default 20 check(daily_calls between 0 and 20),
  provider_pause_until timestamptz,
  provider_blocked boolean not null default false
@@ -25,10 +26,14 @@ create table if not exists private.buklod_bible_hybrid_jobs (
  lease_id uuid, lease_until timestamptz,
  result jsonb,
  deterministic_checked_at timestamptz,
+ verified_model text,
+ verified_at timestamptz,
+ cache_origin_job_id uuid references private.buklod_bible_hybrid_jobs(id) on delete set null,
  created_at timestamptz not null default now(),
  unique(attempt_id,question_id)
 );
 create index if not exists buklod_bible_hybrid_jobs_queue_idx on private.buklod_bible_hybrid_jobs(status,available_at,created_at);
+create index if not exists buklod_bible_hybrid_cache_lookup_idx on private.buklod_bible_hybrid_jobs(question_id,answer_hash,verified_model,verified_at desc) where verified_at is not null;
 alter table private.buklod_bible_hybrid_control enable row level security;
 alter table private.buklod_bible_hybrid_budget enable row level security;
 alter table private.buklod_bible_hybrid_jobs enable row level security;
@@ -102,7 +107,7 @@ revoke all on function public.buklod_bible_hybrid_claim() from public,anon,authe
 grant execute on function public.buklod_bible_hybrid_claim() to service_role;
 
 -- Shadow candidate receipt only. No BP, no quiz score mutation, no alias publication.
-create or replace function public.buklod_bible_hybrid_record(p_job uuid,p_lease uuid,p_status text,p_units int,p_concepts jsonb)
+create or replace function public.buklod_bible_hybrid_record(p_job uuid,p_lease uuid,p_status text,p_units int,p_concepts jsonb,p_model text default null)
 returns boolean language plpgsql security definer set search_path='' as $$
 declare j record; n int; ans jsonb; expected int; matched int; v int;
 begin
@@ -134,6 +139,7 @@ begin
   expected:=case when j.source_snapshot->>'kind'='identification' then 1 else 2 end;
   if jsonb_typeof(p_concepts) is distinct from 'array' then raise exception 'Invalid concepts';end if;
   if jsonb_array_length(p_concepts)<>expected then raise exception 'Invalid concept count';end if;
+  if exists(select 1 from jsonb_array_elements(p_concepts) x where jsonb_typeof(x.value)<>'number' or (x.value #>> '{}') !~ '^-?[0-9]+$') then raise exception 'Invalid concept type';end if;
   n:=jsonb_array_length(j.source_snapshot->'groups');matched:=0;
   for v in select (value #>> '{}')::int from jsonb_array_elements(p_concepts) loop
    if v< -1 or v>=n or v is null then raise exception 'Invalid concept';end if;
@@ -143,12 +149,17 @@ begin
   if p_units is distinct from (case when expected=1 then matched*2 else matched end) then raise exception 'Invalid units';end if;
   if (p_status='candidate' and p_units<=j.baseline_units) or (p_status='no_change' and p_units>j.baseline_units) then raise exception 'Invalid candidate delta';end if;
  else p_units:=null;p_concepts:=null;end if;
- update private.buklod_bible_hybrid_jobs set status=p_status,result=jsonb_build_object('units',p_units,'concepts',p_concepts,'policy','bible-hybrid-v1'),lease_id=null,lease_until=null where id=j.id;
+ if p_status in ('candidate','no_change') and (p_model is null or length(p_model)>100 or p_model !~ '^gemini-[a-zA-Z0-9.-]+$') then raise exception 'Verified model required';end if;
+ update private.buklod_bible_hybrid_jobs set status=p_status,
+ result=jsonb_build_object('units',p_units,'concepts',p_concepts,'policy','bible-hybrid-v1'),
+ verified_model=case when p_status in ('candidate','no_change') then p_model else null end,
+ verified_at=case when p_status in ('candidate','no_change') then now() else null end,
+ lease_id=null,lease_until=null where id=j.id;
  return true;
 end;
 $$;
-revoke all on function public.buklod_bible_hybrid_record(uuid,uuid,text,int,jsonb) from public,anon,authenticated;
-grant execute on function public.buklod_bible_hybrid_record(uuid,uuid,text,int,jsonb) to service_role;
+revoke all on function public.buklod_bible_hybrid_record(uuid,uuid,text,int,jsonb,text) from public,anon,authenticated;
+grant execute on function public.buklod_bible_hybrid_record(uuid,uuid,text,int,jsonb,text) to service_role;
 
 -- Full reviewed alias matching only, never a model-supplied score.
 -- An enumeration needs two different answer fields and two different concepts.
@@ -250,3 +261,57 @@ end;
 $$;
 revoke all on function public.buklod_bible_hybrid_settle_exact() from public,anon,authenticated;
 grant execute on function public.buklod_bible_hybrid_settle_exact() to service_role;
+
+-- Same-account, unchanged source, exact stored answer, same model, direct full verdict only.
+-- Cache hit is a shadow candidate, never a score or BP mutation. Reuse cannot renew TTL.
+create or replace function public.buklod_bible_hybrid_reuse_candidate(p_model text)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare j record; origin record; target_job record;
+begin
+ if auth.role() is distinct from 'service_role' then raise exception 'Service only';end if;
+ if p_model is null or length(p_model)>100 or p_model !~ '^gemini-[a-zA-Z0-9.-]+$' then return jsonb_build_object('status','disabled');end if;
+ perform 1 from private.buklod_bible_hybrid_control where singleton and enabled and shadow_cache_enabled for update;
+ if not found then return jsonb_build_object('status','disabled');end if;
+ select target.id as target_id,prev.id as origin_id into j
+ from (select * from private.buklod_bible_hybrid_jobs where status='queued' order by created_at,id limit 100) target
+ join private.buklod_bible_v4_attempts ta on ta.id=target.attempt_id and ta.state='completed'
+ join private.buklod_bible_hybrid_jobs prev on prev.question_id=target.question_id and prev.answer_hash=target.answer_hash
+ and prev.source_snapshot=target.source_snapshot and prev.status='candidate'
+ and prev.verified_model=p_model and prev.verified_at>now()-interval '7 days' and prev.verified_at<=now()
+ and prev.cache_origin_job_id is null and prev.result->>'units'='2' and prev.result->>'policy'='bible-hybrid-v1'
+ join private.buklod_bible_v4_attempts pa on pa.id=prev.attempt_id and pa.state='completed' and pa.user_id=ta.user_id and pa.id<>ta.id
+ where target.source_snapshot=private.buklod_bible_hybrid_source(target.question_id)
+ and (ta.submitted_answers->target.question_id)=(pa.submitted_answers->prev.question_id)
+ and target.answer_hash=encode(sha256(convert_to((ta.submitted_answers->target.question_id)::text,'UTF8')),'hex')
+ order by target.created_at,target.id,prev.verified_at desc limit 1;
+ if not found then return jsonb_build_object('status','miss');end if;
+ -- All queue writers share the control lock. Recheck current rows and source.
+ select * into origin from private.buklod_bible_hybrid_jobs where id=j.origin_id for share;
+ select * into target_job from private.buklod_bible_hybrid_jobs where id=j.target_id and status='queued' for update;
+ if not found or origin.id is null or origin.status<>'candidate' or origin.verified_model is distinct from p_model
+ or origin.verified_at is null or origin.verified_at<=now()-interval '7 days' or origin.verified_at>now()
+ or origin.cache_origin_job_id is not null or origin.result->>'units' is distinct from '2'
+ or origin.result->>'policy' is distinct from 'bible-hybrid-v1'
+ or origin.question_id is distinct from target_job.question_id or origin.answer_hash is distinct from target_job.answer_hash
+ or origin.source_snapshot is distinct from target_job.source_snapshot then return jsonb_build_object('status','miss');end if;
+ perform 1 from private.buklod_bible_v4_questions where id=target_job.question_id and active and reviewed for share;
+ if not found or target_job.source_snapshot is distinct from private.buklod_bible_hybrid_source(target_job.question_id) then return jsonb_build_object('status','miss');end if;
+ if not exists(select 1 from private.buklod_bible_v4_attempts t join private.buklod_bible_v4_attempts o on o.id=origin.attempt_id and o.user_id=t.user_id
+ where t.id=target_job.attempt_id and t.state='completed' and o.state='completed'
+ and (t.submitted_answers->target_job.question_id)=(o.submitted_answers->target_job.question_id)
+ and target_job.answer_hash=encode(sha256(convert_to((t.submitted_answers->target_job.question_id)::text,'UTF8')),'hex'))
+ then return jsonb_build_object('status','miss');end if;
+ if exists(select 1 from private.buklod_bible_hybrid_jobs z
+ join private.buklod_bible_v4_attempts za on za.id=z.attempt_id
+ join private.buklod_bible_v4_attempts ta on ta.id=target_job.attempt_id and za.user_id=ta.user_id
+ where z.question_id=target_job.question_id and z.answer_hash=target_job.answer_hash and z.source_snapshot=target_job.source_snapshot
+ and z.verified_model=p_model and z.verified_at>now()-interval '7 days' and z.verified_at<=now()
+ and z.cache_origin_job_id is null and z.status in ('candidate','no_change')
+ and z.result->'concepts' is distinct from origin.result->'concepts') then return jsonb_build_object('status','conflict');end if;
+ update private.buklod_bible_hybrid_jobs set status='candidate',result=origin.result||jsonb_build_object('cache_reused',true),
+ cache_origin_job_id=origin.id,verified_at=null,verified_model=null,lease_id=null,lease_until=null where id=target_job.id;
+ return jsonb_build_object('status','cache_hit');
+end;
+$$;
+revoke all on function public.buklod_bible_hybrid_reuse_candidate(text) from public,anon,authenticated;
+grant execute on function public.buklod_bible_hybrid_reuse_candidate(text) to service_role;
