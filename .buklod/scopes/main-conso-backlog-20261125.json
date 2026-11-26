@@ -163,6 +163,16 @@
         "tests/word-bible-navigation-20261123.test.cjs",
         "tests/bible-navigation.test.cjs"
       ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add isolated KL series storage policies and evidence-bound glossary jobs without modifying released manuscripts, existing quiz records or reward balances.",
+      "preservedBehaviors": [
+        "Existing authentication and account isolation, released manuscript and quiz integrity, unrelated storage policies, and no production writes."
+      ],
+      "tests": [
+        "supabase/tests/kl_series_dictionary_contract.sql"
+      ]
     }
   ],
   "acceptanceChecks": [
@@ -195,7 +205,8 @@
     "governance-lock",
     "cluster-faith",
     "bible-reader-navigation",
-    "story"
+    "story",
+    "backend-security"
   ],
   "preserveBehaviors": [
     "Keep existing account isolation, native/runtime configuration, private media, current Points claim RPC and mandatory protected feature gates.",
