@@ -1,3 +1,4 @@
+import {useRankConnectCosmetic} from '@/providers/RankConnectCosmeticProvider';
 import React, {
   useMemo,
   useRef,
@@ -506,6 +507,7 @@ export function ConnectMessageBubble({
 }: Props) {
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const { theme } = useConnectTheme();
+  const {accent:rankAccent}=useRankConnectCosmetic();
   const styles = useMemo(
     () => createStyles(theme),
     [theme]
@@ -698,6 +700,7 @@ export function ConnectMessageBubble({
               own ? styles.bubbleOwn : styles.bubbleOther,
               standaloneReaction && styles.standaloneBubble,
                mediaOnly && styles.mediaOnlyBubble,
+              own && !deleted && !standaloneReaction && !!bodyText && !mediaOnly && !fileName && !slots.length && rankAccent && {borderWidth:1,borderColor:rankAccent.color},
             ]}
             onPress={() => setDetailsExpanded(current => !current)}
             onLongPress={handleLongPress}
