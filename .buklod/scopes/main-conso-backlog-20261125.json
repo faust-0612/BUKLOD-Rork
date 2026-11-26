@@ -18,6 +18,7 @@
     "docs/release/BUKLOD_POINTS_STAGING_NO_NEW_SUPABASE_20261124.md",
     "docs/release/KL_SERIES_DICTIONARY_STAGING_20261126.md",
     "scripts/engineering-regression-gate.mjs",
+    "scripts/test-kl-series-dictionary-local.sh",
     "src/app/(tabs)/messages.tsx",
     "src/app/devotional/[id].tsx",
     "src/components/BuklodConnectThread.tsx",
@@ -169,7 +170,8 @@
     "Rewarded bonus remains disabled; no live balance-changing QA.",
     "Word verse links open the exact chapter and verse using My Bible and preserve daily assignment, ads and offline behavior.",
     "Verify KL glossary matching, manuscript italics and reader/admin preview consistency; preserve released manuscript wording and current publishing authorization, with actual runtime and source QA still required.",
-    "Verify KL series create/upload/publish, private draft visibility, backend migrations, worker evidence/retry and exact glossary source hashes in authorized staging; full CI/Android release gates remain mandatory."
+    "Verify KL series create/upload/publish, private draft visibility, backend migrations, worker evidence/retry and exact glossary source hashes in authorized staging; full CI/Android release gates remain mandatory.",
+    "Run scripts/test-kl-series-dictionary-local.sh against a disposable PostgreSQL 17 cluster; validate both exact SQL migrations, role isolation, series publication and glossary hash/lease behavior without any project connection."
   ],
   "publicationStatus": "DEV_ONLY_NO_PUBLISH",
   "releaseMode": "consolidated-main-rc",
@@ -236,6 +238,6 @@
       "tests/kl-dictionary-expansion-20261119.test.mjs",
       "tests/kl-series-auto-dictionary-20261126.test.mjs"
     ],
-    "verification": "Focused dictionary and worker logic checks passed; migration, React Native runtime and full CI pending. Backend source only, no apply or deployment authorized."
+    "verification": "Focused source/logic checks passed. Fixed a malformed SQL dollar quote in the staged migration. Local PostgreSQL fixture added; database execution, full CI and runtime gates remain pending."
   }
 }
