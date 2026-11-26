@@ -4,36 +4,40 @@ import { canSelectWallPostDesign, canSelectWallFont, resolveWallPostDesign, wall
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 import { canUseRankBonusFrame, rankBonusFrameForViewer } from '@/lib/buklodRankBonusFrames';
-export type WallPostStyle = { designId: string | null; fontId: WallFontId; animated: boolean; bonusKey:string|null };
+import {getBuklodCircleRankArt} from '@/lib/buklodCircleRankArt';
+export type WallAlignment='auto'|'left'|'center'|'right';
+export function wallAlignmentForViewer(value:unknown):WallAlignment{return value==='left'||value==='center'||value==='right'?value:'auto';}
+export function canSelectWallAlignment(value:unknown,rankName:string|null){return value==='auto'||(wallAlignmentForViewer(value)!=='auto'&&(getBuklodCircleRankArt(rankName)?.order??0)>=3);}
+export type WallPostStyle = { designId: string | null; fontId: WallFontId; animated: boolean; bonusKey:string|null; alignment:WallAlignment };
 const EMPTY_STYLES: Record<string,WallPostStyle> = Object.freeze({});
-export const DEFAULT_WALL_POST_STYLE: WallPostStyle = {designId:null,fontId:'standard',animated:false,bonusKey:null};
+export const DEFAULT_WALL_POST_STYLE: WallPostStyle = {designId:null,fontId:'standard',animated:false,bonusKey:null,alignment:'auto'};
 export function normalizeWallPostStyle(value:any):WallPostStyle {
   const design=resolveWallPostDesign(value?.design_id);
-  return {designId:design?.id??null,fontId:wallFontForViewer(value?.font_id),animated:!!design&&value?.animated===true,bonusKey:rankBonusFrameForViewer(value?.bonus_key)?.key??null};
+  return {designId:design?.id??null,fontId:wallFontForViewer(value?.font_id),animated:!!design&&value?.animated===true,bonusKey:rankBonusFrameForViewer(value?.bonus_key)?.key??null,alignment:wallAlignmentForViewer(value?.alignment)};
 }
 export function authorizeWallPostStyle(style:WallPostStyle,rank:string|null,hasMedia:boolean,redeemedKeys:readonly string[]=[]):WallPostStyle {
   if(hasMedia)return DEFAULT_WALL_POST_STYLE;
   const design=resolveWallPostDesign(style.designId);
   const allowed=!!design&&canSelectWallPostDesign(design.id,rank);
   return {designId:allowed?design!.id:null,fontId:canSelectWallFont(style.fontId,rank)?style.fontId:'standard',
-    animated:allowed&&style.animated&&wallDesignMotionAllowed(design!,rank),bonusKey:canUseRankBonusFrame(style.bonusKey,redeemedKeys)?style.bonusKey:null};
+    animated:allowed&&style.animated&&wallDesignMotionAllowed(design!,rank),bonusKey:canUseRankBonusFrame(style.bonusKey,redeemedKeys)?style.bonusKey:null,alignment:canSelectWallAlignment(style.alignment,rank)?style.alignment:'auto'};
 }
 export function isDefaultWallPostStyle(style:WallPostStyle) {
-  return style.designId===null&&style.fontId==='standard'&&!style.animated&&style.bonusKey===null;
+  return style.designId===null&&style.fontId==='standard'&&!style.animated&&style.bonusKey===null&&style.alignment==='auto';
 }
 export async function persistWallPostStyle(postId:string,userId:string,style:WallPostStyle) {
   if(isDefaultWallPostStyle(style))return;
   const {data:auth}=await supabase.auth.getSession();
   if(auth.session?.user.id!==userId)throw Error('Account changed');
   const {error}=await (supabase as any).from('buklod_wall_post_styles_v1').upsert({
-    post_id:postId,author_id:userId,design_id:style.designId,font_id:style.fontId,animated:style.animated,bonus_key:style.bonusKey,
+    post_id:postId,author_id:userId,design_id:style.designId,font_id:style.fontId,animated:style.animated,bonus_key:style.bonusKey,alignment:style.alignment,
   },{onConflict:'post_id',ignoreDuplicates:true});
   if(error)throw error;
   // A retry must read the original stored style rather than silently overwrite it.
-  const result=await (supabase as any).from('buklod_wall_post_styles_v1').select('design_id,font_id,animated,bonus_key').eq('post_id',postId).single();
+  const result=await (supabase as any).from('buklod_wall_post_styles_v1').select('design_id,font_id,animated,bonus_key,alignment').eq('post_id',postId).single();
   if(result.error)throw result.error;
   const actual=normalizeWallPostStyle(result.data);
-  if(actual.designId!==style.designId||actual.fontId!==style.fontId||actual.animated!==style.animated||actual.bonusKey!==style.bonusKey)throw Error('Different post style already saved');
+  if(actual.designId!==style.designId||actual.fontId!==style.fontId||actual.animated!==style.animated||actual.bonusKey!==style.bonusKey||actual.alignment!==style.alignment)throw Error('Different post style already saved');
 }
 /** Bounded reads; no viewer rank check, no additional requests while flag off. */
 export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unknown}[],composerOpen:boolean,scopeKey='public') {
@@ -75,7 +79,7 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
         const result:Record<string,WallPostStyle>={};
         for(let i=0;i<list.length;i+=80){
           const {data,error}=await (supabase as any).from('buklod_wall_post_styles_v1')
-            .select('post_id,design_id,font_id,animated,bonus_key').in('post_id',list.slice(i,i+80));
+            .select('post_id,design_id,font_id,animated,bonus_key,alignment').in('post_id',list.slice(i,i+80));
           if(error)throw error;
           if(seq!==readEpoch.current)return;
           for(const row of data??[])result[String(row.post_id)]=normalizeWallPostStyle(row);
