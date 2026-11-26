@@ -169,7 +169,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
             <Stat label="First-line referral revenue" value={php(cash.lifetime_earned?.first_line_php)} />
           </View>
           <View style={styles.cashRow}>
-            <Stat label="One-time referral rewards" value={php(cash.lifetime_earned?.referral_reward_php)} />
+            <Stat label="One-time referral revenue (lifetime)" value={php(cash.lifetime_earned?.referral_reward_php)} />
             <Stat label="System Admin funded rewards" value={php(cash.lifetime_earned?.admin_funded_reward_php)} />
           </View>
           {!compact ? <Stat label="Total lifetime funded earnings (not available balance)" value={php(cash.lifetime_earned?.total_php)} /> : null}
@@ -188,13 +188,13 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
                 : 'Awaiting finalization'}
             />
             <Stat
-              label={`${monthly.current_month_key} · THIS MONTH (ESTIMATE)`}
+              label="Total Qualified QMP Shares Revenue This Month"
               value={projected ? formatMinorPhp(projected.currentEstimateMinor) : 'No fresh estimate'}
             />
           </View>
-          <Stat label="PROJECTED TOTAL · NOT WITHDRAWABLE"
+          <Stat label="Total Estimated Revenue · Not Withdrawable"
             value={projected ? formatMinorPhp(projected.projectedTotalMinor) : 'Current estimate unavailable'} />
-          <Stat label={`AVAILABLE FINALIZED · MINIMUM ${formatMinorPhp(monthly.minimum_withdrawal_minor)}`}
+          <Stat label={`Available Finalized Balance · Minimum ${formatMinorPhp(monthly.minimum_withdrawal_minor)}`}
             value={formatMinorPhp(monthly.available_finalized_minor)} />
           <Text style={styles.note}>
             Finalized monthly earnings stay in history even after a payout. Current-month QMP changes only
@@ -220,7 +220,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
           {scopeFund ? (
             <>
               <View style={styles.cashRow}>
-                <Stat label="Fund available" value={formatMinorPhp(scopeFund.available_fund_minor)} />
+                <Stat label="Finalized Cluster / Organization Fund Available" value={formatMinorPhp(scopeFund.available_fund_minor)} />
                 <Stat label="Reserved" value={formatMinorPhp(scopeFund.reserved_fund_minor)} />
               </View>
               <Text style={styles.note}>This Organization/Cluster fund is separate from your personal earnings.</Text>
