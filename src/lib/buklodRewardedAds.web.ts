@@ -4,3 +4,5 @@ export function warmBuklodRewardedAd(): void {}
 export async function showBuklodRewardedAd(): Promise<BuklodRewardedAdResult> {
   return { shown: false, earned: false, reward: null };
 }
+
+export async function showBuklodRankBonusAd(_userId:string,_bonusKey:string):Promise<BuklodRewardedAdResult>{return {shown:false,earned:false,reward:null};}
