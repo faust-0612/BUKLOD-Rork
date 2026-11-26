@@ -7,11 +7,36 @@ test('Home, Profile and Connect keep their existing scroll hierarchy with one fi
  const home=read('src/app/(tabs)/hub.tsx');
  const profile=read('src/app/(tabs)/me.tsx');
  const connect=read('src/app/(tabs)/messages.tsx');
- assert.match(home,/<ScrollView style=/);
- assert.match(profile,/<ScrollView\s+ref=\{profileScrollRef\}/);
+ assert.match(home,/<ScrollView\b/);
+ assert.match(home,/\bstyle=\{\{/);
+ assert.match(home,/reportBuklodDashboardScroll\('home'/);
+ assert.match(home,/noteBuklodVideoScroll\(\)/);
+ assert.match(home,/scrollEventThrottle=\{16\}/);
+ assert.match(profile,/<ScrollView\b/);
+ assert.match(profile,/\bref=\{profileScrollRef\}/);
  assert.equal((connect.match(/<FlatList\b/g) || []).length, 1);
  assert.match(connect,/ListHeaderComponent=\{renderHiblaHeader\(tab === 'community'\)\}/);
- assert.doesNotMatch(connect,/BuklodNativeSponsoredCard/);
+ // Preserve the newer Connect inline-ad contract.
+ assert.equal((connect.match(/<BuklodNativeSponsoredCard\b/g) || []).length, 2);
+ assert.match(connect,/slotId="connect_personal_inline_4"\s+prefetch/);
+ assert.match(connect,/slotId="connect_community_inline_4"\s+prefetch/);
+
+ // One first-view component, with mutually selected inbox placement IDs.
+ assert.equal((connect.match(/<BuklodFirstViewAd\b/g) || []).length, 1);
+ assert.match(connect,/connect_community_first_view/);
+ assert.match(connect,/connect_personal_first_view/);
+
+ // Home has separate desktop/mobile branches; Profile has one slot.
+ assert.equal((home.match(/<BuklodFirstViewAd\b/g) || []).length, 2);
+ assert.equal((home.match(/placementId="new_home_first_view"/g) || []).length, 2);
+ assert.equal((profile.match(/<BuklodFirstViewAd\b/g) || []).length, 1);
+ assert.match(profile,/placementId="profile_first_view"/);
+
+ // No sponsored native media inside active scoped chat.
+ assert.doesNotMatch(
+   read('src/app/connect/community/[scopeId].tsx'),
+   /<BuklodNativeSponsoredCard\b|<BuklodCommunityInlineAd\b/
+ );
  assert.match(connect,/removeClippedSubviews=\{false\}/);
  assert.doesNotMatch(read('src/app/connect/personal/[threadId].tsx'),/<BuklodNativeSponsoredCard/);
 });
