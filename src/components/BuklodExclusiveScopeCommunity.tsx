@@ -1848,7 +1848,7 @@ export default function BuklodExclusiveScopeCommunity({
 
       postingSubmissionRef.current = true;
       const snapshot = {
-        wallStyle:wallStyles.enabled?authorizeWallPostStyle(draftWallStyle,wallStyles.rankName,!!(photos.length||wallVideo||communityGif||publishingReel)):DEFAULT_WALL_POST_STYLE,
+        wallStyle:wallStyles.enabled?authorizeWallPostStyle(draftWallStyle,wallStyles.rankName,!!(photos.length||wallVideo||communityGif||publishingReel),wallStyles.redeemedBonusKeys):DEFAULT_WALL_POST_STYLE,
         photos: [...photos],
         collageLayout,
         wallVideo:
@@ -3732,6 +3732,7 @@ return (
               key={String(item.id)}
               designId={wallStyles.styles[String(item.id)]?.designId}
               fontId={wallStyles.styles[String(item.id)]?.fontId}
+              bonusKey={wallStyles.styles[String(item.id)]?.bonusKey}
               animationActive={styleScreenFocused&&!wallComposerOpen&&!commentOpen&&mode==='wall'&&styleVisibleIds.find(id=>wallStyles.styles[id]?.animated)===String(item.id)}
               text={repairMojibakeText(item.body)}
               style={[styles.body, { color: theme.textPrimary }]}
@@ -4173,7 +4174,7 @@ return (
             maxLength={5000}
             style={[styles.composer, largeScopedText && { fontSize:25, lineHeight:33, fontWeight:'800', minHeight:96 }]}
           />
-          {wallStyles.enabled&&mode==='wall'&&!photos.length&&!wallVideo&&!communityGif&&body.trim()?<WallPostStyleEditor rankName={wallStyles.rankName} value={draftWallStyle} onChange={setDraftWallStyle} previewText={body} disabled={busy}/>:null}
+          {wallStyles.enabled&&mode==='wall'&&!photos.length&&!wallVideo&&!communityGif&&body.trim()?<WallPostStyleEditor rankName={wallStyles.rankName} value={draftWallStyle} onChange={setDraftWallStyle} previewText={body} redeemedBonusKeys={wallStyles.redeemedBonusKeys} disabled={busy}/>:null}
           {!!body.trim() && (
             <Text style={{marginTop:3,fontSize:12,color:colors.muted}}>
               {largeScopedText ? 'Large text · big letters after publishing' : 'Regular caption'}
