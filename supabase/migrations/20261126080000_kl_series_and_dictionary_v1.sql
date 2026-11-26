@@ -235,7 +235,7 @@ alter table private.kl_dictionary_jobs_v1 enable row level security;
 revoke all on private.kl_dictionary_jobs_v1 from public,anon,authenticated;
 -- The displayed revision, not the historical quiz manuscript, defines the glossary.
 create function private.kl_dictionary_source_v1(p_episode uuid)
-returns text language plpgsql stable security definer set search_path='' as $
+returns text language plpgsql stable security definer set search_path='' as $$
 declare v_base text; v_revision text;
 begin
  select e.manuscript into v_base
@@ -248,7 +248,7 @@ begin
   execute 'select (private.kl_editorial_current_v1($1,false)).manuscript' into v_revision using p_episode;
  end if;
  return coalesce(v_revision,v_base);
-end $;
+end $$;
 revoke all on function private.kl_dictionary_source_v1(uuid) from public,anon,authenticated;
 create function public.kl_dictionary_read_v1(p_episode_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
 declare v_source text; v_generated jsonb; v_curated jsonb; v_season integer; v_episode integer;
