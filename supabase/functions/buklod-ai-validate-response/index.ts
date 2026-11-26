@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {cacheContext,reusablePositive} from '../_shared/hybrid-learning-grading.mjs';
+import {freeOnlyConfig} from '../_shared/hybrid-free-only.mjs';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -105,11 +106,16 @@ Deno.serve(async(req:Request)=>{
       .order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(!cacheError&&reusablePositive(cached)){parsed=cached;modelUsed=cached!.model;}
   }
-  if(!parsed&&!geminiKey) throw new Error('GEMINI_API_KEY is not configured.');
+  // The new hybrid pilot must never fall back to a potentially billable legacy key.
+  // Existing non-hybrid traffic is unchanged; rollout requires its own durable budget/queue.
+  const hybridPilot=Deno.env.get('BUKLOD_HYBRID_CACHE_ENABLED')==='true';
+  const free=hybridPilot?freeOnlyConfig(Deno.env.toObject()):null;
+  if(!parsed&&hybridPilot&&!free)return json({error:'Free grading quota is not verified. Your answer was not graded; please retry.',code:'FREE_GRADING_UNAVAILABLE'},503);
+  if(!parsed&&!hybridPilot&&!geminiKey) throw new Error('GEMINI_API_KEY is not configured.');
   // Bound both upstream attempts well below the Edge Function 150s idle timeout.
   // Never turn a timeout into approval: only a real Gemini result may be saved.
-  const modelAttempts=[{name:'gemini-3.6-flash',timeoutMs:40000},{name:'gemini-3.5-flash-lite',timeoutMs:17000}];
-  if(!parsed) for(const model of modelAttempts){try{parsed=await callGemini(geminiKey,model.name,validationPayload,model.timeoutMs);modelUsed=model.name;break;}catch(e){failures.push(`${model.name}: ${cleanError(e)}`);}}
+  const modelAttempts=hybridPilot?(free?[{name:free.model,timeoutMs:17000}]:[]):[{name:'gemini-3.6-flash',timeoutMs:40000},{name:'gemini-3.5-flash-lite',timeoutMs:17000}];
+  if(!parsed) for(const model of modelAttempts){try{parsed=await callGemini(hybridPilot?free!.key:geminiKey,model.name,validationPayload,model.timeoutMs);modelUsed=model.name;break;}catch(e){failures.push(`${model.name}: ${cleanError(e)}`);}}
   if(!parsed) throw new Error(`AI_UPSTREAM_UNAVAILABLE (${failures.map((x)=>x.slice(0,160)).join(' | ')})`);
   const scores={relevance:clamp(parsed?.scores?.relevance),depth:clamp(parsed?.scores?.depth),clarity:clamp(parsed?.scores?.clarity),effort:clamp(parsed?.scores?.effort),overall:clamp(parsed?.scores?.overall)};
   let status=String(parsed?.status??'needs_improvement'); if(!['acceptable','needs_improvement','not_acceptable_yet'].includes(status)) status='needs_improvement'; if(status==='acceptable'&&(scores.overall<.82||scores.relevance<.78||scores.depth<.72)) status='needs_improvement';
