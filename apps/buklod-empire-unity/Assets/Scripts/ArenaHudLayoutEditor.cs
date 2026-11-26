@@ -14,7 +14,7 @@ namespace Buklod.Empire {
         readonly Font font;
         readonly Text message;
         int selected;
-        bool dragging;
+        bool dragging;int pointerId;
         public ArenaHudLayoutEditor(RectTransform parent,Font labelFont,Sprite controlSprite,Action close){
             font=labelFont;
             root=Rect("HUD layout editor",parent,Vector2.zero,Vector2.one);
@@ -33,11 +33,11 @@ namespace Buklod.Empire {
                 var image=item.gameObject.AddComponent<Image>();image.sprite=controlSprite;images[i]=image;
                 Text("Control label",item,Vector2.zero,Vector2.one,Names[i],18);
                 var events=item.gameObject.AddComponent<EventTrigger>();
-                Add(events,EventTriggerType.PointerDown,e=>{selected=index;Highlight();});
-                Add(events,EventTriggerType.BeginDrag,e=>{selected=index;dragging=true;Highlight();});
-                Add(events,EventTriggerType.Drag,e=>{if(dragging&&selected==index)Preview(index,e.position);});
+                Add(events,EventTriggerType.PointerDown,e=>{if(!dragging){selected=index;Highlight();}});
+                Add(events,EventTriggerType.BeginDrag,e=>{if(dragging)return;selected=index;pointerId=e.pointerId;dragging=true;Highlight();});
+                Add(events,EventTriggerType.Drag,e=>{if(dragging&&selected==index&&pointerId==e.pointerId)Preview(index,e.position);});
                 Add(events,EventTriggerType.EndDrag,e=>{
-                    if(!dragging||selected!=index)return;
+                    if(!dragging||selected!=index||pointerId!=e.pointerId)return;
                     dragging=false;
                     var area=MobileBattleInput.SafeArea;
                     var delta=e.position-ArenaControlSettings.Center(area,index);

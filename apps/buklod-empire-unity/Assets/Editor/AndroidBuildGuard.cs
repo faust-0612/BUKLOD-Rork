@@ -11,6 +11,7 @@ namespace Buklod.Empire.Editor
     {
         public const string ExpectedApplicationId = "org.mzbministry.buklod.empire";
         public int callbackOrder => -1000;
+        static bool IsUnapprovedThirdParty(string path)=>new[]{"QuaterniusReview","KenneyReview","KayKitReview"}.Any(folder=>path.StartsWith("Assets/ThirdParty/"+folder+"/",System.StringComparison.OrdinalIgnoreCase));
 
         public void OnPreprocessBuild(BuildReport report)
         {
@@ -36,11 +37,11 @@ namespace Buklod.Empire.Editor
             if(!AssetDatabase.LoadAssetAtPath<UnityEngine.AI.NavMeshData>("Assets/Scenes/GenesisRiftNavMesh.asset"))throw new BuildFailedException("Production NavMesh missing.");
             if(!(UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline is UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset))throw new BuildFailedException("Production URP settings missing.");
             var catalogDeps=AssetDatabase.GetDependencies(ArenaSceneComposer.CatalogPath,true);
-            if(catalogDeps.Any(path=>(path.StartsWith("Assets/Generated/",System.StringComparison.OrdinalIgnoreCase)||path.StartsWith("Assets/ThirdParty/QuaterniusReview/",System.StringComparison.OrdinalIgnoreCase))))throw new BuildFailedException("Generated or third-party review assets cannot be used by the production catalog.");
+            if(catalogDeps.Any(path=>(path.StartsWith("Assets/Generated/",System.StringComparison.OrdinalIgnoreCase)||IsUnapprovedThirdParty(path))))throw new BuildFailedException("Generated or third-party review assets cannot be used by the production catalog.");
             if(!AssetDatabase.GetDependencies(scenes[0].path,true).Contains(ArenaSceneComposer.CatalogPath))throw new BuildFailedException("Enabled scene must use the approved production catalog.");
             foreach(var scene in scenes){
                 if(scene.path.StartsWith("Assets/Generated/",System.StringComparison.OrdinalIgnoreCase)||
-                   AssetDatabase.GetDependencies(scene.path,true).Any(path=>path.StartsWith("Assets/Generated/ReviewOnly/",System.StringComparison.OrdinalIgnoreCase)||path.StartsWith("Assets/ThirdParty/QuaterniusReview/",System.StringComparison.OrdinalIgnoreCase)))
+                   AssetDatabase.GetDependencies(scene.path,true).Any(path=>path.StartsWith("Assets/Generated/ReviewOnly/",System.StringComparison.OrdinalIgnoreCase)||IsUnapprovedThirdParty(path)))
                     throw new BuildFailedException("Unapproved review scene or dependency cannot enter an Android build: "+scene.path);
             }
             Debug.Log("BUKLOD Empire Android identity and scene preflight passed. This is not a visual or gameplay acceptance result.");

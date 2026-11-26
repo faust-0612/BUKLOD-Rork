@@ -4,7 +4,8 @@ namespace Buklod.Empire {
     public sealed class BattleHud:MonoBehaviour {
         private BattleView view; private MobileBattleInput input;
         private Canvas canvas;private Sprite circle,reviewControl;
-        internal Sprite ControlPreviewSprite=>reviewControl?reviewControl:circle;
+        private ArenaAuthoredUi authored;
+        internal Sprite ControlPreviewSprite=>authored&&authored.action?authored.action:reviewControl?reviewControl:circle;
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
@@ -22,7 +23,7 @@ namespace Buklod.Empire {
             var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.alignment=TextAnchor.MiddleCenter;t.color=Color.white;t.raycastTarget=false;t.horizontalOverflow=HorizontalWrapMode.Overflow;return t;
         }
         private void Awake(){
-            view=GetComponent<BattleView>();input=GetComponent<MobileBattleInput>();review=view.IsEditorReview;
+            view=GetComponent<BattleView>();input=GetComponent<MobileBattleInput>();review=view.IsEditorReview;authored=review?GetComponent<ArenaAuthoredUi>():null;
             var texture=new Texture2D(64,64,TextureFormat.RGBA32,false);
             for(int y=0;y<64;y++)for(int x=0;x<64;x++){float d=Vector2.Distance(new Vector2(x,y),new Vector2(31.5f,31.5f));texture.SetPixel(x,y,new Color(1,1,1,Mathf.Clamp01(31.5f-d)));}
             texture.Apply();circle=Sprite.Create(texture,new Rect(0,0,64,64),Vector2.one*.5f);
@@ -65,8 +66,9 @@ namespace Buklod.Empire {
             t.color=new Color(.95f,.98f,1);
         }
         private void BuildReview(){
-            reviewControl=MakeReviewControl();
-            foreach(var button in buttons){button.sprite=reviewControl;button.color=Color.white;}
+            if(!authored)reviewControl=MakeReviewControl();
+            foreach(var button in buttons){button.sprite=ControlPreviewSprite;button.color=Color.white;}
+            if(authored){buttons[0].sprite=authored.stickPad;knob.sprite=authored.stickNub;knob.color=Color.white;}
             foreach(var label in labels)if(label)ImproveText(label);
             ImproveText(status);
             healthTrack=ImageAt("Health track",canvas.transform,new Color(.08f,.13f,.13f,.85f));healthTrack.sprite=null;healthTrack.transform.SetAsFirstSibling();
