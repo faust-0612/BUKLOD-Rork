@@ -141,7 +141,7 @@ export default function KlDynamicLibrary({series,isAdmin=false,onBack}:{series?:
  const dictionary=useKlChapterDictionary(chapter?.id??null,text,routeFocused&&appActive);
  const term=openTerm?dictionary.byName(openTerm):null;
  const chapterRows=chapters.filter(c=>c.season_number===currentSeries?.season_number);
- if(!currentSeries)return <KlSeriesShelf isAdmin={isAdmin} onOpen={setStandaloneSeries}/>;
+ if(!currentSeries||(!currentSeries.published&&!isAdmin))return <KlSeriesShelf isAdmin={isAdmin} onOpen={setStandaloneSeries}/>;
  return <View style={{gap:12}}>
  {!chapter?<><Pressable accessibilityRole="button" onPress={()=>{if(onBack)onBack();else setStandaloneSeries(null);}}><Text style={{color:'#f1d39b'}}>‹ Bumalik sa mga serye</Text></Pressable><Text style={{color:'#f6dfb0',fontSize:24,fontWeight:'800'}}>{currentSeries.title}</Text><Pressable onPress={()=>void refresh()}><Text style={{color:'#f1d39b'}}>I-refresh ang mga kabanata</Text></Pressable></>:null}
  {chapter?<View style={{gap:12}}>
@@ -151,7 +151,7 @@ export default function KlDynamicLibrary({series,isAdmin=false,onBack}:{series?:
  {media.filter(m=>m.kind==='cover').map(image)}
  {paragraphs.map((p,i)=><View key={i} style={{gap:8}}>
  {illustrationsAtParagraph(media,p,'before').map(image)}
- <Text style={{color:'#fff',fontSize:18,lineHeight:29}}>{splitKlItalics(p,chapter.season_number,chapter.episode_number).flatMap(run=>dictionary.split(run.text).map(part=>({...part,italic:run.italic}))).map((part,j)=><Text key={j} style={[part.italic&&{fontStyle:'italic'},part.term&&{color:'#e5c891',textDecorationLine:'underline',fontWeight:'700'}]} onPress={part.term?()=>setOpenTerm(part.term):undefined}>{part.text}</Text>)}</Text>
+ <Text style={{color:'#fff',fontSize:18,lineHeight:29}}>{splitKlItalics(p,chapter.season_number,chapter.episode_number).flatMap(run=>dictionary.split(run.text).map(part=>({...part,italic:run.italic}))).map((part,j)=><Text key={j} style={[part.italic&&{fontStyle:'italic'},part.term?{color:'#e5c891',textDecorationLine:'underline',fontWeight:'700'}:undefined]} onPress={part.term?()=>setOpenTerm(part.term):undefined}>{part.text}</Text>)}</Text>
  {illustrationsAtParagraph(media,p,'after').map(image)}
  </View>)}
  {text?<><KlReadingQuiz key={chapter.id} episodeId={chapter.id}/><KlLiveDiscussion episodeId={chapter.id} live={true}/></>:null}
