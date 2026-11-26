@@ -582,6 +582,7 @@ export function BuklodLearningContent({
         No Pastor or Admin approval is required.
       </Text>
 
+      {process.env.EXPO_PUBLIC_BUKLOD_ACADEMY_ENABLED==='true' && <Pressable accessibilityRole="button" onPress={() => router.push('/academy' as any)} style={{marginTop:9,marginBottom:4,backgroundColor:'#E6F1E9',borderRadius:11,padding:12}}><Text style={{fontSize:13,fontWeight:'900',color:'#23533C'}}>BUKLOD Academy of Higher Learning</Text><Text style={{fontSize:11,color:'#617D6B'}}>Verified internal non-formal learning records</Text></Pressable>}
       {/* PATCH_185B_PROGRESS_ADMIN_BUTTON */}
       {canManageLearning && (
         <View style={{ marginTop: 12, marginBottom: 4 }}>
