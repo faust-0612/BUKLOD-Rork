@@ -1,0 +1,116 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-cumulative-faith-20261126.json",
+  "objective": "Reconcile complete Faith report and named-notification source into cumulative isolated Genesis QA; no shared-backend deployment.",
+  "baseRef": "d69ee98b8752ff14a0d1a754f512a4b1a3591e65",
+  "productionBaselineEvidence": "Frozen prior QA d69ee98 and existing published staging c326416 source candidate; MAIN unchanged by this task. No production runtime claim.",
+  "chosenApproach": "Copy all 16 exact client, SQL and fixture/test blobs from reviewed Faith draft after verifying the four client ancestor matches. Replace stale CI-only execution path with local disposable PG17 runner and dedicated fictional named-formation test.",
+  "selectionRationale": "Faith draft scope omitted six later notification paths; explicitly enumerate all paths and hold every backend-dependent change outside publishable staging. Local private Unix socket avoids shared backend and GitHub runner billing.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-cumulative-faith-20261126.json",
+    "scripts/local-genesis-faith-isolated-qa.sh",
+    "src/app/children-stories/[id].tsx",
+    "src/components/BuklodFaithPeriodReport.tsx",
+    "src/components/BuklodSyncCoordinator.tsx",
+    "src/lib/buklodScopeFaithPeriodReport.ts",
+    "supabase/migrations/20261125141700_children_story_verified_accomplishments.sql",
+    "supabase/migrations/20261125141800_faith_accomplishment_report_v2.sql",
+    "supabase/migrations/20261125141900_named_formation_submission_notifications.sql",
+    "supabase/migrations/20261125142000_faith_accomplishment_named_notifications.sql",
+    "supabase/tests/faith_accomplishment_privilege_contract_20261125.sql",
+    "supabase/tests/faith_named_notification_release_gate_20261125.sql",
+    "tests/faith-accomplishment-named-notifications-20261125.test.mjs",
+    "tests/faith-accomplishment-report-v2.test.mjs",
+    "tests/fixtures/faith-accomplishment-postgres17-20261125.sql",
+    "tests/fixtures/faith-accomplishment-postgres17-verification-20261125.sql",
+    "tests/fixtures/faith-formation-named-postgres17-20261126.sql",
+    "tests/fixtures/faith-named-notification-postgres17-20261125.sql",
+    "tests/named-formation-submission-notifications-20261125.test.mjs"
+  ],
+  "regressionTests": [
+    "supabase/tests/faith_accomplishment_privilege_contract_20261125.sql",
+    "supabase/tests/faith_named_notification_release_gate_20261125.sql",
+    "tests/faith-accomplishment-named-notifications-20261125.test.mjs",
+    "tests/faith-accomplishment-report-v2.test.mjs",
+    "tests/named-formation-submission-notifications-20261125.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Add exact Faith client source only for isolated backend QA.",
+      "preservedBehaviors": [
+        "Keep existing released staging unchanged and preserve authorization and offline identity."
+      ],
+      "tests": [
+        "tests/faith-accomplishment-report-v2.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Add distinct unit counts and named accomplishment notifications with scope checks.",
+      "preservedBehaviors": [
+        "Daily habit report and existing approved lesson counts preserved; unavailable sources not represented as zero."
+      ],
+      "tests": [
+        "tests/faith-accomplishment-report-v2.test.mjs",
+        "tests/faith-accomplishment-named-notifications-20261125.test.mjs",
+        "tests/named-formation-submission-notifications-20261125.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Four migrations remain QA only; test fictional database and private RPC privilege boundaries.",
+      "preservedBehaviors": [
+        "No shared live database writes, reward mutations, cross-scope disclosure, direct client execution of notification producers or published answer-key access."
+      ],
+      "tests": [
+        "supabase/tests/faith_accomplishment_privilege_contract_20261125.sql",
+        "supabase/tests/faith_named_notification_release_gate_20261125.sql"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Run local PG17 fixtures against newly initialized private Unix socket only; run real source tests.",
+    "Verify report counts, dedupe, membership and role boundaries, named submissions and unavailable sources; full release gate intentionally held until verified Children teaching and SALIKSIK canonical integration.",
+    "Never publish this branch with undeployed server RPCs."
+  ],
+  "preserveBehaviors": [
+    "Existing staging client release, live database, production OTA and account permissions unchanged."
+  ],
+  "alternativeApproaches": [
+    "Deploy shared production migrations rejected.",
+    "Publish client without verified backend parity rejected."
+  ],
+  "riskAreas": [
+    "faith-cluster",
+    "app-runtime",
+    "backend-security"
+  ],
+  "publicationStatus": "QA_ONLY_BACKEND_DEPENDENCY_HOLD",
+  "sourceIntake": {
+    "sourceSha": "38f312995a34448ab98ab8bcdd76f767faef09c4",
+    "exactBlobs": {
+      "src/app/children-stories/[id].tsx": "434af21527a5c9b45838275183f3ffdeefe6bada",
+      "src/components/BuklodFaithPeriodReport.tsx": "de292b438d718a31167efd2686fea3f3c9d4bfbf",
+      "src/components/BuklodSyncCoordinator.tsx": "aa9d0a0c03ca8251e38484548e0b048f942b00de",
+      "src/lib/buklodScopeFaithPeriodReport.ts": "6320dd90b58259b6de06df9d41fab6c1ce13c39e",
+      "supabase/migrations/20261125141700_children_story_verified_accomplishments.sql": "72424af3990386f294696a48cf9cebc03b994a80",
+      "supabase/migrations/20261125141800_faith_accomplishment_report_v2.sql": "2c398df6c949258fbaf66421ca3bf5bab56ced7d",
+      "supabase/migrations/20261125141900_named_formation_submission_notifications.sql": "dffe54d9c121df49643ac4371702be499eeb2001",
+      "supabase/migrations/20261125142000_faith_accomplishment_named_notifications.sql": "4461f714aa3bfdec937be2c66664d16aab0a216c",
+      "supabase/tests/faith_accomplishment_privilege_contract_20261125.sql": "7ce99446230b9a1ca9ddd34527ee957ad0e2f106",
+      "supabase/tests/faith_named_notification_release_gate_20261125.sql": "98c99e185d7f590bb6bf09b1bb68daa3d6b19ffa",
+      "tests/faith-accomplishment-named-notifications-20261125.test.mjs": "50b7dd92768a2023e0e9a5d34e033a63008a7d64",
+      "tests/faith-accomplishment-report-v2.test.mjs": "7c7b7ae3237ab16f9df48c7eb2bf55abfcc4bd99",
+      "tests/fixtures/faith-accomplishment-postgres17-20261125.sql": "a1fce641cab863bcf4090fe63e51544451d2867b",
+      "tests/fixtures/faith-accomplishment-postgres17-verification-20261125.sql": "2714dfca594a5afac08e04ab66a0564738e2f389",
+      "tests/fixtures/faith-named-notification-postgres17-20261125.sql": "d522401af5f33d63678123dacdab99a1253b7af5",
+      "tests/named-formation-submission-notifications-20261125.test.mjs": "661ca0ab517c867375909799df8598128bddc284"
+    }
+  },
+  "validation": {
+    "sourceContractCallbacks": "8 passed in independent JS harness with fixture content; not native Node runner or PostgreSQL",
+    "databaseRuntime": "NOT_RUN",
+    "productionReleaseGate": "BLOCKED_CHILDREN_TEACHING_AND_SALIKSIK"
+  }
+}

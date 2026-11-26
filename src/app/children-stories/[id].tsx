@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { useAuth } from '@/providers/AuthProvider';
+import { useNetwork } from '@/providers/NetworkProvider';
+import { enqueueOfflineAction } from '@/lib/offlineSyncQueue';
 import StoryArt from '@/features/childrenStories/StoryArt';
 import { BUNDLED_CHILDREN_STORIES, ChildrenStory, StoryLanguage, findBundledStory, localize } from '@/features/childrenStories/catalog';
 import { fetchChildrenStoryLibrary, readStoryProgress, saveStoryProgress } from '@/features/childrenStories/service';
@@ -14,6 +16,9 @@ export default function ChildrenStoryReader() {
   const params=useLocalSearchParams<{id:string;lang?:string}>();
   const id=typeof params.id==='string'?params.id:'';
   const {user}=useAuth();
+  const {online,syncNow}=useNetwork();
+  const assessmentRef=useRef<number[]>([]);
+  const [recording,setRecording]=useState(false);
   const [language,setLanguage]=useState<StoryLanguage>(params.lang==='en'?'en':'tl');
   const [story,setStory]=useState<ChildrenStory | null>(findBundledStory(id)??null);
   const [page,setPage]=useState(0);
@@ -59,6 +64,7 @@ export default function ChildrenStoryReader() {
   const lesson=getSundaySchoolLesson(story);
   const questions=story?[{prompt:story.question,choices:story.choices,answer:story.answer},...(lesson?.questions??[])]:[];
   const activeQuestion=questions[Math.min(questionIndex,questions.length-1)];
+  useEffect(()=>{assessmentRef.current=[];setQuiz(false);setQuestionIndex(0);setChoice(null);},[story?.id,story?.source,story?.version,user?.id]);
   function toggleFavorite(){
     const next=!favorite;setFavorite(next);
     void saveStoryProgress(user?.id,id,{favorite:next});
@@ -84,12 +90,30 @@ export default function ChildrenStoryReader() {
       ? (language==='tl'?'Walang Filipino/Tagalog na boses sa phone. I-install o i-enable sa Android Settings → Text-to-speech output → Voice data, saka subukang muli.':'The selected language voice is not installed. Enable or download it in Android Text-to-speech settings, then retry.')
       : (language==='tl'?'Hindi masimulan ang pagbasa. Tingnan ang Text-to-speech engine, voice data at media volume ng phone, saka subukan muli.':'Speech could not start. Check your phone’s text-to-speech engine, voice data and media volume, then retry.')
   ) : null;
+  async function recordAssessment(){
+    if(!story||!user?.id||recording)return;
+    const answers=assessmentRef.current.slice();
+    if(answers.length!==questions.length||questions.some((q,i)=>answers[i]!==q.answer)){
+      Alert.alert('Story check','Please answer all questions again to record this story.');return;
+    }
+    setRecording(true);
+    try{
+      await enqueueOfflineAction({kind:'children_story_completion_v1',userId:user.id,
+        dedupeKey:story.id,payload:{storyId:story.id,version:story.version,source:story.source,answers},maxAttempts:20});
+      if(online)void syncNow({maxItems:1,userId:user.id}).catch(()=>undefined);
+    }catch{
+      Alert.alert(language==='tl'?'Hindi pa naitala ang report':'Report not saved',
+        language==='tl'?'Nasa device ang natapos na story check. Pindutin ang Retry report bago umalis.':'The story check remains on this device. Tap Retry report before leaving.');
+    }finally{setRecording(false);}
+  }
   function submit(index:number){
     if(!story||!activeQuestion||choice===activeQuestion.answer)return;
     setChoice(index);
+    if(index===activeQuestion.answer)assessmentRef.current[questionIndex]=index;
     if(index===activeQuestion.answer&&questionIndex===questions.length-1){
       setComplete(true);
       void saveStoryProgress(user?.id,story.id,{completed:true,page:story.pages.length-1});
+      void recordAssessment();
     }
   }
   if(!story) return <View style={styles.notFound}>
@@ -190,8 +214,8 @@ export default function ChildrenStoryReader() {
           </Pressable>
         : <Pressable accessibilityRole="button" onPress={()=>{
             if(quiz){if(finishQuiz)setQuestionIndex(i=>Math.min(questions.length-1,i+1));setChoice(null);}
-            else if(lesson){setQuiz(true);setQuestionIndex(0);setChoice(null);}
-            else if(safePage===story.pages.length-1){setQuiz(true);setQuestionIndex(0);setChoice(null);}
+            else if(lesson){assessmentRef.current=[];setQuiz(true);setQuestionIndex(0);setChoice(null);}
+            else if(safePage===story.pages.length-1){assessmentRef.current=[];setQuiz(true);setQuestionIndex(0);setChoice(null);}
             else jump(safePage+1);
           }} style={styles.mainButton}>
             <Text style={styles.buttonText}>{quiz
