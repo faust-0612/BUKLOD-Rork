@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   RefreshControl,
@@ -9,7 +9,9 @@ import {
 import { router } from 'expo-router';
 
 import { AdminGate } from '@/components/AdminGate';
-import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import { useAdminShared } from '@/components/useAdminShared';
+import { useAuth } from '@/providers/AuthProvider';
+import { Button, Card, SectionTitle } from '@/components/UI';
 import {
   contentReportEntityLabel,
   contentReportReasonLabel,
@@ -20,31 +22,42 @@ import {
 } from '@/lib/buklodContentReports';
 
 export default function ContentReportsAdmin() {
+  const shared = useAdminShared();
+  const { hasRole } = useAuth();
+  const allowed = hasRole('system_admin');
+  const loadVersion = useRef(0);
+  const pendingActions = useRef(new Set<string>());
   const [reports, setReports] = useState<ContentReportRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
+    if (!allowed) return;
+    const seq = ++loadVersion.current;
+    setLoading(true);
     try {
       const rows = await listContentReports();
+      if (seq !== loadVersion.current) return;
       setReports(rows);
-    } catch (error: any) {
-      Alert.alert(
-        'Reports',
-        error?.message || 'Could not load reports.'
-      );
+      setLoadError(false);
+    } catch {
+      if (seq === loadVersion.current) setLoadError(true);
     } finally {
-      setLoading(false);
+      if (seq === loadVersion.current) setLoading(false);
     }
-  }, []);
+  }, [allowed]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (allowed) void load();
+    return () => { loadVersion.current += 1; };
+  }, [allowed, load]);
 
   const actionReport = async (
     item: ContentReportRow,
     hide: boolean
   ) => {
+    if (!allowed || pendingActions.current.has(item.id)) return;
+    pendingActions.current.add(item.id);
     try {
       await resolveContentReport({
         reportId: item.id,
@@ -59,7 +72,7 @@ export default function ContentReportsAdmin() {
         'Reports',
         error?.message || 'Could not update this report.'
       );
-    }
+    } finally { pendingActions.current.delete(item.id); }
   };
 
   const openCount = reports.filter((row) =>
@@ -82,9 +95,10 @@ export default function ContentReportsAdmin() {
         </Text>
 
         <Card>
-          <Text style={shared.h2}>{openCount} open</Text>
+          <Text style={shared.h2}>{loadError ? 'Report count unverified' : loading ? 'Checking reports…' : `${openCount} open`}</Text>
+          {loadError && <Text accessibilityRole="alert" style={shared.body}>Unable to verify reports. Pull down to retry; previously loaded items may be stale.</Text>}
           <Text style={shared.muted}>
-            {reports.length} total in this list
+            {loadError ? 'Last loaded items: ' : 'Total in this list: '}{reports.length}
           </Text>
         </Card>
 
@@ -93,7 +107,7 @@ export default function ContentReportsAdmin() {
         {!reports.length ? (
           <Card>
             <Text style={shared.muted}>
-              {loading ? 'Loading reports...' : 'No reports yet.'}
+              {loading ? 'Loading reports...' : loadError ? 'Report status unknown.' : 'No reports yet.'}
             </Text>
           </Card>
         ) : (
@@ -143,7 +157,7 @@ export default function ContentReportsAdmin() {
                   </View>
                 ) : null}
 
-                {open ? (
+                {open && !loadError && !loading ? (
                   <View style={{ gap: 8, marginTop: 10 }}>
                     <Button
                       title="HIDE AND CLOSE"
