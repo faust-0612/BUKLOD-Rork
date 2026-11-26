@@ -18,10 +18,10 @@ test('Local Genesis map audio yields to competing media and AdMob focus, with bo
  assert.match(src,/audio\.remove\(\)/);
 });
 
-test('Map auto music respects auth and audio focus, without a switch or entry advertisement',()=>{
+test('Retired Entry Map redirects to Home without mounting music or advertisements',()=>{
  const map=read('src/app/buklod-map.tsx');
- assert.match(map,/useRorkGameAmbience\('kingdom-map',\{autoStart:canPlayMusic\}\)/);
- for(const token of ['!requiresAcceptance','!runtimeLoading','!complianceLoading'])assert.ok(map.includes(token));
+ assert.match(map,/<Redirect href="\/\(tabs\)\/hub"/);
+ assert.doesNotMatch(map,/useRorkGameAmbience|canPlayMusic|features\/games/);
  assert.doesNotMatch(map,/toggleMusic|musicButton|BuklodFirstViewAd|Music on/);
  const audio=read('src/features/games/runtime/rorkAudio.ts');
  const sound=read('src/features/games/runtime/kingdomPremiumAudioAssets.ts');

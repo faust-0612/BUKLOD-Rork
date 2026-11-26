@@ -30,7 +30,7 @@ test('do not show stale Latest while following or falsely mark read by timer', (
   assert.match(thread, /\{listAnchored && !followingLatest\(\) && \(awayFromLatest/);
   assert.match(thread, /onPress=\{\(\) => \{\s*followOwnSendRef\.current = false;\s*pendingLatestScrollRef\.current = true/);
   assert.doesNotMatch(thread, /pendingVisibleReadRef\.current = 'returned-to-latest';\s*setTimeout/);
-  assert.match(thread, /if \(userDraggingRef\.current \|\| userMomentumRef\.current\) \{\s*composerFollowsLatestRef\.current = false;\s*pendingLatestScrollRef\.current = false/);
+  assert.match(thread, /if \(userDraggingRef\.current \|\| userMomentumRef\.current\) \{\s*if \(contentOffset\.y < previousOffset - 2\) \{\s*userScrolledUpRef\.current = true;\s*\}\s*composerFollowsLatestRef\.current = false;\s*pendingLatestScrollRef\.current = false/);
 });
 test('preserve history, send and keyboard-independent list behavior', () => {
   assert.match(thread, /pendingOlderAnchorRef\.current = null;[\s\S]*?connectOlderPrependScrollOffset/);

@@ -7,9 +7,11 @@ const composer = load('src/components/connect/ConnectComposer.tsx');
 
 test('typing in personal and scope Connect follows the newest message across IME reflow', () => {
   assert.match(thread, /composerFollowsLatestRef = useRef\(false\)/);
-  assert.match(thread, /\[keyboardVisible, composerDockBottom, followComposerToLatest\]/);
+  assert.match(thread, /\[keyboardVisible, composerDockBottom, followComposerToLatest, followingLatest\]/);
   assert.match(thread, /onFocus=\{\(\) => \{\s*composerFollowsLatestRef\.current = true;/);
-  assert.match(thread, /if \(composerFollowsLatestRef\.current && !userDraggingRef\.current && !userMomentumRef\.current\)/);
+  assert.match(thread, /if \(followingLatest\(\)\)/);
+  assert.match(thread, /userInteracting: userDraggingRef\.current \|\| userMomentumRef\.current/);
+  assert.match(thread, /!composerFollowsLatestRef\.current && !pendingLatestScrollRef\.current/);
   assert.match(composer, /onFocus=\{onFocus\}/);
   assert.match(composer, /onBlur=\{onBlur\}/);
 });
