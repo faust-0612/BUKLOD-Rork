@@ -8,11 +8,16 @@ import {
   View
 } from 'react-native';
 import { AdminGate } from '@/components/AdminGate';
-import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import { Button, Card, SectionTitle } from '@/components/UI';
+import { useAdminShared } from '@/components/useAdminShared';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
 export default function ChurchesScreen() {
+  const shared = useAdminShared();
+  const { theme } = useBuklodTheme();
+  const inputTheme = { color: theme.textPrimary, backgroundColor: theme.inputSurface, borderColor: theme.border };
   const [items, setItems] = useState<any[]>([]);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -145,14 +150,14 @@ export default function ChurchesScreen() {
 
             <Card>
               <TextInput
-                style={styles.input}
+                style={[styles.input, inputTheme]} placeholderTextColor={theme.textMuted}
                 placeholder="Church name"
                 value={name}
                 onChangeText={setName}
               />
 
               <TextInput
-                style={styles.input}
+                style={[styles.input, inputTheme]} placeholderTextColor={theme.textMuted}
                 placeholder="Code (optional)"
                 autoCapitalize="characters"
                 value={code}
@@ -175,14 +180,14 @@ export default function ChurchesScreen() {
                   <Text style={shared.muted}>EDIT LOCAL CHURCH</Text>
 
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, inputTheme]} placeholderTextColor={theme.textMuted}
                     placeholder="Church name"
                     value={editName}
                     onChangeText={setEditName}
                   />
 
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, inputTheme]} placeholderTextColor={theme.textMuted}
                     placeholder="Code (optional)"
                     autoCapitalize="characters"
                     value={editCode}

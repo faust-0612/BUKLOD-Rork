@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AdminGate } from '@/components/AdminGate';
-import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import { Button, Card, SectionTitle } from '@/components/UI';
+import { useAdminShared } from '@/components/useAdminShared';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
 export default function CohortsAdmin(){
+  const shared = useAdminShared();
+  const { theme } = useBuklodTheme();
+  const inputTheme = { color: theme.textPrimary, backgroundColor: theme.inputSurface, borderColor: theme.border };
   const [cohorts,setCohorts]=useState<any[]>([]);
   const [users,setUsers]=useState<any[]>([]);
   const [participants,setParticipants]=useState<any[]>([]);
@@ -68,7 +73,7 @@ export default function CohortsAdmin(){
 
           <SectionTitle>CREATE COHORT</SectionTitle>
           <Card>
-            <TextInput style={styles.input} value={newName} onChangeText={setNewName}
+            <TextInput style={[styles.input, inputTheme]} placeholderTextColor={theme.textMuted} value={newName} onChangeText={setNewName}
               placeholder="Example: Local Church Pilot"/>
             <Button title="CREATE COHORT" onPress={create}/>
           </Card>
@@ -77,8 +82,8 @@ export default function CohortsAdmin(){
           <View style={styles.wrap}>
             {cohorts.map(c=>(
               <Pressable key={c.id} onPress={()=>setSelectedCohort(c.id)}
-                style={[styles.chip,selectedCohort===c.id&&styles.chipOn]}>
-                <Text style={{fontWeight:'800'}}>{c.name}</Text>
+                style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, selectedCohort===c.id && { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
+                <Text style={{fontWeight:'800',color:theme.textPrimary}}>{c.name}</Text>
               </Pressable>
             ))}
           </View>
@@ -87,8 +92,8 @@ export default function CohortsAdmin(){
           <View style={styles.wrap}>
             {users.filter(u=>!participants.some(p=>p.cohort_id===selectedCohort&&p.user_id===u.id&&p.status==='active')).map(u=>(
               <Pressable key={u.id} onPress={()=>setSelectedUser(u.id)}
-                style={[styles.chip,selectedUser===u.id&&styles.chipOn]}>
-                <Text style={{fontSize:11}}>{u.full_name||u.role}</Text>
+                style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, selectedUser===u.id && { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
+                <Text style={{fontSize:11,color:theme.textPrimary}}>{u.full_name||u.role}</Text>
               </Pressable>
             ))}
           </View>
@@ -105,7 +110,7 @@ export default function CohortsAdmin(){
                 <Text style={shared.muted}>{item.profiles?.role} • {item.status}</Text>
               </View>
               {item.status==='active'&&
-                <Pressable onPress={()=>remove(item)}><Text style={{fontWeight:'900',color:colors.danger}}>REMOVE</Text></Pressable>}
+                <Pressable onPress={()=>remove(item)}><Text style={{fontWeight:'900',color:theme.danger}}>REMOVE</Text></Pressable>}
             </View>
           </Card>
         )}/>
