@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {assessInput,validateVerdict,concordant} from '../supabase/functions/_shared/bible-hybrid-verdict.mjs';
+const source={"kind":"enumeration","groups":[["eager reception"],["daily examination of scriptures"]]};
+const input=assessInput(source,["open to learning","read the Bible to verify"]);
+const a={"items":[{"index":0,"concept":0,"confidence":0.98,"contradiction":false,"answer_evidence":"open to learning","rubric_evidence":"eager reception"},{"index":1,"concept":1,"confidence":0.95,"contradiction":false,"answer_evidence":"read the Bible to verify","rubric_evidence":"daily examination of scriptures"}]};
+const mutate=(i,patch)=>({items:a.items.map((v,j)=>j===i?{...v,...patch}:v)});
+test('two independent evidence-checked verdicts must agree',()=>{assert.equal(concordant(input,a,a).units,2);assert.equal(concordant(input,a,mutate(1,{concept:-1})),null);});
+test('reject fabricated evidence, wrong rubric, contradictions, low confidence and duplicate concepts',()=>{for(const v of [mutate(1,{answer_evidence:'not present'}),mutate(1,{rubric_evidence:'eager reception'}),mutate(0,{contradiction:true}),mutate(0,{confidence:.5}),mutate(1,{concept:0,rubric_evidence:'eager reception'})])assert.equal(validateVerdict(input,v),null);});
+test('reject invalid or duplicate answer fields',()=>{assert.equal(assessInput(source,['Same','same']),null);assert.equal(assessInput(source,['x']),null);});
