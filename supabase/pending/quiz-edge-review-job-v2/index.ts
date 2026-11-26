@@ -107,7 +107,7 @@ async function callGemini(apiKey: string, payload: any[]) {
     'Keep feedback concise and factual. confidence must be 0 to 1.',
     'Return exactly one review for every response_id and no extra IDs.',
     '',
-    JSON.stringify(payload),
+    JSON.stringify(payload.map(({ capture_digest: _capture, ...item }: any) => item)),
   ].join('\n');
 
   const models = [
@@ -180,9 +180,10 @@ async function callGemini(apiKey: string, payload: any[]) {
 }
 
 async function loadPayload(q: any, attemptId: string) {
-  const { data: rows, error } = await q.rpc('buklod_quiz_review_ai_payload_v1', { p_attempt_id: attemptId });
+  const { data: rows, error } = await q.rpc('buklod_quiz_review_ai_payload_v2', { p_attempt_id: attemptId });
   if (error) throw error;
   const payload = (rows ?? []).map((r: any) => {
+    if (!/^[0-9a-f]{64}$/.test(String(r.capture_digest ?? ''))) throw new Error('Review capture missing');
     const correct = usableText(r.correct_answer);
     const explanation = usableText(r.explanation);
     const rubric = usableText(r.rubric);
@@ -191,6 +192,7 @@ async function loadPayload(q: any, attemptId: string) {
     if (explanation) refs.push(`Expected answer / rationale: ${explanation}`);
     if (rubric) refs.push(`Rubric: ${rubric}`);
     return {
+      capture_digest: String(r.capture_digest),
       response_id: String(r.response_id),
       attempt_id: attemptId,
       question_type: String(r.question_type ?? ''),
@@ -325,7 +327,7 @@ async function processLeasedBatch(jobId: string, token: string, userId: string, 
 
     const { reviews, model } = await callGemini(apiKey, payload);
     const allowed = new Map(payload.map((x: any) => [x.response_id, {
-      max: Number(x.max_points), hasReference: !!x.has_grading_reference, attemptId: String(x.attempt_id),
+      max: Number(x.max_points), hasReference: !!x.has_grading_reference, attemptId: String(x.attempt_id), captureDigest: x.capture_digest,
     }]));
     const seen = new Set<string>();
 
@@ -337,13 +339,14 @@ async function processLeasedBatch(jobId: string, token: string, userId: string, 
       let score = r?.suggested_score == null ? null : Number(r.suggested_score);
       if (score != null) {
         if (!Number.isFinite(score)) score = null;
-        else score = Math.max(0, Math.min(meta.max, Math.round(score * 100) / 100));
+        else if (score < 0 || score > meta.max) throw new ProviderWaitError('AI score exceeds assigned points.');
+        else score = Math.min(meta.max, Math.round(score * 1000000) / 1000000);
       }
       if (meta.hasReference && score == null) throw new ProviderWaitError('AI omitted a score despite an available grading reference.');
       return {
-        response_id: id, job_id: jobId, attempt_id: meta.attemptId, suggested_score: score,
+        response_id: id, capture_digest: meta.captureDigest, job_id: jobId, attempt_id: meta.attemptId, suggested_score: score,
         feedback: String(r?.feedback ?? '').slice(0, 1000),
-        confidence: Math.max(0, Math.min(1, Number(r?.confidence ?? 0))),
+        confidence: Number.isFinite(Number(r?.confidence)) ? Math.max(0, Math.min(1, Number(r?.confidence))) : 0,
         model, created_by: userId, updated_at: new Date().toISOString(),
       };
     });
@@ -352,15 +355,17 @@ async function processLeasedBatch(jobId: string, token: string, userId: string, 
 
     
 
-    idx += batchAttempts.length;
-    processed += batchAttempts.length;
-    const done = idx >= ids.length;
+    const nextIdx = idx + batchAttempts.length;
+    const nextProcessed = processed + batchAttempts.length;
+    const done = nextIdx >= ids.length;
     await commit({
-      next_index: idx, processed_attempts: processed, failed_attempts: 0, last_error: null,
-      status: done ? 'COMPLETED' : 'RUNNING', current_attempt_id: done ? null : ids[idx],
+      next_index: nextIdx, processed_attempts: nextProcessed, failed_attempts: 0, last_error: null,
+      status: done ? 'COMPLETED' : 'RUNNING', current_attempt_id: done ? null : ids[nextIdx],
       heartbeat_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       completed_at: done ? new Date().toISOString() : null,
     }, out);
+    idx = nextIdx;
+    processed = nextProcessed;
 
     console.log(`[REVIEW_JOB_V2_BATCH_OK_R3] job=${jobId} attempts=${batchAttempts.length} items=${out.length} model=${model} next=${idx}/${ids.length}`);
     return !done;
