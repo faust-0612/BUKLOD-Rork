@@ -6,6 +6,7 @@ create table if not exists private.buklod_bible_hybrid_control (
  deterministic_settlement_enabled boolean not null default false,
  shadow_cache_enabled boolean not null default false,
  learning_pilot_enabled boolean not null default false,
+ evidence_pilot_enabled boolean not null default false,
  daily_calls integer not null default 20 check(daily_calls between 0 and 20),
  provider_pause_until timestamptz,
  provider_blocked boolean not null default false
@@ -347,3 +348,46 @@ end;
 $$;
 revoke all on function public.buklod_hybrid_pause_learning_provider(text) from public,anon,authenticated;
 grant execute on function public.buklod_hybrid_pause_learning_provider(text) to service_role;
+
+-- R7: service-only assessment receipts, no authority to award BP/UC.
+create table if not exists private.buklod_learning_evidence_receipts (
+ id uuid primary key default gen_random_uuid(),
+ user_id uuid not null references auth.users(id) on delete cascade,
+ module text not null check(module in ('abaka','children_story','bible_reading')),
+ subject_id text not null check(length(subject_id) between 1 and 100),
+ source_hash text not null check(source_hash ~ '^[0-9a-f]{64}$'),
+ answer_hash text not null check(answer_hash ~ '^[0-9a-f]{64}$'),
+ method text not null check(method in ('editorial_mcq_v1','source_ai_shadow_v1')),
+ created_at timestamptz not null default now(),
+ unique(user_id,module,subject_id,source_hash,answer_hash)
+);
+alter table private.buklod_learning_evidence_receipts enable row level security;
+revoke all on private.buklod_learning_evidence_receipts from public,anon,authenticated;
+create or replace function public.buklod_learning_evidence_enabled()
+returns boolean language sql stable security definer set search_path='' as $$
+ select coalesce((select evidence_pilot_enabled from private.buklod_bible_hybrid_control where singleton),false)
+ and coalesce(auth.role()='service_role',false)
+$$;
+revoke all on function public.buklod_learning_evidence_enabled() from public,anon,authenticated;
+grant execute on function public.buklod_learning_evidence_enabled() to service_role;
+
+create or replace function public.buklod_record_learning_evidence_v1(p_user uuid,p_module text,p_subject text,p_source_hash text,p_answer_hash text,p_method text)
+returns uuid language plpgsql security definer set search_path='' as $$
+declare receipt uuid;
+begin
+ if auth.role() is distinct from 'service_role' then raise exception 'Service only';end if;
+ perform 1 from private.buklod_bible_hybrid_control where singleton and evidence_pilot_enabled for share;
+ if not found then raise exception 'Evidence pilot disabled';end if;
+ if p_module='children_story' and p_method is distinct from 'editorial_mcq_v1'
+ or p_module in ('abaka','bible_reading') and p_method is distinct from 'source_ai_shadow_v1' then raise exception 'Invalid evidence method';end if;
+ if p_module='bible_reading' and not exists(select 1 from public.bible_reading_sessions where id::text=p_subject and user_id=p_user and completed_at is not null and source in ('free_reading','search')) then raise exception 'Reading session unavailable';end if;
+ insert into private.buklod_learning_evidence_receipts(user_id,module,subject_id,source_hash,answer_hash,method)
+ values(p_user,p_module,p_subject,p_source_hash,p_answer_hash,p_method)
+ on conflict(user_id,module,subject_id,source_hash,answer_hash) do nothing returning id into receipt;
+ if receipt is null then select id into receipt from private.buklod_learning_evidence_receipts where user_id=p_user and module=p_module and subject_id=p_subject and source_hash=p_source_hash and answer_hash=p_answer_hash and method=p_method;end if;
+ if receipt is null then raise exception 'Evidence conflict';end if;
+ return receipt;
+end;
+$$;
+revoke all on function public.buklod_record_learning_evidence_v1(uuid,text,text,text,text,text) from public,anon,authenticated;
+grant execute on function public.buklod_record_learning_evidence_v1(uuid,text,text,text,text,text) to service_role;
