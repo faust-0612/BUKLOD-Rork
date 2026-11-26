@@ -62,10 +62,23 @@ begin
  if has_function_privilege('anon','public.buklod_abc_doctrine_admin_list_v2(text)','EXECUTE') then raise exception 'Anonymous editor access'; end if;
 end;
 $test$;
+-- Check catalog metadata as the fixture owner, before switching to a restricted role.
+do $ begin
+ if has_table_privilege('authenticated','private.buklod_abc_doctrinal_answers','SELECT') then raise exception 'Answer key SELECT grant exposed'; end if;
+end $;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
-do $$ begin
+do $ begin
+ if not exists(select 1 from public.buklod_abc_doctrinal_lessons where published) then raise exception 'Published catalog inaccessible to member'; end if;
  if exists(select 1 from public.buklod_abc_doctrinal_lessons where not published) then raise exception 'Unpublished catalog leaked via RLS'; end if;
- if has_table_privilege('authenticated','private.buklod_abc_doctrinal_answers','SELECT') then raise exception 'Answer key exposed'; end if;
-end $$;
+ -- Exercise actual forbidden access rather than resolving a private relation name
+ -- with has_table_privilege under a role that correctly lacks schema USAGE.
+ begin
+   execute 'select 1 from private.buklod_abc_doctrinal_answers limit 1';
+   raise exception 'Answer key readable by ordinary member';
+ exception when insufficient_privilege then
+   null; -- SQLSTATE 42501 is the expected security boundary.
+ end;
+end $;
 reset role;
 rollback;
