@@ -66,7 +66,7 @@ export default function ChildrenStoryReader() {
   },[id,user?.id,stop]);
   useEffect(()=>{stop()},[language,page,quiz,questionIndex,stop]);
   // Changing editorial edition invalidates any in-progress quiz trace.
-  useEffect(()=>{quizAnswers.current=[];setQuiz(false);setChoice(null);setQuestionIndex(0);},[story]);
+  useEffect(()=>{if(learningEvidencePilot){quizAnswers.current=[];setQuiz(false);setChoice(null);setQuestionIndex(0);}},[story]);
   const lesson=getSundaySchoolLesson(story);
   const questions=story?[{prompt:story.question,choices:story.choices,answer:story.answer},...(lesson?.questions??[])]:[];
   const activeQuestion=questions[Math.min(questionIndex,questions.length-1)];
