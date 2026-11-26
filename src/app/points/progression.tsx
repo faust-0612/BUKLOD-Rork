@@ -18,6 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import { rankVisualMilestone, nextRankVisualMilestone } from '@/lib/buklodRankVisualMilestones';
+import BuklodRankBonusCollection from '@/components/points/BuklodRankBonusCollection';
+import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 type RankProgress = {
   lifetime_points: number;
@@ -50,6 +52,9 @@ const number = (value: unknown) => {
 };
 
 export default function CircleRankProgressionScreen() {
+  const { config } = useRuntimeConfig();
+  // Default OFF: do not call a schema that has not passed release gates.
+  const rankBonusEnabled = config?.features?.rank_bonus_collections === true;
   const [progress, setProgress] = useState<RankProgress | null>(null);
   const [ladder, setLadder] = useState<RankLadderRow[]>([]);
   const [busy, setBusy] = useState(true);
@@ -250,6 +255,7 @@ export default function CircleRankProgressionScreen() {
             </View>
           </View>
 
+          {rankBonusEnabled && <BuklodRankBonusCollection />}
           <BuklodKingdomAdSlot placementId="points_rank_progression_native" kind="native" />
           <View style={styles.roadmapHead}>
             <Text style={styles.roadmapTitle}>FULL RANK ROADMAP</Text>
