@@ -27,6 +27,7 @@ type Props = {
   uri?: string | null;
   name?: string | null;
   rankName?: string | null;
+  animateRankFrame?: boolean;
   size?: number;
   fallbackSource?:
     | number
@@ -98,6 +99,7 @@ export function BuklodTappableAvatar({
   uri,
   name,
   rankName,
+  animateRankFrame=false,
   size = 48,
   fallbackSource,
   onPress,
@@ -158,6 +160,7 @@ export function BuklodTappableAvatar({
       uri={uri}
       name={name}
       rankName={rankName}
+      animateRankFrame={animateRankFrame}
       size={size}
       fallbackSource={fallbackSource}
     />
