@@ -25,6 +25,7 @@ create schema vault;
 create schema cron;
 create schema net;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+grant usage on schema auth to anon,authenticated,service_role;
 create table public.profiles(id uuid primary key,role text,is_active boolean);
 insert into profiles values ('00000000-0000-0000-0000-000000000001','system_admin',true),('00000000-0000-0000-0000-000000000002','member',true),('00000000-0000-0000-0000-000000000003','system_admin',false);
 create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
@@ -56,6 +57,8 @@ select test_assert((select count(*) from kl_episodes)=3,'existing chapters uncha
 select test_assert(private.kl_dictionary_dispatch_v1() is null,'no worker credentials = no network');
 select test_assert((select count(*) from cron.job where jobname='buklod-kl-dictionary-v1')=1,'one schedule');
 set role anon;
+select set_config('request.jwt.claim.sub','',false);
+select test_assert(auth.uid() is null,'anonymous fixture has no carried identity');
 select test_assert(jsonb_array_length(kl_series_list_v1(false))=1,'only existing series');
 select test_assert(kl_dictionary_read_v1('10000000-0000-0000-0000-000000000003')='[]'::jsonb,'draft glossary hidden');
 do $$ begin
@@ -82,8 +85,18 @@ insert into storage.objects values('kl-series-covers','2/test.jpg');
 select kl_series_save_v1(2,'Test series','2/test.jpg',false);
 reset role;
 set role anon;
+select set_config('request.jwt.claim.sub','',false);
+select test_assert(auth.uid() is null,'anonymous fixture has no carried identity');
 select test_assert(jsonb_array_length(kl_series_list_v1(false))=1,'draft hidden');
 select test_assert((select count(*) from storage.objects)=0,'draft cover hidden');
+select test_assert(not kl_series_cover_readable_v1('2/test.jpg'),'anonymous cover RPC denies draft');
+reset role;
+set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000002',false);
+select test_assert((select count(*) from storage.objects)=0,'member cannot read draft cover');
+select test_assert(not kl_series_cover_readable_v1('2/test.jpg'),'member cover RPC denies draft');
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',false);
+select test_assert((select count(*) from storage.objects)=0,'inactive admin cannot read draft cover');
 reset role;
 do $$ begin
  begin insert into kl_episodes values(gen_random_uuid(),3,1,'test','draft',null,null); raise exception 'FAIL: automatic series'; exception when raise_exception then if sqlerrm<>'Create the series in KL Studio first' then raise; end if; end;
@@ -93,9 +106,13 @@ do $$ begin
  begin update kl_episodes set release_at=now() where season_number=2; raise exception 'FAIL: private release'; exception when raise_exception then if sqlerrm<>'Publish the series cover first' then raise; end if; end;
 end $$;
 set role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
+select test_assert(auth.uid()='00000000-0000-0000-0000-000000000001'::uuid,'explicit active admin identity');
 select test_assert((kl_series_save_v1(2,'Test series','2/test.jpg',true)->>'published')::boolean,'explicit publish');
 reset role;
 set role anon;
+select set_config('request.jwt.claim.sub','',false);
+select test_assert(auth.uid() is null,'anonymous fixture has no carried identity');
 select test_assert(jsonb_array_length(kl_series_list_v1(false))=2,'published series visible');
 select test_assert((select count(*) from storage.objects)=1,'published cover visible');
 reset role;
@@ -105,7 +122,9 @@ end $$;
 insert into kl_quiz_sets select id,'ready',md5(manuscript) from kl_episodes where season_number=2;
 update kl_episodes set release_at=now() where season_number=2;
 set role service_role;
-do $$
+select set_config('request.jwt.claim.sub','',false);
+select test_assert(auth.uid() is null,'worker fixture has no carried admin identity');
+do $
 declare j jsonb; items jsonb; ok boolean;
 begin
  j:=kl_dictionary_claim_v1();
@@ -126,6 +145,8 @@ begin
 end $$;
 reset role;
 set role anon;
+select set_config('request.jwt.claim.sub','',false);
+select test_assert(auth.uid() is null,'anonymous fixture has no carried identity');
 select test_assert(kl_dictionary_read_v1('10000000-0000-0000-0000-000000000002') @> '[{"name":"Ulapin"}]'::jsonb,'prior definition reused');
 select test_assert(kl_dictionary_read_v1('10000000-0000-0000-0000-000000000003')='[]'::jsonb,'draft remains hidden');
 reset role;
