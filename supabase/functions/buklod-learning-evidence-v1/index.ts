@@ -1,6 +1,6 @@
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import {LEARNING_CATALOG} from '../_shared/learning-evidence-catalog.mjs';
-import {orderedAnswers,gradeStory,validateLearningVerdict} from '../_shared/learning-evidence-checks.mjs';
+import {orderedAnswers,gradeStory,validateLearningVerdict,resolveCanonicalRange} from '../_shared/learning-evidence-checks.mjs';
 import {freeOnlyConfig,providerFailure,guardedFreeCall} from '../_shared/hybrid-free-only.mjs';
 const headers={'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, x-client-info, content-type'};
 const reply=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers});
@@ -14,10 +14,12 @@ async function evaluate(key:string,model:string,questions:unknown,answers:unknow
  return JSON.parse((c.content?.parts??[]).map((p:any)=>p.text??'').join(''));
 }
 async function passage(admin:any,t:string,r:{book:number;chapter:number;start:number;end:number}){
- if(r.end<r.start||r.end-r.start>100)throw Error('invalid passage');
- const {data,error}=await admin.from('bible_verses').select('verse_no,verse_text').eq('translation_code',t).eq('book_no',r.book).eq('chapter_no',r.chapter).gte('verse_no',r.start).lte('verse_no',r.end).order('verse_no');
- if(error||!data||data.length!==r.end-r.start+1||data.some((v:any,i:number)=>v.verse_no!==r.start+i||typeof v.verse_text!=='string'||!v.verse_text.trim()))throw Error('canonical source unavailable');
- return data.map((v:any)=>v.verse_no+' '+v.verse_text).join('\n');
+ const resolved=await resolveCanonicalRange(async(code:string,range:typeof r)=>{
+  const {data,error}=await admin.from('bible_verses').select('verse_no,verse_text').eq('translation_code',code).eq('book_no',range.book).eq('chapter_no',range.chapter).gte('verse_no',range.start).lte('verse_no',range.end).order('verse_no');
+  if(error)throw Error('canonical source query failed');
+  return data;
+ },t,r);
+ return '['+resolved.translation+']\n'+resolved.text;
 }
 Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers});

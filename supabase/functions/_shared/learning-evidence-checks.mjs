@@ -3,3 +3,14 @@ export function orderedAnswers(questions,input){if(!input||typeof input!=="objec
 export function gradeStory(key,answers){if(!Array.isArray(key)||!key.length||key.length>20||key.some(x=>!Number.isInteger(x)||x<0||x>2)||!Array.isArray(answers)||answers.length!==key.length||answers.some(x=>!Number.isInteger(x)||x<0||x>2))return null;const items=answers.map((a,i)=>({id:String(i+1),passed:a===key[i]}));return {accepted:items.every(x=>x.passed),items}}
 
 export function validateLearningVerdict(questions,answers,source,raw){if(!raw||!Array.isArray(raw.items)||raw.items.length!==questions.length)return null;const items=[];for(let i=0;i<questions.length;i++){const v=raw.items[i],q=questions[i];if(v?.id!==q.id||typeof v.passed!=="boolean"||typeof v.confidence!=="number"||!Number.isFinite(v.confidence)||v.confidence<.85||v.confidence>1||typeof v.feedback!=="string"||!v.feedback.trim())return null;if(v.passed&&(typeof v.answer_evidence!=="string"||!v.answer_evidence.trim()||!answers[i].answer.includes(v.answer_evidence)||typeof v.source_evidence!=="string"||!v.source_evidence.trim()||!(source[q.id]??"").includes(v.source_evidence)))return null;items.push({id:q.id,passed:v.passed,feedback:v.feedback.slice(0,240)});}return {accepted:items.every(x=>x.passed),items}}
+
+export async function resolveCanonicalRange(read,translation,range){
+ if(!["ASD","KJV"].includes(translation)||!Number.isInteger(range.start)||!Number.isInteger(range.end)||range.start<1||range.end<range.start||range.end-range.start>100)throw Error("invalid passage");
+ for(const code of translation==="ASD"?["ASD","KJV"]:["KJV"]){
+  const rows=await read(code,range);
+  if(!Array.isArray(rows))throw Error("canonical source query failed");
+  if(rows.length!==range.end-range.start+1||rows.some((v,i)=>v.verse_no!==range.start+i||typeof v.verse_text!=="string"||!v.verse_text.trim()))continue;
+  return {translation:code,text:rows.map(v=>v.verse_no+" "+v.verse_text).join("\n")};
+ }
+ throw Error("canonical source unavailable");
+}
