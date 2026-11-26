@@ -1,0 +1,81 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-cumulative-children-teaching-20261126.json",
+  "objective": "Adult Children Teaching reporting, private evidence completeness, +10 pending BP and exact-scope Faith report v3. QA only.",
+  "baseRef": "367398ac1360da4e2fcf4dadc5e4ea1a96178d30",
+  "productionBaselineEvidence": "SALIKSIK cumulative 367398a passed isolated QA; no production or signed staging changes authorized.",
+  "chosenApproach": "Separate opt-in adult door and private evidence RPC, existing notification helper, additive report v3 preserving v2.",
+  "selectionRationale": "Avoid child identifiers and duplicate reward effects; preserve mentoring and child reader; verify actual database behavior with fictional metadata.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-cumulative-children-teaching-20261126.json",
+    "scripts/local-genesis-children-teaching-isolated-qa.sh",
+    "src/app/faith/children-teaching.tsx",
+    "src/components/BuklodChildrenTeachingDoor.tsx",
+    "src/components/BuklodClusterHomeCommandCenterImpl.tsx",
+    "src/lib/buklodScopeFaithPeriodReport.ts",
+    "supabase/migrations/20261126113000_children_teaching_verified_sessions_v1.sql",
+    "supabase/migrations/20261126113100_faith_children_teaching_report_v3.sql",
+    "supabase/tests/children_teaching_behavior_isolated_20261126.sql",
+    "supabase/tests/faith_named_notification_release_gate_20261125.sql",
+    "tests/children-teaching-faith-security-20261126.test.mjs",
+    "tests/fixtures/children_teaching_postgres17_20261126.sql"
+  ],
+  "regressionTests": [
+    "tests/children-teaching-faith-security-20261126.test.mjs",
+    "supabase/tests/children_teaching_behavior_isolated_20261126.sql",
+    "supabase/tests/faith_named_notification_release_gate_20261125.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Separate default-off adult route and report compatibility.",
+      "preservedBehaviors": [
+        "Child reader, offline story check, narration, mentoring, AdMob and navigation unchanged."
+      ],
+      "tests": [
+        "tests/children-teaching-faith-security-20261126.test.mjs"
+      ]
+    },
+    {
+      "id": "cluster-faith",
+      "reason": "Scope-specific counts and named notification.",
+      "preservedBehaviors": [
+        "Previous Faith metrics unchanged."
+      ],
+      "tests": [
+        "tests/children-teaching-faith-security-20261126.test.mjs",
+        "supabase/tests/children_teaching_behavior_isolated_20261126.sql"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Private evidence, membership, pending ledger and dedupe.",
+      "preservedBehaviors": [
+        "No live mutation, no direct session writes, no child identifiers."
+      ],
+      "tests": [
+        "supabase/tests/children_teaching_behavior_isolated_20261126.sql",
+        "supabase/tests/faith_named_notification_release_gate_20261125.sql"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Isolated PG17 behavior, private ACLs, default OFF, dedupe, scoped report and pending rewards.",
+    "Production storage metadata, retention/orphan recovery, age and consent policy, real ledger and concurrency, cumulative runtime and release gates still required."
+  ],
+  "preserveBehaviors": [
+    "Existing child story reward and mentoring unchanged; no native dependency, no live DB or OTA."
+  ],
+  "alternativeApproaches": [
+    "Reject public Wall evidence.",
+    "Reject merging mentoring reward policy with separate teaching."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "faith-cluster",
+    "cluster-faith",
+    "backend-security",
+    "ads-finance-points"
+  ],
+  "publicationStatus": "QA_ONLY_BACKEND_PRIVACY_HOLD"
+}
