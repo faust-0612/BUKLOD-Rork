@@ -208,51 +208,16 @@ async function loadPayload(q: any, attemptId: string) {
   return payload;
 }
 
-async function repairProviderPartialJob(q: any, job: any) {
-  const last = String(job?.last_error ?? '');
-  const repairable = String(job?.status) === 'PARTIAL' && (
-    last.startsWith('AI_QUOTA_TEMPORARY') ||
-    last.startsWith('AI_PROVIDER_CONFIG_INVALID') ||
-    last.startsWith('AI_PROVIDER_TEMPORARY') ||
-    last.includes('RESOURCE_EXHAUSTED') ||
-    last.includes('rate-limited')
-  );
-  if (!repairable) return job;
-
-  const ids = (job.attempt_ids ?? []).map((x: unknown) => String(x));
-  const { data: suggestions, error } = await q
-    .from('buklod_quiz_review_suggestions')
-    .select('attempt_id')
-    .eq('job_id', job.id);
+async function repairProviderPartialJob(userId: string, job: any) {
+  if (job?.created_by !== userId) throw new Error('Review job owner mismatch.');
+  if (String(job.status) !== 'PARTIAL') return job;
+  const { url } = projectConfig();
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!key) throw new Error('Worker service configuration missing.');
+  const service = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await service.rpc('buklod_quiz_worker_requeue_v1', { p_job_id: job.id, p_actor: userId });
   if (error) throw error;
-
-  const successSet = new Set((suggestions ?? []).map((x: any) => String(x.attempt_id)));
-  const successful = ids.filter((id: string) => successSet.has(id));
-  const unresolved = ids.filter((id: string) => !successSet.has(id));
-  const ordered = [...successful, ...unresolved];
-
-  const patch = {
-    attempt_ids: ordered,
-    total_attempts: ordered.length,
-    next_index: successful.length,
-    processed_attempts: successful.length,
-    failed_attempts: 0,
-    status: unresolved.length ? 'QUEUED' : 'COMPLETED',
-    current_attempt_id: unresolved[0] ?? null,
-    last_error: null,
-    heartbeat_at: new Date().toISOString(),
-    completed_at: unresolved.length ? null : new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data: repaired, error: updateErr } = await q
-    .from('buklod_quiz_review_jobs')
-    .update(patch)
-    .eq('id', job.id)
-    .select('*')
-    .single();
-  if (updateErr) throw updateErr;
-  return repaired;
+  return Array.isArray(data) ? data[0] : data;
 }
 
 async function chain(jobId: string, token: string) {
@@ -448,7 +413,7 @@ Deno.serve(async (req: Request) => {
         .order('created_at', { ascending: false }).limit(1).maybeSingle();
       if (latestErr) throw latestErr;
       let job = latest;
-      if (job && String(job.status) === 'PARTIAL') job = await repairProviderPartialJob(q, job);
+      if (job && String(job.status) === 'PARTIAL') job = await repairProviderPartialJob(userId, job);
 
       if (!job || !['QUEUED', 'RUNNING'].includes(String(job.status))) {
         const { data, error } = await q.rpc('buklod_quiz_review_job_start_v2', { p_exam_id: examId, p_section_id: sectionId });
@@ -469,7 +434,7 @@ Deno.serve(async (req: Request) => {
       const { data: current, error } = await q.from('buklod_quiz_review_jobs').select('*').eq('id', jobId).single();
       if (error || !current) throw error ?? new Error('Review job not found.');
       let job = current;
-      if (String(job.status) === 'PARTIAL') job = await repairProviderPartialJob(q, job);
+      if (String(job.status) === 'PARTIAL') job = await repairProviderPartialJob(userId, job);
       if (['QUEUED', 'RUNNING'].includes(String(job.status))) {
         // @ts-ignore
         EdgeRuntime.waitUntil(processBatch(jobId, token, userId));
