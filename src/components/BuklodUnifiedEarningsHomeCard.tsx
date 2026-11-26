@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { useAuth } from '@/providers/AuthProvider';
 import {
   composeCurrentMonthProjectedBalance,
@@ -68,6 +69,7 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
   const [contribution, setContribution] = useState<CommunityContributionDashboard | null>(null);
   const [monthly, setMonthly] = useState<BuklodMonthlyEarnings | null>(null);
   const [scopeFund, setScopeFund] = useState<ScopeFund | null>(null);
+  const [clusterPreview, setClusterPreview] = useState<{ scopeId: string; userId: string; minor: number; observedAt: string } | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [retries, setRetries] = useState(0);
@@ -79,12 +81,15 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       setLoading(false); return;
     }
     setLoading(true);
-    const [personal, community, month, group] = await Promise.allSettled([
+    const [personal, community, month, group, preview] = await Promise.allSettled([
       (supabase as any).rpc('get_my_buklod_financial_earnings_breakdown_v1'),
       loadMyCommunityContribution(),
       loadMyBuklodMonthlyEarnings(),
       scopeId
         ? (supabase as any).rpc('get_buklod_scope_revenue_fund_summary_v1', { p_scope_id: scopeId })
+        : Promise.resolve({ data: null, error: null }),
+      scopeId && scopeType?.toUpperCase() === 'CLUSTER'
+        ? withBuklodTimeout<{ data: any; error: any }>((supabase as any).rpc('get_buklod_cluster_revenue_preview_v1', { p_scope_id: scopeId }), 7000, 'Cluster revenue preview')
         : Promise.resolve({ data: null, error: null }),
     ]);
     if (id !== serial.current) return;
@@ -114,13 +119,19 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       setScopeFund(null);
       issues.push('Scope fund summary unavailable');
     }
+    const p = preview.status === 'fulfilled' && !preview.value.error ? preview.value.data : null;
+    const observed = Date.parse(p?.observed_at ?? '');
+    setClusterPreview(scopeId && p?.status === 'PRELIMINARY_ONLY' && p.withdrawable === false
+      && Number.isSafeInteger(p.estimated_cluster_minor) && p.estimated_cluster_minor >= 0
+      && Number.isFinite(observed) && observed <= Date.now() + 60000 && observed >= Date.now() - 10800000
+      ? { scopeId, userId, minor: p.estimated_cluster_minor, observedAt: p.observed_at } : null);
     setErrors(issues);
     setLoading(false);
-  }, [userId, scopeId]);
+  }, [userId, scopeId, scopeType]);
 
   useEffect(() => {
     ++serial.current;
-    setCash(null); setContribution(null); setMonthly(null); setScopeFund(null); setErrors([]);
+    setCash(null); setContribution(null); setMonthly(null); setScopeFund(null); setClusterPreview(null); setErrors([]);
     void load();
     const listener = AppState.addEventListener('change', state => {
       if (state === 'active') void load();
@@ -217,6 +228,12 @@ export default function BuklodUnifiedEarningsHomeCard({ scopeId, scopeType, comp
       {scopeId && scopeIsSupported ? (
         <View style={styles.scopeBox}>
           <Text style={styles.category}>THIS {scopeType?.toUpperCase() ?? 'SCOPE'} FUND · SEPARATE ACCOUNT</Text>
+          {scopeType?.toUpperCase() === 'CLUSTER' ? (
+            <>
+              <Stat label="Estimated Cluster Fund from BUKLOD This Month" value={clusterPreview?.scopeId === scopeId && clusterPreview.userId === userId && Date.parse(clusterPreview.observedAt) >= Date.now() - 10800000 ? formatMinorPhp(clusterPreview.minor) : 'No fresh estimate'} />
+              <Text style={styles.note}>Preliminary allocation only. Not included in finalized available funds.</Text>
+            </>
+          ) : null}
           {scopeFund ? (
             <>
               <View style={styles.cashRow}>
