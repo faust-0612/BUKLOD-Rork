@@ -63,12 +63,12 @@ begin
 end;
 $test$;
 -- Check catalog metadata as the fixture owner, before switching to a restricted role.
-do $ begin
+do $acl_check$ begin
  if has_table_privilege('authenticated','private.buklod_abc_doctrinal_answers','SELECT') then raise exception 'Answer key SELECT grant exposed'; end if;
-end $;
+end $acl_check$;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
-do $ begin
+do $acl_check$ begin
  if not exists(select 1 from public.buklod_abc_doctrinal_lessons where published) then raise exception 'Published catalog inaccessible to member'; end if;
  if exists(select 1 from public.buklod_abc_doctrinal_lessons where not published) then raise exception 'Unpublished catalog leaked via RLS'; end if;
  -- Exercise actual forbidden access rather than resolving a private relation name
@@ -79,6 +79,6 @@ do $ begin
  exception when insufficient_privilege then
    null; -- SQLSTATE 42501 is the expected security boundary.
  end;
-end $;
+end $acl_check$;
 reset role;
 rollback;
