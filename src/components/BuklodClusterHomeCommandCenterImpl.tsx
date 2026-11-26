@@ -26,6 +26,7 @@ import BuklodNonFaithEncouragementDoor from '@/components/BuklodNonFaithEncourag
 import BuklodScopeBuklodLessonPanel from'@/components/BuklodScopeBuklodLessonPanel';
 import BuklodScopeFaithMonitoringDoor from'@/components/BuklodScopeFaithMonitoringDoor';
 import BuklodSaliksikDoor from '@/components/BuklodSaliksikDoor';
+import BuklodChildrenTeachingDoor from '@/components/BuklodChildrenTeachingDoor';
 import BuklodScopeCallLauncher from'@/components/BuklodScopeCallLauncher';
 import BuklodScopeProfilePhoto from '@/components/BuklodScopeProfilePhoto';
 import BuklodScopeFundCard from '@/components/BuklodScopeFundCard';
@@ -357,6 +358,7 @@ export default function BuklodClusterHomeCommandCenter({scope,onOpenCommunity,on
       <BuklodScopeFaithMonitoringDoor scope={scope} />
       <BuklodScopeBuklodLessonPanel scope={scope} />
       <BuklodSaliksikDoor scope={scope} />
+      <BuklodChildrenTeachingDoor scope={scope} />
       <BuklodHomeFaithPanel scopeId={scope.scope_id} compact />
     </>
   ) : <BuklodNonFaithEncouragementDoor />}

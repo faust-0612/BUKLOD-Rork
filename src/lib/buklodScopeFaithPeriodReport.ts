@@ -95,7 +95,11 @@ export async function fetchFaithPeriodReport(
   scopeId: string, period: FaithPeriod, anchor: string,
 ): Promise<FaithPeriodResult> {
   const args = { p_scope_id: scopeId, p_period: period, p_anchor_date: anchor } as any;
-  let response = await supabase.rpc('buklod_scope_faith_monitoring_period_v2' as any, args);
+  let response = await supabase.rpc('buklod_scope_faith_monitoring_period_v3' as any, args);
+  if (response.error && (response.error.code === 'PGRST202' || response.error.code === '42883') &&
+    /buklod_scope_faith_monitoring_period_v3/i.test(String(response.error.message ?? ''))) {
+    response = await supabase.rpc('buklod_scope_faith_monitoring_period_v2' as any, args);
+  }
   if (response.error && (response.error.code === 'PGRST202' || response.error.code === '42883') &&
     /buklod_scope_faith_monitoring_period_v2/i.test(String(response.error.message ?? ''))) {
     response = await supabase.rpc('buklod_scope_faith_monitoring_period_v1' as any, args);
