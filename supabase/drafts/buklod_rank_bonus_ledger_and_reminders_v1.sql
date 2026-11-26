@@ -52,13 +52,18 @@ create table if not exists private.buklod_rank_bonus_reminder_cursor_v1 (
 alter table private.buklod_rank_bonus_reminder_cursor_v1 enable row level security;
 revoke all on private.buklod_rank_bonus_reminder_cursor_v1 from public,anon,authenticated;
 
--- No catalog entries are enabled by this candidate: never advertise a nonexistent reward.
--- Future activation must supply a verified usable cosmetic and signed reward grant.
+-- Forty concrete Wall signature frames; keep disabled until RC and verified ad setup.
+insert into private.buklod_rank_bonus_catalog_v1(bonus_key,required_rank_order,title,enabled)
+select 'rank-frame-'||pg_catalog.lpad(n::text,2,'0'),n,
+  (array['Circle Starter','Circle Active','Circle Steady','Circle Builder','Circle Impact','Circle Vanguard','BUKLOD Prime','BUKLOD Prime Elite'])[((n-1)/5)+1]
+  ||' '||(array['V','IV','III','II','I'])[((n-1)%5)+1]||' Signature Frame',false
+from pg_catalog.generate_series(1,40) n
+on conflict(bonus_key) do nothing;
 create or replace function private.buklod_rank_bonus_sync_v1(p_user_id uuid)
 returns integer language plpgsql security definer set search_path='' as $$
 declare v_rank integer; v_count integer;
 begin
-  if not exists (select 1 from public.profiles p where p.id=p_user_id and p.is_active and p.is_verified) then return 0; end if;
+  if private.buklod_is_platform_official_v1(p_user_id) or not exists (select 1 from public.profiles p where p.id=p_user_id and p.is_active and p.is_verified) then return 0; end if;
   select max(h.rank_order) into v_rank from public.buklod_rank_history h
     where h.user_id=p_user_id and h.trigger_ledger_id is not null
       and h.achievement_source <> 'baseline';
@@ -81,6 +86,7 @@ begin
   if not pg_catalog.pg_try_advisory_xact_lock(pg_catalog.hashtextextended('buklod:rank-bonus:sync:v1',0)) then return 0; end if;
   for v_user in
     select p.id from public.profiles p where p.is_active and p.is_verified
+      and not private.buklod_is_platform_official_v1(p.id)
       and exists (select 1 from private.buklod_rank_bonus_catalog_v1 c where c.enabled
         and exists (select 1 from public.buklod_rank_history h where h.user_id=p.id
           and h.rank_order>=c.required_rank_order and h.trigger_ledger_id is not null and h.achievement_source<>'baseline')
@@ -105,7 +111,7 @@ begin
     select pref.user_id from public.buklod_rank_bonus_preferences_v1 pref
       join public.profiles p on p.id=pref.user_id and p.is_active and p.is_verified
       left join private.buklod_rank_bonus_reminder_cursor_v1 cur on cur.user_id=pref.user_id
-    where pref.reminders_enabled and (pref.snoozed_until is null or pref.snoozed_until<=now())
+    where pref.reminders_enabled and not private.buklod_is_platform_official_v1(pref.user_id) and (pref.snoozed_until is null or pref.snoozed_until<=now())
       and (cur.last_reminder_at is null or cur.last_reminder_at<=now()-interval '72 hours')
       and exists(select 1 from public.buklod_rank_bonus_ledger_v1 b
         join private.buklod_rank_bonus_catalog_v1 c on c.bonus_key=b.bonus_key and c.enabled
