@@ -6,6 +6,9 @@ import {
   type RewardedAdReward,
 } from 'react-native-google-mobile-ads';
 
+import { supabase } from '@/lib/supabase';
+import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
+import { isBuklodRewardedAdAllowed, getBuklodGlobalAdSafetySnapshot, acquireBuklodAdSafetyLock } from '@/lib/buklodGlobalAdController';
 import {
   initializeBuklodAds,
 } from '@/lib/buklodAds';
@@ -140,7 +143,7 @@ export async function showBuklodRewardedAd(
 
   const ready = await prepareRewardedAd();
 
-  if (!ready || !warmedAd || !warmedLoaded) {
+  if (showing || !ready || !warmedAd || !warmedLoaded) {
     return {
       shown: false,
       earned: false,
@@ -214,4 +217,56 @@ export async function showBuklodRewardedAd(
       finish(false);
     });
   });
+}
+
+/** Dedicated opt-in placement. Never grant a cosmetic from EARNED_REWARD alone. */
+const NO_RANK_BONUS_AD: BuklodRewardedAdResult={shown:false,earned:false,reward:null};
+function rankBonusAdAllowed(){
+ const safety=getBuklodGlobalAdSafetySnapshot();
+ return !buklodAdsTestMode && safety.pathname==='/points/progression' &&
+  safety.remoteFeatures.rank_bonus_redemption===true &&
+  !safety.fullScreenReserved && !safety.fullScreenCadenceCheckInFlight &&
+  isBuklodRewardedAdAllowed('rank_bonus_collection');
+}
+export async function showBuklodRankBonusAd(userId:string,bonusKey:string):Promise<BuklodRewardedAdResult>{
+ if(showing||!rankBonusAdAllowed()||!/^rank-frame-(0[1-9]|[1-3][0-9]|40)$/.test(bonusKey))return NO_RANK_BONUS_AD;
+ const unit=clean(process.env.EXPO_PUBLIC_ADMOB_RANK_BONUS_UNIT_ID);
+ if(!/^ca-app-pub-\d+\/\d+$/.test(unit))return NO_RANK_BONUS_AD;
+ showing=true;
+ try{
+  const {data:auth}=await supabase.auth.getSession();
+  if(auth.session?.user.id!==userId||!await initializeBuklodAds()||!rankBonusAdAllowed())return NO_RANK_BONUS_AD;
+  const response=await withBuklodTimeout(supabase.functions.invoke('buklod-rank-bonus-ssv',{body:{bonusKey}}),10000,'Rank bonus session');
+  const data=response.data;
+  if(response.error||typeof data?.sessionId!=='string'||!/^\d+$/.test(String(data?.adUnitNumber))||
+    !unit.endsWith('/'+data.adUnitNumber)||!rankBonusAdAllowed())return NO_RANK_BONUS_AD;
+  const ad=RewardedAd.createForAdRequest(unit,{serverSideVerificationOptions:{userId:data.sessionId,customData:data.sessionId}});
+  const loaded=await new Promise<boolean>(resolve=>{
+    let settled=false,offLoad=()=>{},offError=()=>{};
+    const timer=setTimeout(()=>finish(false),LOAD_TIMEOUT_MS);
+    function finish(ok:boolean){if(settled)return;settled=true;clearTimeout(timer);offLoad();offError();resolve(ok);}
+    try{
+      offLoad=ad.addAdEventListener(RewardedAdEventType.LOADED,()=>finish(true));
+      offError=ad.addAdEventListener(AdEventType.ERROR,()=>finish(false));
+      ad.load();
+    }catch{finish(false);}
+  });
+  const {data:current}=await supabase.auth.getSession();
+  if(!loaded||current.session?.user.id!==userId||!rankBonusAdAllowed())return NO_RANK_BONUS_AD;
+  const release=acquireBuklodAdSafetyLock('transaction');
+  try{
+    return await new Promise<BuklodRewardedAdResult>(resolve=>{
+      let settled=false,reward:RewardedAdReward|null=null,offEarned=()=>{},offClose=()=>{},offError=()=>{};
+      const timer=setTimeout(()=>finish(false),SHOW_FAILSAFE_TIMEOUT_MS);
+      function finish(shown:boolean){if(settled)return;settled=true;clearTimeout(timer);offEarned();offClose();offError();resolve({shown,earned:!!reward,reward});}
+      try{
+        offEarned=ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD,r=>{reward=r;});
+        offClose=ad.addAdEventListener(AdEventType.CLOSED,()=>finish(true));
+        offError=ad.addAdEventListener(AdEventType.ERROR,()=>finish(false));
+        void ad.show().catch(()=>finish(false));
+      }catch{finish(false);}
+    });
+  }finally{release();}
+ }catch{return NO_RANK_BONUS_AD;}
+ finally{showing=false;}
 }
