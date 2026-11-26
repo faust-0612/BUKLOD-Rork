@@ -282,7 +282,7 @@ async function processBatch(jobId: string, token: string, userId: string) {
   if (claim.data !== true) return;
   let continuation = false;
   try {
-    continuation = await processLeasedBatch(jobId, token, userId) === true;
+    continuation = await processLeasedBatch(jobId, token, userId, service, lease) === true;
   } finally {
     const released = await service.rpc('buklod_quiz_worker_release_v1', { p_job_id: jobId, p_token: lease });
     if (released.error) { console.error('[QUIZ_LEASE_RELEASE]', cleanError(released.error)); continuation = false; }
@@ -291,7 +291,12 @@ async function processBatch(jobId: string, token: string, userId: string) {
   if (continuation) await chain(jobId, token);
 }
 
-async function processLeasedBatch(jobId: string, token: string, userId: string) {
+async function processLeasedBatch(jobId: string, token: string, userId: string, service: any, lease: string) {
+  const commit = async (patch: any, suggestions: any[] = []) => {
+    const result = await service.rpc('buklod_quiz_worker_commit_v1', { p_job_id: jobId, p_token: lease, p_patch: patch, p_suggestions: suggestions });
+    if (result.error) throw result.error;
+    if (result.data !== true) throw new Error('Worker lease lost');
+  };
   const q = quizClient(token);
   const { data: job, error: jobErr } = await q.from('buklod_quiz_review_jobs').select('*').eq('id', jobId).single();
   if (jobErr || !job) throw jobErr ?? new Error('Review job not found.');
@@ -304,10 +309,10 @@ async function processLeasedBatch(jobId: string, token: string, userId: string) 
   const failed = 0;
 
   if (idx >= ids.length) {
-    await q.from('buklod_quiz_review_jobs').update({
+    await commit({
       status: 'COMPLETED', completed_at: new Date().toISOString(), current_attempt_id: null,
       heartbeat_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_error: null,
-    }).eq('id', jobId);
+    });
     return;
   }
 
@@ -335,19 +340,19 @@ async function processLeasedBatch(jobId: string, token: string, userId: string) 
     idx += batchAttempts.length;
     processed += batchAttempts.length;
     const done = idx >= ids.length;
-    await q.from('buklod_quiz_review_jobs').update({
+    await commit({
       next_index: idx, processed_attempts: processed, failed_attempts: failed,
       status: done ? 'COMPLETED' : 'RUNNING', current_attempt_id: done ? null : ids[idx],
       heartbeat_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       completed_at: done ? new Date().toISOString() : null, last_error: null,
-    }).eq('id', jobId);
+    });
     return !done;
   }
 
-  await q.from('buklod_quiz_review_jobs').update({
+  await commit({
     status: 'RUNNING', current_attempt_id: batchAttempts[0].attemptId,
     heartbeat_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_error: null,
-  }).eq('id', jobId);
+  });
 
   try {
     const apiKey = Deno.env.get('GEMINI_API_KEY') ?? '';
@@ -380,18 +385,17 @@ async function processLeasedBatch(jobId: string, token: string, userId: string) 
 
     if (seen.size !== allowed.size) throw new ProviderWaitError('AI did not return every review item.');
 
-    const { error: upErr } = await q.from('buklod_quiz_review_suggestions').upsert(out, { onConflict: 'response_id' });
-    if (upErr) throw upErr;
+    
 
     idx += batchAttempts.length;
     processed += batchAttempts.length;
     const done = idx >= ids.length;
-    await q.from('buklod_quiz_review_jobs').update({
+    await commit({
       next_index: idx, processed_attempts: processed, failed_attempts: 0, last_error: null,
       status: done ? 'COMPLETED' : 'RUNNING', current_attempt_id: done ? null : ids[idx],
       heartbeat_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       completed_at: done ? new Date().toISOString() : null,
-    }).eq('id', jobId);
+    }, out);
 
     console.log(`[REVIEW_JOB_V2_BATCH_OK_R3] job=${jobId} attempts=${batchAttempts.length} items=${out.length} model=${model} next=${idx}/${ids.length}`);
     return !done;
@@ -401,23 +405,23 @@ async function processLeasedBatch(jobId: string, token: string, userId: string) 
     const provider = config || e instanceof ProviderWaitError || (e as any)?.providerWait;
 
     if (provider) {
-      await q.from('buklod_quiz_review_jobs').update({
+      await commit({
         status: 'PARTIAL', next_index: idx, processed_attempts: processed, failed_attempts: 0,
         current_attempt_id: ids[idx] ?? null,
         last_error: config
           ? (message.startsWith('AI_PROVIDER_CONFIG_INVALID') ? message : `AI_PROVIDER_CONFIG_INVALID: ${message}`)
           : (message.startsWith('AI_') ? message : `AI_QUOTA_TEMPORARY: ${message}`),
         heartbeat_at: new Date().toISOString(), updated_at: new Date().toISOString(), completed_at: null,
-      }).eq('id', jobId);
+      });
       return;
     }
 
-    await q.from('buklod_quiz_review_jobs').update({
+    await commit({
       status: 'PARTIAL', next_index: idx, processed_attempts: processed, failed_attempts: 0,
       current_attempt_id: ids[idx] ?? null,
       last_error: `AI_PROVIDER_TEMPORARY: ${message}. No student is counted as failed.`,
       heartbeat_at: new Date().toISOString(), updated_at: new Date().toISOString(), completed_at: null,
-    }).eq('id', jobId);
+    });
   }
 }
 
