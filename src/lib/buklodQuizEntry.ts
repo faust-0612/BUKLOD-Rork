@@ -19,7 +19,7 @@ import { supabase } from '@/lib/supabase';
  */
 
 const QUIZ_ENTRY_BRIDGE =
-  'https://cjtehbfspgimyhifnjon.supabase.co/functions/v1/buklod-quiz-main-entry-v1';
+  'https://yhanxndaqbmuzbdqlblu.supabase.co/functions/v1/buklod-quiz-entry-v2';
 
 const SESSION_TIMEOUT_MS = 8_000;
 const ENTRY_TIMEOUT_MS = 15_000;
