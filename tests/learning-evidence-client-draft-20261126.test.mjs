@@ -1,0 +1,5 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {draftResult,sameDraft} from '../src/lib/learningEvidenceDraftState.mjs';
+const v={"status":"verified","receipt_id":"12345678-1234-1234-1234-123456789abc","items":[{"id":"1","passed":true}],"points_awarded":0};
+test('receipt classification cannot award points or confuse shadow with verified',()=>{assert.equal(draftResult('children_story',v).status,'verified');assert.equal(draftResult('abaka',v),null);assert.equal(draftResult('children_story',{...v,points_awarded:5}),null);assert.equal(draftResult('children_story',{...v,items:[{id:'1',passed:false}]}),null);assert.equal(draftResult('children_story',{...v,receipt_id:''}),null);assert.equal(draftResult('abaka',{...v,status:'shadow_candidate'}).status,'shadow_candidate');assert.equal(draftResult('abaka',{status:'pending',points_awarded:0}),null);assert.equal(sameDraft({payload:{a:1}},{payload:{a:1}}),true);assert.equal(sameDraft({payload:{a:1}},{payload:{a:2}}),false);});
