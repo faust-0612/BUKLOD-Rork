@@ -2,6 +2,7 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -26,6 +27,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
+import {learningEvidencePilot,saveEvidenceDraft,submitEvidenceDraft} from '@/lib/learningEvidenceDraft';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import {
@@ -91,6 +93,8 @@ BuklodAbcLessonDetailScreen() {
   const { user } = useAuth();
   const { online } = useNetwork();
   const accountId = user?.id;
+  const assessmentScope=useRef(0);
+  useEffect(()=>{assessmentScope.current++;return ()=>{assessmentScope.current++;};},[accountId]);
   const accountCompletionKey = accountId ? `${COMPLETION_KEY}.${accountId}` : null;
   const params =
     useLocalSearchParams<{
@@ -550,6 +554,23 @@ BuklodAbcLessonDetailScreen() {
       }
 
       setRewardBusy(true);
+
+      // The pilot saves actual responses, not a legacy completion/points request.
+      if (learningEvidencePilot) {
+        const assessmentGeneration=assessmentScope.current;
+        try {
+          if(!accountId)throw Error('Sign in required');
+          const submitted=Object.fromEntries(lesson.blocks.filter(b=>b.answerable).map(b=>[b.id,String(answers[b.id]??'').trim()]));
+          let saved=await saveEvidenceDraft(accountId,{module:'abaka',subject_id:lesson.id,answers:submitted,language:'tl'});
+          if(online&&!saved.result)saved=await submitEvidenceDraft(accountId,'abaka',lesson.id);
+          if(assessmentScope.current!==assessmentGeneration)return;
+          const result=saved.result;
+          Alert.alert(result?.status==='shadow_candidate'?'Assessment candidate':result?.status==='shadow_rework'?'Suggested revision':'Assessment saved',
+            result?result.items.map(i=>i.id+': '+(i.feedback|| (i.passed?'Meets check':'Review answer'))).join('\n')+'\n\nPilot only; no official grade or reward yet.':online?'Saved on device. Checking unavailable or pending; retry after one minute.':'Saved offline. Tap Submit for assessment when connected.');
+        } catch { if(assessmentScope.current===assessmentGeneration)Alert.alert('Assessment not confirmed','Your existing lesson answers remain on this device. Retry when available.'); }
+        finally { if(assessmentScope.current===assessmentGeneration)setRewardBusy(false); }
+        return;
+      }
 
       try {
         if (!online) {
@@ -1286,7 +1307,7 @@ BuklodAbcLessonDetailScreen() {
                   ? 'ABAKA lesson completed'
                   : pendingSync
                     ? 'Saved offline; awaiting server confirmation'
-                    : 'Complete this ABAKA lesson and earn five BUKLOD Points'
+                    : learningEvidencePilot ? 'Submit ABAKA answers for assessment' : 'Complete this ABAKA lesson and earn five BUKLOD Points'
             }
             disabled={
               rewardBusy ||
@@ -1354,7 +1375,7 @@ BuklodAbcLessonDetailScreen() {
                       'pending'
                       ? 'Completed · +5 points ready to claim'
                       : 'Completed · +5 BUKLOD Points'
-                    : 'Complete lesson · earn +5 points'}
+                    : learningEvidencePilot ? 'Submit for assessment' : 'Complete lesson · earn +5 points'}
             </Text>
           </Pressable>
 

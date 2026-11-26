@@ -58,6 +58,8 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useNetwork } from '@/providers/NetworkProvider';
+import {learningEvidencePilot} from '@/lib/learningEvidenceDraft';
+import {LearningEvidencePanel} from '@/components/learning/LearningEvidencePanel';
 import { getOfflineCache, setOfflineCache } from '@/lib/offlineCache';
 import { warmNextBibleChaptersOffline } from '@/lib/buklodFaithOfflineWarmup';
 import { colors } from '@/lib/theme';
@@ -5200,6 +5202,10 @@ setMarking(true);
 
 
           
+      {learningEvidencePilot && accountId && sessionId && completed && source !== 'daily_plan' ? (
+        <LearningEvidencePanel key={accountId+':'+sessionId} account={accountId} module="bible_reading" subject={sessionId} online={online}/>
+      ) : null}
+
       {/* OLD DAILY COMPLETION UI REMOVED.
           DAILY_DEVOTION_FOCUSED_READING_V1
           now owns NEXT READING -> RESPOND. */}

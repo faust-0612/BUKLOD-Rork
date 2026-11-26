@@ -4,6 +4,9 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { useAuth } from '@/providers/AuthProvider';
+import {useNetwork} from '@/providers/NetworkProvider';
+import {learningEvidencePilot,saveEvidenceDraft} from '@/lib/learningEvidenceDraft';
+import {LearningEvidencePanel} from '@/components/learning/LearningEvidencePanel';
 import StoryArt from '@/features/childrenStories/StoryArt';
 import { BUNDLED_CHILDREN_STORIES, ChildrenStory, StoryLanguage, findBundledStory, localize } from '@/features/childrenStories/catalog';
 import { fetchChildrenStoryLibrary, readStoryProgress, saveStoryProgress } from '@/features/childrenStories/service';
@@ -14,6 +17,11 @@ export default function ChildrenStoryReader() {
   const params=useLocalSearchParams<{id:string;lang?:string}>();
   const id=typeof params.id==='string'?params.id:'';
   const {user}=useAuth();
+  const {online}=useNetwork();
+  const quizAnswers=useRef<number[]>([]);
+  const [evidenceRevision,setEvidenceRevision]=useState(0);
+  const [evidenceSaveFailed,setEvidenceSaveFailed]=useState(false);
+  const evidenceScope=useRef(0);
   const [language,setLanguage]=useState<StoryLanguage>(params.lang==='en'?'en':'tl');
   const [story,setStory]=useState<ChildrenStory | null>(findBundledStory(id)??null);
   const [page,setPage]=useState(0);
@@ -41,6 +49,7 @@ export default function ChildrenStoryReader() {
   },[stop]);
   useEffect(()=>{
     let live=true;
+    evidenceScope.current++;quizAnswers.current=[];setEvidenceRevision(0);setEvidenceSaveFailed(false);
     const builtin=findBundledStory(id)??null;
     setStory(builtin);setPage(0);setQuiz(false);setQuestionIndex(0);setChoice(null);setComplete(false);setFavorite(false);
     void readStoryProgress(user?.id).then(all=>{
@@ -51,11 +60,13 @@ export default function ChildrenStoryReader() {
     void fetchChildrenStoryLibrary(user?.id).then(items=>{
       if(!live)return;
       const found=items.find(x=>x.id===id);
-      if(found) setStory(found);
+      if(found) setStory(previous=>{if(previous&&JSON.stringify(previous)===JSON.stringify(found))return previous;return found;});
     });
     return()=>{live=false;stop();};
   },[id,user?.id,stop]);
   useEffect(()=>{stop()},[language,page,quiz,questionIndex,stop]);
+  // Changing editorial edition invalidates any in-progress quiz trace.
+  useEffect(()=>{if(learningEvidencePilot){quizAnswers.current=[];setQuiz(false);setChoice(null);setQuestionIndex(0);}},[story]);
   const lesson=getSundaySchoolLesson(story);
   const questions=story?[{prompt:story.question,choices:story.choices,answer:story.answer},...(lesson?.questions??[])]:[];
   const activeQuestion=questions[Math.min(questionIndex,questions.length-1)];
@@ -87,7 +98,17 @@ export default function ChildrenStoryReader() {
   function submit(index:number){
     if(!story||!activeQuestion||choice===activeQuestion.answer)return;
     setChoice(index);
+    if(index===activeQuestion.answer){
+      if(questionIndex===0)quizAnswers.current=[];
+      quizAnswers.current[questionIndex]=index;
+    }
     if(index===activeQuestion.answer&&questionIndex===questions.length-1){
+      if(learningEvidencePilot&&user?.id&&Array.from({length:questions.length},(_,i)=>quizAnswers.current[i]).every(v=>Number.isInteger(v))&&quizAnswers.current.length===questions.length){
+        const scope=evidenceScope.current;
+        void saveEvidenceDraft(user.id,{module:'children_story',subject_id:story.id,edition:story.source,version:story.version,answers:[...quizAnswers.current]})
+          .then(()=>{if(evidenceScope.current===scope){setEvidenceSaveFailed(false);setEvidenceRevision(v=>v+1);}})
+          .catch(()=>{if(evidenceScope.current===scope)setEvidenceSaveFailed(true);});
+      }
       setComplete(true);
       void saveStoryProgress(user?.id,story.id,{completed:true,page:story.pages.length-1});
     }
@@ -201,6 +222,8 @@ export default function ChildrenStoryReader() {
             <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF"/>
           </Pressable>}
       </View>
+      {learningEvidencePilot&&user?.id&&complete?<LearningEvidencePanel key={user.id+':'+story.id} account={user.id} module="children_story" subject={story.id} online={online} revision={evidenceRevision}/>:null}
+      {learningEvidencePilot&&evidenceSaveFailed?<Text accessibilityRole="alert" style={styles.tip}>Hindi na-save ang server check. Maaaring ulitin ang quiz; local story progress ay hiwalay.</Text>:null}
       {complete&&!quiz?<Text style={[styles.tip,bedtime&&styles.light]}>⭐ {language==='tl'?'Natapos mo na ang story check. Maaari mong basahin muli.':'Story check completed. You can read again.'}</Text>:null}
     </ScrollView>
   );
