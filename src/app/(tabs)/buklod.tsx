@@ -1,3 +1,5 @@
+import { WallPostStyleEditor } from '@/components/BuklodWallPostDesignPicker';
+import { useWallPostStyles, authorizeWallPostStyle, DEFAULT_WALL_POST_STYLE, persistWallPostStyle, isDefaultWallPostStyle, type WallPostStyle } from '@/lib/buklodWallPostStylePersistence';
 import { buklodVisual } from '@/lib/buklodVisual';
 import { BuklodExpandableWallCaption } from '@/components/BuklodExpandableWallCaption';
 import BuklodCommunityWallPostCard from '@/components/BuklodCommunityWallPostCard';
@@ -3067,6 +3069,7 @@ const load=useCallback(async(options?:{
 
  postingSubmissionRef.current=true;
  const snapshot={
+   wallStyle:wallStyles.enabled?authorizeWallPostStyle(draftWallStyle,wallStyles.rankName,!!(photos.length||wallVideo186O||communityGif)):DEFAULT_WALL_POST_STYLE,
    body:
     body.trim(),
    photos:
@@ -3105,6 +3108,7 @@ const load=useCallback(async(options?:{
  setComposerClipStartSeconds(0);
  setComposerClipDurationSeconds(30);
  setComposerMotionPreset('none');
+ setDraftWallStyle(DEFAULT_WALL_POST_STYLE);
  setComposerMotionDrawerOpen(false);
  setComposerMusicPickerOpen(false);
  if(wallAudioOwnerRef.current==='composer' || wallAudioPendingOwnerRef.current==='composer'){
@@ -3377,6 +3381,10 @@ const load=useCallback(async(options?:{
     );
    }
 
+   if(createdPostId && !isDefaultWallPostStyle(snapshot.wallStyle)){
+    try{await persistWallPostStyle(createdPostId,snapshot.userId,snapshot.wallStyle);wallStyles.remember(createdPostId,snapshot.wallStyle);}
+    catch{optionalCreativeFailed=true;}
+   }
    if(createdPostId){
     try{
      await saveBuklodPostCreative({
@@ -3420,7 +3428,7 @@ const load=useCallback(async(options?:{
 
    // A feed refresh error must not roll back a successfully published post.
    void load().catch(()=>undefined);
-   setPostFeedback(optionalCreativeFailed ? 'Posted, but optional music/motion was not saved.' : 'Posted to Community');
+   setPostFeedback(optionalCreativeFailed ? 'Posted, but an optional design, music or motion was not saved.' : 'Posted to Community');
   }
   catch(e:any){
    await discardIncompleteCommunityPost({
@@ -3439,6 +3447,7 @@ const load=useCallback(async(options?:{
    setComposerClipStartSeconds(snapshot.clipStartSeconds);
    setComposerClipDurationSeconds(snapshot.clipDurationSeconds);
    setComposerMotionPreset(snapshot.motionPreset);
+   setDraftWallStyle(current=>isDefaultWallPostStyle(current)?snapshot.wallStyle:current);
    setCommunityComposerOpen(true);
    setPostFeedback('Post failed — your draft was restored');
 
@@ -5552,6 +5561,9 @@ const communityFeedRows =
 
  const maritesVisibilityRefreshRef = useRef<(() => void) | null>(null);
  const [communityComposerOpen, setCommunityComposerOpen] = useState(false);
+ const [draftWallStyle,setDraftWallStyle]=useState<WallPostStyle>(DEFAULT_WALL_POST_STYLE);
+ const wallStyles=useWallPostStyles(user?.id,posts,communityComposerOpen);
+ useEffect(()=>{setDraftWallStyle(DEFAULT_WALL_POST_STYLE);},[user?.id]);
  // Re-arm autoplay after a previously played card leaves the viewport,
  // without retrying failures continually while the same card stays visible.
  useEffect(()=>{
@@ -5593,8 +5605,8 @@ const communityFeedRows =
  },[wallScreenFocused,user?.id,communityComposerOpen,maritesViewerOpen,visibleVideoPostId,
     visibleCreativePostIds,postCreatives,wallAudioSettledTick]);
  const communityCreativeExtraData=useMemo(
-   ()=>[communityAdExtraData,visibleCreativePostIds],
-   [communityAdExtraData,visibleCreativePostIds]
+   ()=>[communityAdExtraData,visibleCreativePostIds,wallStyles.styles,wallScreenFocused,communityComposerOpen,commentOpen,maritesViewerOpen,videoViewerOpen],
+   [communityAdExtraData,visibleCreativePostIds,wallStyles.styles,wallScreenFocused,communityComposerOpen,commentOpen,maritesViewerOpen,videoViewerOpen]
  );
  const largeComposerText = !photos.length && !wallVideo186O && !communityGif &&
    Array.from(body.trim()).length > 0 && Array.from(body.trim()).length <= 80;
@@ -5779,6 +5791,7 @@ const communityFeedRows =
    {largeComposerText ? 'Large text · this post will appear in big letters' : 'Regular caption'}
   </Text>
  )}
+ {wallStyles.enabled && !photos.length && !wallVideo186O && !communityGif && body.trim() ? <WallPostStyleEditor rankName={wallStyles.rankName} value={draftWallStyle} onChange={setDraftWallStyle} previewText={body} disabled={busy} />:null}
     <View
       /* PATCH_154L_COMPOSER_SPACING */
       style={[
@@ -6328,6 +6341,9 @@ const communityFeedRows =
     active={wallScreenFocused&&visibleCreativePostIds.includes(String(item.id))}>
    <BuklodExpandableWallCaption
     key={String(item.id)}
+    designId={wallStyles.styles[String(item.id)]?.designId}
+    fontId={wallStyles.styles[String(item.id)]?.fontId}
+    animationActive={wallScreenFocused && !communityComposerOpen && !commentOpen && !maritesViewerOpen && !videoViewerOpen && visibleCreativePostIds.find(id=>wallStyles.styles[id]?.animated)===String(item.id)}
     text={String(repairMojibakeText(item.body) ?? '').replace(
      /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
      ''
