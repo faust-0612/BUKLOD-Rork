@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fetch pinned CC0 review assets into ignored cache, never runtime or production."""
-import argparse, hashlib, json, os, pathlib, re, time, urllib.request, urllib.parse
+import argparse, hashlib, json, os, pathlib, re, time, urllib.request, urllib.parse, urllib.error
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 LOCK=json.loads((ROOT/"Tools/THIRD_PARTY_ASSET_LOCK.json").read_text())
 CACHE=ROOT/"Tools/ReviewOutput/ThirdPartyQuaternius"

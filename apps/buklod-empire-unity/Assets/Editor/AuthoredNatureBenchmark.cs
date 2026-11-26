@@ -18,6 +18,12 @@ namespace Buklod.Empire.Editor {
                     Place(i%2==0?shortGrass:tallGrass,holder.transform,x,z+1.3f,.8f,i*61);
                 }
             }
+            // A playable-camera sample near the Lux central route, using only low grass.
+            for(int i=0;i<9;i++){
+                float x=12+i*2.1f;
+                foreach(float z in new[]{OfflineBattle.Height*.5f-6.5f,OfflineBattle.Height*.5f+6.5f})
+                    Place(i%3==0?tallGrass:shortGrass,holder.transform,x,z,.28f,i*47);
+            }
         }
         static GameObject Load(string name){
             var obj=AssetDatabase.LoadAssetAtPath<GameObject>(Root+name+".gltf");
@@ -29,7 +35,13 @@ namespace Buklod.Empire.Editor {
             if(!obj)throw new InvalidOperationException("Authored foliage instantiation failed");
             obj.transform.localPosition=new Vector3(x,0,z);
             obj.transform.localRotation=Quaternion.Euler(0,yaw,0);
-            obj.transform.localScale=Vector3.one*size;
+            var renderers=obj.GetComponentsInChildren<Renderer>(true);
+            if(renderers.Length==0)throw new InvalidOperationException("Authored foliage has no renderers");
+            var bounds=renderers[0].bounds;foreach(var renderer in renderers)bounds.Encapsulate(renderer.bounds);
+            if(bounds.size.y<=.001f)throw new InvalidOperationException("Invalid foliage dimensions");
+            obj.transform.localScale*=size/bounds.size.y;
+            float minY=float.PositiveInfinity;foreach(var renderer in renderers)minY=Mathf.Min(minY,renderer.bounds.min.y);
+            obj.transform.position+=Vector3.up*(-minY);
             foreach(var collider in obj.GetComponentsInChildren<Collider>(true))collider.enabled=false;
         }
     }
