@@ -20,6 +20,8 @@ import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import { rankVisualMilestone, nextRankVisualMilestone } from '@/lib/buklodRankVisualMilestones';
 import BuklodRankBonusCollection from '@/components/points/BuklodRankBonusCollection';
+import {WallPostDesignSurface} from '@/components/BuklodWallPostDesignPicker';
+import {WALL_POST_DESIGNS} from '@/lib/buklodWallPostDesigns';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 type RankProgress = {
@@ -58,6 +60,8 @@ export default function CircleRankProgressionScreen() {
   const owner=user?.id??'';
   // Default OFF: do not call a schema that has not passed release gates.
   const rankBonusEnabled = config?.features?.rank_bonus_collections === true;
+  const roadmapScroll=useRef<ScrollView|null>(null);
+  const collectionY=useRef(0);
   const [progress, setProgress] = useState<RankProgress | null>(null);
   const [ladder, setLadder] = useState<RankLadderRow[]>([]);
   const [busy, setBusy] = useState(true);
@@ -180,9 +184,16 @@ export default function CircleRankProgressionScreen() {
   const nextMilestone = nextRankVisualMilestone(currentOrder);
   const celebrationMilestone = rankVisualMilestone(number(rankUp?.rank_order));
   const celebrationNext = nextRankVisualMilestone(number(rankUp?.rank_order));
+  const celebrationDesign=rankUp&&config?.features?.rank_wall_designs===true
+    ? [...WALL_POST_DESIGNS].reverse().find(d=>d.minRankOrder<=number(rankUp.rank_order)) : undefined;
+  const openCollections=()=>{
+    closeRecognition();
+    requestAnimationFrame(()=>roadmapScroll.current?.scrollTo({y:Math.max(0,collectionY.current-12),animated:!reduceMotion}));
+  };
 
   return (
     <ScrollView
+      ref={roadmapScroll}
       style={styles.screen}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -269,7 +280,7 @@ export default function CircleRankProgressionScreen() {
             </View>
           </View>
 
-          {rankBonusEnabled && <BuklodRankBonusCollection />}
+          {rankBonusEnabled && <View onLayout={event=>{collectionY.current=event.nativeEvent.layout.y;}}><BuklodRankBonusCollection /></View>}
           <BuklodKingdomAdSlot placementId="points_rank_progression_native" kind="native" />
           <View style={styles.roadmapHead}>
             <Text style={styles.roadmapTitle}>FULL RANK ROADMAP</Text>
@@ -335,14 +346,15 @@ export default function CircleRankProgressionScreen() {
         visible={Boolean(rankUp)&&recognitionOwner.current===owner}
         transparent
         statusBarTranslucent
-        animationType="fade"
+        animationType={reduceMotion?'none':'fade'}
         onRequestClose={closeRecognition}
       >
         <View style={styles.celebrationBackdrop}>
+          <ScrollView style={{flexGrow:0}} contentContainerStyle={{paddingVertical:12}} showsVerticalScrollIndicator={false}>
           <Animated.View style={[styles.celebrationCard, { opacity: medalOpacity, transform: [{ scale: medalScale }] }]}>
             <MaterialCommunityIcons name="creation" size={24} color="#C39125" />
             <Text style={styles.celebrationEyebrow}>BUKLOD MILESTONE UNLOCKED</Text>
-            <BuklodCircleRankBadge rankName={rankUp?.rank_name} size={112} />
+            {celebrationDesign?<View style={{alignSelf:'stretch',marginVertical:8}}><WallPostDesignSurface design={celebrationDesign} active={Boolean(rankUp)&&recognitionOwner.current===owner&&!reduceMotion}><View style={{alignItems:'center'}}><BuklodCircleRankBadge rankName={rankUp?.rank_name} size={112}/></View></WallPostDesignSurface></View>:<BuklodCircleRankBadge rankName={rankUp?.rank_name} size={112} />}
             <Text accessibilityRole="header" style={styles.celebrationTitle}>Congratulations! Rank up!</Text>
             <Text style={styles.celebrationRank}>{rankUp?.rank_name}</Text>
             <Text style={styles.celebrationDetail}>
@@ -358,15 +370,17 @@ export default function CircleRankProgressionScreen() {
               <Text style={styles.collectionDetail}>{celebrationNext.description}</Text>
               <Text style={styles.collectionDetail}>{money(rankUp.points_to_next)} BP to go</Text>
             </View>}
+            {rankBonusEnabled&&<Pressable accessibilityRole="button" accessibilityLabel="Open My Bonus Collections" onPress={openCollections} style={[styles.celebrationButton,{backgroundColor:'#075B30'}]}><Text style={styles.celebrationButtonText}>VIEW MY BONUS COLLECTIONS</Text></Pressable>}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close Circle Rank recognition"
               onPress={closeRecognition}
               style={styles.celebrationButton}
             >
-              <Text style={styles.celebrationButtonText}>CONTINUE MY JOURNEY</Text>
+              <Text style={styles.celebrationButtonText}>{rankBonusEnabled?'CONTINUE WITHOUT BONUS':'CONTINUE MY JOURNEY'}</Text>
             </Pressable>
           </Animated.View>
+          </ScrollView>
         </View>
       </Modal>
     </ScrollView>
@@ -459,7 +473,7 @@ const styles = StyleSheet.create({
   },
   celebrationCard: {
     alignItems: 'center', borderRadius: 26, backgroundColor: '#FFFFFF',
-    borderWidth: 2, borderColor: '#D9BB69', padding: 25,
+    borderWidth: 2, borderColor: '#D9BB69', padding: 16,
   },
   celebrationEyebrow: {
     fontSize: 10, color: '#876418', fontWeight: '900', letterSpacing: 1,
