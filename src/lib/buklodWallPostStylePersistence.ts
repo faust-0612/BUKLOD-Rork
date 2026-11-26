@@ -3,36 +3,37 @@ import { supabase } from '@/lib/supabase';
 import { canSelectWallPostDesign, canSelectWallFont, resolveWallPostDesign, wallDesignMotionAllowed, wallFontForViewer, type WallFontId } from '@/lib/buklodWallPostDesigns';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
-export type WallPostStyle = { designId: string | null; fontId: WallFontId; animated: boolean };
+import { canUseRankBonusFrame, rankBonusFrameForViewer } from '@/lib/buklodRankBonusFrames';
+export type WallPostStyle = { designId: string | null; fontId: WallFontId; animated: boolean; bonusKey:string|null };
 const EMPTY_STYLES: Record<string,WallPostStyle> = Object.freeze({});
-export const DEFAULT_WALL_POST_STYLE: WallPostStyle = {designId:null,fontId:'standard',animated:false};
+export const DEFAULT_WALL_POST_STYLE: WallPostStyle = {designId:null,fontId:'standard',animated:false,bonusKey:null};
 export function normalizeWallPostStyle(value:any):WallPostStyle {
   const design=resolveWallPostDesign(value?.design_id);
-  return {designId:design?.id??null,fontId:wallFontForViewer(value?.font_id),animated:!!design&&value?.animated===true};
+  return {designId:design?.id??null,fontId:wallFontForViewer(value?.font_id),animated:!!design&&value?.animated===true,bonusKey:rankBonusFrameForViewer(value?.bonus_key)?.key??null};
 }
-export function authorizeWallPostStyle(style:WallPostStyle,rank:string|null,hasMedia:boolean):WallPostStyle {
+export function authorizeWallPostStyle(style:WallPostStyle,rank:string|null,hasMedia:boolean,redeemedKeys:readonly string[]=[]):WallPostStyle {
   if(hasMedia)return DEFAULT_WALL_POST_STYLE;
   const design=resolveWallPostDesign(style.designId);
   const allowed=!!design&&canSelectWallPostDesign(design.id,rank);
   return {designId:allowed?design!.id:null,fontId:canSelectWallFont(style.fontId,rank)?style.fontId:'standard',
-    animated:allowed&&style.animated&&wallDesignMotionAllowed(design!,rank)};
+    animated:allowed&&style.animated&&wallDesignMotionAllowed(design!,rank),bonusKey:canUseRankBonusFrame(style.bonusKey,redeemedKeys)?style.bonusKey:null};
 }
 export function isDefaultWallPostStyle(style:WallPostStyle) {
-  return style.designId===null&&style.fontId==='standard'&&!style.animated;
+  return style.designId===null&&style.fontId==='standard'&&!style.animated&&style.bonusKey===null;
 }
 export async function persistWallPostStyle(postId:string,userId:string,style:WallPostStyle) {
   if(isDefaultWallPostStyle(style))return;
   const {data:auth}=await supabase.auth.getSession();
   if(auth.session?.user.id!==userId)throw Error('Account changed');
   const {error}=await (supabase as any).from('buklod_wall_post_styles_v1').upsert({
-    post_id:postId,author_id:userId,design_id:style.designId,font_id:style.fontId,animated:style.animated,
+    post_id:postId,author_id:userId,design_id:style.designId,font_id:style.fontId,animated:style.animated,bonus_key:style.bonusKey,
   },{onConflict:'post_id',ignoreDuplicates:true});
   if(error)throw error;
   // A retry must read the original stored style rather than silently overwrite it.
-  const result=await (supabase as any).from('buklod_wall_post_styles_v1').select('design_id,font_id,animated').eq('post_id',postId).single();
+  const result=await (supabase as any).from('buklod_wall_post_styles_v1').select('design_id,font_id,animated,bonus_key').eq('post_id',postId).single();
   if(result.error)throw result.error;
   const actual=normalizeWallPostStyle(result.data);
-  if(actual.designId!==style.designId||actual.fontId!==style.fontId||actual.animated!==style.animated)throw Error('Different post style already saved');
+  if(actual.designId!==style.designId||actual.fontId!==style.fontId||actual.animated!==style.animated||actual.bonusKey!==style.bonusKey)throw Error('Different post style already saved');
 }
 /** Bounded reads; no viewer rank check, no additional requests while flag off. */
 export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unknown}[],composerOpen:boolean,scopeKey='public') {
@@ -42,7 +43,18 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
   const [rankState,setRankState]=useState<{owner:string;name:string|null}>({owner:'',name:null});
   const [stylesState,setStylesState]=useState<{owner:string;rows:Record<string,WallPostStyle>}>({owner:'',rows:{}});
   const ids=useMemo(()=>Array.from(new Set(posts.map(p=>String(p.id??'')).filter(Boolean))).sort().join(','),[posts]);
+  const bonusEnabled=config?.features?.rank_bonus_collections===true;
+  const [bonusState,setBonusState]=useState<{owner:string;keys:string[]}>({owner:'',keys:[]});
   const rankEpoch=useRef(0),readEpoch=useRef(0);
+  useEffect(()=>{
+    if(!owner||!composerOpen||!bonusEnabled)return;
+    let live=true;
+    setBonusState({owner,keys:[]});
+    void Promise.resolve((supabase as any).from('buklod_rank_bonus_ledger_v1').select('bonus_key').eq('user_id',userId).not('redeemed_at','is',null).is('revoked_at',null)).then(({data,error})=>{
+      if(live&&!error)setBonusState({owner,keys:(data??[]).map((r:any)=>String(r.bonus_key)).filter((key:string)=>!!rankBonusFrameForViewer(key))});
+    }).catch(()=>{});
+    return()=>{live=false;};
+  },[owner,userId,composerOpen,bonusEnabled]);
   useEffect(()=>{
     const seq=++rankEpoch.current;
     if(!owner||!composerOpen)return;
@@ -63,7 +75,7 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
         const result:Record<string,WallPostStyle>={};
         for(let i=0;i<list.length;i+=80){
           const {data,error}=await (supabase as any).from('buklod_wall_post_styles_v1')
-            .select('post_id,design_id,font_id,animated').in('post_id',list.slice(i,i+80));
+            .select('post_id,design_id,font_id,animated,bonus_key').in('post_id',list.slice(i,i+80));
           if(error)throw error;
           if(seq!==readEpoch.current)return;
           for(const row of data??[])result[String(row.post_id)]=normalizeWallPostStyle(row);
@@ -78,5 +90,5 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
     setStylesState(prev=>({owner,rows:{...(prev.owner===owner?prev.rows:{}),[postId]:style}}));
   },[owner]);
   return {enabled,rankName:rankState.owner===owner&&owner?rankState.name:null,
-    styles:stylesState.owner===owner&&owner?stylesState.rows:EMPTY_STYLES,remember};
+    styles:stylesState.owner===owner&&owner?stylesState.rows:EMPTY_STYLES,redeemedBonusKeys:bonusEnabled&&owner&&bonusState.owner===owner?bonusState.keys:[],remember};
 }
