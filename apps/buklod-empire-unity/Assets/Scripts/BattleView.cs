@@ -10,6 +10,11 @@ namespace Buklod.Empire {
         public float worldScale=1, cameraHeight=23;
         [Tooltip("Preserve full-detail hero geometry and visible hero shadows. Disable only for an explicit lower-quality mode.")]
         public bool premiumVisuals=true;
+        [SerializeField, HideInInspector] private bool stylizedBenchmark;
+        private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
+#if UNITY_EDITOR
+        public void ConfigureStylizedBenchmark(){if(Application.isPlaying||!IsConfiguredReview)throw new System.InvalidOperationException("Benchmark is review-only.");stylizedBenchmark=true;}
+#endif
         public OfflineBattle Battle {get;private set;}
         public bool Paused {get;private set;}
         public void SetPaused(bool value){Paused=value;if(input)input.enabled=!value;}
@@ -171,11 +176,18 @@ namespace Buklod.Empire {
                     v.sampledAt=u.Position;v.groundY=Ground(u.Position).y;
                 }
                 var goal=new Vector3(u.Position.x*worldScale,v.groundY,u.Position.y*worldScale);
+                var previousPosition=t.position;
                 var delta=goal-t.position;var flat=new Vector3(delta.x,0,delta.z);
                 if(immediate)t.position=goal;else t.position=Vector3.Lerp(t.position,goal,1-Mathf.Exp(-18*Time.deltaTime));
                 if(reviewShadows&&inView)reviewShadows.Add(t.position,u.Kind,u.Core,worldScale);
                 if(flat.sqrMagnitude>.0001f)t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
-                if(v.animator&&v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
+                if(v.animator&&v.parameters.Contains("Speed")){
+                    if(StylizedBenchmark){
+                        float speed=immediate?0:StylizedArenaPresentation.Speed(previousPosition,t.position,Time.deltaTime);
+                        if(immediate||speed==0&&flat.sqrMagnitude<.0001f)v.animator.SetFloat("Speed",0);
+                        else v.animator.SetFloat("Speed",speed,.10f,Time.deltaTime);
+                    }else v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
+                }
                 if(u.LastAttack>v.attack){v.attack=u.LastAttack;if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");if(effects&&u.Kind==BattleTargetKind.Hero)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),0);}
                 bool castThisFrame=false;
                 int latest=u.State.CastSequence;
@@ -232,6 +244,13 @@ namespace Buklod.Empire {
         }
         private void Follow(bool immediate){
             var at=Ground(Battle.Player.Position);
+            if(StylizedBenchmark){
+                var cameraTransform=battleCamera.transform;
+                var desiredPosition=at+StylizedArenaPresentation.CameraOffset;
+                cameraTransform.position=immediate?desiredPosition:Vector3.Lerp(cameraTransform.position,desiredPosition,StylizedArenaPresentation.FollowWeight(Time.deltaTime));
+                cameraTransform.rotation=StylizedArenaPresentation.CameraRotation;
+                return;
+            }
             // Restrained spectator-only dolly. Keep the camera heading and human input projection unchanged.
             float height=cameraHeight;
             if(ReviewOnly&&Battle.AutonomousTraining&&!Battle.Finished)
