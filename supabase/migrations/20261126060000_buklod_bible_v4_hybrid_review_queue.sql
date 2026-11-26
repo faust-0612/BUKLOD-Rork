@@ -5,6 +5,7 @@ create table if not exists private.buklod_bible_hybrid_control (
  enabled boolean not null default false,
  deterministic_settlement_enabled boolean not null default false,
  shadow_cache_enabled boolean not null default false,
+ learning_pilot_enabled boolean not null default false,
  daily_calls integer not null default 20 check(daily_calls between 0 and 20),
  provider_pause_until timestamptz,
  provider_blocked boolean not null default false
@@ -315,3 +316,34 @@ end;
 $$;
 revoke all on function public.buklod_bible_hybrid_reuse_candidate(text) from public,anon,authenticated;
 grant execute on function public.buklod_bible_hybrid_reuse_candidate(text) to service_role;
+
+-- One combined 20-call/day ceiling with Bible V4's two-call reservation.
+-- Only backend service can reserve; all calls require free-only credential checks in Edge.
+create or replace function public.buklod_hybrid_reserve_learning_call()
+returns boolean language plpgsql security definer set search_path='' as $$
+declare cfg record; used int; d date:=(now() at time zone 'Asia/Manila')::date;
+begin
+ if auth.role() is distinct from 'service_role' then raise exception 'Service only';end if;
+ select * into cfg from private.buklod_bible_hybrid_control where singleton for update;
+ if not found or not cfg.learning_pilot_enabled or cfg.daily_calls<1 or cfg.provider_blocked or coalesce(cfg.provider_pause_until>now(),false) then return false;end if;
+ insert into private.buklod_bible_hybrid_budget(day) values(d) on conflict do nothing;
+ select reserved_calls into used from private.buklod_bible_hybrid_budget where day=d for update;
+ if used+1>cfg.daily_calls then return false;end if;
+ update private.buklod_bible_hybrid_budget set reserved_calls=reserved_calls+1 where day=d;
+ return true;
+end;
+$$;
+revoke all on function public.buklod_hybrid_reserve_learning_call() from public,anon,authenticated;
+grant execute on function public.buklod_hybrid_reserve_learning_call() to service_role;
+create or replace function public.buklod_hybrid_pause_learning_provider(p_reason text)
+returns boolean language plpgsql security definer set search_path='' as $$
+begin
+ if auth.role() is distinct from 'service_role' then raise exception 'Service only';end if;
+ if p_reason is null or p_reason not in ('quota_exhausted','provider_blocked') then raise exception 'Invalid reason';end if;
+ update private.buklod_bible_hybrid_control set provider_pause_until=greatest(coalesce(provider_pause_until,now()),now()+interval '24 hours'),
+ provider_blocked=provider_blocked or p_reason='provider_blocked' where singleton and learning_pilot_enabled;
+ return found;
+end;
+$$;
+revoke all on function public.buklod_hybrid_pause_learning_provider(text) from public,anon,authenticated;
+grant execute on function public.buklod_hybrid_pause_learning_provider(text) to service_role;

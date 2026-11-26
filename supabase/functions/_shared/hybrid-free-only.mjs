@@ -10,3 +10,24 @@ export function freeOnlyConfig(env,now=Date.now()){
 export function providerFailure(status){
  return status===429?"quota_exhausted":([400,401,403,404].includes(status)?"provider_blocked":"retry");
 }
+
+export async function guardedFreeCall(admin,free,call){
+ if(!free)throw new Error("FREE_GRADING_UNAVAILABLE");
+ const r=await admin.rpc("buklod_hybrid_reserve_learning_call");
+ if(r.error||r.data!==true)throw new Error("FREE_GRADING_BUDGET_UNAVAILABLE");
+ try{return await call(free.key,free.model);}
+ catch(e){
+  const message=e instanceof Error?e.message:"";
+  if(message==="quota_exhausted"||message==="provider_blocked"){
+   const hold=await admin.rpc("buklod_hybrid_pause_learning_provider",{p_reason:message});
+   if(hold.error||hold.data!==true)throw new Error("FREE_GRADING_PAUSE_NOT_CONFIRMED");
+  }
+  throw e;
+ }
+}
+
+export function reusableLessonReceipt(row,key,model,updatedAt,now=Date.now()){
+ if(!row||row.status!=="acceptable"||row.fail_open!==false||row.model!==model||row.question_context?.hybrid_grading_key!==key)return false;
+ const created=Date.parse(row.created_at??""),updated=Date.parse(updatedAt??"");
+ return Number.isFinite(created)&&Number.isFinite(updated)&&created>=updated&&created<=now&&created>=now-3600000;
+}
