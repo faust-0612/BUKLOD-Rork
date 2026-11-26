@@ -31,3 +31,9 @@ test('silent OTA remains reviewed on staging and cannot trigger production', () 
   assert.ok(qa.includes('tests/ota-restart-safe-area.test.cjs'));
   assert.doesNotMatch(qa, /eas-cli.*update --channel production|eas-cli.*build --profile production/);
 });
+
+test('Canonical production exporter packages the mounted native lifecycle host without a file allowlist', () => {
+  assert.match(root, /import BuklodOtaFreshnessHost from '@\/components\/BuklodOtaFreshnessHost';/);
+  assert.match(workflow, /npx expo export --platform android --output-dir rc/);
+  assert.match(workflow, /node scripts\/android-ota-rc\.cjs freeze/);
+});

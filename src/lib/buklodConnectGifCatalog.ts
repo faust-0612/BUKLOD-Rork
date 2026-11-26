@@ -15,7 +15,11 @@ export const CONNECT_GIF_CATEGORIES = [
   'Angry',
   'Celebrate',
   'Prayer',
+  'Amen',
+  'Worship',
   'Encourage',
+  'Thank You',
+  'Greetings',
 ] as const;
 
 export type ConnectGifCategory =
@@ -55,7 +59,11 @@ const CATEGORY_SEARCH: Record<
   Angry: 'angry mad reaction',
   Celebrate: 'celebration congratulations party reaction',
   Prayer: 'prayer amen blessed faith',
+  Amen: 'amen hallelujah praise god',
+  Worship: 'worship praise lord gospel music',
   Encourage: 'encouragement keep going you can do it',
+  'Thank You': 'thank you gratitude appreciation',
+  Greetings: 'hello good morning good evening greetings',
 };
 
 /**
@@ -273,6 +281,31 @@ export const CONNECT_GIF_CATALOG: ConnectGifCatalogItem[] = [
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const DEFAULT_PAGE_SIZE = 24;
 const MAX_RUNTIME_GIFS = 360;
+const SEARCH_CACHE_TTL_MS = 2 * 60 * 1000;
+const SEARCH_CACHE_MAX_ENTRIES = 48;
+const gifSearchCache = new Map<string, { time: number; result: ConnectGifSearchResult }>();
+
+function cachedGifSearch(cacheKey: string): ConnectGifSearchResult | null {
+  const hit = gifSearchCache.get(cacheKey);
+  if (!hit) return null;
+  if (Date.now() - hit.time > SEARCH_CACHE_TTL_MS) {
+    gifSearchCache.delete(cacheKey);
+    return null;
+  }
+  // Keep this entry recent without persisting private search text to disk.
+  gifSearchCache.delete(cacheKey);
+  gifSearchCache.set(cacheKey, hit);
+  return { ...hit.result, items: [...hit.result.items] };
+}
+
+function rememberGifSearch(cacheKey: string, result: ConnectGifSearchResult) {
+  gifSearchCache.delete(cacheKey);
+  gifSearchCache.set(cacheKey, { time: Date.now(), result: { ...result, items: [...result.items] } });
+  if (gifSearchCache.size > SEARCH_CACHE_MAX_ENTRIES) {
+    const oldest = gifSearchCache.keys().next().value;
+    if (oldest) gifSearchCache.delete(oldest);
+  }
+}
 
 function giphyApiKey() {
   const generic =
@@ -334,10 +367,16 @@ function fallbackSearch(
       return false;
     }
 
-    if (
-      category !== 'All' &&
-      item.category !== category
-    ) {
+    // Neighboring reactions remain usable even without a live GIF API key.
+    const fallbackGroup: Partial<Record<ConnectGifCategory, readonly ConnectGifCategory[]>> = {
+      Amen: ['Prayer'],
+      Worship: ['Prayer'],
+      'Thank You': ['Encourage'],
+      Greetings: ['Happy', 'Love'],
+    };
+    if (category !== 'All' &&
+        item.category !== category &&
+        !(fallbackGroup[category]?.includes(item.category ?? 'All'))) {
       return false;
     }
 
@@ -462,14 +501,23 @@ export async function searchConnectGifs({
   const categorySearch =
     CATEGORY_SEARCH[normalizedCategory];
   const userQuery = query.trim();
-  const searchTerm =
+  // GIPHY rejects searches longer than 50 characters.
+  const searchTerm = (
     userQuery && categorySearch
       ? `${categorySearch} ${userQuery}`
-      : userQuery || categorySearch;
+      : userQuery || categorySearch
+  ).slice(0, 50);
 
   const endpoint = searchTerm
     ? 'search'
     : 'trending';
+  const cacheKey = [endpoint, searchTerm.toLowerCase(), normalizedCategory,
+    safeOffset, safeLimit].join('|');
+  const cached = cachedGifSearch(cacheKey);
+  if (cached) {
+    registerLiveItems(cached.items);
+    return cached;
+  }
   const params = new URLSearchParams({
     api_key: key,
     limit: String(safeLimit),
@@ -482,9 +530,12 @@ export async function searchConnectGifs({
     params.set('q', searchTerm);
   }
 
+  const controller = new AbortController();
+  const watchdog = setTimeout(() => controller.abort(), 6500);
   try {
     const response = await fetch(
-      `https://api.giphy.com/v1/gifs/${endpoint}?${params.toString()}`
+      `https://api.giphy.com/v1/gifs/${endpoint}?${params.toString()}`,
+      { signal: controller.signal },
     );
 
     if (!response.ok) {
@@ -548,18 +599,16 @@ export async function searchConnectGifs({
     const nextOffset =
       safeOffset + Math.max(returnedCount, items.length);
 
-    return {
+    const result: ConnectGifSearchResult = {
       items,
       provider: 'giphy',
       nextOffset,
-      hasMore:
-        returnedCount > 0 &&
-        (
-          totalCount <= 0 ||
-          nextOffset < totalCount
-        ),
+      hasMore: returnedCount > 0 &&
+        (totalCount <= 0 || nextOffset < totalCount),
       warning: null,
     };
+    rememberGifSearch(cacheKey, result);
+    return result;
   }
   catch {
     return {
@@ -572,6 +621,8 @@ export async function searchConnectGifs({
       warning:
         'Live GIFs could not load. Showing available reactions instead.',
     };
+  } finally {
+    clearTimeout(watchdog);
   }
 }
 
@@ -588,44 +639,47 @@ export function getConnectGifCatalogItem(
 export async function downloadConnectCatalogGif(
   item: ConnectGifCatalogItem
 ): Promise<ConnectPickedFile> {
-  const cacheDir =
-    FileSystem.cacheDirectory;
-
-  if (!cacheDir) {
-    throw new Error(
-      'Could not prepare GIF download.'
-    );
-  }
+  const cacheDir = FileSystem.cacheDirectory;
+  if (!cacheDir) throw new Error('Could not prepare GIF download.');
 
   const safeId = String(item.id)
     .replace(/[^a-zA-Z0-9_-]/g, '-')
     .slice(0, 80);
-  const target =
-    `${cacheDir}connect-gif-${safeId}-${Date.now()}.gif`;
-  const result = await FileSystem.downloadAsync(
-    item.url,
-    target
-  );
+  const name = `${safeId || 'reaction'}.gif`;
+  const target = `${cacheDir}connect-gif-${name}`;
 
-  const nativeFile = new File(result.uri);
-  const size = Number(nativeFile.size ?? 0);
-
-  if (!size) {
-    throw new Error(
-      'Could not download that GIF. Check your connection and try again.'
-    );
+  // Stable bounded cache: resending a reaction does not fetch it again.
+  // The OS can still purge temporary files at any time.
+  const old = await FileSystem.getInfoAsync(target);
+  if (old.exists) {
+    const size = 'size' in old ? Number(old.size ?? 0) : 0;
+    const age = Date.now() - Number(old.modificationTime ?? 0) * 1000;
+    if (size > 0 && size <= MAX_FILE_BYTES && age >= 0 &&
+        age < 24 * 60 * 60 * 1000) {
+      return { uri: target, name, mimeType: 'image/gif', size };
+    }
+    await FileSystem.deleteAsync(target, { idempotent: true }).catch(() => undefined);
   }
 
-  if (size > MAX_FILE_BYTES) {
-    throw new Error(
-      'Maximum attachment size is 25 MB.'
-    );
-  }
+  const temporary = `${target}.${Date.now()}-${Math.random().toString(36).slice(2)}.part`;
+  try {
+    const result = await FileSystem.downloadAsync(item.url, temporary);
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error('GIF download unavailable. Try another reaction.');
+    }
 
-  return {
-    uri: result.uri,
-    name: `${safeId || 'reaction'}.gif`,
-    mimeType: 'image/gif',
-    size,
-  };
+    const size = Number(new File(result.uri).size ?? 0);
+    if (!size) {
+      throw new Error('Could not download that GIF. Check your connection.');
+    }
+    if (size > MAX_FILE_BYTES) {
+      throw new Error('Maximum attachment size is 25 MB.');
+    }
+    await FileSystem.moveAsync({ from: result.uri, to: target });
+    return { uri: target, name, mimeType: 'image/gif', size };
+  } catch (error) {
+    throw error;
+  } finally {
+    await FileSystem.deleteAsync(temporary, { idempotent: true }).catch(() => undefined);
+  }
 }

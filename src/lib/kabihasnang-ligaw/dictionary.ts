@@ -45,39 +45,105 @@ export const KL_DICTIONARY: readonly DictionaryEntry[] = [
   ...EXTRA_KL_DICTIONARY,
 ];
 
-const DICTIONARY_BY_KEY = new Map(
-  KL_DICTIONARY.map(entry => [entry.name.toLowerCase(), entry]),
-);
-const DICTIONARY_NAMES = KL_DICTIONARY.map(entry => entry.name)
-  .sort((left, right) => right.length - left.length)
-  .map(name => name.replace(/[.*+?^$()|[\]{}\\]/g, '\\$&'));
-const DICTIONARY_PATTERN = new RegExp(
-  '(^|[^\\p{L}\\p{M}\\p{N}])(' + DICTIONARY_NAMES.join('|') + ')(?=$|[^\\p{L}\\p{M}\\p{N}])',
-  'giu',
-);
+// Canonical aliases map to the same entry, without duplicate dictionary cards.
+const DICTIONARY_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  "Maestro Calen": [
+    "Calen"
+  ],
+  "Balat-bato": [
+    "Balat-batong"
+  ],
+  "Gagamba ng Pisi": [
+    "Gagambang Pisi"
+  ],
+  "Mga Hindi Nakalimot": [
+    "Hindi Nakalimot"
+  ],
+  "Mga ilog na umaakyat": [
+    "ilog na umaakyat",
+    "ilog na dumadaloy paakyat",
+    "mga ilog na dumadaloy paakyat",
+    "mga ilog na hindi dumadaloy pababa",
+    "ilog na hindi dumadaloy pababa"
+  ],
+  "Mapulang latak": [
+    "pulang latak"
+  ],
+  "Katipunan ng mga Tagapag-ingat": [
+    "Katipunan"
+  ],
+  "Pilak na hibla": [
+    "pilak na hiblang"
+  ],
+  "Tagapag-alaga ng mga balon": [
+    "tagapag-alaga ng balon"
+  ]
+};
+export type DictionaryPart = { term: string | null; text: string };
 
-export function dictionaryByName(name: string): DictionaryEntry | null {
-  return DICTIONARY_BY_KEY.get(name.toLowerCase()) ?? null;
-}
-
-export function splitDictionaryTerms(text: string): Array<{ term: string | null; text: string }> {
-  const parts: Array<{ term: string | null; text: string }> = [];
-  let last = 0;
-  for (const match of text.matchAll(DICTIONARY_PATTERN)) {
-    const term = match[2];
-    const index = (match.index ?? 0) + match[1].length;
-    if (index > last) parts.push({ term: null, text: text.slice(last, index) });
-    parts.push({ term: dictionaryByName(term)?.name ?? term, text: term });
-    last = index + term.length;
+/** Untrusted server payload is limited to a chapter and contains no executable markup. */
+export function parseKlDictionaryRows(value: unknown): DictionaryEntry[] {
+  if (!Array.isArray(value)) return [];
+  const output: DictionaryEntry[] = [];
+  const seen = new Set<string>();
+  for (const row of value.slice(0, 600)) {
+    if (!row || typeof row !== 'object') continue;
+    const { name, kind, meaning } = row as Record<string, unknown>;
+    if (typeof name !== 'string' || typeof kind !== 'string' || typeof meaning !== 'string') continue;
+    const n = name.trim(), k = kind.trim(), m = meaning.trim();
+    const key = n.toLowerCase();
+    if (n.length < 2 || n.length > 100 || k.length < 2 || k.length > 50 ||
+        m.length < 8 || m.length > 500 || /[\r\n\u0000-\u001f]/.test(n) || seen.has(key)) continue;
+    seen.add(key); output.push({ name: n, kind: k, meaning: m });
   }
-  if (last < text.length) parts.push({ term: null, text: text.slice(last) });
-  return parts.length ? parts : [{ term: null, text }];
+  return output;
 }
 
-/** Avoid revealing unreleased chapters: only show new terms occurring in readable prose. */
-export function dictionaryForManuscript(readableText: string): readonly DictionaryEntry[] {
-  const mentioned = new Set(splitDictionaryTerms(readableText)
-    .filter(part => part.term !== null).map(part => part.term));
-  return KL_DICTIONARY.filter(entry =>
-    BASE_KL_DICTIONARY.includes(entry) || mentioned.has(entry.name));
+/** Build one matcher per chapter update, never per paragraph. Preserve bundled
+ * terms offline and canonical aliases when automatic candidates collide. */
+export function createKlDictionary(remote: unknown = []) {
+  const byKey = new Map<string, DictionaryEntry>(
+    KL_DICTIONARY.map(entry => [entry.name.toLowerCase(), entry]),
+  );
+  for (const [name, aliases] of Object.entries(DICTIONARY_ALIASES)) {
+    const entry = byKey.get(name.toLowerCase());
+    if (!entry) continue;
+    for (const alias of aliases) if (!byKey.has(alias.toLowerCase())) byKey.set(alias.toLowerCase(), entry);
+  }
+  const entries = [...KL_DICTIONARY];
+  for (const entry of parseKlDictionaryRows(remote)) {
+    const key = entry.name.toLowerCase();
+    if (byKey.has(key)) continue;
+    entries.push(entry); byKey.set(key, entry);
+  }
+  const names = Array.from(byKey.keys()).sort((a,b) => b.length-a.length)
+    .map(name => name.replace(/[.*+?^$()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(
+    '(^|[^\\p{L}\\p{M}\\p{N}])(' + names.join('|') + ')(?=$|[^\\p{L}\\p{M}\\p{N}])', 'giu',
+  );
+  const byName = (name: string): DictionaryEntry | null => byKey.get(name.toLowerCase()) ?? null;
+  const split = (text: string): DictionaryPart[] => {
+    const parts: DictionaryPart[] = [];
+    let last = 0;
+    for (const match of text.matchAll(pattern)) {
+      const term = match[2];
+      if (term === 'tali' || term === 'el') continue;
+      const index = (match.index ?? 0) + match[1].length;
+      if (index > last) parts.push({ term: null, text: text.slice(last,index) });
+      parts.push({ term: byName(term)?.name ?? term, text: term });
+      last = index + term.length;
+    }
+    if (last < text.length) parts.push({term:null,text:text.slice(last)});
+    return parts.length ? parts : [{term:null,text}];
+  };
+  const forManuscript = (readableText: string): readonly DictionaryEntry[] => {
+    const mentioned = new Set(split(readableText).filter(part => part.term !== null).map(part => part.term));
+    return entries.filter(entry => BASE_KL_DICTIONARY.includes(entry) || mentioned.has(entry.name));
+  };
+  return { byName, split, forManuscript };
 }
+
+const local = createKlDictionary();
+export const dictionaryByName = local.byName;
+export const splitDictionaryTerms = local.split;
+export const dictionaryForManuscript = local.forManuscript;

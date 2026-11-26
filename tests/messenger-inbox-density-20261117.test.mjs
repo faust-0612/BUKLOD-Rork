@@ -9,7 +9,9 @@ test('Connect search and Notes precede conversations without duplicate banners',
   assert.ok(s.indexOf('<View style={styles.searchDock}>') < s.indexOf('<ConnectInboxTabs'));
   assert.ok(s.indexOf('<ConnectInboxTabs') < s.indexOf('<ConnectSuggestedContacts'));
   assert.doesNotMatch(s, /<View style=\{styles\.hero\}>|style=\{styles\.priorityCard\}/);
-  assert.match(s, /: regularThreads\s*\) as any\[\]/);
+  assert.match(s, /const currentThreads = tab === 'requests' \? requestThreads : regularThreads/);
+  assert.match(s, /:\s*currentThreads;/);
+  assert.match(s, /sortConnectInboxByActivity\(personal\)/);
   assert.match(s, /BuklodFirstViewAd/);
   assert.match(s, /BuklodNativeSponsoredCard/);
   assert.match(s, /personalUnread=\{regularThreads\.reduce/);
@@ -23,7 +25,7 @@ test('Wall search/Notes rail comes before shortcuts while genuine ads remain', (
   assert.ok(rail >= 0 && rail < links && links < ad);
   assert.match(wall, /BuklodCommunitySponsoredAd|BuklodCommunityInlineAd/);
   const context = read('src/components/BuklodDashboardContextBar.tsx');
-  assert.match(context, /if \(messagesRoute \|\| communityRoute\) return null;/);
+  assert.match(context, /if \(messagesRoute \|\| communityRoute \|\| profileRoute \|\| homeRoute\) return null;/);
   assert.match(context, /BuklodPublicDailyMessageBar forceVisible/);
 });
 

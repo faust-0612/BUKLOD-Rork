@@ -412,6 +412,9 @@ function FeedbackToggle({
   );
 }
 
+// Shared live backend: fail closed outside production, no test claims.
+const POINTS_STAGING_READ_ONLY = process.env.EXPO_PUBLIC_APP_ENV !== 'production';
+
 function ClaimGroupCard({
   group,
   rows,
@@ -524,11 +527,11 @@ function ClaimGroupCard({
 
       {expanded && notLoadedCount > 0 ? (
         <Text style={styles.morePendingText}>
-          +{notLoadedCount} more pending activities are included in this Claim All.
+          +{notLoadedCount} more pending activities{POINTS_STAGING_READ_ONLY ? ' · preview only' : ' are included in this Claim All.'}
         </Text>
       ) : null}
 
-      {!expanded && <Text style={styles.morePendingText}>Tap to view the activity breakdown. Claim All includes every verified activity.</Text>}
+      {!expanded && <Text style={styles.morePendingText}>{POINTS_STAGING_READ_ONLY ? 'Tap to view pending activity details.' : 'Tap to view the activity breakdown. Claim All includes every verified activity.'}</Text>}
     </View>
   );
 }
@@ -770,6 +773,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
   );
 
   const claimAll = useCallback(async () => {
+    if (POINTS_STAGING_READ_ONLY) return;
     if(claimingGroup!==null || claimablePoints<=0)return;
     setClaimingGroup('all');
     setClaimError(null);setClaimTechnicalError(null);
@@ -1051,7 +1055,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
         <View style={styles.sectionHeadingRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.sectionTitle}>Ready to Claim</Text>
-            <Text style={styles.sectionSub}>Review completed activities and claim points by group.</Text>
+            <Text style={styles.sectionSub}>{POINTS_STAGING_READ_ONLY ? 'Review completed activities · read-only preview.' : 'Review completed activities and claim points by group.'}</Text>
           </View>
           <View style={styles.readyBadge}>
             <MaterialCommunityIcons name="gift-outline" size={15} color="#A75F00" />
@@ -1070,7 +1074,12 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
         ) : null}
 
         <BuklodAdLightRewardCard />
-        {claimGroups.length>0&&(
+        {POINTS_STAGING_READ_ONLY ? (
+          <View style={styles.allCaughtUp}>
+            <MaterialCommunityIcons name="shield-lock-outline" size={21} color={COLORS.green} />
+            <Text style={[styles.allCaughtSub, { flex: 1 }]}>STAGING PREVIEW · Review pending activities without changing live Points. Claims and ad bonus credits are disabled.</Text>
+          </View>
+        ) : claimGroups.length>0&&(
           <Pressable accessibilityRole="button" accessibilityLabel="Claim all verified BUKLOD Points"
             disabled={claimingGroup!==null} onPress={()=>void claimAll()}
             style={[styles.claimButton,{backgroundColor:COLORS.green,marginBottom:12,marginHorizontal:4},

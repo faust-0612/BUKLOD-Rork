@@ -1,0 +1,92 @@
+{
+  "status": "DEV_CANDIDATE_NOT_PUBLISHED",
+  "target": {
+    "package": "org.mzbministry.buklod.staging",
+    "runtime": "2.0.6-genesis-godot-ota",
+    "channel": "season2-genesis-library-206-preview",
+    "signedSource": "f1bca8319113402caffe99bd78c7ed0e963f963f",
+    "signedArtifact": 14817753566,
+    "buildRun": 45168699649
+  },
+  "publicGameSource": "0ddcad334a1facabb10aa9913a86e3dee0421224",
+  "mainSource": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
+  "mainAuditSource": "fe3c4e5d19e2161531a980cfc1f51491ee19866a",
+  "mainRuntimeDelta": "Three changed runtime paths from audit carried, ConnectThread global call ownership applied uniquely",
+  "source205": "850c4a50becaea556d4ea0ba20c48d7eaef77b5e",
+  "source205CI": [
+    45314226875,
+    45314226895
+  ],
+  "game": {
+    "arena": "13 heroes, 70 recorded-source cues, combat and map improvements; local practice only",
+    "kingdom": "42 collectible images, walk-to-station, opt-in ambience",
+    "house": "arrival-gated cosmetic construction",
+    "public3D": "22 reviewed public CC0 models including 2 rigged actors; exact export and Android compatibility gate required",
+    "privateAssets": "EXCLUDED; redistribution clearance missing"
+  },
+  "holds": [
+    "ABaKa/SALIKSIK/Academy/KL S2 backend activation",
+    "Points and rewarded ads writes/SSV",
+    "ranked multiplayer/live wallet/property",
+    "Expo-free native app and native GIF/splash changes",
+    "private vendor 3D/FX",
+    "Rank badge visual parity, full individual activity claims and ad bonus credit, appwide AI cost work, music mixing and other incomplete/backend-dependent deltas."
+  ],
+  "noProduction": true,
+  "noSharedBackendMutation": true,
+  "noNewBackendProject": true,
+  "physicalDeviceVerification": "OWNER_WAIVED_NOT_PERFORMED",
+  "mustPass": [
+    "native and target parity",
+    "full cumulative intake",
+    "source/TypeScript/Metro",
+    "AdMob/instant navigation",
+    "Godot public pack hash and smoke",
+    "EAS remote staging/production branch separation",
+    "publish receipt/readback"
+  ],
+  "addedIntakes": [
+    "Connect inbox PR 1153 exact 22 hunks, preserve latest and call lifecycle",
+    "GIF PR 1141 exact-context hunks with preserved image/video provider imports",
+    "AdMob guard PR 1134",
+    "App-wide micro motion: three exact matching base blobs and two root insertions",
+    "Points read-only Genesis preview; functional claims and rewarded credits held"
+  ],
+  "mainBackendSourceParity": [
+    {
+      "path": "supabase/functions/buklod-ai-validate-response/index.ts",
+      "sha": "95dca22ae1d162d602bf19c7bf58798e5cd88b94",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/migrations/20261119214500_buklod_admin_new_registration_inbox_v1.sql",
+      "sha": "109df32c7383166f99ea3f8cd799d65897f63b3c",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/migrations/20261121132000_mentor_report_catalog_titles_and_role_clarity.sql",
+      "sha": "5baa42626884469598fa4e1111631bb68494aa00",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/migrations/20261121141000_admin_mentor_capability_review_audit_v1.sql",
+      "sha": "aa76d9d475934131d7b867bd9abd29a0676290d2",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/tests/admin_new_registration_security_20261119.sql",
+      "sha": "17be4810666114bd05ea57a9a9bfe9cc0bd29b5f",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/tests/buklod_formation_ai_timeout_guard_20261123.sql",
+      "sha": "3d10fa1afde045c2bc1928de183b90443bd4565e",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    },
+    {
+      "path": "supabase/tests/mentor_capability_release_guard_20261121.sql",
+      "sha": "1ea07c529e5bd308d1de59665d1994ec4279502b",
+      "mode": "SOURCE_ONLY_NEVER_DEPLOY"
+    }
+  ]
+}

@@ -178,6 +178,8 @@ import {
   encodeBuklodCommentMediaBody,
   buklodCommentHasSendableContent,
 } from '@/lib/buklodCommentMediaBody';
+import { uploadBuklodCommentVideo } from '@/lib/buklodCommentVideo';
+import { stopBuklodCommentVideos } from '@/lib/buklodCommentVideoPlaybackSignal';
 import {
   type BuklodCommunityReactionKey,
   type CommunityReactionDetailsTarget,
@@ -4005,7 +4007,16 @@ const load=useCallback(async(options?:{
      await uploadCommunityGifFile({path,uri:initialMedia.ref});
      mediaForBody={kind:'gif',ref:path};
     }
-    const body=encodeBuklodCommentMediaBody(mediaForBody,finalBody);
+    if(initialMedia?.kind==='video'){
+      if(!user?.id)throw new Error('Please sign in to post a short video.');
+      if(isLocalMediaUri(initialMedia.ref)){
+       mediaForBody=await uploadBuklodCommentVideo(
+        initialMedia,
+        user.id+'/comment-video-'+Date.now()+'-'+Math.random().toString(36).slice(2),
+       );
+      }
+     }
+     const body=encodeBuklodCommentMediaBody(mediaForBody,finalBody);
     const {error}=await communityRpc('add_buklod_post_comment_v4',{
      p_post_id:postId,
      p_body:body,
@@ -5790,6 +5801,16 @@ const communityFeedRows =
         : 'Gallery'}
       </Text>
      </Pressable>
+     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Browse GIF library for Community post"
+      disabled={busy || videoBusy186O}
+      style={({ pressed }) => [s.tool, pressed && { opacity: 0.8 }]}
+      onPress={() => setCommunityGifPickerOpen(true)}
+     >
+      <MaterialCommunityIcons name="file-gif-box" size={18} color={colors.greenDark}/>
+      <Text style={s.toolText}>GIFs</Text>
+     </Pressable>
 </View>
     <BuklodPostMusicPicker visible={composerMusicPickerOpen}
       selectedTrack={composerMusicTrack}
@@ -6189,6 +6210,7 @@ const communityFeedRows =
       iconColor={colors.muted}
       style={{minWidth:32,minHeight:30,alignItems:'center',justifyContent:'center'}}
       allowPhotoEdit={!communityPostIsVideo(item)}
+      maxChars={12000}
       maxPhotos={COMMUNITY_MAX_PHOTOS}
       photos={communityPostEditPhotos(item)}
       onEdit={async (nextBody, nextPhotos) => {
@@ -6196,7 +6218,7 @@ const communityFeedRows =
         postId: item.id,
         userId: String(user?.id ?? ''),
         body: nextBody,
-        photos: nextPhotos ?? [],
+        photos: nextPhotos,
        });
        setPosts(current =>
         current.map(post =>
@@ -7106,6 +7128,7 @@ const communityFeedRows =
      <ScrollView
       style={{flex:1}}
       keyboardShouldPersistTaps="handled"
+      onScrollBeginDrag={stopBuklodCommentVideos}
       contentContainerStyle={s.communityCommentList}
      >
       {!!commentLoadError&&(

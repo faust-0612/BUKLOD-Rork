@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { importKlClipboard, splitKlItalics, toggleKlItalic } from '@/lib/kabihasnang-ligaw/italicFormatting';
+import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks';
 import { supabase } from '@/lib/supabase';
 import KlAdminMediaUpload from './KlAdminMediaUpload';
 import KlAdminPreview from './KlAdminPreview';
+import { KlSeriesAdmin } from './KlSeriesShelf';
 import { klPreviewReadyForEpisode } from '@/lib/kabihasnang-ligaw/mediaApprovalState';
 import { useAuth } from '@/providers/AuthProvider';
 import {
@@ -60,6 +64,10 @@ export default function KlPublishingStudio() {
   const [id, setId] = useState('');
   const [title, setTitle] = useState('');
   const [manuscript, setManuscript] = useState('');
+  const [formatPreview, setFormatPreview] = useState(false);
+  const [pasteBusy, setPasteBusy] = useState(false);
+  const selectionRef = useRef({ start: 0, end: 0 });
+  const pasteLock = useRef(false);
   const [season, setSeason] = useState('1');
   const [chapter, setChapter] = useState('2');
   const [busyAction, setBusyAction] = useState('');
@@ -118,7 +126,7 @@ export default function KlPublishingStudio() {
     }
   };
 
-  const workspaceBusy = !!busyAction || mediaBusy;
+  const workspaceBusy = !!busyAction || mediaBusy || pasteBusy;
   const dirty = !!id && !!lastSaved && lastSaved.id === id
     && (lastSaved.title !== title || lastSaved.manuscript !== manuscript);
   const saved = !!id && !!lastSaved && lastSaved.id === id && !dirty;
@@ -169,7 +177,7 @@ export default function KlPublishingStudio() {
       const nextText = preview.manuscript ?? '';
       setId(episode.id);
       setTitle(nextTitle);
-      setManuscript(nextText);
+      setManuscript(nextText); setFormatPreview(false); selectionRef.current = { start: 0, end: 0 };
       setSeason(String(episode.season_number));
       setChapter(String(episode.episode_number));
       setLastSaved({ id: episode.id, title: nextTitle, manuscript: nextText });
@@ -211,7 +219,7 @@ export default function KlPublishingStudio() {
       const nextText = preview?.manuscript ?? '';
       setId(newId);
       setTitle(nextTitle);
-      setManuscript(nextText);
+      setManuscript(nextText); setFormatPreview(false); selectionRef.current = { start: 0, end: 0 };
       setLastSaved({ id: newId, title: nextTitle, manuscript: nextText });
       setPanel('manuscript');
       setPreviewOpen(false);
@@ -284,6 +292,7 @@ export default function KlPublishingStudio() {
     <View style={{ gap: 12, padding: 16, backgroundColor: '#182537', borderRadius: 12 }}>
       <Text style={{ color: '#f1d39b', fontWeight: 'bold', fontSize: 18 }}>KL · Content Creation Studio</Text>
       <Text style={{ color: '#e3e8ef' }}>Create, edit and review private media here. Chapter approval and public release remain in Community Wall KL Admin.</Text>
+      <KlSeriesAdmin disabled={workspaceBusy || dirty} onSelect={n=>{if(!id)setSeason(String(n));}}/>
       {feedback ? (
         <Text accessibilityRole="alert" style={{
           padding: 10, borderRadius: 8,
@@ -347,7 +356,56 @@ export default function KlPublishingStudio() {
               </View>
             </View>
           ) : null}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Action label="Italic (I)" disabled={workspaceBusy || formatPreview} onPress={() => {
+              const { start, end } = selectionRef.current;
+              const next = toggleKlItalic(manuscript, start, end);
+              if (next === manuscript) {
+                setFeedback({ tone: 'info', text: 'Pumili muna ng salita o pangungusap sa isang linya. Gumamit ng *salita* para sa italic.' });
+                return;
+              }
+              setManuscript(next); setRecoveryDraft(null);
+            }} />
+            <Action label={pasteBusy ? 'Pasting…' : 'Paste with formatting'} disabled={workspaceBusy || formatPreview} onPress={() => {
+              if (pasteLock.current) return;
+              pasteLock.current = true; setPasteBusy(true);
+              const snapshot = { ...valuesRef.current };
+              const range = { ...selectionRef.current };
+              void (async () => {
+                try {
+                  const plain = await Clipboard.getStringAsync();
+                  if (!plain) return;
+                  const html = await Clipboard.getStringAsync({ preferredFormat: Clipboard.StringFormat.HTML }).catch(() => '');
+                  const result = importKlClipboard(plain, html);
+                  const current = valuesRef.current;
+                  if (current.id !== snapshot.id || current.manuscript !== snapshot.manuscript) {
+                    setFeedback({ tone: 'info', text: 'Nagbago ang manuscript habang nagpa-paste. Subukan muli.' });
+                    return;
+                  }
+                  const start = Math.max(0, Math.min(range.start, snapshot.manuscript.length));
+                  const end = Math.max(start, Math.min(range.end, snapshot.manuscript.length));
+                  setManuscript(snapshot.manuscript.slice(0,start)+result.text+snapshot.manuscript.slice(end));
+                  setRecoveryDraft(null); setFormatPreview(true);
+                  setFeedback({ tone: 'success', text: result.formatted ? 'Na-paste kasama ang italic formatting.' : 'Na-paste ang text. Walang recoverable na rich-text italic mula sa clipboard.' });
+                } catch {
+                  setFeedback({ tone: 'error', text: 'Hindi mabasa ang clipboard. Maaaring mag-paste ng Markdown (*salita*) sa editor.' });
+                } finally { pasteLock.current = false; setPasteBusy(false); }
+              })();
+            }} />
+            <Action label={formatPreview ? 'Edit text' : 'Formatted preview'} disabled={workspaceBusy} onPress={() => setFormatPreview(current => !current)} />
+          </View>
+          <Text style={{ color: '#b7c8cd' }}>Gamitin ang Paste with formatting upang mapanatili ang italic mula sa rich-text clipboard. Ang ordinaryong paste ay maaaring plain text lamang.</Text>
+          {formatPreview ? (
+            <View style={{ gap: 10, padding: 10, backgroundColor: '#243849', borderRadius: 8 }}>
+              {splitKlManuscriptBlocks(manuscript).map((p,i) => {
+                const runs=splitKlItalics(p, Number(season), Number(chapter));
+                return <Text key={i} style={{color:'#fff',fontSize:17,lineHeight:27}}>{runs.some(run=>run.italic) ? runs.map((run,j)=><Text key={j} style={run.italic ? {fontStyle:'italic'} : undefined}>{run.text}</Text>) : p}</Text>;
+              })}
+            </View>
+          ) : (
           <TextInput
+            editable={!workspaceBusy}
+            onSelectionChange={event => { selectionRef.current = event.nativeEvent.selection; }}
             style={[field, { minHeight: 240, textAlignVertical: 'top' }]}
             multiline
             value={manuscript}
@@ -355,6 +413,7 @@ export default function KlPublishingStudio() {
             placeholder="Paste complete manuscript here"
             placeholderTextColor="#aeb4bb"
           />
+          )}
           <Text style={{ color: dirty ? '#ffe0a8' : '#b7c8cd' }}>
             {dirty ? 'Unsaved changes' : saved ? 'Loaded/saved on server' : 'New draft'}
             {' · '}{manuscript.trim().length} characters (minimum 30 to save)
@@ -383,7 +442,7 @@ export default function KlPublishingStudio() {
               <Action label={previewOpen ? 'Hide Private Preview & Media Approvals' : 'Open Private Preview & Media Approvals'}
                 disabled={workspaceBusy || !saved} onPress={() => setPreviewOpen((current) => !current)} />
               {previewOpen && saved ? (
-                <KlAdminPreview episodeId={id} onApproved={() => setApprovalRefreshToken((value) => value + 1)} />
+                <KlAdminPreview episodeId={id} season={Number(season)} chapter={Number(chapter)} onApproved={() => setApprovalRefreshToken((value) => value + 1)} />
               ) : null}
             </>
           ) : (

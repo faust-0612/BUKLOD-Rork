@@ -116,6 +116,16 @@ export async function validateBuklodResponse(input: {
         });
 
   if (error) {
+    if (input.questionContext.module === 'lesson') {
+      const status = Number((error as { context?: { status?: number } }).context?.status ?? 0);
+      if (status === 401 || status === 403) {
+        throw new Error('Please sign in again to verify the lesson. Your answers remain on this screen.');
+      }
+      if (status === 400 || status === 409) {
+        throw new Error('This lesson or question has changed. Reopen the latest lesson before completing it.');
+      }
+      throw new Error('AI lesson checking is temporarily unavailable. Your answers remain on this screen; please retry.');
+    }
     throw error;
   }
 
