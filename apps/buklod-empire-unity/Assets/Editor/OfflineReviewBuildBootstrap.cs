@@ -13,20 +13,12 @@ namespace Buklod.Empire.Editor {
         const string PipelinePath = Folder + "/ReviewPipeline.asset";
         const string RendererPath = Folder + "/ReviewRenderer.asset";
         const string PackagePath = "Packages/com.unity.render-pipelines.universal";
-        public static void Build() {
-            if (Application.unityVersion != "6000.0.86f1")
-                throw new BuildFailedException("Use the pinned Unity editor.");
-            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
-                throw new BuildFailedException("A graphics-capable editor is required.");
-            var previous = GraphicsSettings.defaultRenderPipeline;
-            var quality = QualitySettings.renderPipeline;
-            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset) {
-                OfflineReviewAndroidBuild.Build();
-                return;
-            }
-            if (previous != null || quality != null)
+        internal static void EnsureReviewPipeline() {
+            if (Application.unityVersion != "6000.0.86f1" || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+                throw new BuildFailedException("Pinned graphics-capable Unity editor required; disable headless mode.");
+            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset) return;
+            if (GraphicsSettings.defaultRenderPipeline != null || QualitySettings.renderPipeline != null)
                 throw new BuildFailedException("Existing non-URP configuration will not be overwritten.");
-            try {
                 Directory.CreateDirectory(Folder);
                 AssetDatabase.Refresh();
                 var renderer = AssetDatabase.LoadAssetAtPath<UniversalRendererData>(RendererPath);
@@ -47,6 +39,22 @@ namespace Buklod.Empire.Editor {
                 GraphicsSettings.defaultRenderPipeline = pipeline;
                 if (GraphicsSettings.currentRenderPipeline != pipeline)
                     throw new BuildFailedException("Review URP activation failed.");
+        }
+        public static void Build() {
+            if (Application.unityVersion != "6000.0.86f1")
+                throw new BuildFailedException("Use the pinned Unity editor.");
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+                throw new BuildFailedException("A graphics-capable editor is required.");
+            var previous = GraphicsSettings.defaultRenderPipeline;
+            var quality = QualitySettings.renderPipeline;
+            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset) {
+                OfflineReviewAndroidBuild.Build();
+                return;
+            }
+            if (previous != null || quality != null)
+                throw new BuildFailedException("Existing non-URP configuration will not be overwritten.");
+            try {
+                EnsureReviewPipeline();
                 OfflineReviewAndroidBuild.Build();
             } finally {
                 GraphicsSettings.defaultRenderPipeline = previous;
