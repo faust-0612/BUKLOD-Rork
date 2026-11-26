@@ -76,9 +76,9 @@ export default memo(function BuklodLivingWallArt({design,active=false}:{design:W
  },[phase,running,source]);
  const params=useMemo(()=>({size:[size.width,size.height],scene:design.minFamilyIndex,seed:designSeed(design.id),baseA:rgb(design.start),baseB:rgb(design.end),accent:rgb(design.ink)}),[design,size]);
  const uniforms=useDerivedValue(()=>({...params,phase:phase.value}),[params]);
- if(!active||!appActive||!allowMotion||!source)return null;
+ if(!active||!appActive||!source)return null;
  return <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
    style={StyleSheet.absoluteFill} onLayout={e=>{const {width,height}=e.nativeEvent.layout;setSize(old=>old.width===width&&old.height===height?old:{width,height});}}>
-   {running&&<Canvas style={StyleSheet.absoluteFill}><Fill><Shader source={source} uniforms={uniforms}/></Fill></Canvas>}
+   {size.width>0&&size.height>0&&<Canvas style={StyleSheet.absoluteFill}><Fill><Shader source={source} uniforms={uniforms}/></Fill></Canvas>}
  </View>;
 });
