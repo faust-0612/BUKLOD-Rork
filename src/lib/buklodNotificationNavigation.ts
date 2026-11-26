@@ -130,6 +130,11 @@ export function resolveBuklodNotificationTarget(
     }
   }
 
+  // Fixed account-owned rank destinations; never follow a supplied arbitrary route.
+  if (normalizedKind === 'rank_visual_unlocked' || normalizedKind === 'rank_bonus_reminder') {
+    return { path: '/points/progression' };
+  }
+
   // A verified Connect message must never inherit a stale BSOC/support route.
   if (['direct_message','connect_message','scope_message','community_message','cluster_message','ptt_message'].includes(normalizedKind)) {
     const target = buklodNotificationTarget(normalizedKind, {
