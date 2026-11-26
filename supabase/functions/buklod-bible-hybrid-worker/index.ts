@@ -28,9 +28,14 @@ Deno.serve(async(req)=>{
  if(Deno.env.get('BUKLOD_BIBLE_HYBRID_ENABLED')!=='true')return json({status:'disabled'});
  const free=freeOnlyConfig(Deno.env.toObject());
  const url=Deno.env.get('SUPABASE_URL'),service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
- if(!free||!url||!service)return json({status:'free_quota_not_verified'},503);
- const {key,model}=free;
+ if(!url||!service)return json({status:'not_configured'},503);
  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+ // Deterministic correction works even when free quota is unavailable.
+ const settlement=await admin.rpc('buklod_bible_hybrid_settle_exact');
+ if(settlement.error)return json({status:'settlement_not_confirmed'},503);
+ if(settlement.data?.status==='settled')return json(settlement.data);
+ if(!free)return json({status:'free_quota_not_verified'},503);
+ const {key,model}=free;
  const {data:job,error}=await admin.rpc('buklod_bible_hybrid_claim');
  if(error)return json({status:'claim_failed'},503);
  if(!job)return json({status:'idle'});
