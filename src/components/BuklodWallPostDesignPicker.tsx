@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type TextStyle } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, Ellipse, Path } from 'react-native-svg';
 import BuklodLivingWallArt from '@/components/BuklodLivingWallArt';
+import { rankBonusFrameForViewer, type RankBonusFrame } from '@/lib/buklodRankBonusFrames';
 import type { WallPostStyle } from '@/lib/buklodWallPostStylePersistence';
 import { BUKLOD_CIRCLE_RANK_FAMILIES } from '@/lib/buklodCircleRankArt';
 import { availableWallPostDesigns, resolveWallPostDesign, WALL_POST_DESIGNS, WALL_FONT_PRESETS, canSelectWallFont, wallDesignMotionAllowed, type WallPostDesign, type WallFontId } from '@/lib/buklodWallPostDesigns';
@@ -24,6 +25,19 @@ export function WallPostDesignArt({ design }: { design: WallPostDesign }) {
   </View>;
 }
 
+export function WallRankBonusFrame({frame,children}:{frame:RankBonusFrame;children:ReactNode}){
+ return <View style={{borderWidth:2,borderColor:frame.color,borderRadius:13,padding:3,position:'relative'}}>
+  {children}
+  <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>
+   <Svg width="100%" height="100%" viewBox="0 0 360 240" preserveAspectRatio="none">
+    <Rect x="3" y="3" width="354" height="234" rx="9" fill="none" stroke={frame.color} strokeWidth="1" opacity=".85"/>
+    {[0,1,2,3].map(i=><Path key={i} d="M8 35 V8 H35 M13 30 V13 H30" transform={['','translate(360 0) scale(-1 1)','translate(0 240) scale(1 -1)','translate(360 240) scale(-1 -1)'][i]} fill="none" stroke={frame.color} strokeWidth={1+frame.levelIndex*.28}/>)}
+    {Array.from({length:frame.familyIndex+1},(_,i)=><Circle key={i} cx={180+(i-frame.familyIndex/2)*7} cy="7" r="1.8" fill={frame.color}/>)}
+   </Svg>
+  </View>
+ </View>;
+}
+
 export function WallPostDesignSurface({ design, children, active=false }: { design: WallPostDesign; children: ReactNode; active?:boolean }) {
   return <View style={[styles.surface,{backgroundColor:design.start}]}>
     <WallPostDesignArt design={design}/>
@@ -33,15 +47,17 @@ export function WallPostDesignSurface({ design, children, active=false }: { desi
 }
 
 /** Picker receives the canonical claimed rank; the server must independently authorize writes. */
-export function WallPostDesignPicker({ rankName, value, onChange, disabled=false, previewText, fontId='standard', animated=false }: {
-  rankName?:string|null; value:string|null; onChange:(id:string|null)=>void; disabled?:boolean; previewText?:string; fontId?:WallFontId; animated?:boolean;
+export function WallPostDesignPicker({ rankName, value, onChange, disabled=false, previewText, fontId='standard', animated=false, bonusKey=null }: {
+  rankName?:string|null; value:string|null; onChange:(id:string|null)=>void; disabled?:boolean; previewText?:string; fontId?:WallFontId; animated?:boolean; bonusKey?:string|null;
 }) {
   const allowed = new Set(availableWallPostDesigns(rankName).map(d=>d.id));
   const selected=value&&allowed.has(value)?resolveWallPostDesign(value):null;
-  return <View style={styles.picker}>
-    {selected&&<WallPostDesignSurface design={selected} active={!disabled&&animated&&wallDesignMotionAllowed(selected,rankName)}>
+  const frame=rankBonusFrameForViewer(bonusKey);
+  const preview=selected?<WallPostDesignSurface design={selected} active={!disabled&&animated&&wallDesignMotionAllowed(selected,rankName)}>
       <Text numberOfLines={6} style={{color:selected.ink,fontSize:23,lineHeight:31,fontWeight:'800',textAlign:'center',...wallFontTextStyle(fontId)}}>{previewText?.trim()||'Your words. Your story.'}</Text>
-    </WallPostDesignSurface>}
+    </WallPostDesignSurface>:null;
+  return <View style={styles.picker}>
+    {preview&&(frame?<WallRankBonusFrame frame={frame}>{preview}</WallRankBonusFrame>:preview)}
     <Pressable disabled={disabled} accessibilityRole="button" accessibilityState={{selected:value===null,disabled}}
       onPress={()=>onChange(null)} style={[styles.normal,value===null&&styles.selected]}>
       <Text style={styles.normalText}>Normal post</Text>
@@ -92,8 +108,8 @@ export function wallFontTextStyle(fontId:WallFontId):TextStyle {
   }
 }
 /** Full editor preserves native typing and leaves font/background independent. */
-export function WallPostStyleEditor({rankName,value,onChange,previewText,disabled=false}:{
- rankName:string|null;value:WallPostStyle;onChange:(s:WallPostStyle)=>void;previewText:string;disabled?:boolean;
+export function WallPostStyleEditor({rankName,value,onChange,previewText,disabled=false,redeemedBonusKeys=[]}:{
+ rankName:string|null;value:WallPostStyle;onChange:(s:WallPostStyle)=>void;previewText:string;disabled?:boolean;redeemedBonusKeys?:readonly string[];
 }){
  const [open,setOpen]=React.useState(false);
  const design=resolveWallPostDesign(value.designId);
@@ -104,7 +120,7 @@ export function WallPostStyleEditor({rankName,value,onChange,previewText,disable
    </Pressable>
    {open&&<>
     <WallPostDesignPicker rankName={rankName} value={value.designId} onChange={id=>onChange({...value,designId:id,animated:false})}
-      disabled={disabled} previewText={previewText} fontId={value.fontId} animated={value.animated}/>
+      disabled={disabled} previewText={previewText} fontId={value.fontId} animated={value.animated} bonusKey={value.bonusKey}/>
     <Text style={styles.group}>Typography</Text>
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       {WALL_FONT_PRESETS.map(font=>{
@@ -116,7 +132,8 @@ export function WallPostStyleEditor({rankName,value,onChange,previewText,disable
         </Pressable>;
       })}
     </ScrollView>
-    {!design&&<Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:'center'},wallFontTextStyle(value.fontId)]}>{previewText}</Text>}
+    {!design&&(rankBonusFrameForViewer(value.bonusKey)?<WallRankBonusFrame frame={rankBonusFrameForViewer(value.bonusKey)!}><Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:'center',padding:20},wallFontTextStyle(value.fontId)]}>{previewText}</Text></WallRankBonusFrame>:<Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:'center'},wallFontTextStyle(value.fontId)]}>{previewText}</Text>)}
+    {redeemedBonusKeys.length>0&&<><Text style={styles.group}>Redeemed signature frames</Text><ScrollView horizontal><Pressable style={styles.normal} onPress={()=>onChange({...value,bonusKey:null})} disabled={disabled}><Text style={styles.normalText}>None</Text></Pressable>{redeemedBonusKeys.map(key=>{const frame=rankBonusFrameForViewer(key);return frame?<Pressable key={key} disabled={disabled} accessibilityRole="button" accessibilityState={{selected:value.bonusKey===key}} onPress={()=>onChange({...value,bonusKey:key})} style={[styles.normal,{marginHorizontal:4,borderColor:frame.color},value.bonusKey===key&&styles.selected]}><Text style={styles.normalText}>{frame.title}</Text></Pressable>:null;})}</ScrollView></>}
     {design&&<Pressable disabled={disabled||!motionAllowed} accessibilityRole="switch" accessibilityState={{checked:value.animated,disabled:disabled||!motionAllowed}}
        onPress={()=>onChange({...value,animated:!value.animated})} style={styles.normal}>
        <Text style={styles.normalText}>{motionAllowed?'Living ambiance: '+(value.animated?'On':'Off'):'Living ambiance unlocks at the next eligible rank'}</Text>
