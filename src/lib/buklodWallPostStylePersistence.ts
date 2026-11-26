@@ -4,6 +4,7 @@ import { canSelectWallPostDesign, canSelectWallFont, resolveWallPostDesign, wall
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 export type WallPostStyle = { designId: string | null; fontId: WallFontId; animated: boolean };
+const EMPTY_STYLES: Record<string,WallPostStyle> = Object.freeze({});
 export const DEFAULT_WALL_POST_STYLE: WallPostStyle = {designId:null,fontId:'standard',animated:false};
 export function normalizeWallPostStyle(value:any):WallPostStyle {
   const design=resolveWallPostDesign(value?.design_id);
@@ -77,5 +78,5 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
     setStylesState(prev=>({owner,rows:{...(prev.owner===owner?prev.rows:{}),[postId]:style}}));
   },[owner]);
   return {enabled,rankName:rankState.owner===owner&&owner?rankState.name:null,
-    styles:stylesState.owner===owner&&owner?stylesState.rows:{},remember};
+    styles:stylesState.owner===owner&&owner?stylesState.rows:EMPTY_STYLES,remember};
 }
