@@ -8,8 +8,8 @@ import { KlSceneEffect,type SceneEffect } from './KlSceneEffect';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
 import { splitKlManuscriptBlocks } from '@/lib/kabihasnang-ligaw/paragraphBlocks';
 type Media={kind:string;placement:number;path:string;anchor?:string;side?:string;effect?:SceneEffect;intensity?:number};
-type Bundle={title:string;manuscript:string;version:number;media:Media[]};
-export default function KlAdminPreview({episodeId,onApproved,season,chapter}:{episodeId:string;onApproved?:()=>void;season?:number;chapter?:number}) {
+type Bundle={title:string;manuscript:string;version:number;media:Media[];editorial_revision?:boolean;revision_id?:string;prepared?:boolean};
+export default function KlAdminPreview({episodeId,onApproved,season,chapter,onEditorialLoaded}:{episodeId:string;onApproved?:()=>void;season?:number;chapter?:number;onEditorialLoaded?:(revisionId:string)=>void}) {
  const [bundle,setBundle]=useState<Bundle|null>(null);
  const [urls,setUrls]=useState<Record<string,string>>({});
  const [error,setError]=useState('');
@@ -52,6 +52,7 @@ export default function KlAdminPreview({episodeId,onApproved,season,chapter}:{ep
  }
  if(request!==requestId.current)return;
  setBundle(b);setUrls(u);setImageErrors(failures);setApprovals(status);setError('');
+ onEditorialLoaded?.(b.editorial_revision && b.prepared ? b.revision_id ?? '' : '');
  if(confirmRefresh)setFeedback('Media and approval status refreshed from server.');
  }catch(cause){if(request===requestId.current)setError(cause instanceof Error?cause.message:'Preview load failed.');}
  finally{if(request===requestId.current)setLoading(false);}
@@ -96,7 +97,7 @@ export default function KlAdminPreview({episodeId,onApproved,season,chapter}:{ep
  };
  return <View style={{padding:12,gap:12,backgroundColor:'#192b39'}}>
  <Text style={{color:'#f1d39b',fontSize:20}}>{bundle.title} · Preview v{bundle.version}</Text>
- <Text style={{color:'#fff'}}>Private admin preview — not released. Artwork approval is separate from chapter approval.</Text>
+ <Text style={{color:'#fff'}}>{bundle.editorial_revision ? 'Private editorial preview — the previous released version is still public.' : 'Private admin preview — artwork approval is separate from chapter approval.'}</Text>
  <Pressable accessibilityRole="button" disabled={loading||busy} onPress={event=>{event.stopPropagation();void load(true);}}
   style={{padding:12,backgroundColor:'#36594f',borderRadius:8}}>
   <Text style={{color:'#fff'}}>{loading?'Loading media…':'Refresh media & approval status'}</Text>
@@ -127,7 +128,7 @@ export default function KlAdminPreview({episodeId,onApproved,season,chapter}:{ep
  {illustrationsAtParagraph(bundle.media,p,'after').map(m=>image(m))}
  </View>)}
  <Text style={{color:'#fff'}}>Review uploaded media before approval:</Text>
- {bundle.media.map(m=><Pressable accessibilityRole="button" disabled={busy||approvals[m.kind+':'+m.placement]} key={m.kind+':'+m.placement}
+ {bundle.media.map(m=><Pressable accessibilityRole="button" disabled={busy||bundle.editorial_revision||approvals[m.kind+':'+m.placement]} key={m.kind+':'+m.placement}
   onPress={event=>{event.stopPropagation();void approve(m);}} style={{padding:12,minHeight:44,backgroundColor:approvals[m.kind+':'+m.placement]?'#285343':'#3c5260',borderRadius:8}}>
   <Text style={{color:'#f1d39b'}}>{approvals[m.kind+':'+m.placement]?'Approved ✓':'Approve'} {m.kind} {m.placement}{m.kind==='illustration'?' · '+(m.effect??'none')+' '+(m.intensity??30)+'%':''}</Text></Pressable>)}
  {error?<Text accessibilityRole="alert" style={{color:'#ffb8b8'}}>{error}</Text>:null}
