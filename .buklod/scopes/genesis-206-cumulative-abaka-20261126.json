@@ -1,0 +1,94 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-cumulative-abaka-20261126.json",
+  "objective": "Reconcile ABaKa continuing doctrine source and isolated tests into cumulative Genesis QA, fix numeric progression, publication concurrency, historical immutability and bounded editor pagination. No live deployment.",
+  "baseRef": "cb7332d7d6b562b7d524ed070d2d4ccb361d447e",
+  "productionBaselineEvidence": "Prior cumulative QA cb7332d; existing signed staging and live MAIN unchanged by this work. No production runtime claim.",
+  "chosenApproach": "Exact source intake from PR 1157 where ancestor matches; patch only isolated unshipped migrations and editor; use local disposable PG17 legacy-schema fixture and actual RPC behavior tests.",
+  "selectionRationale": "Existing generator truncates five-digit IDs; lexicographic comparison blocks 10000; unpublish allowed editing history; admin list limited to 200; correct before first deployment. Preserve older list RPC and A-Z completion. Existing published-only read and manual claim contracts retained.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-cumulative-abaka-20261126.json",
+    "scripts/local-genesis-abaka-isolated-qa.sh",
+    "src/app/faith/abc/[lessonId].tsx",
+    "src/app/faith/abc/admin.tsx",
+    "src/app/faith/abc/index.tsx",
+    "src/data/faith/abcDoctrinalCatalog.ts",
+    "src/data/faith/abcLessons.ts",
+    "supabase/migrations/20261124005500_abaka_continuing_doctrine_rewards.sql",
+    "supabase/migrations/20261124020500_abaka_doctrine_admin_authoring.sql",
+    "supabase/tests/abaka_doctrine_admin_authoring_20261124.sql",
+    "supabase/tests/abaka_doctrine_behavior_isolated_20261126.sql",
+    "supabase/tests/abaka_doctrine_rewards_security_20261124.sql",
+    "tests/abaka-doctrine-catalog.test.cjs",
+    "tests/abaka-doctrine-genesis-integration-20261124.test.cjs",
+    "tests/abaka-doctrine-unbounded-progression-20261126.test.cjs",
+    "tests/fixtures/abaka-doctrine-postgres17-20261126.sql"
+  ],
+  "regressionTests": [
+    "supabase/tests/abaka_doctrine_admin_authoring_20261124.sql",
+    "supabase/tests/abaka_doctrine_behavior_isolated_20261126.sql",
+    "supabase/tests/abaka_doctrine_rewards_security_20261124.sql",
+    "tests/abaka-doctrine-catalog.test.cjs",
+    "tests/abaka-doctrine-genesis-integration-20261124.test.cjs",
+    "tests/abaka-doctrine-unbounded-progression-20261126.test.cjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Integrate ABaKa catalog, progression and reviewed authoring without changing native runtime.",
+      "preservedBehaviors": [
+        "Existing Genesis Church, account-scoped cache, offline A-Z study and navigation remain intact."
+      ],
+      "tests": [
+        "tests/abaka-doctrine-genesis-integration-20261124.test.cjs",
+        "tests/abaka-doctrine-unbounded-progression-20261126.test.cjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Add isolated doctrinal migrations and verify private answers, member eligibility, pending awards, review and numeric progression.",
+      "preservedBehaviors": [
+        "No live database mutations; no new credit granted in staging, no automatic theological publication, official admin excluded from doctrine BP."
+      ],
+      "tests": [
+        "supabase/tests/abaka_doctrine_rewards_security_20261124.sql",
+        "supabase/tests/abaka_doctrine_behavior_isolated_20261126.sql"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Run source tests and disposable PG17 fixtures; verify legacy A-Z, review and reward safety, ID rollover, RLS and cap. Full schema/ledger trigger and concurrent session test remain necessary.",
+    "No shared backend migration or OTA; theological review remains required for starter drafts."
+  ],
+  "preserveBehaviors": [
+    "Historical A-Z completions, point ledger, individual claims, Genesis UI, prior Faith QA and production protections."
+  ],
+  "alternativeApproaches": [
+    "Blindly merge older integration branch rejected.",
+    "Deploy migrations on shared live Supabase rejected."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "backend-security",
+    "faith-cluster",
+    "ads-finance-points"
+  ],
+  "publicationStatus": "QA_ONLY_BACKEND_DEPENDENCY_HOLD",
+  "sourceIntake": {
+    "sourceSha": "3a1bcb50a4c7c6aff1e5a3ce49c6313b00865a56",
+    "exactBlobs": {
+      "src/app/faith/abc/[lessonId].tsx": "58106670854905f3c564f0fa62f67494d141a047",
+      "src/app/faith/abc/index.tsx": "93bc5c8efd1c299ff58644a6c44d2cac39e3e957",
+      "src/data/faith/abcDoctrinalCatalog.ts": "7cface8730c7eab155f9cb7fb6c24e8bdf0c4baa",
+      "src/data/faith/abcLessons.ts": "354bee07a0d07830f1568ce64bd4a853f8693164",
+      "supabase/tests/abaka_doctrine_admin_authoring_20261124.sql": "0b0cf2fb6038f796e9100cbb794e39189f726fc6",
+      "supabase/tests/abaka_doctrine_rewards_security_20261124.sql": "1d58bb1f348a71e79023339d62e88e32a70e958c",
+      "tests/abaka-doctrine-catalog.test.cjs": "9d33a79c230b6f1cf192764c317764dccc25f0e4"
+    }
+  },
+  "validation": {
+    "databaseRuntime": "NOT_RUN",
+    "nativeRuntime": "NOT_RUN",
+    "theology": "UNREVIEWED_DRAFTS"
+  }
+}
