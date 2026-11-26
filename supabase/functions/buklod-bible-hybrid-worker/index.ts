@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import {objectiveGrade} from '../_shared/hybrid-learning-grading.mjs';
 import {assessInput,concordant} from '../_shared/bible-hybrid-verdict.mjs';
+import {freeOnlyConfig,providerFailure} from '../_shared/hybrid-free-only.mjs';
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 async function equalSecret(a:string,b:string){
  const enc=new TextEncoder();const x=new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(a)));const y=new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(b)));
@@ -16,7 +17,7 @@ async function judge(key:string,model:string,source:unknown,answers:string[],ver
  ].join('\n');
  const schema={type:'object',required:['items'],properties:{items:{type:'array',items:{type:'object',required:['index','concept','confidence','contradiction','answer_evidence','rubric_evidence'],properties:{index:{type:'integer'},concept:{type:'integer'},confidence:{type:'number'},contradiction:{type:'boolean'},answer_evidence:{type:'string'},rubric_evidence:{type:'string'}}}}}};
  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'x-goog-api-key':key,'Content-Type':'application/json'},signal:AbortSignal.timeout(15000),body:JSON.stringify({systemInstruction:{parts:[{text:instructions}]},contents:[{role:'user',parts:[{text:JSON.stringify({source,answers})}]}],generationConfig:{temperature:0,maxOutputTokens:500,responseMimeType:'application/json',responseJsonSchema:schema}})});
- if(!res.ok)throw new Error('provider unavailable');
+ if(!res.ok)throw new Error(providerFailure(res.status));
  const data=await res.json();const candidate=data?.candidates?.[0];if(candidate?.finishReason!=='STOP')throw new Error('incomplete provider response');
  const content=(candidate.content?.parts??[]).map((p:any)=>p.text??'').join('');return JSON.parse(content);
 }
@@ -25,10 +26,10 @@ Deno.serve(async(req)=>{
  const secret=Deno.env.get('BUKLOD_BIBLE_HYBRID_WORKER_SECRET')??'';
  if(secret.length<32||!await equalSecret(req.headers.get('x-buklod-worker-secret')??'',secret))return json({error:'Unauthorized'},401);
  if(Deno.env.get('BUKLOD_BIBLE_HYBRID_ENABLED')!=='true')return json({status:'disabled'});
- const key=Deno.env.get('GEMINI_API_KEY'),url=Deno.env.get('SUPABASE_URL'),service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
- // Explicitly configured verified existing provider model; never guess or silently switch.
- const model=Deno.env.get('BUKLOD_BIBLE_HYBRID_MODEL');
- if(!key||!url||!service||!model||!/^gemini-[a-z0-9.-]+$/i.test(model))return json({status:'not_configured'},503);
+ const free=freeOnlyConfig(Deno.env.toObject());
+ const url=Deno.env.get('SUPABASE_URL'),service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+ if(!free||!url||!service)return json({status:'free_quota_not_verified'},503);
+ const {key,model}=free;
  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:job,error}=await admin.rpc('buklod_bible_hybrid_claim');
  if(error)return json({status:'claim_failed'},503);
@@ -50,5 +51,5 @@ Deno.serve(async(req)=>{
   const verdict=concordant(input,first,second);
   if(!verdict)return await record('unresolved',null,null);
   return await record(verdict.units>job.baseline_units?'candidate':'no_change',verdict.units,verdict.concepts);
- }catch{return await record('retry',null,null);}
+ }catch(e){const reason=e instanceof Error?e.message:'';return await record(reason==='quota_exhausted'||reason==='provider_blocked'?reason:'retry',null,null);}
 });

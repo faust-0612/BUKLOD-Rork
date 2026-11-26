@@ -3,7 +3,9 @@
 create table if not exists private.buklod_bible_hybrid_control (
  singleton boolean primary key default true check(singleton),
  enabled boolean not null default false,
- daily_calls integer not null default 20 check(daily_calls between 0 and 100)
+ daily_calls integer not null default 20 check(daily_calls between 0 and 20),
+ provider_pause_until timestamptz,
+ provider_blocked boolean not null default false
 );
 insert into private.buklod_bible_hybrid_control(singleton) values(true) on conflict do nothing;
 create table if not exists private.buklod_bible_hybrid_budget (
@@ -73,7 +75,7 @@ declare cfg record; j record; ans jsonb; token uuid; d date:=(now() at time zone
 begin
  if auth.role() is distinct from 'service_role' then raise exception 'Service only';end if;
  select * into cfg from private.buklod_bible_hybrid_control where singleton for update;
- if not found or not cfg.enabled or cfg.daily_calls<2 then return null;end if;
+ if not found or not cfg.enabled or cfg.daily_calls<2 or cfg.provider_blocked or coalesce(cfg.provider_pause_until>now(),false) then return null;end if;
  update private.buklod_bible_hybrid_jobs set status='unresolved',lease_id=null,lease_until=null
  where status='leased' and lease_until<=now() and tries>=3;
  select * into j from private.buklod_bible_hybrid_jobs
@@ -103,13 +105,25 @@ returns boolean language plpgsql security definer set search_path='' as $$
 declare j record; n int; ans jsonb; expected int; matched int; v int;
 begin
  if auth.role() is distinct from 'service_role' then raise exception 'Service only';end if;
- if p_status not in ('candidate','no_change','unresolved','retry') or p_status is null then raise exception 'Invalid outcome';end if;
+ if p_status not in ('candidate','no_change','unresolved','retry','quota_exhausted','provider_blocked') or p_status is null then raise exception 'Invalid outcome';end if;
+ -- Same lock order as claim: control then job. Avoid deadlock during provider pause.
+ perform 1 from private.buklod_bible_hybrid_control where singleton for update;
  select * into j from private.buklod_bible_hybrid_jobs where id=p_job and status='leased' and lease_id=p_lease and lease_until>now() for update;
  if not found then return false;end if;
  if not exists(select 1 from private.buklod_bible_hybrid_control where singleton and enabled) then return false;end if;
  select submitted_answers->j.question_id into ans from private.buklod_bible_v4_attempts where id=j.attempt_id and state='completed';
  if ans is null or j.answer_hash is distinct from encode(sha256(convert_to(ans::text,'UTF8')),'hex') or j.source_snapshot is distinct from private.buklod_bible_hybrid_source(j.question_id) then
   update private.buklod_bible_hybrid_jobs set status='stale',lease_id=null,lease_until=null where id=j.id;return false;
+ end if;
+ if p_status in ('quota_exhausted','provider_blocked') then
+  -- Conservative 24h quota hold; do not consume a learner's retry allowance.
+  -- Auth/model/configuration failures require verified operator recovery.
+  update private.buklod_bible_hybrid_control set
+   provider_pause_until=greatest(coalesce(provider_pause_until,now()),now()+interval '24 hours'),
+   provider_blocked=provider_blocked or p_status='provider_blocked' where singleton;
+  update private.buklod_bible_hybrid_jobs set status='queued',tries=greatest(tries-1,0),
+   available_at=now()+interval '24 hours',lease_id=null,lease_until=null where id=j.id;
+  return true;
  end if;
  if p_status='retry' then
   update private.buklod_bible_hybrid_jobs set status=case when tries>=3 then 'unresolved' else 'queued' end,available_at=now()+make_interval(mins=>tries*5),lease_id=null,lease_until=null where id=j.id;return true;
