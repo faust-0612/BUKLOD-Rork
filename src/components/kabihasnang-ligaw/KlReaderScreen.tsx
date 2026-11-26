@@ -42,8 +42,9 @@ import {
 import { klCopy } from '@/lib/kabihasnang-ligaw/copy';
 import { memberReadable } from '@/lib/kabihasnang-ligaw/gates';
 import { isLowBandwidth, resolveLivingMotion, visibleLivingLayers } from '@/lib/kabihasnang-ligaw/livingMotion';
-import { dictionaryByName, KL_DICTIONARY, splitDictionaryTerms } from '@/lib/kabihasnang-ligaw/dictionary';
+import { dictionaryByName, dictionaryForManuscript, splitDictionaryTerms } from '@/lib/kabihasnang-ligaw/dictionary';
 import { KL_SCENE_STILLS } from '@/lib/kabihasnang-ligaw/sceneStills';
+import { splitKlItalics } from '@/lib/kabihasnang-ligaw/italicFormatting';
 import { paragraphDisplayText, splitCanonicalParagraphs } from '@/lib/kabihasnang-ligaw/manuscript';
 import { illustrationsAtParagraph } from '@/lib/kabihasnang-ligaw/mediaPlacement';
 import { journeySummary } from '@/lib/kabihasnang-ligaw/journey';
@@ -781,7 +782,8 @@ export default function KlReaderScreen() {
               const afterImages = illustrationsAtParagraph(dynamicMedia, paragraph.text, 'after');
               const hasAnchoredImage = beforeImages.length + afterImages.length > 0;
               const displayText = paragraphDisplayText(paragraph);
-              const dictionaryParts = splitDictionaryTerms(displayText);
+              const italicRuns = splitKlItalics(displayText, 1, selected?.episodeNumber);
+              const dictionaryParts = italicRuns.flatMap(run => splitDictionaryTerms(run.text).map(part => ({ ...part, italic: run.italic })) );
               // Android can clip complex nested Text spans containing newlines.
               // Render ordinary prose as one direct Text child; only wrap inline
               // Text nodes when the paragraph actually contains glossary links.
@@ -832,11 +834,11 @@ export default function KlReaderScreen() {
                       paragraph.kind === 'body' && { fontSize: bodySize, lineHeight: Math.round(bodySize * 1.65) },
                     ]}
                   >
-                    {hasDictionaryLinks ? dictionaryParts.map((part, index) => (
+                    {hasDictionaryLinks || italicRuns.some(run => run.italic) ? dictionaryParts.map((part, index) => (
                       part.term ? (
                         <Text
                           key={`${paragraph.id}-${index}`}
-                          style={styles.term}
+                          style={[styles.term, part.italic && { fontStyle: 'italic' }]}
                           accessibilityRole="link"
                           accessibilityLabel={part.term}
                           onPress={() => setOpenTerm(part.term)}
@@ -844,7 +846,7 @@ export default function KlReaderScreen() {
                           {part.text}
                         </Text>
                       ) : (
-                        <Text key={`${paragraph.id}-${index}`}>{part.text}</Text>
+                        <Text key={`${paragraph.id}-${index}`} style={part.italic ? { fontStyle: 'italic' } : undefined}>{part.text}</Text>
                       )
                     )) : displayText}
                   </Text>
@@ -903,7 +905,7 @@ export default function KlReaderScreen() {
               <View style={styles.panel}>
                 <Text style={styles.panelTitle}>{klCopy.glossary}</Text>
                 <Text style={styles.meta}>{klCopy.glossaryNote}</Text>
-                {KL_DICTIONARY.map((entry) => (
+                {dictionaryForManuscript(reading.text ?? '').map((entry) => (
                   <Pressable key={entry.name} accessibilityRole="button" onPress={() => setOpenTerm(entry.name)}>
                     <Text style={styles.term}>{entry.name}</Text>
                     <Text style={styles.meta}>{entry.kind}</Text>
@@ -991,7 +993,7 @@ export default function KlReaderScreen() {
                         <Text style={{color:'#f1d39b'}}>Open prepared Admin Preview</Text>
                       </Pressable>
                       {previewTarget===episode.id && serverChapter
-                        ? <KlAdminPreview episodeId={serverChapter.id} />
+                        ? <KlAdminPreview episodeId={serverChapter.id} season={1} chapter={episode.episodeNumber} />
                         : previewTarget===episode.id
                           ? <Text style={styles.meta}>Chapter not found on server. Create it in KL Studio first.</Text>
                           : null}
