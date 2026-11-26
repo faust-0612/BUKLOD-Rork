@@ -12,7 +12,8 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import {useAuth} from '@/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
@@ -53,6 +54,8 @@ const number = (value: unknown) => {
 
 export default function CircleRankProgressionScreen() {
   const { config } = useRuntimeConfig();
+  const {user}=useAuth();
+  const owner=user?.id??'';
   // Default OFF: do not call a schema that has not passed release gates.
   const rankBonusEnabled = config?.features?.rank_bonus_collections === true;
   const [progress, setProgress] = useState<RankProgress | null>(null);
@@ -62,6 +65,14 @@ export default function CircleRankProgressionScreen() {
   const [error, setError] = useState('');
   const requestId = useRef(0);
   const [rankUp, setRankUp] = useState<RankProgress | null>(null);
+  const recognitionOwner=useRef('');
+  const closeRecognition=useCallback(()=>{
+    const account=recognitionOwner.current;
+    const order=Math.floor(number(rankUp?.rank_order));
+    if(account&&account===owner&&order>0&&order<=40)void AsyncStorage.setItem('buklod:circle-rank:last-seen:v1:'+account,String(order)).catch(()=>{});
+    setRankUp(null);
+  },[owner,rankUp]);
+  useEffect(()=>{recognitionOwner.current='';setRankUp(null);setProgress(null);},[owner]);
   const medalScale = useRef(new Animated.Value(1)).current;
   const medalOpacity = useRef(new Animated.Value(1)).current;
   const [reduceMotion, setReduceMotion] = useState(true);
@@ -87,6 +98,7 @@ export default function CircleRankProgressionScreen() {
 
   const load = useCallback(async (refresh = false) => {
     const request = ++requestId.current;
+    if(!owner){setBusy(false);return;}
     if (refresh) setRefreshing(true);
     else setBusy(true);
     setError('');
@@ -109,7 +121,8 @@ export default function CircleRankProgressionScreen() {
         throw new Error('Circle Rank progression data is not available.');
       }
 
-      if (request !== requestId.current) return;
+      const {data:confirmedAuth}=await supabase.auth.getSession();
+      if (request !== requestId.current || confirmedAuth.session?.user?.id!==owner) return;
       const verifiedProgress = progressRows[0] as RankProgress;
       setProgress(verifiedProgress);
       setLadder(
@@ -125,16 +138,17 @@ export default function CircleRankProgressionScreen() {
         const { data: auth } = await supabase.auth.getSession();
         const userId = auth.session?.user?.id;
         const order = Math.floor(number(verifiedProgress.rank_order));
-        if (request === requestId.current && userId && order > 0) {
+        if (request === requestId.current && userId===owner && order > 0 && order<=40) {
           const key = `buklod:circle-rank:last-seen:v1:${userId}`;
           const stored = await AsyncStorage.getItem(key);
           const previous = stored === null ? null : Number(stored);
           if (request === requestId.current) {
-            if (previous === null || (Number.isFinite(previous) && order > previous)) {
+            if (previous === null || !Number.isFinite(previous)) {
               await AsyncStorage.setItem(key, String(order));
             }
             if (request === requestId.current && previous !== null &&
                 Number.isFinite(previous) && order > previous) {
+              recognitionOwner.current=owner;
               setRankUp(verifiedProgress);
             }
           }
@@ -152,14 +166,14 @@ export default function CircleRankProgressionScreen() {
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [owner]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     void load();
     return () => {
       requestId.current += 1;
     };
-  }, [load]);
+  }, [load]));
 
   const percent = Math.min(100, Math.max(0, number(progress?.progress_percent)));
   const currentOrder = number(progress?.rank_order);
@@ -318,11 +332,11 @@ export default function CircleRankProgressionScreen() {
         </>
       ) : null}
       <Modal
-        visible={Boolean(rankUp)}
+        visible={Boolean(rankUp)&&recognitionOwner.current===owner}
         transparent
         statusBarTranslucent
         animationType="fade"
-        onRequestClose={() => setRankUp(null)}
+        onRequestClose={closeRecognition}
       >
         <View style={styles.celebrationBackdrop}>
           <Animated.View style={[styles.celebrationCard, { opacity: medalOpacity, transform: [{ scale: medalScale }] }]}>
@@ -347,7 +361,7 @@ export default function CircleRankProgressionScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close Circle Rank recognition"
-              onPress={() => setRankUp(null)}
+              onPress={closeRecognition}
               style={styles.celebrationButton}
             >
               <Text style={styles.celebrationButtonText}>CONTINUE MY JOURNEY</Text>
