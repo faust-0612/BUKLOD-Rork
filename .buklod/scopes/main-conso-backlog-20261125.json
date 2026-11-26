@@ -1,10 +1,10 @@
 {
   "contractVersion": 2,
   "scopeManifestPath": ".buklod/scopes/main-conso-backlog-20261125.json",
-  "objective": "Consolidate reviewed MAIN-compatible Connect, Wall/Marites, manual Points and pressable Word Scripture client source for independent QA; no release.",
+  "objective": "Consolidate reviewed MAIN-compatible Connect, Wall/Marites, manual Points and pressable Word Scripture client source for independent QA; no release. Reconcile KL glossary and manuscript italic rendering intake for independent QA.",
   "baseRef": "9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04",
   "productionBaselineEvidence": "Verified GitHub source baseline only; current served production and staging identities not independently verified.",
-  "chosenApproach": "Combine exact disjoint source commits on isolated integration branch, with no new backend or native dependencies. Intake only the five Word source/test blobs after exact ancestor match; do not import standalone publishing workflow.",
+  "chosenApproach": "Combine exact disjoint source commits on isolated integration branch, with no new backend or native dependencies. Intake only the five Word source/test blobs after exact ancestor match; do not import standalone publishing workflow. Register the exact ten existing KL source/test changes, with no new code, backend deployment or publishing permission.",
   "allowedPaths": [
     ".buklod/scopes/connect-inbox-staging-20261123.json",
     ".buklod/scopes/main-conso-backlog-20261125.json",
@@ -14,12 +14,17 @@
     "__tests__/connectInboxActivity.test.ts",
     "__tests__/connectInboxSearch.test.ts",
     "__tests__/connectInboxSignal.test.ts",
+    "__tests__/klManuscriptItalics.test.ts",
     "docs/release/BUKLOD_POINTS_STAGING_NO_NEW_SUPABASE_20261124.md",
     "scripts/engineering-regression-gate.mjs",
     "src/app/(tabs)/messages.tsx",
     "src/app/devotional/[id].tsx",
     "src/components/BuklodConnectThread.tsx",
     "src/components/BuklodMaritesBoard.tsx",
+    "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
     "src/components/points/BuklodPointsRewardsScreen.tsx",
     "src/hooks/useBuklodConnectUnread.ts",
     "src/lib/buklodMaritesBoard.ts",
@@ -32,6 +37,10 @@
     "src/lib/connectInboxActivity.ts",
     "src/lib/connectInboxSearch.ts",
     "src/lib/connectInboxSignal.ts",
+    "src/lib/kabihasnang-ligaw/dictionary.ts",
+    "src/lib/kabihasnang-ligaw/dictionaryExtras.ts",
+    "src/lib/kabihasnang-ligaw/italicFormatting.ts",
+    "src/lib/kabihasnang-ligaw/releasedItalicRules.ts",
     "src/lib/uploadCommunityVideoFile.ts",
     "src/providers/NotificationProvider.tsx",
     "tests/bible-navigation.test.cjs",
@@ -41,6 +50,7 @@
     "tests/connect-inbox-ads-guard-20261123.test.mjs",
     "tests/connect-inbox-notification-navigation-20261123.test.mjs",
     "tests/connect-inbox-realtime-staging-20261123.test.mjs",
+    "tests/kl-dictionary-expansion-20261119.test.mjs",
     "tests/marites-wall-upload-behavior-20261124.test.mjs",
     "tests/marites-wall-upload-fastpath-20261124.test.mjs",
     "tests/messenger-inbox-density-20261117.test.mjs",
@@ -52,6 +62,7 @@
     "__tests__/connectInboxActivity.test.ts",
     "__tests__/connectInboxSearch.test.ts",
     "__tests__/connectInboxSignal.test.ts",
+    "__tests__/klManuscriptItalics.test.ts",
     "tests/bible-navigation.test.cjs",
     "tests/buklod-ad-opportunities.test.cjs",
     "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
@@ -59,6 +70,7 @@
     "tests/connect-inbox-ads-guard-20261123.test.mjs",
     "tests/connect-inbox-notification-navigation-20261123.test.mjs",
     "tests/connect-inbox-realtime-staging-20261123.test.mjs",
+    "tests/kl-dictionary-expansion-20261119.test.mjs",
     "tests/marites-wall-upload-behavior-20261124.test.mjs",
     "tests/marites-wall-upload-fastpath-20261124.test.mjs",
     "tests/messenger-inbox-density-20261117.test.mjs",
@@ -75,7 +87,8 @@
       ],
       "tests": [
         "tests/marites-wall-upload-behavior-20261124.test.mjs",
-        "tests/connect-inbox-realtime-staging-20261123.test.mjs"
+        "tests/connect-inbox-realtime-staging-20261123.test.mjs",
+        "tests/kl-dictionary-expansion-20261119.test.mjs"
       ]
     },
     {
@@ -145,7 +158,8 @@
     "Verify exact combined source, TypeScript, protected feature tests, media and points regression, AdMob and navigation gates.",
     "No deployment or production merge until exact frozen runtime and live baseline are verified.",
     "Rewarded bonus remains disabled; no live balance-changing QA.",
-    "Word verse links open the exact chapter and verse using My Bible and preserve daily assignment, ads and offline behavior."
+    "Word verse links open the exact chapter and verse using My Bible and preserve daily assignment, ads and offline behavior.",
+    "Verify KL glossary matching, manuscript italics and reader/admin preview consistency; preserve released manuscript wording and current publishing authorization, with actual runtime and source QA still required."
   ],
   "publicationStatus": "DEV_ONLY_NO_PUBLISH",
   "releaseMode": "consolidated-main-rc",
@@ -167,15 +181,33 @@
     "ads-finance-points",
     "governance-lock",
     "cluster-faith",
-    "bible-reader-navigation"
+    "bible-reader-navigation",
+    "story"
   ],
   "preserveBehaviors": [
     "Keep existing account isolation, native/runtime configuration, private media, current Points claim RPC and mandatory protected feature gates.",
-    "Do not publish or activate the rewarded bonus, modify the live backend or release Season 2."
+    "Do not publish or activate the rewarded bonus, modify the live backend or release Season 2.",
+    "Keep KL manuscript content, approved chapter state, reader access, quiz evidence and release protections; no publishing or backend mutation."
   ],
   "sourceIntakeWord": {
     "pr": 1143,
     "sourceSha": "fea85540730a6eb8d6afa832ea16226467dfee7f",
     "excludedStandalonePublisher": true
+  },
+  "sourceIntakeKLFormatting": {
+    "sourceSha": "9fc65642f3f2367e40b1197002121bbd6e2f661a",
+    "paths": [
+      "__tests__/klManuscriptItalics.test.ts",
+      "src/components/kabihasnang-ligaw/KlAdminPreview.tsx",
+      "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+      "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+      "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+      "src/lib/kabihasnang-ligaw/dictionary.ts",
+      "src/lib/kabihasnang-ligaw/dictionaryExtras.ts",
+      "src/lib/kabihasnang-ligaw/italicFormatting.ts",
+      "src/lib/kabihasnang-ligaw/releasedItalicRules.ts",
+      "tests/kl-dictionary-expansion-20261119.test.mjs"
+    ],
+    "verification": "Scope reconciliation only; KL behavior and combined candidate tests pending."
   }
 }
