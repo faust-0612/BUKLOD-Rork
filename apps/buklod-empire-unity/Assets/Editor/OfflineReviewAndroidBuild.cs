@@ -16,7 +16,7 @@ namespace Buklod.Empire.Editor {
         static string expectedOutput;
         const string Catalog=CandidateReviewComposer.Out+"/OfflineReviewCatalog.asset";
         const string Nav=CandidateReviewComposer.Out+"/OfflineReviewNavMesh.asset";
-        const string Scene=OfflineReviewComposer.ScenePath;
+        const string Scene=StylizedArenaBenchmark.ScenePath;
         internal static void ValidateBuild(BuildReport report){
             if(!IsActive||string.IsNullOrEmpty(expectedOutput)||report.summary.platform!=BuildTarget.Android||
                Path.GetFullPath(report.summary.outputPath)!=expectedOutput||
@@ -45,6 +45,7 @@ namespace Buklod.Empire.Editor {
                 throw new BuildFailedException("Use pinned Unity with Android Build Support and switch platform to Android first.");
             // Assembly validates the aggregate asset receipt and all imported catalog references.
             ConsolidatedOfflineReview.Prepare();
+            StylizedArenaBenchmark.Prepare();
             var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
             if(!view||!view.IsConfiguredReview||!view.visuals)throw new BuildFailedException("Review scene configuration missing.");
             view.visuals.ValidateOfflineReview();

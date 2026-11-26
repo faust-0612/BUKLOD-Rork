@@ -20,6 +20,7 @@ namespace Buklod.Empire.Editor {
             if(!sprite)throw new InvalidOperationException("Authored sprite import failed: "+path);
             return sprite;
         }
+        static AudioClip Audio(string name){var clip=AssetDatabase.LoadAssetAtPath<AudioClip>(Ui+"Combat/"+name+".ogg");if(!clip)throw new InvalidOperationException("Missing authored combat audio: "+name);return clip;}
         public static void Bind(GameObject root){
             var ui=root.AddComponent<ArenaAuthoredUi>();
             ui.action=Load("action");ui.stickPad=Load("stick-pad");ui.stickNub=Load("stick-nub");
@@ -42,6 +43,11 @@ namespace Buklod.Empire.Editor {
             float minY=renderers.Min(r=>r.bounds.min.y);obj.transform.position+=Vector3.up*(-minY);
             foreach(var collider in obj.GetComponentsInChildren<Collider>(true))collider.enabled=false;
             var gate=obj.AddComponent<ArenaEntranceDoor>();gate.leaf=leaf;ui.entrance=gate;
+            gate.openSound=Audio("door-open");
+            var foley=root.AddComponent<ArenaReviewFoley>();
+            foley.steps=new[]{Audio("step-grass-a"),Audio("step-grass-b")};
+            foley.metal=Audio("metal-hit");foley.wood=Audio("wood-hit");foley.coins=Audio("coins");
+            foley.fight=Audio("fight");foley.win=Audio("you_win");foley.lose=Audio("you_lose");foley.draw=Audio("tie");
         }
     }
 }

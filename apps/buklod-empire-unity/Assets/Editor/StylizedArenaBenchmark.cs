@@ -10,7 +10,7 @@ namespace Buklod.Empire.Editor {
     // Creates a separate playable look-development scene from the actual offline battle.
     // No production assets, build settings, global pipeline settings or source prefabs are modified.
     public static class StylizedArenaBenchmark {
-        const string ScenePath=CandidateReviewComposer.Out+"/StylizedPhanBenchmark.unity";
+        public const string ScenePath=CandidateReviewComposer.Out+"/StylizedPhanBenchmark.unity";
         const string GradePath=CandidateReviewComposer.Out+"/StylizedPhanGrade.asset";
         [MenuItem("BUKLOD Empire/Visual benchmark/Assemble Phan stylized review")]
         public static void Prepare(){

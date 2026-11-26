@@ -20,6 +20,7 @@ const lock=join(root,'.local-build.lock');
 const fd=openSync(lock,'wx');
 const run=(cmd,argv)=>{const r=spawnSync(cmd,argv,{cwd:project,stdio:'inherit',shell:false,env:{...process.env,PYTHONOPTIMIZE:''}});if(r.error)throw r.error;if(r.status!==0)throw Error('Stage failed: '+cmd+' ('+r.status+')');};
 try{
+ run(process.execPath,['Tools/verify-authored-review-assets.mjs']);
  run(process.execPath,['Tools/prepare-offline-review.mjs']);
  if(build){
   const before=new Set(readdirSync(root));

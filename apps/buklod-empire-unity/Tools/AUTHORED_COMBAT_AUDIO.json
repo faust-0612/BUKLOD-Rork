@@ -1,0 +1,95 @@
+{
+  "status": "REVIEW_ONLY",
+  "license": "CC0-1.0",
+  "official": [
+    "https://kenney.nl/assets/impact-sounds",
+    "https://kenney.nl/assets/rpg-audio",
+    "https://opengameart.org/content/voiceover-pack-fighter-40-taunts"
+  ],
+  "files": [
+    {
+      "source": "OmniTender-Systems/game-audio-assets",
+      "commit": "378269191f4219775f113d52dcf7ce7d5c810b5f",
+      "path": "vendor/kenney/impact-sounds/Audio/footstep_grass_000.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/step-grass-a.ogg",
+      "sha": "5b5ec879a5ca457d18ad01a81af805409e35207f"
+    },
+    {
+      "source": "OmniTender-Systems/game-audio-assets",
+      "commit": "378269191f4219775f113d52dcf7ce7d5c810b5f",
+      "path": "vendor/kenney/impact-sounds/Audio/footstep_grass_001.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/step-grass-b.ogg",
+      "sha": "56c3a844ccaa5df7dd137141b3eee15ae66fee91"
+    },
+    {
+      "source": "OmniTender-Systems/game-audio-assets",
+      "commit": "378269191f4219775f113d52dcf7ce7d5c810b5f",
+      "path": "vendor/kenney/impact-sounds/Audio/impactMetal_medium_000.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/metal-hit.ogg",
+      "sha": "2b1bbe397a4159d1474a6438cb5b3e9ad0378f2b"
+    },
+    {
+      "source": "OmniTender-Systems/game-audio-assets",
+      "commit": "378269191f4219775f113d52dcf7ce7d5c810b5f",
+      "path": "vendor/kenney/impact-sounds/Audio/impactWood_heavy_000.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/wood-hit.ogg",
+      "sha": "30fb995aab49d70e51b0c3a226fa45301ad4f760"
+    },
+    {
+      "source": "OmniTender-Systems/game-audio-assets",
+      "commit": "378269191f4219775f113d52dcf7ce7d5c810b5f",
+      "path": "vendor/kenney/rpg-audio/Audio/doorOpen_1.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/door-open.ogg",
+      "sha": "7df28265312494fc053380002e551b001dea89ad"
+    },
+    {
+      "source": "OmniTender-Systems/game-audio-assets",
+      "commit": "378269191f4219775f113d52dcf7ce7d5c810b5f",
+      "path": "vendor/kenney/rpg-audio/Audio/handleCoins2.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/coins.ogg",
+      "sha": "73d92c5cee6293b9391a8465e75d6bf47be666ff"
+    },
+    {
+      "source": "OmniTender-Systems/game-audio-assets",
+      "commit": "378269191f4219775f113d52dcf7ce7d5c810b5f",
+      "path": "vendor/kenney/impact-sounds/License.txt",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/Impact-LICENSE.txt",
+      "sha": "4890fe524751b66f08c31ceeeb8074b50445c461"
+    },
+    {
+      "source": "OmniTender-Systems/game-audio-assets",
+      "commit": "378269191f4219775f113d52dcf7ce7d5c810b5f",
+      "path": "vendor/kenney/rpg-audio/License.txt",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/RPG-LICENSE.txt",
+      "sha": "2f61cecff969827a9b751e9a73c5e86ed58c0918"
+    },
+    {
+      "source": "Mcamento8/open-game-sfx-index",
+      "commit": "34bbe8b525b5ceff3804915ea745532af11f6055",
+      "path": "audio/voiceover-pack-fighter/fight.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/fight.ogg",
+      "sha": "ac9b4c22a8aa8231bcd1d2f6232cee8c3258c8c4"
+    },
+    {
+      "source": "Mcamento8/open-game-sfx-index",
+      "commit": "34bbe8b525b5ceff3804915ea745532af11f6055",
+      "path": "audio/voiceover-pack-fighter/you_win.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/you_win.ogg",
+      "sha": "35997119c745cebf40ff6664aab1a55df8149f54"
+    },
+    {
+      "source": "Mcamento8/open-game-sfx-index",
+      "commit": "34bbe8b525b5ceff3804915ea745532af11f6055",
+      "path": "audio/voiceover-pack-fighter/you_lose.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/you_lose.ogg",
+      "sha": "d9bc815c506d5c7caaeb61dbfd4e73f548acb94a"
+    },
+    {
+      "source": "Mcamento8/open-game-sfx-index",
+      "commit": "34bbe8b525b5ceff3804915ea745532af11f6055",
+      "path": "audio/voiceover-pack-fighter/tie.ogg",
+      "destination": "Assets/ThirdParty/KenneyReview/Combat/tie.ogg",
+      "sha": "9bac94e95adc3f4d2f3d8ad0ab3aa6504874459c"
+    }
+  ]
+}
