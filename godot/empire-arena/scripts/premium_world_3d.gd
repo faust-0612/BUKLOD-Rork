@@ -45,6 +45,12 @@ func _ready() -> void:
     set_process(true)
     set_process_unhandled_input(true)
 
+func _exit_tree() -> void:
+    for template in model_templates.values():
+        if is_instance_valid(template):
+            template.free()
+    model_templates.clear()
+
 func _get_world() -> String:
     for arg in OS.get_cmdline_user_args():
         var text: String = str(arg)
@@ -69,6 +75,8 @@ func _model(id: String) -> Node3D:
         return null
     var scene: Node = doc.generate_scene(state)
     if not (scene is Node3D):
+        if is_instance_valid(scene):
+            scene.free()
         return null
     model_templates[id] = scene
     return scene

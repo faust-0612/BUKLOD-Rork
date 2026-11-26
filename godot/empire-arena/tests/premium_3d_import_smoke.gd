@@ -31,14 +31,18 @@ func _run() -> void:
             return
         var scene: Node = doc.generate_scene(state)
         if not (scene is Node3D):
+            if is_instance_valid(scene):
+                scene.free()
             push_error("No usable 3D scene graph for " + id)
             quit(5)
             return
         if id.begins_with("rig_"):
             if scene.find_children("*", "AnimationPlayer", true, false).is_empty():
                 push_error("Animated KayKit rig has no AnimationPlayer: " + id)
+                scene.free()
                 quit(11)
                 return
+        scene.free()
     var scene_file = load("res://scenes/PremiumWorld3D.tscn")
     if scene_file == null:
         push_error("Godot premium 3D scene unavailable")
@@ -66,5 +70,14 @@ func _run() -> void:
         push_error("3D avatar did not approach target")
         quit(10)
         return
+    var templates: Array = world.model_templates.values()
+    world.free()
+    await process_frame
+    for template in templates:
+        if is_instance_valid(template):
+            push_error("Detached model template leaked")
+            quit(12)
+            return
+    print("BUKLOD_3D_RESOURCE_LIFECYCLE_PASS")
     print("BUKLOD_206_IMPORTED_REAL_GLB_22_INCLUDING_2_ANIMATED_RIGS_PASS")
     quit(0)

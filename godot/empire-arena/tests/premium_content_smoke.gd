@@ -100,4 +100,15 @@ func _run() -> void:
             return
     print("BUKLOD_REAL_AUDIO_70_PASS: licensed recording-based sound, correct identity, 70 playable PCM cues")
     print("BUKLOD_GODOT_PREMIUM_WORLD_INTERACTION_PASS: Kingdom, House, 42 Library icons, original ambient tracks OFF by default")
+    # Allow queued audio work to settle before teardown.
+    await create_timer(0.2).timeout
+    for player in [preview.audio, preview.ambient_player]:
+        if is_instance_valid(player):
+            player.stop()
+            player.stream = null
+    await create_timer(0.2).timeout
+    preview.free()
+    await process_frame
+    await process_frame
+    print("WORLD_RESOURCE_TEARDOWN_COMPLETE")
     quit(0)

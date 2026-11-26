@@ -37,4 +37,15 @@ func _run() -> void:
 			quit(7)
 			return
 	print("BUKLOD_GENESIS_GODOT_WORLDS_PASS: kingdom / community / house / level-substage / existing media")
+	# Allow queued audio work to settle before teardown.
+	await create_timer(0.2).timeout
+	for player in [world.audio, world.ambient_player]:
+		if is_instance_valid(player):
+			player.stop()
+			player.stream = null
+	await create_timer(0.2).timeout
+	world.free()
+	await process_frame
+	await process_frame
+	print("WORLD_RESOURCE_TEARDOWN_COMPLETE")
 	quit(0)
