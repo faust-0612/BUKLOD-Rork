@@ -1,3 +1,4 @@
+import {RankConnectCosmeticProvider,RankConnectCosmeticButton} from '@/providers/RankConnectCosmeticProvider';
 /* PATCH_186J_R2_SINGLE_SHARED_POST_PHOTO */
 /* PATCH_185A_R5_DIRECT_THREAD_LOADING_SAFE: existing direct guard retained */
 /* PATCH_180A_R7_EXACT_CHAT_BODY_MOJIBAKE */
@@ -4051,9 +4052,9 @@ const [
         onAudioCall={() => void startDirectCall('audio')}
         onVideoCall={() => void startDirectCall('video')}
         appearanceSlot={
-          <ConnectThemeSelectorButton
+          <View style={{flexDirection:'row',alignItems:'center'}}><ConnectThemeSelectorButton
             threadId={effectiveContainerId}
-          />
+          /><RankConnectCosmeticButton /></View>
         }
         rightSlot={
           managedCompactScope && officeEnabled ? (
@@ -6697,7 +6698,7 @@ export default function BuklodConnectThread(props: Props) {
       <ChatBackgroundProvider
         threadId={props.containerId}
       >
-        <BuklodConnectThreadInner {...props} />
+        <RankConnectCosmeticProvider><BuklodConnectThreadInner {...props} /></RankConnectCosmeticProvider>
       </ChatBackgroundProvider>
     </ConnectThemeProvider>
   );
