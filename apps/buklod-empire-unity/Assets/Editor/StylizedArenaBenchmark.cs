@@ -56,6 +56,7 @@ namespace Buklod.Empire.Editor {
             look.isGlobal=true;look.priority=20;look.sharedProfile=grade;
             var cameraData=camera.GetUniversalAdditionalCameraData();
             cameraData.renderPostProcessing=true;cameraData.volumeLayerMask=cameraData.volumeLayerMask.value|(1<<look.gameObject.layer);
+            AuthoredNatureBenchmark.Apply();
             EditorSceneManager.MarkSceneDirty(scene);
             if(!EditorSceneManager.SaveScene(scene))throw new InvalidOperationException("Benchmark scene save failed.");
             AssetDatabase.SaveAssets();
