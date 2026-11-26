@@ -307,6 +307,7 @@ begin
    and strpos(v_source,btrim(x->>'evidence'))>0 and strpos(lower(x->>'evidence'),lower(btrim(x->>'name')))>0
    and not exists(select 1 from private.kl_dictionary_curated_v1 c where lower(c.name)=lower(btrim(x->>'name')))
    order by lower(btrim(x->>'name'))) accepted;
+  if jsonb_array_length(p_items)>0 and jsonb_array_length(v_entries)=0 then raise exception 'No source-grounded glossary entries'; end if;
  end if;
  update private.kl_dictionary_jobs_v1 set state=case when p_error is null then 'ready' else 'failed' end,
  entries=coalesce(v_entries,'[]'),last_error=left(p_error,160),lease_until=null,lease_token=null,
