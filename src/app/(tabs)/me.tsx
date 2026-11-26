@@ -1,3 +1,4 @@
+import BuklodRankCollectionProfileRow from '@/components/points/BuklodRankCollectionProfileRow';
 import {canUserSelectTheme} from '@/features/season2/genesis/seasonThemeAuthority';
 import {isGenesisPreviewBuild} from '@/features/season2/genesis/genesisContract';
 import {GenesisCosmosBackground} from '@/features/season2/genesis/GenesisVisuals';
@@ -1933,6 +1934,7 @@ export default function MeScreen() {
       {!isBuklodOfficial && !!profile?.id && <BuklodProfileActivityCards userId={profile.id} />}
       {/* Members keep personal posts and activity visible before the full Top 10. */}
       {!isBuklodOfficial && !!profile?.id && <BuklodProfileTopTenRankings userId={profile.id} />}
+      {!isBuklodOfficial && <BuklodRankCollectionProfileRow />}
       {referralSection}
       {/* Required sponsored inventory: follows genuine member data, never overlays identity. */}
       <BuklodNativeSponsoredCard surface="profile" slotId="profile_mid_native" />
