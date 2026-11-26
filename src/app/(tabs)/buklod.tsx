@@ -3069,7 +3069,7 @@ const load=useCallback(async(options?:{
 
  postingSubmissionRef.current=true;
  const snapshot={
-   wallStyle:wallStyles.enabled?authorizeWallPostStyle(draftWallStyle,wallStyles.rankName,!!(photos.length||wallVideo186O||communityGif)):DEFAULT_WALL_POST_STYLE,
+   wallStyle:wallStyles.enabled?authorizeWallPostStyle(draftWallStyle,wallStyles.rankName,!!(photos.length||wallVideo186O||communityGif),wallStyles.redeemedBonusKeys):DEFAULT_WALL_POST_STYLE,
    body:
     body.trim(),
    photos:
@@ -5791,7 +5791,7 @@ const communityFeedRows =
    {largeComposerText ? 'Large text · this post will appear in big letters' : 'Regular caption'}
   </Text>
  )}
- {wallStyles.enabled && !photos.length && !wallVideo186O && !communityGif && body.trim() ? <WallPostStyleEditor rankName={wallStyles.rankName} value={draftWallStyle} onChange={setDraftWallStyle} previewText={body} disabled={busy} />:null}
+ {wallStyles.enabled && !photos.length && !wallVideo186O && !communityGif && body.trim() ? <WallPostStyleEditor rankName={wallStyles.rankName} value={draftWallStyle} onChange={setDraftWallStyle} previewText={body} redeemedBonusKeys={wallStyles.redeemedBonusKeys} disabled={busy} />:null}
     <View
       /* PATCH_154L_COMPOSER_SPACING */
       style={[
@@ -6343,6 +6343,7 @@ const communityFeedRows =
     key={String(item.id)}
     designId={wallStyles.styles[String(item.id)]?.designId}
     fontId={wallStyles.styles[String(item.id)]?.fontId}
+    bonusKey={wallStyles.styles[String(item.id)]?.bonusKey}
     animationActive={wallScreenFocused && !communityComposerOpen && !commentOpen && !maritesViewerOpen && !videoViewerOpen && visibleCreativePostIds.find(id=>wallStyles.styles[id]?.animated)===String(item.id)}
     text={String(repairMojibakeText(item.body) ?? '').replace(
      /^Shared from [^\r\n]+(?:\r?\n\s*|$)+/i,
