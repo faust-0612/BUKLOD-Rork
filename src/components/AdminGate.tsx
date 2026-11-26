@@ -2,8 +2,9 @@ import React, { ReactNode } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { router } from 'expo-router';
 
-import { Button, Card, shared } from '@/components/UI';
-import { colors } from '@/lib/theme';
+import { Button, Card } from '@/components/UI';
+import { useAdminShared } from '@/components/useAdminShared';
+import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { useAuth } from '@/providers/AuthProvider';
 
 export function AdminGate({
@@ -11,6 +12,8 @@ export function AdminGate({
 }: {
   children: ReactNode;
 }) {
+  const shared = useAdminShared();
+  const { theme } = useBuklodTheme();
   const { loading, hasRole, session } = useAuth();
 
   if (loading && !session) {
@@ -21,7 +24,7 @@ export function AdminGate({
           { justifyContent: 'center' },
         ]}
       >
-        <ActivityIndicator color={colors.green} />
+        <ActivityIndicator color={theme.accent} />
       </View>
     );
   }
