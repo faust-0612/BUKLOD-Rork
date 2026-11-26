@@ -1,3 +1,5 @@
+import { WallPostStyleEditor } from '@/components/BuklodWallPostDesignPicker';
+import { useWallPostStyles, authorizeWallPostStyle, DEFAULT_WALL_POST_STYLE, persistWallPostStyle, isDefaultWallPostStyle, type WallPostStyle } from '@/lib/buklodWallPostStylePersistence';
 import { reportBuklodDashboardScroll } from '@/lib/buklodDashboardScroll';
 import {noteBuklodVideoScroll} from '@/lib/buklodVideoScrollSignal';
 import {
@@ -47,7 +49,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, useFocusEffect } from 'expo-router';
 import { useIncomingShare as useBuklodIncomingShare } from '@/lib/buklodIncomingShare';
 import { stageSharedCommentGif, discardStagedSharedCommentGif } from '@/lib/buklodCommentGifShare';
 import {
@@ -791,6 +793,12 @@ export default function BuklodExclusiveScopeCommunity({
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentLoadError, setCommentLoadError] = useState<string | null>(null);
   const [wallComposerOpen, setWallComposerOpen] = useState(false);
+  const [draftWallStyle,setDraftWallStyle]=useState<WallPostStyle>(DEFAULT_WALL_POST_STYLE);
+  const wallStyles=useWallPostStyles(user?.id,posts,wallComposerOpen&&mode==='wall',String(scope.scope_id));
+  const [styleScreenFocused,setStyleScreenFocused]=useState(false);
+  const [styleVisibleIds,setStyleVisibleIds]=useState<string[]>([]);
+  useFocusEffect(useCallback(()=>{setStyleScreenFocused(true);return()=>setStyleScreenFocused(false);},[]));
+  useEffect(()=>{setDraftWallStyle(DEFAULT_WALL_POST_STYLE);setStyleVisibleIds([]);},[user?.id,scope.scope_id]);
   const largeScopedText = mode === 'wall' && !photos.length && !wallVideo && !communityGif &&
     Array.from(body.trim()).length > 0 && Array.from(body.trim()).length <= 80;
   const focusScopedComposerRef = useRef(false);
@@ -1318,9 +1326,19 @@ export default function BuklodExclusiveScopeCommunity({
   } = useBuklodCommunityAdViewability(
     mode === 'reels' ? visiblePosts : wallFeedRows,
   );
+  const scopedStyleViewabilityDelegate=useRef(onCommunityAdViewableItemsChanged);
+  scopedStyleViewabilityDelegate.current=onCommunityAdViewableItemsChanged;
+  const scopedStyleViewabilityEnabled=useRef(wallStyles.enabled);
+  scopedStyleViewabilityEnabled.current=wallStyles.enabled;
+  const scopedStyleViewability=useRef((event:{viewableItems:Array<{item?:any}>})=>{
+    scopedStyleViewabilityDelegate.current(event);
+    if(!scopedStyleViewabilityEnabled.current)return;
+    const ids=event.viewableItems.map(row=>String(row.item?.id??'')).filter(Boolean).slice(0,6);
+    setStyleVisibleIds(prev=>prev.join('|')===ids.join('|')?prev:ids);
+  }).current;
   const communityViewabilityPairs = useRef([
     { viewabilityConfig: communityAdViewabilityConfig,
-      onViewableItemsChanged: onCommunityAdViewableItemsChanged },
+      onViewableItemsChanged: scopedStyleViewability },
     { viewabilityConfig: communityVideoViewabilityConfig,
       onViewableItemsChanged: onCommunityVideoViewableItemsChanged },
   ]).current;
@@ -1829,6 +1847,7 @@ export default function BuklodExclusiveScopeCommunity({
 
       postingSubmissionRef.current = true;
       const snapshot = {
+        wallStyle:wallStyles.enabled?authorizeWallPostStyle(draftWallStyle,wallStyles.rankName,!!(photos.length||wallVideo||communityGif||publishingReel)):DEFAULT_WALL_POST_STYLE,
         photos: [...photos],
         collageLayout,
         wallVideo:
@@ -1846,6 +1865,7 @@ export default function BuklodExclusiveScopeCommunity({
       };
 
       setBody('');
+      setDraftWallStyle(DEFAULT_WALL_POST_STYLE);
       setMentions([]);
       clearMedia();
       setCollageLayout('grid');
@@ -2167,6 +2187,11 @@ export default function BuklodExclusiveScopeCommunity({
           extractCreatedRecordId(created);
 
         createdPostId = createdId;
+        let styleSaveFailed=false;
+        if(createdId&&!isDefaultWallPostStyle(snapshot.wallStyle)){
+          try{await persistWallPostStyle(createdId,snapshot.userId,snapshot.wallStyle);wallStyles.remember(createdId,snapshot.wallStyle);}
+          catch{styleSaveFailed=true;}
+        }
 
         if (
           createdId &&
@@ -2192,7 +2217,7 @@ export default function BuklodExclusiveScopeCommunity({
         }
 
         await load();
-        setScopedPostFeedback('Posted to this Community');
+        setScopedPostFeedback(styleSaveFailed?'Posted; optional design was not saved.':'Posted to this Community');
       }
       catch (
         error: any
@@ -2222,6 +2247,7 @@ export default function BuklodExclusiveScopeCommunity({
           setReel(current => current ?? snapshot.reel);
           setCommunityGif(current => current ?? snapshot.communityGif);
           setCollageLayout(snapshot.collageLayout);
+          setDraftWallStyle(current=>isDefaultWallPostStyle(current)?snapshot.wallStyle:current);
           setWallComposerOpen(true);
         }
         setScopedPostFeedback(saved
@@ -3703,6 +3729,9 @@ return (
           {!!item.body && (
             <BuklodExpandableWallCaption
               key={String(item.id)}
+              designId={wallStyles.styles[String(item.id)]?.designId}
+              fontId={wallStyles.styles[String(item.id)]?.fontId}
+              animationActive={styleScreenFocused&&!wallComposerOpen&&!commentOpen&&mode==='wall'&&styleVisibleIds.find(id=>wallStyles.styles[id]?.animated)===String(item.id)}
               text={repairMojibakeText(item.body)}
               style={[styles.body, { color: theme.textPrimary }]}
               hasMedia={Boolean(
@@ -4143,6 +4172,7 @@ return (
             maxLength={5000}
             style={[styles.composer, largeScopedText && { fontSize:25, lineHeight:33, fontWeight:'800', minHeight:96 }]}
           />
+          {wallStyles.enabled&&mode==='wall'&&!photos.length&&!wallVideo&&!communityGif&&body.trim()?<WallPostStyleEditor rankName={wallStyles.rankName} value={draftWallStyle} onChange={setDraftWallStyle} previewText={body} disabled={busy}/>:null}
           {!!body.trim() && (
             <Text style={{marginTop:3,fontSize:12,color:colors.muted}}>
               {largeScopedText ? 'Large text · big letters after publishing' : 'Regular caption'}
@@ -4753,7 +4783,7 @@ return (
             item.id
         }
         extraData={
-          communityAdExtraData
+          [communityAdExtraData,wallStyles.styles,styleVisibleIds,styleScreenFocused]
         }
         viewabilityConfigCallbackPairs={
           communityViewabilityPairs
