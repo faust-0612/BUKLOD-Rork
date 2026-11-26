@@ -18,6 +18,7 @@ function AccountCollection({userId}:{userId:string}) {
   const [bonuses,setBonuses]=useState<Bonus[]>([]);
   const [pref,setPref]=useState<Preference>(EMPTY);
   const [loading,setLoading]=useState(true);
+  const [loaded,setLoaded]=useState(false);
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState('');
   const epoch=useRef(0);
@@ -29,13 +30,13 @@ function AccountCollection({userId}:{userId:string}) {
       const [b,p]=await Promise.all([
         (supabase as any).from('buklod_rank_bonus_ledger_v1')
           .select('bonus_key,title,available_at').eq('user_id',userId)
-          .is('redeemed_at',null).is('revoked_at',null).order('available_at',{ascending:true}),
+          .is('redeemed_at',null).is('revoked_at',null).lte('available_at',new Date().toISOString()).order('available_at',{ascending:true}),
         (supabase as any).from('buklod_rank_bonus_preferences_v1')
           .select('reminders_enabled,snoozed_until').eq('user_id',userId).maybeSingle(),
       ]);
       if(b.error||p.error)throw b.error||p.error;
-      if(seq===epoch.current){setBonuses(b.data??[]);setPref(p.data??EMPTY);}
-    }catch{if(seq===epoch.current)setError('Could not load collections. Your rewards are preserved.');}
+      if(seq===epoch.current){setBonuses(b.data??[]);setPref(p.data??EMPTY);setLoaded(true);}
+    }catch{if(seq===epoch.current){setLoaded(false);setError('Could not load collections. Your rewards are preserved.');}}
     finally{if(seq===epoch.current)setLoading(false);}
   },[userId]);
   useEffect(()=>{void load();return()=>{epoch.current++;};},[load]);
@@ -54,6 +55,7 @@ function AccountCollection({userId}:{userId:string}) {
     finally{writeLock.current=false;if(seq===epoch.current)setSaving(false);}
   };
   if(loading)return <ActivityIndicator accessibilityLabel="Loading bonus collections" color="#176C43"/>;
+  if(!loaded)return <View style={styles.card}><Text style={styles.heading}>My Bonus Collections</Text><Text accessibilityRole="alert" style={styles.error}>{error || 'Collections unavailable.'}</Text><Pressable accessibilityRole="button" onPress={()=>void load()}><Text style={styles.action}>Try again</Text></Pressable></View>;
   return <View style={styles.card}>
     <Text style={styles.heading}>My Bonus Collections</Text>
     <Text style={styles.body}>{bonuses.length} unredeemed</Text>
