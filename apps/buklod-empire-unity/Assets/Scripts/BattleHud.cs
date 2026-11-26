@@ -11,7 +11,7 @@ namespace Buklod.Empire {
         private ReviewMinimap minimap;private readonly ReviewSkillGlyph[] glyphs=new ReviewSkillGlyph[3];
         private OfflineBattle hudMatch;private int lastLevel;private float healthShown,manaShown,xpShown,announcementUntil,nextObjectiveAt;
         private string announcement="";private bool review;
-        private int width,height;
+        private int width,height;private Rect safeArea;
         private Image ImageAt(string name,Transform parent,Color tint){
             var go=new GameObject(name,typeof(RectTransform),typeof(CanvasRenderer),typeof(Image));go.transform.SetParent(parent,false);
             var i=go.GetComponent<Image>();i.sprite=circle;i.color=tint;i.raycastTarget=false;return i;
@@ -123,8 +123,8 @@ namespace Buklod.Empire {
             objective.text=nearest!=null?$"{nearest.Kind}  |  HP {Mathf.CeilToInt(nearest.Health)}/{Mathf.CeilToInt(nearest.MaxHealth)}":$"GENESIS RIFT  |  Relics {p.Relics.Count}  |  Equipment {p.Gear.Count}/6";
         }
         private void Layout(){
-            width=Screen.width;height=Screen.height;
-            for(int i=0;i<buttons.Length;i++){var t=buttons[i].rectTransform;t.anchorMin=t.anchorMax=MobileBattleInput.Centers[i];t.anchoredPosition=Vector2.zero;t.sizeDelta=Vector2.one*MobileBattleInput.Radius(i)*2;
+            width=Screen.width;height=Screen.height;safeArea=MobileBattleInput.SafeArea;
+            for(int i=0;i<buttons.Length;i++){var t=buttons[i].rectTransform;t.anchorMin=t.anchorMax=Normalized(MobileBattleInput.PixelCenter(i));t.anchoredPosition=Vector2.zero;t.sizeDelta=Vector2.one*MobileBattleInput.Radius(i)*2;
                 if(i==0)continue;cooldown[i].rectTransform.sizeDelta=t.sizeDelta;labels[i].rectTransform.sizeDelta=t.sizeDelta;labels[i].fontSize=Mathf.Max(12,(int)(height*.025f));
             }
             knob.rectTransform.sizeDelta=Vector2.one*MobileBattleInput.Radius(0)*.7f;
@@ -132,8 +132,11 @@ namespace Buklod.Empire {
             if(review)ReviewLayout();
             foreach(var bar in new[]{health,mana}){var t=bar.rectTransform;t.anchorMin=t.anchorMax=new Vector2(.025f,bar==health?.94f:.905f);t.pivot=new Vector2(0,.5f);t.anchoredPosition=Vector2.zero;}
         }
+        private Vector2 Normalized(Vector2 pixel)=>new Vector2(pixel.x/Mathf.Max(1,width),pixel.y/Mathf.Max(1,height));
         private void Update(){
-            if(width!=Screen.width||height!=Screen.height)Layout();
+            if(width!=Screen.width||height!=Screen.height||safeArea!=MobileBattleInput.SafeArea)Layout();
+            var stick=buttons[0].rectTransform;stick.anchorMin=stick.anchorMax=Normalized(input.MovementCenter);
+            for(int i=1;i<buttons.Length;i++)buttons[i].rectTransform.localScale=Vector3.one*(input.ActiveSkill==i?.92f:1f);
             var b=view.Battle;if(b==null)return;var s=b.Player.State;
             knob.rectTransform.anchoredPosition=input.Joystick*MobileBattleInput.Radius(0)*.6f;
             labels[1].text="ATTACK";cooldown[1].fillAmount=0;
