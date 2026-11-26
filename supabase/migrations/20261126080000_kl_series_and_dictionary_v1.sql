@@ -47,9 +47,9 @@ begin
  select * into v from public.kl_series_v1 where season_number=p_season for update;
  v_cover:=coalesce(nullif(p_cover_path,''),v.cover_path);
  if v_cover is not null and (split_part(v_cover,'/',1)<>p_season::text or not exists(select 1 from storage.objects where bucket_id='kl-series-covers' and name=v_cover)) then raise exception 'Cover not uploaded'; end if;
- if p_publish and v_cover is null and p_season<>1 then raise exception 'Upload a cover first'; end if;
+ if coalesce(p_publish,false) and v_cover is null and p_season<>1 then raise exception 'Upload a cover first'; end if;
  insert into public.kl_series_v1(season_number,title,cover_path,published)
- values(p_season,btrim(p_title),v_cover,p_publish or coalesce(v.published,false))
+ values(p_season,btrim(p_title),v_cover,coalesce(p_publish,false) or coalesce(v.published,false))
  on conflict(season_number) do update set title=excluded.title,cover_path=coalesce(excluded.cover_path,kl_series_v1.cover_path),published=kl_series_v1.published or excluded.published,updated_at=now()
  returning * into v;
  return to_jsonb(v);
@@ -239,14 +239,26 @@ returns text language sql stable security definer set search_path='' as $$
 $$;
 revoke all on function private.kl_dictionary_source_v1(uuid) from public,anon,authenticated;
 create function public.kl_dictionary_read_v1(p_episode_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
-declare v_source text; v_generated jsonb; v_curated jsonb;
+declare v_source text; v_generated jsonb; v_curated jsonb; v_season integer; v_episode integer;
 begin
  v_source:=private.kl_dictionary_source_v1(p_episode_id);
  if v_source is null then return '[]'::jsonb; end if;
  select coalesce(jsonb_agg(jsonb_build_object('name',name,'kind',kind,'meaning',meaning) order by name),'[]') into v_curated
  from private.kl_dictionary_curated_v1 where strpos(lower(v_source),lower(name))>0;
- select entries into v_generated from private.kl_dictionary_jobs_v1
- where episode_id=p_episode_id and source_hash=md5(v_source) and state='ready';
+ -- A prior chapter's validated terms can recur without another definition.
+ -- Never expose a future chapter or stale revision; current chapter text
+ -- must contain the term before its definition is returned.
+ select season_number,episode_number into v_season,v_episode from public.kl_episodes where id=p_episode_id;
+ select coalesce(jsonb_agg(jsonb_build_object('name',name,'kind',kind,'meaning',meaning) order by name),'[]') into v_generated
+ from (
+  select distinct on(lower(x->>'name')) x->>'name' name,x->>'kind' kind,x->>'meaning' meaning
+  from private.kl_dictionary_jobs_v1 j join public.kl_episodes e on e.id=j.episode_id
+  cross join lateral jsonb_array_elements(j.entries) x
+  where j.state='ready' and (e.season_number,e.episode_number)<=(v_season,v_episode)
+  and j.source_hash=md5(private.kl_dictionary_source_v1(j.episode_id))
+  and strpos(lower(v_source),lower(x->>'name'))>0
+  order by lower(x->>'name'),e.season_number,e.episode_number
+ ) prior_terms;
  return v_curated||coalesce(v_generated,'[]'::jsonb);
 end $$;
 revoke all on function public.kl_dictionary_read_v1(uuid) from public;
@@ -263,11 +275,18 @@ begin
  select j.* into v from private.kl_dictionary_jobs_v1 j
  where j.attempts<5 and j.next_attempt<=now() and (j.state in ('pending','failed') or (j.state='running' and j.lease_until<now()))
  and j.source_hash=md5(private.kl_dictionary_source_v1(j.episode_id))
- order by j.next_attempt,j.episode_id limit 1 for update skip locked;
+ order by j.next_attempt,(select season_number from public.kl_episodes e where e.id=j.episode_id),(select episode_number from public.kl_episodes e where e.id=j.episode_id) limit 1 for update skip locked;
  if not found then return null; end if;
  v_source:=private.kl_dictionary_source_v1(v.episode_id);
  update private.kl_dictionary_jobs_v1 set state='running',attempts=attempts+1,lease_until=now()+interval '3 minutes',lease_token=gen_random_uuid(),updated_at=now() where episode_id=v.episode_id and source_hash=v.source_hash returning * into v;
- return jsonb_build_object('episode_id',v.episode_id,'source_hash',v.source_hash,'lease_token',v.lease_token,'manuscript',v_source,'known_names',(select jsonb_agg(name order by name) from private.kl_dictionary_curated_v1));
+ return jsonb_build_object('episode_id',v.episode_id,'source_hash',v.source_hash,'lease_token',v.lease_token,'manuscript',v_source,'known_names',(select coalesce(jsonb_agg(name order by name),'[]') from (
+ select name from private.kl_dictionary_curated_v1
+ union select unnest(array['Calen','Balat-batong','Gagambang Pisi','Hindi Nakalimot','ilog na umaakyat','ilog na dumadaloy paakyat','mga ilog na dumadaloy paakyat','mga ilog na hindi dumadaloy pababa','ilog na hindi dumadaloy pababa','pulang latak','Katipunan','pilak na hiblang','tagapag-alaga ng balon'])
+ union select x->>'name' from private.kl_dictionary_jobs_v1 j join public.kl_episodes e on e.id=j.episode_id
+ cross join lateral jsonb_array_elements(j.entries) x
+ where j.state='ready' and j.source_hash=md5(private.kl_dictionary_source_v1(j.episode_id))
+ and (e.season_number,e.episode_number)<(select season_number,episode_number from public.kl_episodes where id=v.episode_id)
+ ) known));
 end $$;
 revoke all on function public.kl_dictionary_claim_v1() from public,anon,authenticated;
 grant execute on function public.kl_dictionary_claim_v1() to service_role;
@@ -276,14 +295,15 @@ returns boolean language plpgsql security definer set search_path='' as $$
 declare v_source text; v_entries jsonb; v_count integer;
 begin
  v_source:=private.kl_dictionary_source_v1(p_episode);
- if v_source is null or md5(v_source)<>p_hash then return false; end if;
+ if v_source is null or md5(v_source) is distinct from p_hash then return false; end if;
  if p_error is null then
-  if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items)>24 then raise exception 'Invalid glossary'; end if;
+  if jsonb_typeof(p_items) is distinct from 'array' then raise exception 'Invalid glossary'; end if;
+  if jsonb_array_length(p_items)>24 then raise exception 'Invalid glossary'; end if;
   select coalesce(jsonb_agg(jsonb_build_object('name',name,'kind',kind,'meaning',meaning,'evidence',evidence) order by name),'[]') into v_entries
   from (select distinct on(lower(btrim(x->>'name'))) btrim(x->>'name') name,btrim(x->>'kind') kind,btrim(x->>'meaning') meaning,btrim(x->>'evidence') evidence
    from jsonb_array_elements(p_items) x
    where length(btrim(x->>'name')) between 2 and 100 and length(btrim(x->>'kind')) between 2 and 50
-   and length(btrim(x->>'meaning')) between 8 and 500 and length(btrim(x->>'evidence')) between 12 and 800
+   and btrim(x->>'name') !~ '[[:cntrl:]]' and length(btrim(x->>'meaning')) between 8 and 500 and length(btrim(x->>'evidence')) between 12 and 800
    and strpos(v_source,btrim(x->>'evidence'))>0 and strpos(lower(x->>'evidence'),lower(btrim(x->>'name')))>0
    and not exists(select 1 from private.kl_dictionary_curated_v1 c where lower(c.name)=lower(btrim(x->>'name')))
    order by lower(btrim(x->>'name'))) accepted;
