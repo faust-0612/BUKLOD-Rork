@@ -1,0 +1,165 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-cumulative-academy-20261126.json",
+  "objective": "Cumulative Academy non-formal source integration, explicit disabled client, foundation UC guard and local isolated testing. No release.",
+  "baseRef": "ed3c89236b9be3e2a816675cca40273b88ab4085",
+  "productionBaselineEvidence": "Children Teaching isolated PG17 fixture passed at ed3c892; Academy source 5b20164; staging and MAIN unchanged.",
+  "chosenApproach": "Exact Academy-owned blobs plus minimal additive changes to existing root, learning/admin and sounds; gated routes and legacy credit filter.",
+  "selectionRationale": "Preserve newer fixes and avoid credit misclassification or unsupported signatory title; missing adapters remain blocked.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-cumulative-academy-20261126.json",
+    ".github/workflows/genesis-206-academy-conso-staging-source-qa.yml",
+    ".github/workflows/genesis-206-academy-typecheck-qa.yml",
+    "docs/academy/ACADEMIC_ASSESSMENT_SOP_v1.md",
+    "docs/academy/CURRICULUM_MASTER_v1.md",
+    "docs/academy/GENESIS_206_CONSO_INTAKE_20261124.md",
+    "docs/academy/ISO21001_CONTROL_MATRIX_v1.md",
+    "docs/academy/ISO21001_GAP_AND_RELEASE_GATE_v1.md",
+    "docs/academy/QUALITY_MANUAL_v1.md",
+    "docs/academy/README.md",
+    "docs/academy/RECORDS_FORMS_AND_AUDIT_v1.md",
+    "scripts/academy/iso21001-readiness-check.mjs",
+    "scripts/academy/staging-apk-preflight.mjs",
+    "scripts/local-genesis-academy-isolated-qa.sh",
+    "src/app/(tabs)/learn.tsx",
+    "src/app/_layout.tsx",
+    "src/app/academy/index.tsx",
+    "src/app/academy/research.tsx",
+    "src/app/admin/academy-recipients.tsx",
+    "src/app/admin/academy-research-review.tsx",
+    "src/app/admin/index.tsx",
+    "src/components/academy/BuklodAcademyUCToastHost.tsx",
+    "src/components/university/BuklodAcademicCompletionCelebration.tsx",
+    "src/data/academy/bahlIso21001ControlRegister.json",
+    "src/data/academy/bahlQualityCurriculumFramework.json",
+    "src/data/university/buklodUniversityCatalog.json",
+    "src/lib/buklodSounds.ts",
+    "src/lib/buklodUniversityCompletionMotion.ts",
+    "supabase/functions/buklod-academy-paper-v1/index.ts",
+    "supabase/functions/buklod-academy-research-ai-v2/index.ts",
+    "supabase/migrations/20261124020000_buklod_university_internal_academic_r1.sql",
+    "supabase/migrations/20261124021000_buklod_academy_saliksik_research_bridge.sql",
+    "supabase/migrations/20261124022000_buklod_academy_private_signature_policy.sql",
+    "supabase/migrations/20261124023000_buklod_academy_verified_uc_events_r1.sql",
+    "supabase/migrations/20261124024000_buklod_academy_completion_on_uc_r1.sql",
+    "supabase/migrations/20261124025000_buklod_academy_uc_realtime_r1.sql",
+    "supabase/migrations/20261124030000_buklod_academy_source_validator_registry.sql",
+    "supabase/migrations/20261124033000_buklod_academy_automatic_research_faculty_v2.sql",
+    "supabase/migrations/20261124034000_buklod_academy_quality_overview_v1.sql",
+    "supabase/tests/academy_verified_uc_isolated_20261126.sql",
+    "tests/academy-auth-navigation-security-20261126.test.mjs",
+    "tests/buklod-academy-automated-oversight.test.mjs",
+    "tests/buklod-academy-genesis-isolation.test.mjs",
+    "tests/buklod-academy-iso21001-evidence-gate.test.mjs",
+    "tests/buklod-academy-iso21001-quality-pack.test.mjs",
+    "tests/buklod-academy-owner-quality-overview.test.mjs",
+    "tests/buklod-academy-rework-pdf-recovery.test.mjs",
+    "tests/buklod-academy-staging-contract.test.mjs",
+    "tests/buklod-university-completion-motion.test.mjs",
+    "tests/fixtures/academy_postgres17_20261126.sql"
+  ],
+  "regressionTests": [
+    "tests/academy-auth-navigation-security-20261126.test.mjs",
+    "tests/buklod-academy-automated-oversight.test.mjs",
+    "tests/buklod-academy-genesis-isolation.test.mjs",
+    "tests/buklod-academy-iso21001-evidence-gate.test.mjs",
+    "tests/buklod-academy-iso21001-quality-pack.test.mjs",
+    "tests/buklod-academy-owner-quality-overview.test.mjs",
+    "tests/buklod-academy-rework-pdf-recovery.test.mjs",
+    "tests/buklod-academy-staging-contract.test.mjs",
+    "tests/buklod-university-completion-motion.test.mjs",
+    "supabase/tests/academy_verified_uc_isolated_20261126.sql"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Academy feature kept OFF",
+      "preservedBehaviors": [
+        "Existing Genesis root, SALIKSIK, Children Teaching, BP/QMP and sound preference unchanged."
+      ],
+      "tests": [
+        "tests/academy-auth-navigation-security-20261126.test.mjs"
+      ]
+    },
+    {
+      "id": "navigation-auth",
+      "reason": "Add gated account-scoped routes",
+      "preservedBehaviors": [
+        "Existing navigation and other Admin rows retained."
+      ],
+      "tests": [
+        "tests/academy-auth-navigation-security-20261126.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Undeployed Academy SQL and private papers",
+      "preservedBehaviors": [
+        "No live mutation; no fabricated credits or unauthorized PDF access."
+      ],
+      "tests": [
+        "tests/academy-auth-navigation-security-20261126.test.mjs",
+        "supabase/tests/academy_verified_uc_isolated_20261126.sql"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Actual isolated Node and PG17 test required. Missing UC source adapters, isolated backend, signature/identity, operational quality, concurrency, Edge/PDF and Android gates remain held."
+  ],
+  "preserveBehaviors": [
+    "No existing BP changes, no formal degree/accreditation claims, no new APK or OTA."
+  ],
+  "alternativeApproaches": [
+    "Reject blind merge.",
+    "Reject shared live database activation."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "navigation-auth",
+    "navigation-scroll",
+    "faith-cluster",
+    "cluster-faith",
+    "backend-security",
+    "ads-finance-points",
+    "production-release",
+    "release-governance"
+  ],
+  "publicationStatus": "QA_ONLY_BACKEND_AND_ACADEMIC_EVIDENCE_HOLD",
+  "sourceIntake": {
+    "sourceSha": "5b20164ed71196f24aedf1d418377aae5b50796a",
+    "exactBlobs": {
+      ".github/workflows/genesis-206-academy-conso-staging-source-qa.yml": "d6a95f4c73ee30e461efd042cf2bfe8b257c7b4c",
+      ".github/workflows/genesis-206-academy-typecheck-qa.yml": "2ea0ef1b03ba1d8b64b54f0812a9bbd91f5c0018",
+      "docs/academy/ACADEMIC_ASSESSMENT_SOP_v1.md": "7f8e51ebef45ef4f2a9b3aa64d15675cc1605c35",
+      "docs/academy/CURRICULUM_MASTER_v1.md": "05f4a724bed3c9751ca7f56135c5fb88be37fc38",
+      "docs/academy/GENESIS_206_CONSO_INTAKE_20261124.md": "4be736f3911e1c938009d18b18eaae6dcc86fa4c",
+      "docs/academy/ISO21001_CONTROL_MATRIX_v1.md": "5fbe58291e5ebc75c6a37ad8c216eaebe4f822c1",
+      "docs/academy/ISO21001_GAP_AND_RELEASE_GATE_v1.md": "0b32a3af372520fbc5f32abbe67796d542529103",
+      "docs/academy/QUALITY_MANUAL_v1.md": "02b60f6b76ee1ae38a3391747287108f310997d4",
+      "docs/academy/README.md": "3d7ceda01d640f4f77002bc0c08115dd2d13a52a",
+      "docs/academy/RECORDS_FORMS_AND_AUDIT_v1.md": "1f11acb3ac9b755e25cb4c5f2275c25045a5436d",
+      "scripts/academy/iso21001-readiness-check.mjs": "1f7902cb485e3116464f2dc5acf367af4bd9d3f2",
+      "scripts/academy/staging-apk-preflight.mjs": "b8a67b96087f03e253e01901df33523468fde097",
+      "src/components/academy/BuklodAcademyUCToastHost.tsx": "3f13e0160b6860082a2811ffac8d062b10c3afcc",
+      "src/components/university/BuklodAcademicCompletionCelebration.tsx": "9af2d023b3ab13a593378666aef98f604443ebdd",
+      "src/data/academy/bahlIso21001ControlRegister.json": "17fe84303a99c5eab04c3063803f8ac6235d4ba3",
+      "src/data/academy/bahlQualityCurriculumFramework.json": "79b7c740bbf723a144cad696737b0bbfb0199109",
+      "src/lib/buklodUniversityCompletionMotion.ts": "7a0a13fd3c09374b03d5c0a836ad584c5d97fb10",
+      "supabase/functions/buklod-academy-research-ai-v2/index.ts": "a7d777e7eca2ad9e3205af84387b55d22cb8b1d1",
+      "supabase/migrations/20261124021000_buklod_academy_saliksik_research_bridge.sql": "15409b3fe09c391ad3509fde0e67225f32213df1",
+      "supabase/migrations/20261124022000_buklod_academy_private_signature_policy.sql": "ec8f01f58b944a6a39178b646c10acd66ca0794f",
+      "supabase/migrations/20261124024000_buklod_academy_completion_on_uc_r1.sql": "25bf104140225d5cbabc2c2450fcbf3ad3413afa",
+      "supabase/migrations/20261124025000_buklod_academy_uc_realtime_r1.sql": "99fa2a7223a26809bcab171e80ccde7bb9c2c2c5",
+      "supabase/migrations/20261124030000_buklod_academy_source_validator_registry.sql": "515673d64a712124ac1d6d2c28d47a28da758d1b",
+      "supabase/migrations/20261124033000_buklod_academy_automatic_research_faculty_v2.sql": "b56d1bd8ddaf7689b6e4fdb73adddcbebc4d4a07",
+      "supabase/migrations/20261124034000_buklod_academy_quality_overview_v1.sql": "ade0834a72f0a50c0650f1e97b77cecede259de0",
+      "tests/buklod-academy-automated-oversight.test.mjs": "c3324f1ecd70bc50b5b8ffe2e24c25c8f99561d3",
+      "tests/buklod-academy-genesis-isolation.test.mjs": "ed6b2754d0980aa33bdcc7232fa637223744a062",
+      "tests/buklod-academy-iso21001-evidence-gate.test.mjs": "5df2a2149e16b2afb8468be94d52c3c7e1406a3b",
+      "tests/buklod-academy-iso21001-quality-pack.test.mjs": "d30fde0d0853f673a708dab4824520487975bc87",
+      "tests/buklod-academy-owner-quality-overview.test.mjs": "89e1a40f26fa4131c85f7e02b963205e81481cee",
+      "tests/buklod-academy-rework-pdf-recovery.test.mjs": "decff0e7a8acec52de1794cb0bfa870ca247c56f",
+      "tests/buklod-university-completion-motion.test.mjs": "6ce8d8a93aa51280845a103a5540e1761df5e889"
+    }
+  }
+}

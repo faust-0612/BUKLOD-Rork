@@ -564,6 +564,10 @@ export default function AdminDashboard() {
                 path="/admin/saliksik-library"
               />
 
+              {process.env.EXPO_PUBLIC_BUKLOD_ACADEMY_ENABLED==='true' && <>
+                <AdminRow icon="certificate-outline" title="Academy Completion Recipients" subtitle="Verified internal completion records" path="/admin/academy-recipients" />
+                <AdminRow icon="file-document-check-outline" title="Academy Research & Quality" subtitle="Automated assessment and quality oversight" path="/admin/academy-research-review" />
+              </>}
               <AdminRow
                 icon="clipboard-check-outline"
                 title="Learning Progress Approval"

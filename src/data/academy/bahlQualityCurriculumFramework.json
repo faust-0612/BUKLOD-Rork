@@ -1,0 +1,1846 @@
+{
+  "title": "BUKLOD Academy of Higher Learning - Internal Quality and Curriculum Framework",
+  "framework_version": "BAHL-EOMS-PILOT-1",
+  "catalog_version": "BU-ACADEMY-5-DEV",
+  "issuer": "MZB Ministry Inc.",
+  "accreditation_status": "NOT_ISO_CERTIFIED_NOT_CHED_RECOGNIZED",
+  "publication_state": "DEV_DRAFT_OFF",
+  "scope": "Design, delivery, assessment, learner support and verifiable non-formal theological learning completions using current BUKLOD modules",
+  "exclusions": [
+    "Social Wall and Connect community activity as academic credit",
+    "AdMob, QMP, points claims and purchases",
+    "Game/Character XP",
+    "Licensure, ordination and academic degree conferral"
+  ],
+  "authoritative_catalog": "src/data/university/buklodUniversityCatalog.json",
+  "evidence_rule": "UC thresholds plus recursively verified direct prerequisites plus exact published source competencies; no synthetic completions.",
+  "source_modules": [
+    {
+      "id": "daily_reading",
+      "existing": "Daily Bible assignments, reviewed submissions and canonical BP source linkage",
+      "uc": 1,
+      "status": "DEV_ADAPTER_PROPOSED",
+      "outcomes": [
+        "Explain the assigned passage accurately",
+        "Provide a contextual and original personal reflection"
+      ],
+      "evidence": [
+        "approved assignment submission",
+        "reviewed_at timestamp",
+        "member and source IDs",
+        "unique assignment ID"
+      ],
+      "protection": "Never award for assignment view or unreviewed reflection",
+      "backend_registry_readiness": "DEV_VERIFIED"
+    },
+    {
+      "id": "word",
+      "existing": "Daily Word/devotional reward submissions and approved reviewer state",
+      "uc": 2,
+      "status": "DEV_ADAPTER_PROPOSED",
+      "outcomes": [
+        "Summarize a devotional's Biblical idea",
+        "Apply a distinct reflection to a daily context"
+      ],
+      "evidence": [
+        "approved devotional submission",
+        "unique devotional/day ID",
+        "linked canonical ledger"
+      ],
+      "protection": "Do not double-count the same Daily Reading evidence as Word",
+      "backend_registry_readiness": "DEV_VERIFIED"
+    },
+    {
+      "id": "bible_reading",
+      "existing": "Bible chapter reading, reflection and chapter-check workflows",
+      "uc": 3,
+      "status": "SOURCE_ID_MAPPING_REQUIRED",
+      "outcomes": [
+        "Identify chapter context and genre",
+        "Explain major themes through a verified question or reflection"
+      ],
+      "evidence": [
+        "book/chapter/version",
+        "approved chapter reflection or comprehension"
+      ],
+      "protection": "Opening or scrolling a chapter is never academic verification",
+      "backend_registry_readiness": "PENDING_SOURCE"
+    },
+    {
+      "id": "children_story",
+      "existing": "Children's Story lessons, questions and evidence-based teaching session",
+      "uc": 3,
+      "status": "SOURCE_ID_MAPPING_REQUIRED",
+      "outcomes": [
+        "Retell a story faithfully and answer comprehension questions",
+        "Apply age-appropriate pedagogy with consent-protected evidence where teaching is claimed"
+      ],
+      "evidence": [
+        "distinct story ID",
+        "passed comprehension attempt",
+        "optional approved teaching-session record"
+      ],
+      "protection": "Never expose child's identity, photo or group details on public certificates",
+      "backend_registry_readiness": "PENDING_SOURCE"
+    },
+    {
+      "id": "kl",
+      "existing": "KL chapters, quiz sets, attempts and required chapter comments",
+      "uc": 5,
+      "status": "SOURCE_ID_MAPPING_REQUIRED",
+      "outcomes": [
+        "Interpret narrative and demonstrate critical comprehension",
+        "Submit original reflection/comment before unlocking further chapters"
+      ],
+      "evidence": [
+        "published chapter and version",
+        "passed quiz",
+        "required comment"
+      ],
+      "protection": "No credit for mere read-time or chapter unlocking",
+      "backend_registry_readiness": "PENDING_SOURCE"
+    },
+    {
+      "id": "abaka_foundation",
+      "existing": "ABaKa canonical A-Z/preliminaries, verified growth progress",
+      "uc": 5,
+      "status": "DEV_ADAPTER_PROPOSED",
+      "outcomes": [
+        "Demonstrate doctrinal foundations with Scripture-grounded answers"
+      ],
+      "evidence": [
+        "canonical published unit ID",
+        "passed final assessment",
+        "server source verification"
+      ],
+      "protection": "A-Z coverage must map to actual published curriculum; no synthetic catch-up",
+      "backend_registry_readiness": "DEV_VERIFIED"
+    },
+    {
+      "id": "abaka_intermediate",
+      "existing": "ABaKa continuing-doctrine intermediate difficulty",
+      "uc": 8,
+      "status": "SOURCE_ID_MAPPING_REQUIRED",
+      "outcomes": [
+        "Compare intermediate doctrinal claims using cited passages"
+      ],
+      "evidence": [
+        "published tiered unit ID",
+        "tier/rubric version",
+        "approved assessment"
+      ],
+      "protection": "Unpublished or draft doctrinal units are ineligible",
+      "backend_registry_readiness": "PENDING_SOURCE"
+    },
+    {
+      "id": "abaka_advanced",
+      "existing": "ABaKa continuing-doctrine advanced difficulty",
+      "uc": 12,
+      "status": "SOURCE_ID_MAPPING_REQUIRED",
+      "outcomes": [
+        "Apply advanced doctrinal reasoning with contextual analysis"
+      ],
+      "evidence": [
+        "published tiered unit ID",
+        "tier/rubric version",
+        "approved assessment"
+      ],
+      "protection": "Reject duplicated or unverifiable work",
+      "backend_registry_readiness": "PENDING_SOURCE"
+    },
+    {
+      "id": "abaka_deep",
+      "existing": "ABaKa continuing-doctrine deep study",
+      "uc": 16,
+      "status": "SOURCE_ID_MAPPING_REQUIRED",
+      "outcomes": [
+        "Defend a theological interpretation with fair counterargument"
+      ],
+      "evidence": [
+        "published deep-study ID",
+        "rubric",
+        "source-based evaluation"
+      ],
+      "protection": "Disputed doctrinal conclusions go to human academic governance",
+      "backend_registry_readiness": "PENDING_SOURCE"
+    },
+    {
+      "id": "formation_101_104",
+      "existing": "Official BUKLOD Formation 101-104 sequential lessons and covenant gates",
+      "uc": 8,
+      "status": "SOURCE_ID_MAPPING_REQUIRED",
+      "outcomes": [
+        "Demonstrate foundational Christian formation",
+        "Complete authentic ordered covenant and lesson gates"
+      ],
+      "evidence": [
+        "published lesson ID",
+        "stage progress and signed/validated covenant if required",
+        "approved completion"
+      ],
+      "protection": "Cannot bypass sequential gates",
+      "backend_registry_readiness": "PENDING_SOURCE"
+    },
+    {
+      "id": "formation_105",
+      "existing": "Official 105 leadership three-part curriculum",
+      "uc": 12,
+      "status": "INCOMPLETE_OFFICIAL_SOURCE",
+      "outcomes": [
+        "Demonstrate servant leadership and ethical application"
+      ],
+      "evidence": [
+        "all required published 105 lessons",
+        "verified sequential stage",
+        "application evidence"
+      ],
+      "protection": "Known unverified lesson/source gap blocks leadership completion",
+      "backend_registry_readiness": "BLOCKED_CONTENT"
+    },
+    {
+      "id": "formation_106",
+      "existing": "Assigned role-specific 106 tracks and approvals",
+      "uc": 16,
+      "status": "INCOMPLETE_OFFICIAL_SOURCE",
+      "outcomes": [
+        "Demonstrate role-specific ministry competence",
+        "Apply proper role and service ethics"
+      ],
+      "evidence": [
+        "real member track assignment",
+        "published role lessons",
+        "official role validation"
+      ],
+      "protection": "One assigned role track, not every specialty; never imply ordination",
+      "backend_registry_readiness": "BLOCKED_CONTENT"
+    },
+    {
+      "id": "formation_107",
+      "existing": "Mission and ministry 107 readiness/verification",
+      "uc": 20,
+      "status": "INCOMPLETE_OFFICIAL_SOURCE",
+      "outcomes": [
+        "Plan and evaluate responsible mission service"
+      ],
+      "evidence": [
+        "published 107 lessons",
+        "real mission project / verified practice",
+        "required covenants"
+      ],
+      "protection": "Incomplete mission or unpublished content cannot be credited",
+      "backend_registry_readiness": "BLOCKED_CONTENT"
+    },
+    {
+      "id": "saliksik_research",
+      "existing": "DEV SALIKSIK research design, citation review, original paper and defense",
+      "uc": null,
+      "status": "SEPARATE_DEV_PR_NOT_LIVE",
+      "outcomes": [
+        "Develop a reproducible research question and method",
+        "Cite valid Biblical and external sources",
+        "Defend the conclusion fairly with limitations"
+      ],
+      "evidence": [
+        "unique artifact ID",
+        "source check and originality flag",
+        "rubric version",
+        "independent reviewer decision",
+        "defense where required"
+      ],
+      "protection": "No UC for submission alone; high-stakes human governance for flagged issues",
+      "backend_registry_readiness": "DEV_BRIDGE"
+    }
+  ],
+  "competency_matrix": [
+    {
+      "code": "K01",
+      "domain": "Scripture, canon and sound interpretation",
+      "source_ids": [
+        "bible_reading",
+        "abaka_foundation",
+        "saliksik_research"
+      ]
+    },
+    {
+      "code": "K02",
+      "domain": "Doctrine of God",
+      "source_ids": [
+        "abaka_intermediate",
+        "abaka_advanced"
+      ]
+    },
+    {
+      "code": "K03",
+      "domain": "Christology and the work of Christ",
+      "source_ids": [
+        "abaka_intermediate",
+        "bible_reading",
+        "saliksik_research"
+      ]
+    },
+    {
+      "code": "K04",
+      "domain": "Holy Spirit and spiritual formation",
+      "source_ids": [
+        "abaka_advanced",
+        "word"
+      ]
+    },
+    {
+      "code": "K05",
+      "domain": "Humanity, sin and Christian anthropology",
+      "source_ids": [
+        "abaka_intermediate"
+      ]
+    },
+    {
+      "code": "K06",
+      "domain": "Salvation, grace and faith",
+      "source_ids": [
+        "abaka_intermediate",
+        "formation_101_104"
+      ]
+    },
+    {
+      "code": "K07",
+      "domain": "Church, covenants and ordinances",
+      "source_ids": [
+        "formation_101_104",
+        "abaka_advanced"
+      ]
+    },
+    {
+      "code": "K08",
+      "domain": "Prayer, reading, discernment and formation",
+      "source_ids": [
+        "daily_reading",
+        "word",
+        "kl"
+      ]
+    },
+    {
+      "code": "K09",
+      "domain": "Ethics, service and stewardship",
+      "source_ids": [
+        "abaka_advanced",
+        "formation_105"
+      ]
+    },
+    {
+      "code": "K10",
+      "domain": "Biblical genres, OT and NT interpretation",
+      "source_ids": [
+        "bible_reading",
+        "saliksik_research"
+      ]
+    },
+    {
+      "code": "K11",
+      "domain": "Christian education and storytelling",
+      "source_ids": [
+        "children_story",
+        "kl"
+      ]
+    },
+    {
+      "code": "K12",
+      "domain": "Discipleship and pastoral care",
+      "source_ids": [
+        "formation_101_104",
+        "formation_106"
+      ]
+    },
+    {
+      "code": "K13",
+      "domain": "Christian leadership and mission",
+      "source_ids": [
+        "formation_105",
+        "formation_106",
+        "formation_107"
+      ]
+    },
+    {
+      "code": "K14",
+      "domain": "Comparative and historical theology",
+      "source_ids": [
+        "abaka_deep",
+        "saliksik_research"
+      ]
+    },
+    {
+      "code": "K15",
+      "domain": "Research design, ethics and primary evidence",
+      "source_ids": [
+        "saliksik_research"
+      ]
+    },
+    {
+      "code": "K16",
+      "domain": "Research communication, critique and defense",
+      "source_ids": [
+        "saliksik_research"
+      ]
+    }
+  ],
+  "credential_profiles": [
+    {
+      "code": "C-D01",
+      "award_type": "certificate",
+      "domain": "doctrine",
+      "learning_outcomes": [
+        "Demonstrate christian foundations - abaka against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "abaka_foundation",
+        "abaka_intermediate",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D01",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-D02",
+      "award_type": "certificate",
+      "domain": "doctrine",
+      "learning_outcomes": [
+        "Demonstrate christian doctrine i against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "abaka_foundation",
+        "abaka_intermediate",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D02",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-D03",
+      "award_type": "certificate",
+      "domain": "doctrine",
+      "learning_outcomes": [
+        "Demonstrate christian doctrine ii against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "abaka_foundation",
+        "abaka_intermediate",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D03",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-D04",
+      "award_type": "certificate",
+      "domain": "doctrine",
+      "learning_outcomes": [
+        "Demonstrate systematic theology foundations against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "abaka_foundation",
+        "abaka_intermediate",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D04",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-D05",
+      "award_type": "certificate",
+      "domain": "doctrine",
+      "learning_outcomes": [
+        "Demonstrate christology and salvation against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "abaka_foundation",
+        "abaka_intermediate",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D05",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-D06",
+      "award_type": "certificate",
+      "domain": "doctrine",
+      "learning_outcomes": [
+        "Demonstrate ecclesiology and church covenants against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "abaka_foundation",
+        "abaka_intermediate",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D06",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-D07",
+      "award_type": "certificate",
+      "domain": "doctrine",
+      "learning_outcomes": [
+        "Demonstrate christian ethics and spiritual formation against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "abaka_foundation",
+        "abaka_intermediate",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D07",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-D08",
+      "award_type": "certificate",
+      "domain": "doctrine",
+      "learning_outcomes": [
+        "Demonstrate advanced doctrinal reasoning against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "abaka_foundation",
+        "abaka_intermediate",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-D08",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F01",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate buklod foundations (101-103) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F01",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F02",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate discipleship formation (104) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F02",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F03",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate biblical teaching & children's ministry against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F03",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F04",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate leadership formation (105) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F04",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F05",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate christian workers' formation (106) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F05",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F06",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate pastoral ministry formation (106) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F06",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F07",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate diaconal service formation (106) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F07",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F08",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate children's teacher formation (106) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F08",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F09",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate missionary formation (106) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F09",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F10",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate ministry head formation (106) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F10",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-F11",
+      "award_type": "certificate",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate mission leadership formation (107) against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-F11",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-R01",
+      "award_type": "certificate",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate saliksik research literacy against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-R01",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-R02",
+      "award_type": "certificate",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate biblical exegetical research against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-R02",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-R03",
+      "award_type": "certificate",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate comparative theological research against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-R03",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-R04",
+      "award_type": "certificate",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate applied ministry research against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-R04",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S01",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate scripture devotion against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S01",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S02",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate word and spiritual reflection against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S02",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S03",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate bible reading foundations against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S03",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S04",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate gospel and life of christ against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S04",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S05",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate old testament foundations against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S05",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S06",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate new testament foundations against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S06",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S07",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate biblical storytelling and narratives against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S07",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S08",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate kl interpretation and moral reasoning against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S08",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "C-S09",
+      "award_type": "certificate",
+      "domain": "scripture",
+      "learning_outcomes": [
+        "Demonstrate bible interpretation and context against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "daily_reading",
+        "word",
+        "bible_reading",
+        "children_story",
+        "kl",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#C-S09",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D01",
+      "award_type": "diploma",
+      "domain": "integrated",
+      "learning_outcomes": [
+        "Demonstrate biblical foundations against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "bible_reading",
+        "abaka_foundation",
+        "formation_101_104",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D01",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D02",
+      "award_type": "diploma",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate christian discipleship against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D02",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D03",
+      "award_type": "diploma",
+      "domain": "education",
+      "learning_outcomes": [
+        "Demonstrate biblical narrative and interpretation against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "children_story",
+        "kl",
+        "formation_101_104",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D03",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D04",
+      "award_type": "diploma",
+      "domain": "integrated",
+      "learning_outcomes": [
+        "Demonstrate christian doctrine against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "bible_reading",
+        "abaka_foundation",
+        "formation_101_104",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D04",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D05",
+      "award_type": "diploma",
+      "domain": "education",
+      "learning_outcomes": [
+        "Demonstrate christian education against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "children_story",
+        "kl",
+        "formation_101_104",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D05",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D06",
+      "award_type": "diploma",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate christian leadership against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D06",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D07",
+      "award_type": "diploma",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate biblical theology against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D07",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D08",
+      "award_type": "diploma",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate christian ministry against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D08",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "D09",
+      "award_type": "diploma",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate mission and research leadership against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#D09",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": []
+    },
+    {
+      "code": "B01",
+      "award_type": "bachelors_completion",
+      "domain": "integrated",
+      "learning_outcomes": [
+        "Demonstrate biblical studies against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
+      ],
+      "source_candidates": [
+        "bible_reading",
+        "abaka_foundation",
+        "formation_101_104",
+        "saliksik_research",
+        "formation_105",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B01",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
+    },
+    {
+      "code": "B02",
+      "award_type": "bachelors_completion",
+      "domain": "education",
+      "learning_outcomes": [
+        "Demonstrate christian education against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
+      ],
+      "source_candidates": [
+        "children_story",
+        "kl",
+        "formation_101_104",
+        "saliksik_research",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "daily_reading",
+        "word"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B02",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
+    },
+    {
+      "code": "B03",
+      "award_type": "bachelors_completion",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate theology against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced",
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B03",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
+    },
+    {
+      "code": "B04",
+      "award_type": "bachelors_completion",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate discipleship and christian formation against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B04",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
+    },
+    {
+      "code": "B05",
+      "award_type": "bachelors_completion",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate christian leadership against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B05",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
+    },
+    {
+      "code": "B06",
+      "award_type": "bachelors_completion",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate biblical research against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced",
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B06",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
+    },
+    {
+      "code": "B07",
+      "award_type": "bachelors_completion",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate ministry and mission studies against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#B07",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "abaka_foundation",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Must verify exact published 101-105 evidence and specialization research source, not just credits."
+    },
+    {
+      "code": "M01",
+      "award_type": "masters_completion",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate biblical theology against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric.",
+        "Document advanced capstone methodology, independent source validation, criticism and structured defense; hold unsupported results."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced",
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_deep",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M01",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
+    },
+    {
+      "code": "M02",
+      "award_type": "masters_completion",
+      "domain": "education",
+      "learning_outcomes": [
+        "Demonstrate christian education against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric.",
+        "Document advanced capstone methodology, independent source validation, criticism and structured defense; hold unsupported results."
+      ],
+      "source_candidates": [
+        "children_story",
+        "kl",
+        "formation_101_104",
+        "saliksik_research",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "daily_reading",
+        "word"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M02",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
+    },
+    {
+      "code": "M03",
+      "award_type": "masters_completion",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate theology and ministry against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric.",
+        "Document advanced capstone methodology, independent source validation, criticism and structured defense; hold unsupported results."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M03",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
+    },
+    {
+      "code": "M04",
+      "award_type": "masters_completion",
+      "domain": "formation",
+      "learning_outcomes": [
+        "Demonstrate missiology and christian leadership against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric.",
+        "Document advanced capstone methodology, independent source validation, criticism and structured defense; hold unsupported results."
+      ],
+      "source_candidates": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "children_story",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M04",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
+    },
+    {
+      "code": "M05",
+      "award_type": "masters_completion",
+      "domain": "research",
+      "learning_outcomes": [
+        "Demonstrate theological research against the existing published source-evidence requirement.",
+        "Present authenticated completion or assessment evidence, with accurate source attribution and no duplicate academic credit.",
+        "Integrate doctrinal, formation and Biblical competencies through an original SALIKSIK research artifact evaluated under a versioned rubric.",
+        "Document advanced capstone methodology, independent source validation, criticism and structured defense; hold unsupported results."
+      ],
+      "source_candidates": [
+        "saliksik_research",
+        "bible_reading",
+        "abaka_advanced",
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_deep",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word"
+      ],
+      "evidence_gate_ref": "src/data/university/buklodUniversityCatalog.json#M05",
+      "prerequisite_ref": "canonical_catalog",
+      "status": "DRAFT_MAPPING_NOT_PROOF_OF_COMPLETION",
+      "source_candidates_are_planning_only": true,
+      "required_common_source_families": [
+        "formation_101_104",
+        "formation_105",
+        "formation_106",
+        "formation_107",
+        "abaka_foundation",
+        "abaka_advanced",
+        "abaka_deep",
+        "bible_reading",
+        "kl",
+        "children_story",
+        "daily_reading",
+        "word",
+        "saliksik_research"
+      ],
+      "advanced_evidence_note": "Requires genuine assigned 106 track, all official 101-107 milestones and independently verified original capstone/defense."
+    }
+  ],
+  "pilot_programs": [
+    {
+      "code": "C-S01",
+      "status": "PILOT_PROPOSED",
+      "existing_modules": [
+        "daily_reading"
+      ],
+      "outcomes": [
+        "Identify and explain 20 distinct assigned Bible readings",
+        "Provide assessable original reflections linked to each approved assignment"
+      ],
+      "completion": [
+        "At least 20 unique verified Daily Reading assignments",
+        "At least 30 lifetime UC from verified unique events, including other eligible modules",
+        "Source IDs, reviewer state, member identity and dates reconciled"
+      ],
+      "appeal": "Allow documented result correction; don't issue based on the student's claimed count"
+    },
+    {
+      "code": "C-D01",
+      "status": "PILOT_PROPOSED",
+      "existing_modules": [
+        "abaka_foundation"
+      ],
+      "outcomes": [
+        "Explain foundational doctrinal themes with accurate Scripture support",
+        "Pass the approved questions of all existing required ABaKa units"
+      ],
+      "completion": [
+        "Published 26 canonical A-Z units and any required preliminaries, only if independently verified",
+        "At least 150 lifetime UC",
+        "Correct mapping from historical lesson IDs into versioned published units"
+      ],
+      "appeal": "Any discrepancy in published canonical mapping blocks award"
+    },
+    {
+      "code": "C-F01",
+      "status": "PILOT_PROPOSED",
+      "existing_modules": [
+        "formation_101_104"
+      ],
+      "outcomes": [
+        "Demonstrate the prescribed 101-103 formation outcomes",
+        "Complete required authentic covenants and evidence steps"
+      ],
+      "completion": [
+        "Complete published official 101-103 source milestones in sequence",
+        "At least 250 lifetime UC",
+        "Official verification/approval where required"
+      ],
+      "appeal": "Incomplete historical stage records trigger reconciliation, not auto-pass"
+    }
+  ],
+  "quality_objectives": [
+    {
+      "id": "QO-01",
+      "measure": "Duplicate or unverified UC events settled",
+      "target": "0",
+      "method": "Unique event-source and reconciliation regression tests",
+      "status": "TARGET_NOT_YET_MEASURED"
+    },
+    {
+      "id": "QO-02",
+      "measure": "Issued awards with 100% prerequisite/evidence snapshot",
+      "target": "100%",
+      "method": "Server-only issuance and sample audit",
+      "status": "TARGET_NOT_YET_MEASURED"
+    },
+    {
+      "id": "QO-03",
+      "measure": "Learner appeal acknowledgement",
+      "target": "within 5 working days (proposed)",
+      "method": "Case timestamps and owner",
+      "status": "PROPOSED_NOT_IMPLEMENTED"
+    },
+    {
+      "id": "QO-04",
+      "measure": "Active pilot lessons with approved syllabus/outcomes/rubric/source version",
+      "target": "100%",
+      "method": "Curriculum approval log",
+      "status": "TARGET_NOT_YET_MEASURED"
+    },
+    {
+      "id": "QO-05",
+      "measure": "Corrective actions with effectiveness check",
+      "target": "100%",
+      "method": "CAPA register and next review",
+      "status": "TARGET_NOT_YET_MEASURED"
+    }
+  ],
+  "prohibited_certification_claims": [
+    "ISO-certified",
+    "ISO-accredited",
+    "CHED-recognized",
+    "degree granted",
+    "professional license conferred"
+  ],
+  "backend_source_registry": "supabase/migrations/20261124030000_buklod_academy_source_validator_registry.sql"
+}
