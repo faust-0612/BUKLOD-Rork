@@ -36,6 +36,12 @@ export type AbcLesson = {
   sourcePages: [number, number];
   blocks: AbcBlock[];
   references: FaithBibleReference[];
+  seriesKey?: string;
+  seriesTitle?: string;
+  difficulty?: 'foundation' | 'intermediate' | 'advanced' | 'deep';
+  prerequisiteId?: string;
+  rewardPoints?: number;
+  assessment?: { prompt: string; options: string[] };
 };
 
 export const ABC_SOURCE = {
