@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Animated,
   Modal,
@@ -16,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
+import { rankVisualMilestone, nextRankVisualMilestone } from '@/lib/buklodRankVisualMilestones';
 
 type RankProgress = {
   lifetime_points: number;
@@ -55,17 +57,28 @@ export default function CircleRankProgressionScreen() {
   const [error, setError] = useState('');
   const requestId = useRef(0);
   const [rankUp, setRankUp] = useState<RankProgress | null>(null);
-  const medalScale = useRef(new Animated.Value(0.84)).current;
+  const medalScale = useRef(new Animated.Value(1)).current;
+  const medalOpacity = useRef(new Animated.Value(1)).current;
+  const [reduceMotion, setReduceMotion] = useState(true);
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then(v => { if (mounted) setReduceMotion(v); }).catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => { mounted = false; subscription.remove(); };
+  }, []);
 
   useEffect(() => {
     if (!rankUp) return;
-    medalScale.setValue(0.84);
-    const animation = Animated.spring(medalScale, {
-      toValue: 1, friction: 5, tension: 78, useNativeDriver: true,
-    });
+    medalScale.setValue(reduceMotion ? 1 : 0.84);
+    medalOpacity.setValue(reduceMotion ? 1 : 0);
+    if (reduceMotion) return;
+    const animation = Animated.parallel([
+      Animated.spring(medalScale, { toValue: 1, friction: 5, tension: 78, useNativeDriver: true, isInteraction: false }),
+      Animated.timing(medalOpacity, { toValue: 1, duration: 520, useNativeDriver: true, isInteraction: false }),
+    ]);
     animation.start();
     return () => animation.stop();
-  }, [rankUp, medalScale]);
+  }, [rankUp, medalScale, medalOpacity, reduceMotion]);
 
   const load = useCallback(async (refresh = false) => {
     const request = ++requestId.current;
@@ -145,6 +158,9 @@ export default function CircleRankProgressionScreen() {
 
   const percent = Math.min(100, Math.max(0, number(progress?.progress_percent)));
   const currentOrder = number(progress?.rank_order);
+  const nextMilestone = nextRankVisualMilestone(currentOrder);
+  const celebrationMilestone = rankVisualMilestone(number(rankUp?.rank_order));
+  const celebrationNext = nextRankVisualMilestone(number(rankUp?.rank_order));
 
   return (
     <ScrollView
@@ -220,6 +236,14 @@ export default function CircleRankProgressionScreen() {
                   ' (' + money(progress.next_rank_points) + ' total)'
                 : 'Maximum Circle Rank reached'}
             </Text>
+            {nextMilestone && progress.next_rank_name === nextMilestone.rankName && (
+              <View style={styles.nextPreview}>
+                <Text style={styles.previewEyebrow}>NEXT COLLECTION · PREVIEW</Text>
+                <Text style={styles.previewTitle}>{nextMilestone.rankName}</Text>
+                <Text style={styles.previewDetail}>{nextMilestone.description}</Text>
+                <Text style={styles.previewDetail}>Visual privileges in development.</Text>
+              </View>
+            )}
             <View style={styles.periodRow}>
               <Text style={styles.periodText}>This week: +{money(progress.weekly_points)}</Text>
               <Text style={styles.periodText}>This month: +{money(progress.monthly_points)}</Text>
@@ -295,16 +319,25 @@ export default function CircleRankProgressionScreen() {
         onRequestClose={() => setRankUp(null)}
       >
         <View style={styles.celebrationBackdrop}>
-          <Animated.View style={[styles.celebrationCard, { transform: [{ scale: medalScale }] }]}>
+          <Animated.View style={[styles.celebrationCard, { opacity: medalOpacity, transform: [{ scale: medalScale }] }]}>
             <MaterialCommunityIcons name="creation" size={24} color="#C39125" />
             <Text style={styles.celebrationEyebrow}>BUKLOD MILESTONE UNLOCKED</Text>
             <BuklodCircleRankBadge rankName={rankUp?.rank_name} size={112} />
-            <Text style={styles.celebrationTitle}>Congratulations! Rank up!</Text>
+            <Text accessibilityRole="header" style={styles.celebrationTitle}>Congratulations! Rank up!</Text>
             <Text style={styles.celebrationRank}>{rankUp?.rank_name}</Text>
             <Text style={styles.celebrationDetail}>
               Naabot mo ang bagong permanenteng Circle Rank!
               Nananatili ito kahit magpalit ka ng Character o bumalik iyon sa Level 1.
             </Text>
+            {celebrationMilestone && <View style={styles.celebrationPreview}>
+              <Text style={styles.celebrationEyebrow}>YOUR COLLECTION · PREVIEW</Text>
+              <Text style={styles.collectionDetail}>{celebrationMilestone.description}</Text>
+            </View>}
+            {celebrationNext && rankUp?.next_rank_name === celebrationNext.rankName && <View style={styles.celebrationPreview}>
+              <Text style={styles.celebrationEyebrow}>NEXT TARGET · {celebrationNext.rankName}</Text>
+              <Text style={styles.collectionDetail}>{celebrationNext.description}</Text>
+              <Text style={styles.collectionDetail}>{money(rankUp.points_to_next)} BP to go</Text>
+            </View>}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close Circle Rank recognition"
@@ -357,6 +390,12 @@ const styles = StyleSheet.create({
   },
   trackFill: { backgroundColor: '#F2D66F', height: '100%', borderRadius: 7 },
   nextRank: { color: '#FFFFFF', fontSize: 13, fontWeight: '700', marginTop: 13 },
+  nextPreview: { marginTop: 14, padding: 12, borderRadius: 12, backgroundColor: '#154B35', borderWidth: 1, borderColor: '#72A78A' },
+  previewEyebrow: { color: '#F5D783', fontSize: 10, fontWeight: '900' },
+  previewTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', marginTop: 4 },
+  previewDetail: { color: '#D5F4DF', fontSize: 12, lineHeight: 18, marginTop: 4 },
+  celebrationPreview: { alignSelf: 'stretch', backgroundColor: '#EFF7F1', borderRadius: 12, padding: 9, marginTop: 8 },
+  collectionDetail: { color: '#254B36', fontSize: 12, lineHeight: 18, textAlign: 'center' },
   periodRow: {
     borderTopColor: '#448862', borderTopWidth: 1, paddingTop: 12,
     marginTop: 15, flexDirection: 'row', flexWrap: 'wrap', gap: 16,
