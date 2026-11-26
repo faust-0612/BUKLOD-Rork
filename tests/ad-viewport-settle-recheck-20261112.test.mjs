@@ -17,7 +17,10 @@ test('fast scroll after initial visibility must remeasure before native ad eligi
   assert.match(hook,/setTimeout\(\(\) => \{[\s\S]*?measureInWindow\(\(sx, sy, sw, sh\) =>/);
   assert.match(hook,/isBuklodAdSlotVisible\([\s\S]*?setEligible\(true\)/);
   assert.match(hook,/generation !== generationRef\.current/);
-  assert.match(hook,/clearInterval\(poll\)/);
-  assert.match(hook,/app\.remove\(\)/);
+  assert.match(hook,/clearInterval\(viewportPollTimer\)/);
+  assert.match(hook,/viewportAppState\?\.remove\(\)/);
+   assert.match(hook,/viewportProbes\.delete\(probe\)/);
+   assert.match(hook,/if \(viewportProbes\.size !== 0\) return/);
+   assert.match(hook,/unsubscribe\(\)/);
   assert.ok(!hook.includes('expo-video'));
 });

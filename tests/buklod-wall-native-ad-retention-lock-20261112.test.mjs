@@ -59,7 +59,7 @@ test('loaded native survives transient lock but is never requested or rendered w
   assert.match(native, /const keepNativeLifecycle =/);
   assert.match(native, /nativeRequestStarted\.current && !nativeFailed/);
   assert.match(native, /if \(keepNativeLifecycle\) return/);
-  assert.match(native, /if \(!keepNativeLifecycle \|\| !canStartNativeRef\.current/);
+  assert.match(native, /if \(!screenFocusRef\.current \|\| !keepNativeLifecycle \|\| !canStartNativeRef\.current/);
   assert.match(native, /if \(!active \|\| !routeSafe\) return null/);
   assert.match(native, /NativeAdEventType\.IMPRESSION/);
   assert.match(native, /reserveBuklodPassiveAdRequest\(placementId, requestKey\)/);

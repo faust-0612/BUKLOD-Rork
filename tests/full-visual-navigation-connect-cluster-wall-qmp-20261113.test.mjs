@@ -83,7 +83,7 @@ test('Home QMP disclosure preserves the personal estimate and nonwithdrawable wa
   const s=read('src/components/BuklodCommunityContributionCard.tsx');
   assert.match(s,/accessibilityState=\{\{ expanded: detailsOpen \}\}/);
   assert.match(s,/setDetailsOpen\(value => !value\)/);
-  assert.match(s,/ESTIMATE ONLY · NOT FINAL · NOT WITHDRAWABLE/);
+  assert.match(s,/ESTIMATE ONLY · NOT FINAL · NOT WITHDRAWABLE/i);
   assert.match(s,/setData\(null\)/);
   const estimate=s.indexOf('accessibilityLabel="View my community contributions and earnings"');
   const disclosureEnd=s.indexOf('</View>}',s.indexOf('{detailsOpen &&'));

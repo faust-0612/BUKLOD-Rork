@@ -11,7 +11,7 @@ test('Android Wall feed NativeAd fallback waits for current row visibility', () 
   assert.ok(android.includes('useBuklodCommunityInlineVisibility(slotId)'));
   assert.ok(android.includes("surface !== 'wall' || firstView || !slotId || currentListVisibility"));
   assert.ok(android.includes('!canAttempt ||\n      !currentlyVisible ||\n      !nativeFailed'));
-  assert.ok(android.includes('if (!bannerFailed || !adNetworkAvailable || !currentlyVisible) return;'));
+  assert.ok(android.includes('if (!screenFocused || !bannerFailed || !adNetworkAvailable || !currentlyVisible) return;'));
   assert.ok(android.includes('currentlyVisible,'));
   assert.ok(viewability.includes('visibleCommunityInlineIds.has(slotId)'));
   assert.ok(viewability.includes('publishVisibleCommunityInlineIds(new Set(incoming))'));

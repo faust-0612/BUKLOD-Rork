@@ -46,7 +46,7 @@ test('card financial privacy, monthly/lifetime separation, noncash guidance and 
     'Lifetime QMP:',
     'ESTIMATED REVENUE SHARE',
     'No safe estimate yet',
-    'NOT WITHDRAWABLE',
+    'Estimate only · Not final · Not withdrawable',
     'HOW CAN I INCREASE MY SHARE?',
     "router.push('/community-contribution?guide=1'",
   ]) assert.ok(card.includes(anchor), 'Missing preserved contribution-card contract: ' + anchor);

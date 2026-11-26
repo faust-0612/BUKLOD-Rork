@@ -19,12 +19,16 @@ test('before midnight Dec 6 PHT Season2 production is forbidden even with author
     now:now('2026-12-05T16:00:00.000Z'),sourceSha:sha,
     season2Files:withSeason}).allowed,false);
 });
-test('after Dec 6 explicit exact-source and audited owner authorization still required',()=>{
+test('after Dec 6 Season2 remains blocked despite historical authorization',()=>{
   const record={version:1,authorized:true,sourceSha:sha,productionScope:'season2'};
   for(const x of guard.REQUIRED_APPROVAL_EVIDENCE)record[x]='verified-evidence-'+x;
   const args={target:'production',now:now('2026-12-06T00:00:00Z'),
     sourceSha:sha,season2Files:withSeason};
-  assert.equal(guard.evaluateRelease({...args,approval:record}).allowed,true);
+  assert.equal(guard.evaluateRelease({...args,approval:record}).allowed,false);
+   assert.equal(
+     guard.evaluateRelease({...args,approval:record}).reason,
+     'SEASON2_PRODUCTION_EXPLICIT_OWNER_HOLD'
+   );
   assert.equal(guard.evaluateRelease({...args,approval:{...record,sourceSha:'b'.repeat(40)}}).allowed,false);
   for(const x of guard.REQUIRED_APPROVAL_EVIDENCE)
     assert.equal(guard.evaluateRelease({...args,approval:{...record,[x]:''}}).allowed,false);

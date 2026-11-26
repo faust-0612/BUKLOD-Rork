@@ -21,7 +21,7 @@ test('monthly reset explanation distinguishes lifetime total from monthly contri
 
 test('financial estimate remains read-only, provisional and non-withdrawable', () => {
   assert.match(card, /ESTIMATED REVENUE SHARE/);
-  assert.match(card, /NOT WITHDRAWABLE/);
+  assert.match(card, /Estimate only · Not final · Not withdrawable/i);
   assert.match(card, /No safe estimate yet/);
   assert.match(card, /Below ₱0\.01/);
 });
