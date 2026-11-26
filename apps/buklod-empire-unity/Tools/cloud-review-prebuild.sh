@@ -4,12 +4,12 @@ set -euo pipefail
 # The target is isolated; no publishing, no store credentials.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 test -f ProjectSettings/ProjectVersion.txt
-grep -Fx 'm_EditorVersion: 6000.0.86f1' ProjectSettings/ProjectVersion.txt
+tr -d '\r' < ProjectSettings/ProjectVersion.txt | grep -Fx 'm_EditorVersion: 6000.0.86f1'
 test -n "${DEVOPS_ENV:-}"
 node -e 'if(Number(process.versions.node.split(".")[0])<18)throw Error("Node 18+ required")'
 py=""
 for candidate in python3 python; do
-  if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; assert sys.version_info >= (3,10)' >/dev/null 2>&1; then py="$candidate"; break; fi
+  if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; assert (3,10) <= sys.version_info[:2] <= (3,13)' >/dev/null 2>&1; then py="$candidate"; break; fi
 done
 test -n "$py"
 # Use a native executable path so Node can spawn it on Windows.

@@ -1,0 +1,5 @@
+# Keep vendor Git-blob integrity on Windows runners; scripts must use Unix endings.
+Assets/ThirdParty/** -text
+Tools/AssetCandidates/** -text
+Tools/*.sh text eol=lf
+ProjectSettings/ProjectVersion.txt text eol=lf
