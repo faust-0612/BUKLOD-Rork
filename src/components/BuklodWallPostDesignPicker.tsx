@@ -3,7 +3,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type TextStyle
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, Ellipse, Path } from 'react-native-svg';
 import BuklodLivingWallArt from '@/components/BuklodLivingWallArt';
 import { rankBonusFrameForViewer, type RankBonusFrame } from '@/lib/buklodRankBonusFrames';
-import type { WallPostStyle } from '@/lib/buklodWallPostStylePersistence';
+import {canSelectWallAlignment, type WallPostStyle, type WallAlignment} from '@/lib/buklodWallPostStylePersistence';
 import { BUKLOD_CIRCLE_RANK_FAMILIES } from '@/lib/buklodCircleRankArt';
 import { availableWallPostDesigns, resolveWallPostDesign, WALL_POST_DESIGNS, WALL_FONT_PRESETS, canSelectWallFont, wallDesignMotionAllowed, type WallPostDesign, type WallFontId } from '@/lib/buklodWallPostDesigns';
 
@@ -47,14 +47,14 @@ export function WallPostDesignSurface({ design, children, active=false }: { desi
 }
 
 /** Picker receives the canonical claimed rank; the server must independently authorize writes. */
-export function WallPostDesignPicker({ rankName, value, onChange, disabled=false, previewText, fontId='standard', animated=false, bonusKey=null }: {
-  rankName?:string|null; value:string|null; onChange:(id:string|null)=>void; disabled?:boolean; previewText?:string; fontId?:WallFontId; animated?:boolean; bonusKey?:string|null;
+export function WallPostDesignPicker({ rankName, value, onChange, disabled=false, previewText, fontId='standard', animated=false, bonusKey=null, alignment='auto' }: {
+  rankName?:string|null; value:string|null; onChange:(id:string|null)=>void; disabled?:boolean; previewText?:string; fontId?:WallFontId; animated?:boolean; bonusKey?:string|null; alignment?:WallAlignment;
 }) {
   const allowed = new Set(availableWallPostDesigns(rankName).map(d=>d.id));
   const selected=value&&allowed.has(value)?resolveWallPostDesign(value):null;
   const frame=rankBonusFrameForViewer(bonusKey);
   const preview=selected?<WallPostDesignSurface design={selected} active={!disabled&&animated&&wallDesignMotionAllowed(selected,rankName)}>
-      <Text numberOfLines={6} style={{color:selected.ink,fontSize:23,lineHeight:31,fontWeight:'800',textAlign:'center',...wallFontTextStyle(fontId)}}>{previewText?.trim()||'Your words. Your story.'}</Text>
+      <Text numberOfLines={6} style={{color:selected.ink,fontSize:23,lineHeight:31,fontWeight:'800',textAlign:alignment==='auto'?'center':alignment,...wallFontTextStyle(fontId)}}>{previewText?.trim()||'Your words. Your story.'}</Text>
     </WallPostDesignSurface>:null;
   return <View style={styles.picker}>
     {preview&&(frame?<WallRankBonusFrame frame={frame}>{preview}</WallRankBonusFrame>:preview)}
@@ -120,7 +120,7 @@ export function WallPostStyleEditor({rankName,value,onChange,previewText,disable
    </Pressable>
    {open&&<>
     <WallPostDesignPicker rankName={rankName} value={value.designId} onChange={id=>onChange({...value,designId:id,animated:false})}
-      disabled={disabled} previewText={previewText} fontId={value.fontId} animated={value.animated} bonusKey={value.bonusKey}/>
+      disabled={disabled} previewText={previewText} fontId={value.fontId} animated={value.animated} bonusKey={value.bonusKey} alignment={value.alignment}/>
     <Text style={styles.group}>Typography</Text>
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       {WALL_FONT_PRESETS.map(font=>{
@@ -132,7 +132,14 @@ export function WallPostStyleEditor({rankName,value,onChange,previewText,disable
         </Pressable>;
       })}
     </ScrollView>
-    {!design&&(rankBonusFrameForViewer(value.bonusKey)?<WallRankBonusFrame frame={rankBonusFrameForViewer(value.bonusKey)!}><Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:'center',padding:20},wallFontTextStyle(value.fontId)]}>{previewText}</Text></WallRankBonusFrame>:<Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:'center'},wallFontTextStyle(value.fontId)]}>{previewText}</Text>)}
+    <Text style={styles.group}>Text alignment · Circle Starter III</Text>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      {(['auto','left','center','right'] as const).map(alignment=>{
+        const locked=!canSelectWallAlignment(alignment,rankName);
+        return <Pressable key={alignment} disabled={disabled||locked} accessibilityRole="button" accessibilityState={{disabled:disabled||locked,selected:value.alignment===alignment}} onPress={()=>onChange({...value,alignment})} style={[styles.normal,{marginRight:6,opacity:locked?0.5:1},value.alignment===alignment&&styles.selected]}><Text style={styles.normalText}>{alignment}</Text></Pressable>;
+      })}
+    </ScrollView>
+    {!design&&(rankBonusFrameForViewer(value.bonusKey)?<WallRankBonusFrame frame={rankBonusFrameForViewer(value.bonusKey)!}><Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:value.alignment==='auto'?'center':value.alignment,padding:20},wallFontTextStyle(value.fontId)]}>{previewText}</Text></WallRankBonusFrame>:<Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:value.alignment==='auto'?'center':value.alignment},wallFontTextStyle(value.fontId)]}>{previewText}</Text>)}
     {redeemedBonusKeys.length>0&&<><Text style={styles.group}>Redeemed signature frames</Text><ScrollView horizontal><Pressable style={styles.normal} onPress={()=>onChange({...value,bonusKey:null})} disabled={disabled}><Text style={styles.normalText}>None</Text></Pressable>{redeemedBonusKeys.map(key=>{const frame=rankBonusFrameForViewer(key);return frame?<Pressable key={key} disabled={disabled} accessibilityRole="button" accessibilityState={{selected:value.bonusKey===key}} onPress={()=>onChange({...value,bonusKey:key})} style={[styles.normal,{marginHorizontal:4,borderColor:frame.color},value.bonusKey===key&&styles.selected]}><Text style={styles.normalText}>{frame.title}</Text></Pressable>:null;})}</ScrollView></>}
     {design&&<Pressable disabled={disabled||!motionAllowed} accessibilityRole="switch" accessibilityState={{checked:value.animated,disabled:disabled||!motionAllowed}}
        onPress={()=>onChange({...value,animated:!value.animated})} style={styles.normal}>
