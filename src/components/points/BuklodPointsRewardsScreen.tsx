@@ -39,16 +39,27 @@ import { DEFAULT_CHARACTER } from '@/lib/buklodCharacter';
 import { resolvePersonDisplayName } from '@/lib/buklodPersonDisplay';
 import {
   claimBuklodRewardEvent,
+  invalidateBuklodPointsAccountCache,
   loadBuklodClaimGroups,
   loadBuklodPointsDashboard,
   type BuklodClaimGroup,
   type BuklodPointsDashboard,
 } from '@/lib/buklodRewards';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/providers/AuthProvider';
-import BuklodAdLightRewardCard from '@/components/BuklodAdLightRewardCard';
+import {
+  loadBuklodClaimCards,
+  loadBuklodAdBonusStatus,
+  prepareBuklodAdBonus,
+  cancelBuklodAdBonus,
+  waitForBuklodAdBonus,
+  type BuklodClaimCard,
+  type BuklodAdBonusStatus,
+} from '@/lib/buklodPointsAdBonus';
+import { showBuklodPointsVerifiedAd } from '@/lib/buklodPointsRewardedAd';
 import BuklodSeason2ApprovedExclusivePreview from '@/components/points/BuklodSeason2ApprovedExclusivePreview';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
+import { useAuth } from '@/providers/AuthProvider';
+import BuklodAdLightRewardCard from '@/components/BuklodAdLightRewardCard';
 import BuklodKingdomAdSlot from '@/components/BuklodKingdomAdSlot';
 import { warmBuklodAdOpportunity, showBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 
@@ -412,8 +423,8 @@ function FeedbackToggle({
   );
 }
 
-// Shared live backend: fail closed outside production, no test claims.
-const POINTS_STAGING_READ_ONLY = process.env.EXPO_PUBLIC_APP_ENV !== 'production';
+// Shared live backend: fail closed outside production. No preview claims or rewarded credits.
+const POINTS_STAGING_READ_ONLY = process.env.EXPO_PUBLIC_APP_ENV !== 'production' || isGenesisPreviewBuild();
 
 function ClaimGroupCard({
   group,
@@ -421,12 +432,24 @@ function ClaimGroupCard({
   expanded,
   motionEnabled,
   onToggle,
+  onClaim,
+  onWatch,
+  claimBusy,
+  adBusyLedger,
+  bonusEnabled,
+  bonusPoints,
 }: {
   group: BuklodClaimGroup;
-  rows: PointRow[];
+  rows: BuklodClaimCard[];
   expanded: boolean;
   motionEnabled: boolean;
   onToggle: () => void;
+  onClaim: (card: BuklodClaimCard) => void;
+  onWatch: (ledgerId: string) => void;
+  claimBusy: boolean;
+  adBusyLedger: string | null;
+  bonusEnabled: boolean;
+  bonusPoints: number;
 }) {
   const meta = GROUP_META[group.group_key] ?? GROUP_META.other;
   const visibleRows = expanded ? rows : [];
@@ -489,7 +512,7 @@ function ClaimGroupCard({
           </Text>
         ) : (
           visibleRows.map((item) => (
-            <View key={item.id} style={styles.claimActivityRow}>
+            <View key={item.ledger_id} style={[styles.claimActivityRow, { flexWrap: 'wrap' }]}>
               <View style={[styles.activityGlyph, { backgroundColor: `${meta.accent}18` }]}>
                 <MaterialCommunityIcons name={meta.icon} size={14} color={meta.accent} />
               </View>
@@ -503,6 +526,32 @@ function ClaimGroupCard({
                 <Text style={styles.activityDate}>{dateLabel(item.created_at)}</Text>
               </View>
               <Text style={[styles.activityPoints, { color: meta.accent }]}>+{item.points}</Text>
+              {!POINTS_STAGING_READ_ONLY ? <View style={{ width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 7 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Claim ${item.points} BUKLOD Points for this activity`}
+                  disabled={claimBusy || adBusyLedger !== null}
+                  onPress={() => onClaim(item)}
+                  style={[styles.claimButton, { flex: 1, minWidth: 120, minHeight: 42, backgroundColor: meta.accent },
+                    (claimBusy || adBusyLedger !== null) && { opacity: 0.45 }]}>
+                  <Text style={styles.claimButtonText}>
+                    {claimBusy ? 'Claiming…' : `CLAIM +${item.points}`}
+                  </Text>
+                </Pressable>
+                {bonusEnabled && Date.now() - Date.parse(item.created_at) < 30 * 24 * 60 * 60 * 1000 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Watch optional rewarded ad for ${bonusPoints} bonus Points`}
+                    disabled={adBusyLedger !== null || claimBusy}
+                    onPress={() => onWatch(item.ledger_id)}
+                    style={[styles.claimButton, { flex: 1, minWidth: 120, minHeight: 42, backgroundColor: '#245C9E' },
+                      (adBusyLedger !== null || claimBusy) && { opacity: 0.45 }]}>
+                    <Text style={styles.claimButtonText}>
+                      {adBusyLedger === item.ledger_id ? 'VERIFYING…' : `WATCH AD +${bonusPoints} ⭐`}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View> : null}
             </View>
           ))
         )}
@@ -527,11 +576,11 @@ function ClaimGroupCard({
 
       {expanded && notLoadedCount > 0 ? (
         <Text style={styles.morePendingText}>
-          +{notLoadedCount} more pending activities{POINTS_STAGING_READ_ONLY ? ' · preview only' : ' are included in this Claim All.'}
+          +{notLoadedCount} more activities. {POINTS_STAGING_READ_ONLY ? 'Tap Load More to review.' : 'Tap Load More to claim them individually.'}
         </Text>
       ) : null}
 
-      {!expanded && <Text style={styles.morePendingText}>{POINTS_STAGING_READ_ONLY ? 'Tap to view pending activity details.' : 'Tap to view the activity breakdown. Claim All includes every verified activity.'}</Text>}
+      {!expanded && <Text style={styles.morePendingText}>{POINTS_STAGING_READ_ONLY ? 'Tap to review pending activity details.' : 'Tap to view and manually claim each verified activity.'}</Text>}
     </View>
   );
 }
@@ -544,6 +593,7 @@ const pointsViewCache = new Map<string, {
   history: PointRow[];
   evaluations: EvaluationRow[];
   rank: RankDashboard | null;
+  claims?: BuklodClaimCard[];
 }>();
 export default function BuklodPointsRewardsScreen() {
   const { user } = useAuth();
@@ -570,12 +620,21 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
 
   const [dashboard, setDashboard] = useState<BuklodPointsDashboard | null>(initialCache?.dashboard ?? null);
   const [claimGroups, setClaimGroups] = useState<BuklodClaimGroup[]>(initialCache?.groups ?? []);
+  const [claimCards, setClaimCards] = useState<BuklodClaimCard[]>(initialCache?.claims ?? []);
+  const [hasMoreClaims, setHasMoreClaims] = useState(false);
+  const [loadingMoreClaims, setLoadingMoreClaims] = useState(false);
+  const [bonusStatus, setBonusStatus] = useState<BuklodAdBonusStatus | null>(null);
+  const [adBusyLedger, setAdBusyLedger] = useState<string | null>(null);
+  const [adMessage, setAdMessage] = useState<string | null>(null);
+  const [lastClaimedLedger, setLastClaimedLedger] = useState<string | null>(null);
+  const [lastClaimedAt, setLastClaimedAt] = useState<string | null>(null);
   const [history, setHistory] = useState<PointRow[]>(initialCache?.history ?? []);
   const [historyOpen,setHistoryOpen] = useState(Boolean(exactLedgerId));
   useEffect(()=>{if(exactLedgerId)setHistoryOpen(true);},[exactLedgerId]);
   const [evaluations, setEvaluations] = useState<EvaluationRow[]>(initialCache?.evaluations ?? []);
   const [rankDashboard, setRankDashboard] = useState<RankDashboard | null>(initialCache?.rank ?? null);
   const [claimingGroup, setClaimingGroup] = useState<string | null>(null);
+  const claimActionRef = useRef(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimTechnicalError, setClaimTechnicalError] = useState<string | null>(null);
@@ -599,7 +658,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
   const motionEnabled = animationsOn && !reduceMotion;
 
   useEffect(() => {
-    warmBuklodAdOpportunity('points_claim_success');
+    if (!POINTS_STAGING_READ_ONLY) warmBuklodAdOpportunity('points_claim_success');
   }, []);
 
   const loadLeaderboard = useCallback(async (period: 'weekly' | 'monthly' | 'all_time') => {
@@ -627,6 +686,9 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     const cached = accountId ? pointsViewCache.get(accountId) : undefined;
     if (!force && cached && Date.now() - cached.loadedAt < 60_000) {
       setDashboard(cached.dashboard);setClaimGroups(cached.groups);
+      setClaimCards(cached.claims ?? []);
+      setHasMoreClaims((cached.claims?.length ?? 0) === 100);
+      void loadBuklodAdBonusStatus().then(setBonusStatus).catch(() => setBonusStatus(null));
       setHistory(cached.history);setEvaluations(cached.evaluations);
       setRankDashboard(cached.rank);setLoading(false);
       return;
@@ -634,6 +696,20 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     if (!accountId) { setLoading(false); return; }
     let freshDashboard: BuklodPointsDashboard | null = null;
     let freshGroups: BuklodClaimGroup[] | null = null;
+    let freshClaims: BuklodClaimCard[] | null = null;
+    // Issue independent reads together instead of stacking four network waits.
+    const dashboardRequest = loadBuklodPointsDashboard().then(
+      value => ({ value, error: null }), error => ({ value: null, error }),
+    );
+    const groupsRequest = loadBuklodClaimGroups().then(
+      value => ({ value, error: null }), error => ({ value: null, error }),
+    );
+    const claimsRequest = loadBuklodClaimCards(0, accountId).then(
+      value => ({ value, error: null }), error => ({ value: null, error }),
+    );
+    const bonusRequest = loadBuklodAdBonusStatus().then(
+      value => ({ value, error: null }), error => ({ value: null, error }),
+    );
     const [rankResult, historyResult, evaluationResult] = await Promise.all([
       supabase.rpc('get_my_buklod_rank_dashboard'),
       supabase
@@ -651,7 +727,9 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     try {
       setDashboardError('');
       setDashboardSupportCode(null);
-      const nextDashboard = await loadBuklodPointsDashboard();
+      const result = await dashboardRequest;
+      if (result.error) throw result.error;
+      const nextDashboard = result.value;
       setDashboard(nextDashboard);
       freshDashboard = nextDashboard;
     } catch (error) {
@@ -681,7 +759,9 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     }
 
     try {
-      const groups = await loadBuklodClaimGroups();
+      const result = await groupsRequest;
+      if (result.error) throw result.error;
+      const groups = result.value ?? [];
       setClaimGroups(groups);
       freshGroups = groups;
     } catch (error) {
@@ -691,12 +771,32 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
       setClaimError('Claimable activities could not be refreshed. Pull down to try again.');
     }
 
+    try {
+      const result = await claimsRequest;
+      if (result.error) throw result.error;
+      const cards = result.value ?? [];
+      setClaimCards(cards);
+      setHasMoreClaims(cards.length === 100);
+      freshClaims = cards;
+    } catch (error) {
+      console.warn('BUKLOD individual claim cards:', normalizeErrorMessage(error));
+      setClaimError('Could not load individual claim buttons. Refresh to try again.');
+    }
+    try {
+      const result = await bonusRequest;
+      if (result.error) throw result.error;
+      setBonusStatus(result.value);
+    } catch {
+      // Feature flag absent or SSV rollout not ready: never offer fake points.
+      setBonusStatus(null);
+    }
+
     if (!rankResult.error) setRankDashboard(rankResult.data as RankDashboard);
     if (!historyResult.error) setHistory((historyResult.data ?? []) as PointRow[]);
     if (!evaluationResult.error) setEvaluations((evaluationResult.data ?? []) as EvaluationRow[]);
-    if (freshDashboard && freshGroups && !rankResult.error && !historyResult.error && !evaluationResult.error) {
+    if (freshDashboard && freshGroups && freshClaims && !rankResult.error && !historyResult.error && !evaluationResult.error) {
       pointsViewCache.set(accountId, {
-        loadedAt: Date.now(), dashboard: freshDashboard, groups: freshGroups,
+        loadedAt: Date.now(), dashboard: freshDashboard, groups: freshGroups, claims: freshClaims,
         history: (historyResult.data ?? []) as PointRow[],
         evaluations: (evaluationResult.data ?? []) as EvaluationRow[],
         rank: rankResult.data as RankDashboard,
@@ -744,10 +844,22 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     setRefreshing(false);
   }, [load]);
 
-  const pendingRows = useMemo(
-    () => history.filter((item) => item.direction === 'credit' && item.claim_state === 'pending'),
-    [history],
-  );
+  const pendingRows = claimCards;
+
+  const loadMoreClaims = useCallback(async () => {
+    if (loadingMoreClaims || !hasMoreClaims) return;
+    setLoadingMoreClaims(true);
+    try {
+      const cards = await loadBuklodClaimCards(claimCards.length, accountId);
+      setClaimCards(current => [...current,
+        ...cards.filter(card => !current.some(existing => existing.ledger_id === card.ledger_id))]);
+      setHasMoreClaims(cards.length === 100);
+    } catch {
+      setClaimError('More claimable rewards could not load. Try again.');
+    } finally {
+      setLoadingMoreClaims(false);
+    }
+  }, [accountId, claimCards.length, hasMoreClaims, loadingMoreClaims]);
 
   const claimableCount = useMemo(
     () => claimGroups.reduce((sum, group) => sum + group.event_count, 0),
@@ -772,48 +884,88 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
     [playTap],
   );
 
-  const claimAll = useCallback(async () => {
+  const claimOne = useCallback(async (card: BuklodClaimCard) => {
     if (POINTS_STAGING_READ_ONLY) return;
-    if(claimingGroup!==null || claimablePoints<=0)return;
-    setClaimingGroup('all');
-    setClaimError(null);setClaimTechnicalError(null);
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(()=>undefined);
-    let awarded=0;
+    if (!accountId || claimActionRef.current || claimingGroup !== null || adBusyLedger !== null) return;
+    claimActionRef.current = true;
+    setClaimingGroup(card.event_id);
+    setClaimError(null); setClaimTechnicalError(null);
     try {
-      // Atomic one-click server claim. Economy and Profile only link here.
-      const result=await claimBuklodRewardEvent('__buklod_claim_all_eligible__');
-      awarded=result.claimed_points;
-      if(awarded<=0){
-        setClaimError('No eligible points remain. Your balance has been refreshed.');
-        await load(true);return;
+      const result = await claimBuklodRewardEvent(card.event_id);
+      if (result.claimed_points <= 0) {
+        setClaimError('This reward was already claimed. Your balance is refreshed.');
+        await load(true); return;
       }
-      setDashboard(current=>current?{...current,total_points:result.lifetime_points,
-        lifetime_points:result.lifetime_points,available_points:result.available_points,
-        pending_claimable_points:Math.max(0,current.pending_claimable_points-awarded)}:current);
-      setClaimGroups([]);
-      if(soundOn)playAudio(claimSound);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>undefined);
-      setLastSuccess({label:'All verified activities',points:awarded});
+      const awarded = result.claimed_points;
+      setLastClaimedLedger(card.ledger_id);
+      setLastClaimedAt(card.created_at);
+      if (soundOn) playAudio(claimSound);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      setLastSuccess({ label: activityLabel(card.activity_type), points: awarded });
       setCelebrationActive(motionEnabled);
-      if(result.rank_up)characterEvents?.emit({
-        type:CharacterEventType.MILESTONE_REACHED,success:true,
-        spokenText:result.rank_name?'Rank up! You are now '+result.rank_name:undefined,
+      if (result.rank_up) characterEvents?.emit({
+        type: CharacterEventType.MILESTONE_REACHED, success: true,
+        spokenText: result.rank_name ? 'Rank up! You are now ' + result.rank_name : undefined,
       });
       characterEvents?.emit({
-        type:CharacterEventType.POINTS_CLAIMED,success:true,points:awarded,
-        spokenText:awarded+' verified BUKLOD Points claimed.',
-        dialogue:'All verified activities — +'+awarded+' pts',
+        type: CharacterEventType.POINTS_CLAIMED, success: true, points: awarded,
+        spokenText: awarded + ' verified BUKLOD Points claimed.',
+        dialogue: '+ ' + awarded + ' pts',
       });
-      // An ad follows the authorized claim, never acts as a balance gate.
-      await showBuklodAdOpportunity('points_claim_success').catch(()=>false);
+      // The claim is complete before any optional, cadence-controlled interstitial.
+      await showBuklodAdOpportunity('points_claim_success').catch(() => false);
       await load(true);
-    }catch(error){
-      const technical=normalizeErrorMessage(error);
-      setClaimTechnicalError(technical);setClaimError(friendlyClaimError(technical));
-      if(awarded>0)await load(true).catch(()=>undefined);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(()=>undefined);
-    }finally{setClaimingGroup(null);}
-  },[characterEvents,claimSound,claimingGroup,claimablePoints,load,motionEnabled,soundOn]);
+    } catch (error) {
+      const technical = normalizeErrorMessage(error);
+      setClaimTechnicalError(technical);
+      setClaimError(friendlyClaimError(technical));
+      await load(true).catch(() => undefined);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
+    } finally {
+      claimActionRef.current = false;
+      setClaimingGroup(null);
+    }
+  }, [accountId, claimingGroup, adBusyLedger, load, soundOn, claimSound, motionEnabled, characterEvents]);
+
+  const watchBonus = useCallback(async (ledgerId: string) => {
+    if (POINTS_STAGING_READ_ONLY) return;
+    if (claimActionRef.current || adBusyLedger !== null || claimingGroup !== null ||
+      !accountId || !bonusStatus?.enabled || bonusStatus.remaining <= 0) return;
+    claimActionRef.current = true;
+    setAdBusyLedger(ledgerId);
+    setAdMessage('Preparing optional rewarded ad…');
+    try {
+      const session = await prepareBuklodAdBonus(ledgerId);
+      const ad = await showBuklodPointsVerifiedAd(accountId, session.nonce);
+      if (!ad.earned) {
+        // Failed/no-fill attempts must not trap the user for an hour.
+        // A completed earned callback is handled below even if closing errored.
+        await cancelBuklodAdBonus(session.nonce).catch(() => undefined);
+        setAdMessage(ad.shown
+          ? 'Complete the ad to earn bonus points.'
+          : 'Ad is not ready. No points were deducted; try again later.');
+        return;
+      }
+      setAdMessage(`Ad completed. Verifying the +${session.points} bonus with Google…`);
+      if (await waitForBuklodAdBonus(session.nonce)) {
+        setLastSuccess({ label: 'Verified rewarded ad', points: session.points });
+        setCelebrationActive(motionEnabled);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+        setAdMessage('Verified bonus added to your BUKLOD Points. ⭐');
+        setLastClaimedLedger(null);
+        setLastClaimedAt(null);
+        await invalidateBuklodPointsAccountCache();
+        await load(true);
+      } else {
+        setAdMessage(`Verification pending. Your +${session.points} Points will appear once Google confirms.`);
+      }
+    } catch (error) {
+      setAdMessage(friendlyClaimError(normalizeErrorMessage(error)));
+    } finally {
+      claimActionRef.current = false;
+      setAdBusyLedger(null);
+    }
+  }, [accountId, adBusyLedger, claimingGroup, bonusStatus, load, motionEnabled]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -1055,7 +1207,7 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
         <View style={styles.sectionHeadingRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.sectionTitle}>Ready to Claim</Text>
-            <Text style={styles.sectionSub}>{POINTS_STAGING_READ_ONLY ? 'Review completed activities · read-only preview.' : 'Review completed activities and claim points by group.'}</Text>
+            <Text style={styles.sectionSub}>{POINTS_STAGING_READ_ONLY ? 'Review completed activities · read-only preview.' : 'Review completed activities and claim each reward.'}</Text>
           </View>
           <View style={styles.readyBadge}>
             <MaterialCommunityIcons name="gift-outline" size={15} color="#A75F00" />
@@ -1079,17 +1231,29 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
             <MaterialCommunityIcons name="shield-lock-outline" size={21} color={COLORS.green} />
             <Text style={[styles.allCaughtSub, { flex: 1 }]}>STAGING PREVIEW · Review pending activities without changing live Points. Claims and ad bonus credits are disabled.</Text>
           </View>
-        ) : claimGroups.length>0&&(
-          <Pressable accessibilityRole="button" accessibilityLabel="Claim all verified BUKLOD Points"
-            disabled={claimingGroup!==null} onPress={()=>void claimAll()}
-            style={[styles.claimButton,{backgroundColor:COLORS.green,marginBottom:12,marginHorizontal:4},
-              claimingGroup!==null&&{opacity:0.55}]}>
-            <MaterialCommunityIcons name="gift-outline" size={20} color={COLORS.white}/>
-            <Text style={styles.claimButtonText}>
-              {claimingGroup!==null?'CLAIMING…':`CLAIM ALL +${claimablePoints.toLocaleString('en-PH')} PTS`}
-            </Text>
+        ) : claimGroups.length > 0 ? (
+          <Text style={styles.sectionSub}>
+            Manual claiming: open a category and claim each activity separately.
+            Watching an ad is optional and never required to claim.
+          </Text>
+        ) : null}
+        {!POINTS_STAGING_READ_ONLY && adMessage ? (
+          <View style={[styles.allCaughtUp, { marginTop: 8 }]}>
+            <MaterialCommunityIcons name="star-four-points" size={21} color={COLORS.green} />
+            <Text style={[styles.allCaughtSub, { flex: 1 }]}>{adMessage}</Text>
+          </View>
+        ) : null}
+        {!POINTS_STAGING_READ_ONLY && lastClaimedLedger && lastClaimedAt &&
+          Date.now() - Date.parse(lastClaimedAt) < 30 * 24 * 60 * 60 * 1000 &&
+          bonusStatus?.enabled && bonusStatus.remaining > 0 ? (
+          <Pressable accessibilityRole="button"
+            accessibilityLabel={`Optional watch ad to earn ${bonusStatus.points} more Points after claiming`}
+            disabled={adBusyLedger !== null || claimingGroup !== null}
+            onPress={() => void watchBonus(lastClaimedLedger)}
+            style={[styles.claimButton, { backgroundColor: '#245C9E', marginVertical: 8 }]}>
+            <Text style={styles.claimButtonText}>{`WATCH AD +${bonusStatus.points} ⭐ (OPTIONAL)`}</Text>
           </Pressable>
-        )}
+        ) : null}
 
         {claimGroups.map((group) => {
           const rows = pendingRows.filter(
@@ -1103,9 +1267,26 @@ function AccountScopedBuklodPointsRewards({ accountId }: { accountId: string }) 
               expanded={Boolean(expandedGroups[group.group_key])}
               motionEnabled={motionEnabled}
               onToggle={() => toggleGroup(group.group_key)}
+              onClaim={(card) => void claimOne(card)}
+              onWatch={(ledgerId) => void watchBonus(ledgerId)}
+              claimBusy={claimingGroup !== null}
+              adBusyLedger={adBusyLedger}
+              bonusEnabled={!POINTS_STAGING_READ_ONLY && bonusStatus?.enabled === true && bonusStatus.remaining > 0}
+              bonusPoints={bonusStatus?.points ?? 5}
             />
           );
         })}
+
+        {hasMoreClaims ? (
+          <Pressable accessibilityRole="button"
+            disabled={loadingMoreClaims}
+            onPress={() => void loadMoreClaims()}
+            style={[styles.claimButton, { backgroundColor: COLORS.green, marginVertical: 8 }]}>
+            <Text style={styles.claimButtonText}>
+              {loadingMoreClaims ? 'LOADING MORE…' : 'LOAD MORE INDIVIDUAL REWARDS'}
+            </Text>
+          </Pressable>
+        ) : null}
 
         {claimError ? (
           <View style={styles.errorCard}>

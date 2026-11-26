@@ -1,0 +1,79 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-individual-points-readonly-20261126.json",
+  "objective": "Integrate individual Points claim UI and existing read-only claim card lookup into Genesis QA; preserve fail-closed shared-backend staging, no credit/debit or rewarded ad activation.",
+  "baseRef": "cf0627e8757dda9f4b28ef4f0353ae60bd34e817",
+  "productionBaselineEvidence": "MAIN baseline 9aed7d6a; existing signed staging 2.0.6; source-only reconciliation, production untouched.",
+  "chosenApproach": "Use MAIN individual claim implementation with exact Genesis preview UI, runtime guards on both handlers and native ad entry, synchronous shared action lock, existing RLS reads; no migration or new backend API.",
+  "selectionRationale": "Preserve preview guide and original read-only guard while removing bulk claim entry; stage and MAIN differ only in explicitly preserved Genesis screen additions and new individual claim changes. Rewarded backend flag remains OFF.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-individual-points-readonly-20261126.json",
+    "src/components/points/BuklodPointsRewardsScreen.tsx",
+    "src/lib/buklodPointsAdBonus.ts",
+    "src/lib/buklodPointsRewardedAd.native.ts",
+    "src/lib/buklodPointsRewardedAd.ts",
+    "src/lib/buklodPointsRewardedAd.web.ts",
+    "src/lib/buklodRewards.ts",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "tests/genesis-206-staging-points-readonly-20261124.test.mjs"
+  ],
+  "regressionTests": [
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "tests/genesis-206-staging-points-readonly-20261124.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Integrate existing Points source with no native or dependency changes.",
+      "preservedBehaviors": [
+        "Keep account-keyed view, read-only preview, existing route and guide."
+      ],
+      "tests": [
+        "tests/genesis-206-staging-points-readonly-20261124.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-finance-points",
+      "reason": "Remove bulk claim and guard individual/rewarded handlers; do not allow staging balance changes.",
+      "preservedBehaviors": [
+        "Existing single-event RPC only in production; ad bonus stays disabled and native entry rejects nonproduction; no QMP mutation."
+      ],
+      "tests": [
+        "tests/genesis-206-staging-points-readonly-20261124.test.mjs",
+        "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
+        "tests/buklod-ad-opportunities.test.cjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Run direct handler read-only and existing RLS card mock tests, ad contract, navigation, TypeScript and combined QA.",
+    "Do not invoke real live claims or activate SSV. No new database API or deployment."
+  ],
+  "preserveBehaviors": [
+    "Existing staging guide, server-authoritative ledger, account isolation, production runtime and ad gates."
+  ],
+  "alternativeApproaches": [
+    "Blind MAIN screen replacement rejected: removes preview read-only lock.",
+    "Enable real claims in shared backend staging rejected: live balances at risk."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "ads-finance-points",
+    "ads-monetization"
+  ],
+  "publicationStatus": "QA_ONLY_NO_PUBLISH",
+  "sourceIntake": {
+    "mainSha": "def54c7f83f49f1ea832bd6f8ece00a531912673",
+    "exactBlobs": {
+      "src/lib/buklodRewards.ts": "70c4c00a656617fef28c0b40a2ce5e4459d3e2ff",
+      "src/lib/buklodPointsAdBonus.ts": "b943c750cfccae6d148820f8ebd6ce7e3b7c8de6",
+      "src/lib/buklodPointsRewardedAd.ts": "1ec09b16d73004c998cde92aa8d6acc987642d84",
+      "src/lib/buklodPointsRewardedAd.web.ts": "f47cb61421b0532eeb1d6cace0bee280b455cef2",
+      "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs": "2d4971920533c4faddd702c7ee977f30c0e0357f"
+    }
+  }
+}
