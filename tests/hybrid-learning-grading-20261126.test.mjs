@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {objectiveGrade,cacheContext,reusablePositive} from '../supabase/functions/_shared/hybrid-learning-grading.mjs';
+const groups=[["readiness of mind","eager reception","bukas ang isipan"],["searching scripture","searched the scriptures daily"]];
+const ctx={"module":"lesson","questionContext":{"questionType":"generated","serverVerifiedContentHash":"hash1","questionText":"Q"},"authoritativeSource":{"content_hash":"hash1","content":"Source"},"attachments":[]};
+const row={"status":"acceptable","fail_open":false,"model":"gemini-3.6-flash","feedback":{"headline":"ok"},"scores":{"overall":0.95,"relevance":0.9,"depth":0.9,"clarity":0.9,"effort":0.9}};
+test('Berea exact aliases, reversed order, distinct concepts and negation',()=>{
+ for(const [answers,want] of [[["Readiness of mind","Searching scripture"],{"status":"resolved","units":2}],[["Searching scripture","readiness of mind"],{"status":"resolved","units":2}],[["readiness of mind","bukas ang isipan"],{"status":"unresolved","units":1}],[["not readiness of mind","not searching scripture"],{"status":"unresolved","units":0}],[["readiness of mind","readiness of mind"],{"status":"invalid","units":0}],[["enthusiastic to learn","searching scripture"],{"status":"unresolved","units":1}]])assert.deepEqual(objectiveGrade({answers,groups,required:2}),want);
+});
+test('maximum one-to-one concept matching',()=>{assert.deepEqual(objectiveGrade({answers:['a','b'],groups:[['a','b'],['a']],required:2}),{status:'resolved',units:2});assert.equal(objectiveGrade({answers:['a','wrong'],groups:[['a'],['a']],required:2}).units,1);});
+test('cache bound to trusted lesson context and no attachments',()=>{assert.equal(typeof cacheContext(ctx),'string');assert.equal(cacheContext({...ctx,attachments:['x']}),null);assert.equal(cacheContext({...ctx,questionContext:{...ctx.questionContext,questionType:'reflection'}}),null);assert.equal(cacheContext({...ctx,authoritativeSource:{...ctx.authoritativeSource,content_hash:'hash2'}}),null);assert.notEqual(cacheContext({...ctx,questionContext:{...ctx.questionContext,questionText:'Q2'}}),cacheContext(ctx));});
+test('only valid positive provider verdict can be reused',()=>{assert.ok(reusablePositive(row));assert.ok(!reusablePositive({...row,scores:{...row.scores,depth:.5}}));assert.ok(!reusablePositive({...row,fail_open:true}));assert.ok(!reusablePositive({...row,status:'needs_improvement'}));});
