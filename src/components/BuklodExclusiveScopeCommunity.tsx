@@ -1336,6 +1336,7 @@ export default function BuklodExclusiveScopeCommunity({
     const ids=event.viewableItems.map(row=>String(row.item?.id??'')).filter(Boolean).slice(0,6);
     setStyleVisibleIds(prev=>prev.join('|')===ids.join('|')?prev:ids);
   }).current;
+  const scopedStyleExtraData=useMemo(()=>wallStyles.enabled?[communityAdExtraData,wallStyles.styles,styleVisibleIds,styleScreenFocused,wallComposerOpen,commentOpen]:communityAdExtraData,[wallStyles.enabled,wallStyles.styles,styleVisibleIds,styleScreenFocused,wallComposerOpen,commentOpen,communityAdExtraData]);
   const communityViewabilityPairs = useRef([
     { viewabilityConfig: communityAdViewabilityConfig,
       onViewableItemsChanged: scopedStyleViewability },
@@ -4783,7 +4784,7 @@ return (
             item.id
         }
         extraData={
-          [communityAdExtraData,wallStyles.styles,styleVisibleIds,styleScreenFocused]
+          scopedStyleExtraData
         }
         viewabilityConfigCallbackPairs={
           communityViewabilityPairs
