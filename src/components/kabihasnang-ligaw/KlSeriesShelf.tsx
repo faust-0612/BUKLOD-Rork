@@ -57,7 +57,8 @@ function SeriesCover({row}:{row:KlSeries}){
 export function KlSeriesShelf({onOpen,isAdmin=false}:{onOpen:(row:KlSeries)=>void;isAdmin?:boolean}){
  const {rows,error,loading,reload}=useKlSeries(isAdmin);
  // Series 1 is the existing released catalog; no future placeholder or auto-create.
- const visible=rows.length?rows:[FALLBACK];
+ const permitted=rows.filter(row=>isAdmin||row.published);
+ const visible=permitted.length?permitted:[FALLBACK];
  return <View style={{gap:12}}>
   <Text style={{fontSize:27,fontWeight:'800',color:'#f6dfb0'}}>Kabihasnang Ligaw</Text>
   <Text style={{color:'#d6c8ad'}}>Piliin ang seryeng nais basahin.</Text>
