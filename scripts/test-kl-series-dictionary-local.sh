@@ -61,26 +61,26 @@ select set_config('request.jwt.claim.sub','',false);
 select test_assert(auth.uid() is null,'anonymous fixture has no carried identity');
 select test_assert(jsonb_array_length(kl_series_list_v1(false))=1,'only existing series');
 select test_assert(kl_dictionary_read_v1('10000000-0000-0000-0000-000000000003')='[]'::jsonb,'draft glossary hidden');
-do $$ begin
+do $kltest$ begin
  begin perform kl_dictionary_claim_v1(); raise exception 'FAIL: anonymous worker'; exception when insufficient_privilege then null; end;
  begin perform kl_series_list_v1(true); raise exception 'FAIL: anonymous admin'; exception when raise_exception then if sqlerrm<>'Admin only' then raise; end if; end;
-end $$;
+end $kltest$;
 reset role;
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000002',false);
-do $$ begin
+do $kltest$ begin
  begin perform kl_series_save_v1(2,'Test series',null,false); raise exception 'FAIL: member saved series'; exception when raise_exception then if sqlerrm<>'Admin only' then raise; end if; end;
  begin insert into storage.objects values('kl-series-covers','2/member.jpg'); raise exception 'FAIL: member upload'; exception when insufficient_privilege then null; end;
-end $$;
+end $kltest$;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',false);
-do $$ begin
+do $kltest$ begin
  begin perform kl_series_save_v1(2,'Test series',null,false); raise exception 'FAIL: inactive admin saved'; exception when raise_exception then if sqlerrm<>'Admin only' then raise; end if; end;
-end $$;
+end $kltest$;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
 select test_assert((kl_series_save_v1(2,'Test series',null,false)->>'published')::boolean=false,'create private series');
-do $$ begin
+do $kltest$ begin
  begin perform kl_series_save_v1(2,'Test series',null,true); raise exception 'FAIL: no cover'; exception when raise_exception then if sqlerrm<>'Upload a cover first' then raise; end if; end;
-end $$;
+end $kltest$;
 insert into storage.objects values('kl-series-covers','2/test.jpg');
 select kl_series_save_v1(2,'Test series','2/test.jpg',false);
 reset role;
@@ -98,13 +98,13 @@ select test_assert(not kl_series_cover_readable_v1('2/test.jpg'),'member cover R
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',false);
 select test_assert((select count(*) from storage.objects)=0,'inactive admin cannot read draft cover');
 reset role;
-do $$ begin
+do $kltest$ begin
  begin insert into kl_episodes values(gen_random_uuid(),3,1,'test','draft',null,null); raise exception 'FAIL: automatic series'; exception when raise_exception then if sqlerrm<>'Create the series in KL Studio first' then raise; end if; end;
-end $$;
+end $kltest$;
 insert into kl_episodes values('20000000-0000-0000-0000-000000000001',2,1,'Ulapin at Lunawen. '||repeat('May liwanag sa lupa. ',8),'approved',now(),null);
-do $$ begin
+do $kltest$ begin
  begin update kl_episodes set release_at=now() where season_number=2; raise exception 'FAIL: private release'; exception when raise_exception then if sqlerrm<>'Publish the series cover first' then raise; end if; end;
-end $$;
+end $kltest$;
 set role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',false);
 select test_assert(auth.uid()='00000000-0000-0000-0000-000000000001'::uuid,'explicit active admin identity');
@@ -116,15 +116,15 @@ select test_assert(auth.uid() is null,'anonymous fixture has no carried identity
 select test_assert(jsonb_array_length(kl_series_list_v1(false))=2,'published series visible');
 select test_assert((select count(*) from storage.objects)=1,'published cover visible');
 reset role;
-do $$ begin
+do $kltest$ begin
  begin update kl_episodes set release_at=now() where season_number=2; raise exception 'FAIL: release without quiz'; exception when raise_exception then if sqlerrm<>'Prepare validated reading quiz before release' then raise; end if; end;
-end $$;
+end $kltest$;
 insert into kl_quiz_sets select id,'ready',md5(manuscript) from kl_episodes where season_number=2;
 update kl_episodes set release_at=now() where season_number=2;
 set role service_role;
 select set_config('request.jwt.claim.sub','',false);
 select test_assert(auth.uid() is null,'worker fixture has no carried admin identity');
-do $
+do $kltest$
 declare j jsonb; items jsonb; ok boolean;
 begin
  j:=kl_dictionary_claim_v1();
@@ -142,7 +142,7 @@ begin
  perform test_assert(j->>'episode_id'='10000000-0000-0000-0000-000000000002','next chapter claim');
  perform test_assert(j->'known_names' ? 'Ulapin','reuse known name');
  perform test_assert(kl_dictionary_finish_v1((j->>'episode_id')::uuid,j->>'source_hash',(j->>'lease_token')::uuid,'[]',null),'empty valid glossary');
-end $$;
+end $kltest$;
 reset role;
 set role anon;
 select set_config('request.jwt.claim.sub','',false);
