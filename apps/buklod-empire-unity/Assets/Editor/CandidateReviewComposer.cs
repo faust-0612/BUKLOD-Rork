@@ -165,6 +165,7 @@ namespace Buklod.Empire.Editor {
                     instance.AddComponent<ReviewFarmGrowth>().Configure(crop[0]);
                 }
                 if(HeroKitCatalog.All.Any(h=>h.Id==id)){ReviewWeaponTrailComposer.Attach(instance,id);HeroLodReviewImporter.Attach(instance,id);ReviewEquipmentComposer.Attach(instance);}
+                if(id.EndsWith("_tower_candidate",StringComparison.Ordinal)||id.EndsWith("_core_candidate",StringComparison.Ordinal))ReviewStructureFragmentComposer.Attach(instance,id);
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);
                 return saved;

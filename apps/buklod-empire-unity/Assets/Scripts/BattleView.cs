@@ -84,7 +84,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public ReviewWeaponTrail weaponTrail;public float facingHold;public bool collapsing;public float collapseDuration,collapseHeight;public Vector3 collapseOrigin,collapseScale;public Quaternion collapseRotation;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public ReviewWeaponTrail weaponTrail;public float facingHold;public bool collapsing;public ReviewStructureFragments fragments;public float fragmentHeight;public float collapseDuration,collapseHeight;public Vector3 collapseOrigin,collapseScale;public Quaternion collapseRotation;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -192,6 +192,7 @@ namespace Buklod.Empire {
         }
         private void Return(Visual v){
             v.instance.SetActive(false);
+            if(v.fragments)v.fragments.ResetVisual();
             if(v.collapsing){var t=v.instance.transform;t.position=v.collapseOrigin;t.rotation=v.collapseRotation;t.localScale=v.collapseScale;v.collapsing=false;}
             SetShadows(v,true); // preserve original prefab shadow modes across rentals
             var stack=pool[v.prefab];
@@ -208,7 +209,9 @@ namespace Buklod.Empire {
         private void Sync(bool immediate){
             for(int i=dying.Count-1;i>=0;i--){var row=dying[i];row.remaining-=Mathf.Max(0,Time.deltaTime);if(immediate||row.remaining<=0){Return(row.visual);dying.RemoveAt(i);}else{if(row.visual.collapsing){var v=row.visual;var u=v.unit;
                     if(u.Team!=Battle.Player.Team&&!Battle.IsPositionVisibleTo(Battle.Player.Team,u.Position)){Return(v);dying.RemoveAt(i);continue;}
-                    var pose=ReviewFortressCollapse.Evaluate(1-row.remaining/v.collapseDuration,v.collapseHeight,u.Id,u.Core);var t=v.instance.transform;t.position=v.collapseOrigin+pose.Offset;t.rotation=v.collapseRotation*Quaternion.Euler(pose.Tilt);t.localScale=Vector3.Scale(v.collapseScale,pose.Scale);
+                    float progress=1-row.remaining/v.collapseDuration;
+                    if(v.fragments&&v.fragments.Ready)v.fragments.Apply(progress,v.fragmentHeight,u.Id);
+                    else{var pose=ReviewFortressCollapse.Evaluate(progress,v.collapseHeight,u.Id,u.Core);var t=v.instance.transform;t.position=v.collapseOrigin+pose.Offset;t.rotation=v.collapseRotation*Quaternion.Euler(pose.Tilt);t.localScale=Vector3.Scale(v.collapseScale,pose.Scale);}
                 }dying[i]=row;}}
             seen.Clear();if(combatOverlay)combatOverlay.BeginFrame();
             if(reviewShadows)reviewShadows.Begin();
@@ -341,7 +344,7 @@ namespace Buklod.Empire {
                 if(ReviewOnly&&visibleDeath&&u.Kind==BattleTargetKind.Structure&&BattleRenderBudget.CanRetire(dying.Count)){
                     var t=v.instance.transform;v.collapsing=true;v.collapseOrigin=t.position;v.collapseRotation=t.rotation;v.collapseScale=t.localScale;v.collapseDuration=u.Core?1.25f:1.05f;
                     Bounds bounds=default;bool found=false;foreach(var renderer in v.renderers)if(renderer&&renderer.enabled&&renderer.gameObject.activeInHierarchy){if(!found){bounds=renderer.bounds;found=true;}else bounds.Encapsulate(renderer.bounds);}
-                    v.collapseHeight=found?Mathf.Clamp(bounds.size.y,.5f,25f):2f;if(v.animator)v.animator.speed=0;dying.Add((v,v.collapseDuration));
+                    v.collapseHeight=found?Mathf.Clamp(bounds.size.y,.5f,25f):2f;v.fragmentHeight=v.collapseHeight/Mathf.Max(.01f,Mathf.Abs(t.lossyScale.y));v.fragments=v.instance.GetComponent<ReviewStructureFragments>();if(v.fragments&&!v.fragments.Begin())v.fragments=null;if(v.animator)v.animator.speed=0;dying.Add((v,v.collapseDuration));
                 }else if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&v.parameters.Contains("Death")){
                     foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit","Work","Skill"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
                     if(v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",0);
