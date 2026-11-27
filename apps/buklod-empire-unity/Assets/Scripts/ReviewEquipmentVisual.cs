@@ -23,15 +23,16 @@ namespace Buklod.Empire {
             }
             return Mathf.Max(tier,owned?1:0);
         }
-        public void Apply(BattleUnit unit){
-            if(mounts==null)return;
+        public bool Apply(BattleUnit unit){
+            if(mounts==null)return false;bool upgraded=false;
             if(last==null||last.Length!=mounts.Length){last=new int[mounts.Length];for(int i=0;i<last.Length;i++)last[i]=-1;}
             for(int i=0;i<mounts.Length;i++){
                 var m=mounts[i];if(m==null)continue;
-                int tier=Tier(unit,m.slot);if(last[i]==tier)continue;last[i]=tier;
+                int tier=Tier(unit,m.slot);if(last[i]==tier)continue;if(last[i]>=0&&tier>last[i])upgraded=true;last[i]=tier;
                 if(m.basePlate){m.basePlate.SetActive(tier>0);m.basePlate.transform.localScale=Vector3.one*(1+.045f*Mathf.Max(0,tier-1));}
-                if(m.advancedTrim)m.advancedTrim.SetActive(tier>=3);
+                if(m.advancedTrim){m.advancedTrim.SetActive(tier>=3);m.advancedTrim.transform.localScale=Vector3.one*(tier==4?1.13f:1f);}
             }
+            return upgraded;
         }
         public void ResetVisual(){last=null;Apply(null);}
     }

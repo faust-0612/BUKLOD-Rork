@@ -85,7 +85,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public ReviewWeaponTrail weaponTrail;public float facingHold;public bool collapsing;public ReviewStructureFragments fragments;public float fragmentHeight;public float collapseDuration,collapseHeight;public Vector3 collapseOrigin,collapseScale;public Quaternion collapseRotation;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public ReviewWeaponTrail weaponTrail;public float facingHold;public bool collapsing;public ReviewStructureFragments fragments;public float fragmentHeight;public float collapseDuration,collapseHeight;public Vector3 collapseOrigin,collapseScale;public Quaternion collapseRotation;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork,level;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -234,13 +234,18 @@ namespace Buklod.Empire {
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     // A reused visual must not inherit the previous unit's rotation.
                     if(u.Kind!=BattleTargetKind.Structure)v.instance.transform.rotation=Quaternion.LookRotation(u.Team==ArenaTeam.Lux?Vector3.right:Vector3.left);
-                    v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.damageTaken=u.DamageTaken;v.villageActions=u.Villager?.Actions??0;v.repairSequence=u.RepairSequence;v.constructionWork=u.ConstructionWorkSequence;
+                    v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.damageTaken=u.DamageTaken;v.level=u.State.Level;v.villageActions=u.Villager?.Actions??0;v.repairSequence=u.RepairSequence;v.constructionWork=u.ConstructionWorkSequence;
                 }
                 if(ReviewOnly&&u.IsFarm&&v.farmGrowth&&reviewFarmNodes.TryGetValue(u.Id,out var farmNode))
                     v.farmGrowth.Apply(farmNode.Stock,farmNode.Capacity,immediate||!existing,Time.deltaTime);
                 bool hero=u.Kind==BattleTargetKind.Hero;
                 if(v.weaponTrail)v.weaponTrail.SetVisible(inView&&!Paused&&!Battle.Finished);
-                if(hero&&v.equipment)v.equipment.Apply(u);
+                bool upgraded=hero&&v.equipment&&v.equipment.Apply(u);
+                if(ReviewOnly&&player&&existing&&!immediate&&inView&&effects&&u.State.Alive&&!Battle.Finished){
+                    if(u.State.Level>v.level)effects.Emit(v.instance.transform.position,new Color(1,.82f,.32f),3);
+                    else if(upgraded)effects.Emit(v.instance.transform.position,BattleEffects.Accent(u.State.Kit.Id),1);
+                }
+                v.level=u.State.Level;
                 int requestedLod=premiumVisuals?0:-1;
                 if(hero&&v.lodGroups!=null&&v.forcedLod!=requestedLod){
                     foreach(var lod in v.lodGroups)if(lod)lod.ForceLOD(requestedLod);
