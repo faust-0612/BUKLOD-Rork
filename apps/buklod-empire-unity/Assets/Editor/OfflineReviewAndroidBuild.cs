@@ -27,6 +27,7 @@ namespace Buklod.Empire.Editor {
             var scenes=EditorBuildSettings.scenes.Where(s=>s.enabled).ToArray();
             if(scenes.Length!=1||scenes[0].path!=Scene||!AssetDatabase.LoadAssetAtPath<SceneAsset>(Scene))
                 throw new BuildFailedException("Only the offline review scene is allowed.");
+            EmpireContentPublisher.ValidateBuildConfiguration();
             var dependencies=AssetDatabase.GetDependencies(Scene,true);
             ReviewAuthoredAssetGate.Validate(dependencies);
             AuthoredExpansionReview.Validate(dependencies);
@@ -47,11 +48,12 @@ namespace Buklod.Empire.Editor {
                 throw new BuildFailedException("Exit play mode and save the scene first.");
             if(Application.unityVersion!="6000.3.29f1"||EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android||!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android,BuildTarget.Android))
                 throw new BuildFailedException("Use pinned Unity with Android Build Support and switch platform to Android first.");
+            EmpireContentPublisher.ValidateBuildConfiguration();
             // Assembly validates the aggregate asset receipt and all imported catalog references.
             ConsolidatedOfflineReview.Prepare();
             StylizedArenaBenchmark.Prepare();
             var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
-            if(!view||!view.IsConfiguredReview||!view.visuals)throw new BuildFailedException("Review scene configuration missing.");
+            if(!view||!view.IsConfiguredReview||!view.visuals||!view.GetComponent<EmpireContentUpdater>())throw new BuildFailedException("Review scene or native content updater missing.");
             view.visuals.ValidateOfflineReview();
             OfflineMotionGate.Validate(view.visuals);
             HeroDialogueReview.ValidateDependencies(view.gameObject,AssetDatabase.GetDependencies(Scene,true));
