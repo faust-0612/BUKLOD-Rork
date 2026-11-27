@@ -61,6 +61,17 @@ namespace Buklod.Empire.Tests {
             Assert.That(ReviewResultPresentation.Reveal(.3f,.2f),Is.InRange(.01f,.99f));
             Assert.AreEqual(1,ReviewResultPresentation.Reveal(1,.2f));
         }
+        [Test] public void PreviewStagesCycleCanonicalThresholdsWithoutGrantingProgress(){
+            int level=1,stage=0;
+            foreach(int expected in new[]{1,5,10,15,20}){
+                Assert.AreEqual(expected,level);Assert.AreEqual(stage++,ArenaProgression.PreviewStage(level));
+                level=ArenaProgression.NextPreviewLevel(level);
+            }
+            Assert.AreEqual(1,level);
+            Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.PreviewStage(4));
+            Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.NextPreviewLevel(21));
+            StringAssert.Contains("0 BP / 0 permanent XP",ArenaProgression.TrainingResult(true));
+        }
         [Test] public void PracticeNeverPromisesReward(){Assert.AreEqual("",ArenaProgression.TrainingResult(false));StringAssert.Contains("0 BP / 0 permanent XP",ArenaProgression.TrainingResult(true));}
         [Test] public void InvalidLevelsRejected(){Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(0));Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(21));}
     }

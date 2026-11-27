@@ -7,7 +7,7 @@ namespace Buklod.Empire {
     public sealed class ReviewLiveHeroPreview:MonoBehaviour {
         const int Layer=31, Width=512, Height=640;
         BattleView view;GameObject stage,actor;Camera camera;RenderTexture target;
-        Animator animator;ReviewEvolutionWings wings;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
+        Animator animator;ReviewEvolutionWings wings;ReviewEquipmentVisual previewEquipment;Vector3 fullWingScale;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
         float angle,castAt=-1,castEnd;SkillCue pendingCue;bool pendingEffect;BattleEffects previewEffects;SkillAudio previewAudio;
         public static SkillCue ScaleCue(SkillCue cue,float height){
             float size=Mathf.Clamp(cue.Size/4f,.35f,1f)*Mathf.Clamp(height,.1f,20f)*.38f;
@@ -45,17 +45,18 @@ namespace Buklod.Empire {
             var go=new GameObject(label);go.transform.SetParent(stage.transform,false);go.transform.localPosition=at;go.layer=Layer;
             var l=go.AddComponent<Light>();l.type=LightType.Point;l.color=color;l.intensity=intensity;l.range=9;l.cullingMask=1<<Layer;l.shadows=LightShadows.None;
         }
-        public Texture Show(BattleView owner,string id,bool full,bool evolutionPreview=false){
+        public Texture Show(BattleView owner,string id,bool full,int previewLevel=1){
             if(!owner||!owner.IsEditorReview||!owner.visuals)return null;view=owner;
             try{
+                int previewStage=ArenaProgression.PreviewStage(previewLevel);
                 CreateStage();
                 if(!actor||hero!=id){
-                    ClearCast();wings=null;if(actor){actor.SetActive(false);SetLayerForDisposal(actor.transform);Destroy(actor);}
+                    ClearCast();wings=null;previewEquipment=null;if(actor){actor.SetActive(false);SetLayerForDisposal(actor.transform);Destroy(actor);}
                     var entry=view.visuals.heroes.Single(h=>h.id==id);
                     actor=Instantiate(entry.prefab,stage.transform);actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;
                     SetLayer(actor.transform);
                     foreach(var c in actor.GetComponentsInChildren<Collider>(true))c.enabled=false;
-                    var equipment=actor.GetComponent<ReviewEquipmentVisual>();if(equipment)equipment.ResetVisual();
+                    previewEquipment=actor.GetComponent<ReviewEquipmentVisual>();if(previewEquipment)previewEquipment.ResetVisual();
                     foreach(var b in actor.GetComponentsInChildren<MonoBehaviour>(true))b.enabled=false;
                     foreach(var lod in actor.GetComponentsInChildren<LODGroup>(true))lod.ForceLOD(0);
                     animator=actor.GetComponentInChildren<Animator>(true);
@@ -66,7 +67,9 @@ namespace Buklod.Empire {
                     bounds=skins[0].bounds;foreach(var skin in skins.Skip(1))bounds.Encapsulate(skin.bounds);
                     hero=id;angle=0;
                 }
-                bool showWings=evolutionPreview&&full;
+                // These are provisional looks on the isolated clone only.
+                ApplyPreviewLook(previewStage);
+                bool showWings=previewStage>=3&&full;
                 if(showWings&&!wings){
                     var materials=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(r=>r.sharedMaterials).Where(m=>m).Distinct().ToArray();
                     var armor=materials.FirstOrDefault(m=>m.name=="armor");var trim=materials.FirstOrDefault(m=>m.name=="trim");
@@ -75,17 +78,27 @@ namespace Buklod.Empire {
                     mount.transform.position=bounds.center+Vector3.up*bounds.size.y*.24f-actor.transform.forward*bounds.size.y*.13f;
                     var scale=actor.transform.lossyScale;float size=bounds.size.y*.66f;
                     mount.transform.localScale=new Vector3(size/Mathf.Max(.001f,Mathf.Abs(scale.x)),size/Mathf.Max(.001f,Mathf.Abs(scale.y)),size/Mathf.Max(.001f,Mathf.Abs(scale.z)));
+                    fullWingScale=mount.transform.localScale;
                     wings=mount.AddComponent<ReviewEvolutionWings>();wings.Initialize(armor,trim);
                 }
-                if(wings)wings.gameObject.SetActive(showWings);
+                if(wings){wings.transform.localScale=fullWingScale*(previewStage==3?.70f:1f);wings.gameObject.SetActive(showWings);}
                 float aspect=(float)Width/Height;camera.orthographicSize=FrameSize(bounds.size,aspect,full);
-                if(showWings)camera.orthographicSize=Mathf.Max(camera.orthographicSize,bounds.size.y*1.12f/aspect);
+                if(showWings)camera.orthographicSize=Mathf.Max(camera.orthographicSize,bounds.size.y*(previewStage==3?.85f:1.12f)/aspect);
                 var focus=bounds.center+Vector3.up*(full?0:bounds.size.y*.26f);
                 camera.transform.position=focus+new Vector3(.12f,.035f,1f).normalized*Mathf.Max(3,bounds.size.magnitude*2);
                 camera.transform.LookAt(focus);
                 camera.enabled=focused&&!appPaused;animator.speed=camera.enabled?1:0;
                 return target;
             }catch(Exception error){Debug.LogWarning("Live hero preview unavailable; using captured model portrait: "+error.Message);Hide();return null;}
+        }
+        void ApplyPreviewLook(int level){
+            if(!previewEquipment||previewEquipment.mounts==null)return;
+            foreach(var mount in previewEquipment.mounts){
+                if(mount==null)continue;
+                bool on=level>=2||level==1&&(mount.slot=="armor"||mount.slot=="weapon");
+                if(mount.basePlate){mount.basePlate.SetActive(on);mount.basePlate.transform.localScale=Vector3.one*(1+.04f*Mathf.Max(0,level-1));}
+                if(mount.advancedTrim)mount.advancedTrim.SetActive(on&&level>=3);
+            }
         }
         public bool PlaySkill(SkillSlot slot){
             if(!actor||!animator||!camera||!camera.enabled)return false;
@@ -120,7 +133,7 @@ namespace Buklod.Empire {
             if(stage){stage.SetActive(false);SetLayerForDisposal(stage.transform);Destroy(stage);}
             if(target){target.Release();Destroy(target);}
             if(maskOwned&&view&&view.battleCamera)view.battleCamera.cullingMask=oldMask;
-            maskOwned=false;stage=null;actor=null;camera=null;target=null;animator=null;wings=null;hero=null;
+            maskOwned=false;stage=null;actor=null;camera=null;target=null;animator=null;wings=null;previewEquipment=null;hero=null;
         }
         void OnDisable(){Hide();}
     }
