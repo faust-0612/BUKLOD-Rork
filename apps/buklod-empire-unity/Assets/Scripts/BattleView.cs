@@ -100,6 +100,8 @@ namespace Buklod.Empire {
         }
         public void StartMatch(string hero,ArenaDifficulty difficulty=ArenaDifficulty.Normal,ArenaTactic tactic=ArenaTactic.Renew,CovenantLoadout? covenant=null,bool autonomous=false,int seed=1){
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
+            var updater=ReviewOnly?GetComponent<EmpireContentUpdater>():null;
+            if(updater)visuals=updater.CatalogForNextMatch(visuals);
 #if UNITY_EDITOR || BUKLOD_OFFLINE_REVIEW
             if(ReviewOnly)visuals.ValidateOfflineReview();else
 #endif
