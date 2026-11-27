@@ -213,7 +213,7 @@ namespace Buklod.Empire {
         }
         private void ContentPanel(){
             title.text="CONTENT UPDATES";title.color=NavigationAccent;
-            summary.text="Optional signed audio updates • existing offline content stays installed";
+            summary.text="Optional signed audio and static art updates • offline content stays installed";
             contentStatus=Label("Content status",body,new Vector2(.05f,.46f),new Vector2(.95f,.93f),"",24);
             contentCheck=ButtonAt("Check content",body,new Vector2(.05f,.22f),new Vector2(.48f,.43f),"CHECK",()=>{var updater=GetComponent<EmpireContentUpdater>();if(updater)updater.Check();});
             contentDownload=ButtonAt("Download content",body,new Vector2(.52f,.22f),new Vector2(.95f,.43f),"DOWNLOAD",()=>{var updater=GetComponent<EmpireContentUpdater>();if(updater)updater.Download();});
