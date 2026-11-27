@@ -83,6 +83,7 @@ if(refresh){
  for(const script of ['faction_materials.py','wildlife_surfaces.py'])run(python,['Tools/'+script,'--size',String(sharedSize)],env);
  run(process.execPath,['Tools/environment-materials.mjs',String(sharedSize)]);
 }
+if(!verify)run(process.env.PYTHON||'python3',['Tools/prepare-hero-voice.py']);
 const groups=audit(heroSize,sharedSize);
 const doc={status:'OFFLINE_ASSETS_VERIFIED_REVIEW_ONLY',heroSize,sharedSize,groups,files:groups.reduce((n,g)=>n+g.rows.length,0),bytes:groups.reduce((n,g)=>n+g.rows.reduce((s,r)=>s+r.bytes,0),0),unityVerified:false,productionApproved:false};
 writeFileSync(receipt+'.tmp',JSON.stringify(doc,null,2)+'\n');renameSync(receipt+'.tmp',receipt);

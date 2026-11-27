@@ -4,7 +4,7 @@ namespace Buklod.Empire {
     // Local fictional lines and optional synthetic preview, never network speech.
     public sealed class ReviewHeroDialogue:MonoBehaviour {
         [Serializable] public sealed class Entry {public string id,selection,ultimate;public AudioClip selectionClip,ultimateClip;}
-        public Entry[] entries;
+        public Entry[] entries;public string battleStart;public AudioClip battleStartClip;
         BattleView view;AudioSource voice;float nextVoice,captionUntil;string caption="";
         bool focused=true,appPaused;
         void Awake(){
@@ -17,6 +17,11 @@ namespace Buklod.Empire {
             nextVoice=Time.unscaledTime+.5f;voice.Stop();voice.volume=.65f*ReviewAudioSettings.Get(ReviewAudioChannel.Voice);voice.PlayOneShot(clip);
         }
         public string Select(string id){var row=Find(id);if(row==null)return "";Speak(row.selectionClip);return row.selection;}
+        public string PreviewUltimate(string id){if(!view||!view.IsEditorReview||!view.Paused)return "";var row=Find(id);if(row==null)return "";Speak(row.ultimateClip);return row.ultimate;}
+        public void AnnounceBattleStart(){
+            if(!isActiveAndEnabled||!view||view.Paused||!focused||appPaused||string.IsNullOrEmpty(battleStart))return;
+            caption=battleStart;captionUntil=Time.unscaledTime+Mathf.Clamp(battleStartClip?battleStartClip.length:3,2,6);Speak(battleStartClip);
+        }
         public void Ultimate(string id){
             if(!isActiveAndEnabled||!view||view.Paused||!focused||appPaused)return;
             var row=Find(id);if(row==null)return;

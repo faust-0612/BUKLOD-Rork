@@ -5,6 +5,8 @@ SOURCE=TOOLS/'hero-dialogue.json'
 OUT=TOOLS/'ReviewOutput/hero-voice'
 IDS='phan quin van christian lhen ace ellusur jawo mitch niel angel vhen trudice'.split()
 SLOTS=('selection','ultimate')
+ANNOUNCER='announcer_battle_start.wav'
+NAMES=[i+'_'+s+'.wav' for i in IDS for s in SLOTS]+[ANNOUNCER]
 def sha(data):return hashlib.sha256(data).hexdigest()
 def source():
     raw=SOURCE.read_bytes();doc=json.loads(raw);heroes=doc['heroes']
@@ -12,7 +14,9 @@ def source():
     for h in heroes:
         if h['gender'] not in ('Male','Female') or not -3<=h['rate']<=3 or any(not 0<len(h[s])<=100 for s in SLOTS):
             raise ValueError('Invalid dialogue')
-    return sha(raw),heroes
+    announcer=doc['announcer']
+    if announcer['gender']!='Male' or not -3<=announcer['rate']<=3 or not 0<len(announcer['battleStart'])<=100:raise ValueError('Invalid announcer dialogue')
+    return sha(raw),heroes,announcer
 def inspect(path):
     with wave.open(str(path),'rb') as w:
         n=w.getnframes()
@@ -22,10 +26,10 @@ def inspect(path):
         if len(raw)!=n*2 or not any(raw):raise ValueError('Truncated/silent audio')
     return {'file':path.name,'sha256':sha(path.read_bytes()),'bytes':path.stat().st_size,'samples':n}
 def verify(folder):
-    digest,_=source();doc=json.loads((folder/'manifest.json').read_text())
-    if doc['status']!='LOCAL_SYNTHETIC_REVIEW_ONLY' or doc['sourceSha256']!=digest or doc['engine'] not in ('espeak','windows-sapi') or len(doc['clips'])!=26:
+    digest,_,_=source();doc=json.loads((folder/'manifest.json').read_text())
+    if doc['status']!='LOCAL_SYNTHETIC_REVIEW_ONLY' or doc['sourceSha256']!=digest or doc['engine'] not in ('espeak','windows-sapi') or len(doc['clips'])!=len(NAMES):
         raise ValueError('Invalid voice manifest')
-    names={i+'_'+s+'.wav' for i in IDS for s in SLOTS}
+    names=set(NAMES)
     hashes=set()
     for row in doc['clips']:
         if row['file'] not in names or row!=inspect(folder/row['file']) or row['sha256'] in hashes:raise ValueError('Voice clip integrity mismatch')
@@ -33,7 +37,7 @@ def verify(folder):
     if names:raise ValueError('Incomplete voice roster')
     return doc
 def prepare():
-    digest,heroes=source()
+    digest,heroes,announcer=source()
     try:
         doc=verify(OUT);print('Synthetic voice preview cache verified:',len(doc['clips']));return
     except (OSError,ValueError,KeyError,TypeError,wave.Error,EOFError):
@@ -52,11 +56,12 @@ def prepare():
                     voice='en-us+'+('f'+str(1+i%4) if h['gender']=='Female' else 'm'+str(1+i%5))
                     for slot in SLOTS:
                         subprocess.run([engine,'-v',voice,'-s',str(150+h['rate']*9),'-p',str(42+i%7*4),'-w',str(stage/(h['id']+'_'+slot+'.wav')),h[slot]],check=True,timeout=15)
+                subprocess.run([engine,'-v','en-us+m4','-s',str(150+announcer['rate']*9),'-p','39','-w',str(stage/ANNOUNCER),announcer['battleStart']],check=True,timeout=15)
                 kind='espeak'
             else:
                 subprocess.run([sapi,'-NoProfile','-NonInteractive','-File',str(TOOLS/'generate-hero-voice.ps1'),'-Source',str(SOURCE),'-Destination',str(stage)],check=True,timeout=180)
                 kind='windows-sapi'
-            rows=[inspect(stage/(i+'_'+s+'.wav')) for i in IDS for s in SLOTS]
+            rows=[inspect(stage/name) for name in NAMES]
             doc={'status':'LOCAL_SYNTHETIC_REVIEW_ONLY','sourceSha256':digest,'engine':kind,'clips':rows}
             (stage/'manifest.json').write_text(json.dumps(doc,indent=2)+'\n',encoding='utf8')
             verify(stage)

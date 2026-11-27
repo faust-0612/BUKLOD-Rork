@@ -3,7 +3,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 namespace Buklod.Empire {
     // UI only: no extra action, no duplicate click, no blocked touches.
-    internal sealed class ReviewButtonMotion:MonoBehaviour,IPointerDownHandler,IPointerUpHandler,IPointerExitHandler {
+    public sealed class ReviewButtonMotion:MonoBehaviour,IPointerDownHandler,IPointerUpHandler,IPointerExitHandler {
         Button button;bool pressed;
         void Awake(){button=GetComponent<Button>();}
         public void OnPointerDown(PointerEventData data){pressed=button&&button.IsInteractable();}

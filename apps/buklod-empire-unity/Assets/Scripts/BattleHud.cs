@@ -9,7 +9,8 @@ namespace Buklod.Empire {
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
-        private Image healthTrack,manaTrack,xpTrack,xp;private Text objective,dialogueCaption;
+        private Image healthTrack,manaTrack,xpTrack,xp;private Text objective,dialogueCaption,guideCaption;
+        private OfflineBattle guideMatch;private ReviewPracticeGuide guide;private float guideFinishedAt=-1;
         private ReviewHeroDialogue dialogue;
         private ReviewMinimap minimap;private readonly ReviewSkillGlyph[] glyphs=new ReviewSkillGlyph[3];
         private OfflineBattle hudMatch;private int lastLevel;private float healthShown,manaShown,xpShown,announcementUntil,nextObjectiveAt;
@@ -41,7 +42,7 @@ namespace Buklod.Empire {
             mana=ImageAt("Mana",canvas.transform,new Color(.2f,.55f,.95f));mana.sprite=null;
             if(review)BuildReview();
             infoRoot=new GameObject("Safe HUD information",typeof(RectTransform)).GetComponent<RectTransform>();infoRoot.SetParent(canvas.transform,false);infoRoot.SetAsFirstSibling();
-            foreach(var item in new Component[]{healthTrack,manaTrack,xpTrack,health,mana,xp,minimap,status,objective,dialogueCaption})if(item)item.transform.SetParent(infoRoot,false);
+            foreach(var item in new Component[]{healthTrack,manaTrack,xpTrack,health,mana,xp,minimap,status,objective,dialogueCaption,guideCaption})if(item)item.transform.SetParent(infoRoot,false);
             Layout();
         }
         private static Sprite MakeReviewControl(){
@@ -79,6 +80,7 @@ namespace Buklod.Empire {
             var mapGo=new GameObject("Fog-safe minimap",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewMinimap));
             mapGo.transform.SetParent(canvas.transform,false);minimap=mapGo.GetComponent<ReviewMinimap>();minimap.Bind(view);
             objective=TextAt("Objective status",canvas.transform);objective.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(objective);
+            guideCaption=TextAt("Practice guide",canvas.transform);guideCaption.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(guideCaption);guideCaption.gameObject.SetActive(false);
             dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue){dialogueCaption=TextAt("Hero subtitle",canvas.transform);dialogueCaption.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(dialogueCaption);}
             for(int i=0;i<3;i++){
                 var go=new GameObject("Skill glyph",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewSkillGlyph));
@@ -96,6 +98,8 @@ namespace Buklod.Empire {
             map.sizeDelta=new Vector2(mapWidth,mapWidth*OfflineBattle.Height/OfflineBattle.Width);
             var o=objective.rectTransform;o.anchorMin=new Vector2(.22f,.84f);o.anchorMax=new Vector2(.78f,.91f);o.offsetMin=o.offsetMax=Vector2.zero;
             objective.fontSize=Mathf.Max(12,(int)(height*.027f));
+            var tutorial=guideCaption.rectTransform;tutorial.anchorMin=new Vector2(.24f,.72f);tutorial.anchorMax=new Vector2(.76f,.83f);tutorial.offsetMin=tutorial.offsetMax=Vector2.zero;
+            guideCaption.fontSize=Mathf.Max(12,(int)(height*.028f));guideCaption.color=new Color(.92f,.94f,.61f);
             if(dialogueCaption){var r=dialogueCaption.rectTransform;r.anchorMin=new Vector2(.23f,.16f);r.anchorMax=new Vector2(.77f,.24f);r.offsetMin=r.offsetMax=Vector2.zero;dialogueCaption.fontSize=Mathf.Max(12,(int)(height*.027f));}
             foreach(var bar in new[]{healthTrack,manaTrack,xpTrack,xp}){
                 var t=bar.rectTransform;t.anchorMin=t.anchorMax=new Vector2(.025f,bar==healthTrack?.94f:bar==manaTrack?.905f:.875f);
@@ -109,6 +113,19 @@ namespace Buklod.Empire {
             }
         }
         static float Fraction(float v,float max)=>Mathf.Clamp01(v/Mathf.Max(.01f,max));
+        private void UpdateGuide(OfflineBattle b){
+            if(!guideCaption)return;
+            if(guideMatch!=b){guideMatch=b;guide=null;guideFinishedAt=-1;}
+            if(view.Paused||b.Finished||b.AutonomousTraining){guideCaption.gameObject.SetActive(false);return;}
+            if(!ReviewPracticeGuide.Enabled&&guideFinishedAt<0){guide=null;guideCaption.gameObject.SetActive(false);return;}
+            var p=b.Player;
+            if(guide==null)guide=new ReviewPracticeGuide(p.Position,p.LastAttack,p.State.CastSequence);
+            if(p.State.Alive)guide.Observe(p.Position,input.Joystick.sqrMagnitude>.01f,p.LastAttack,p.State.CastSequence);
+            if(guide.Step==3&&guideFinishedAt<0){guideFinishedAt=b.Time;ReviewPracticeGuide.SetEnabled(false);}
+            bool visible=guideFinishedAt<0||b.Time-guideFinishedAt<8;
+            guideCaption.gameObject.SetActive(visible);
+            if(visible)guideCaption.text=guide.Hint;
+        }
         private void ReviewUpdate(OfflineBattle b){
             var p=b.Player;var s=p.State;bool fresh=hudMatch!=b;
             float h=Fraction(s.Health,s.MaxHealth),m=Fraction(s.Mana,s.MaxMana),x=s.Level>=15?1:Fraction(p.Xp,OfflineBattle.ExperienceThreshold(s.Level));
@@ -173,7 +190,7 @@ namespace Buklod.Empire {
             int seconds=Mathf.FloorToInt(b.Time);status.text=b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):$"{seconds/60:00}:{seconds%60:00}  Lv {s.Level}  Gold {b.Player.Gold}  K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists}  Units {b.RemainingUnits(ArenaTeam.Lux)}:{b.RemainingUnits(ArenaTeam.Tenebra)}";
             health.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),safeArea.height*.018f);
             mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),safeArea.height*.013f);
-            if(review)ReviewUpdate(b);
+            if(review){ReviewUpdate(b);UpdateGuide(b);}
         }
         private void OnDestroy(){if(circle){Destroy(circle.texture);Destroy(circle);}if(reviewControl){Destroy(reviewControl.texture);Destroy(reviewControl);}}
     }

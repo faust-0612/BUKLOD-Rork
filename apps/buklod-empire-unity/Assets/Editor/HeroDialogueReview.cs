@@ -9,7 +9,8 @@ using UnityEngine;
 namespace Buklod.Empire.Editor {
     internal static class HeroDialogueReview {
         const string Source="Tools/hero-dialogue.json",Cache="Tools/ReviewOutput/hero-voice",Out=CandidateReviewComposer.Out+"/HeroVoice";
-        [Serializable] sealed class Lines {public int schema;public ReviewHeroDialogue.Entry[] heroes;}
+        [Serializable] sealed class Announcer {public string battleStart;}
+        [Serializable] sealed class Lines {public int schema;public ReviewHeroDialogue.Entry[] heroes;public Announcer announcer;}
         [Serializable] sealed class Receipt {public string status,sourceSha256,engine;public Row[] clips;}
         [Serializable] sealed class Row {public string file,sha256;public long bytes;public int samples;}
         static string Hash(string p){using(var stream=File.OpenRead(p))using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","").ToLowerInvariant();}
@@ -17,13 +18,14 @@ namespace Buklod.Empire.Editor {
             var doc=JsonUtility.FromJson<Lines>(File.ReadAllText(Source));
             var ids=HeroKitCatalog.All.Select(h=>h.Id).ToArray();
             if(doc==null||doc.schema!=1||doc.heroes==null||doc.heroes.Length!=ids.Length||
-               !doc.heroes.Select(h=>h?.id).SequenceEqual(ids)||doc.heroes.Any(h=>string.IsNullOrWhiteSpace(h.selection)||string.IsNullOrWhiteSpace(h.ultimate)))
+               !doc.heroes.Select(h=>h?.id).SequenceEqual(ids)||doc.heroes.Any(h=>string.IsNullOrWhiteSpace(h.selection)||string.IsNullOrWhiteSpace(h.ultimate))||doc.announcer==null||string.IsNullOrWhiteSpace(doc.announcer.battleStart))
                 throw new BuildFailedException("Invalid original hero dialogue roster.");
-            var component=root.AddComponent<ReviewHeroDialogue>();component.entries=doc.heroes;
+            var component=root.AddComponent<ReviewHeroDialogue>();component.entries=doc.heroes;component.battleStart=doc.announcer.battleStart;
             string manifest=Cache+"/manifest.json";
             if(!File.Exists(manifest)){Debug.Log("Original dialogue subtitles ready; no synthetic voice cache.");return;}
             var receipt=JsonUtility.FromJson<Receipt>(File.ReadAllText(manifest));
-            var names=new HashSet<string>(ids.SelectMany(id=>new[]{id+"_selection.wav",id+"_ultimate.wav"}),StringComparer.Ordinal);
+            var names=new HashSet<string>(ids.SelectMany(id=>new[]{id+"_selection.wav",id+"_ultimate.wav"}),StringComparer.Ordinal);names.Add("announcer_battle_start.wav");
+            if(receipt!=null&&receipt.sourceSha256!=Hash(Source)){Debug.LogWarning("Stale optional voice cache; using current subtitles.");return;}
             if(receipt==null||receipt.status!="LOCAL_SYNTHETIC_REVIEW_ONLY"||receipt.sourceSha256!=Hash(Source)||receipt.clips==null||receipt.clips.Length!=names.Count)
                 throw new BuildFailedException("Invalid local voice preview receipt.");
             Directory.CreateDirectory(Out);
@@ -39,13 +41,15 @@ namespace Buklod.Empire.Editor {
                 entry.selectionClip=Load(entry.id+"_selection.wav",receipt);
                 entry.ultimateClip=Load(entry.id+"_ultimate.wav",receipt);
             }
-            Debug.Log("26 synthetic local voice clips bound to original heroes; not actor recordings.");
+            component.battleStartClip=Load("announcer_battle_start.wav",receipt);
+            Debug.Log("27 synthetic local voice clips bound, including the battle announcer; not actor recordings.");
         }
         internal static void ValidateDependencies(GameObject root,string[] deps){
-            if(!AuthoredExpansionReview.Requested)return;
             var component=root.GetComponent<ReviewHeroDialogue>();
-            if(!component||component.entries==null||component.entries.Length!=13)throw new BuildFailedException("Missing hero dialogue roster.");
+            if(!component||component.entries==null||component.entries.Length!=13||string.IsNullOrWhiteSpace(component.battleStart))throw new BuildFailedException("Missing hero dialogue roster.");
             if(!File.Exists(Cache+"/manifest.json"))return;
+            var receipt=JsonUtility.FromJson<Receipt>(File.ReadAllText(Cache+"/manifest.json"));if(receipt!=null&&receipt.sourceSha256!=Hash(Source))return;
+            if(!component.battleStartClip||!deps.Contains(Out+"/announcer_battle_start.wav"))throw new BuildFailedException("Missing local announcer preview dependency.");
             foreach(var h in component.entries)
                 if(!h.selectionClip||!h.ultimateClip||!deps.Contains(Out+"/"+h.id+"_selection.wav")||!deps.Contains(Out+"/"+h.id+"_ultimate.wav"))
                     throw new BuildFailedException("Missing local voice preview dependency "+h.id);

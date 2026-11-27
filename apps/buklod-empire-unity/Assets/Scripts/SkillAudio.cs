@@ -34,13 +34,15 @@ namespace Buklod.Empire {
             }
             return true;
         }
-        public void Play(SkillCue cue,Vector3 position,bool player){
+        public void Play(SkillCue cue,Vector3 position,bool player,bool preview=false){
+            if(preview&&GetComponent<BattleView>()?.IsEditorReview!=true)return;
             if(!isActiveAndEnabled||volume<=0||!Init()||cue.Index<0||cue.Index>=clips.Length)return;
             int chosen=-1;for(int i=0;i<voices.Length;i++)if(!voices[i].isPlaying){chosen=i;break;}
             if(chosen<0){if(!player)return;chosen=0;for(int i=1;i<voices.Length;i++)if(started[i]<started[chosen])chosen=i;voices[chosen].Stop();}
-            var s=voices[chosen];s.transform.position=position;var view=GetComponent<BattleView>();s.volume=volume*(view&&view.IsEditorReview?ReviewAudioSettings.Get(ReviewAudioChannel.Effects):1);s.clip=clips[cue.Index];started[chosen]=Time.unscaledTime;s.Play();
+            var s=voices[chosen];s.spatialBlend=preview?0:1;s.transform.position=position;var view=GetComponent<BattleView>();s.volume=volume*(view&&view.IsEditorReview?ReviewAudioSettings.Get(ReviewAudioChannel.Effects):1);s.clip=clips[cue.Index];started[chosen]=Time.unscaledTime;s.Play();
         }
         private void Update(){if(voices==null)return;var view=GetComponent<BattleView>();float level=volume*(view&&view.IsEditorReview?ReviewAudioSettings.Get(ReviewAudioChannel.Effects):1);foreach(var s in voices)if(s.isPlaying)s.volume=level;}
+        public void ClearPreview(){if(voices!=null)foreach(var s in voices)if(s.spatialBlend==0)s.Stop();}
         public void Clear(){if(voices!=null)foreach(var s in voices)s.Stop();}
         private void OnApplicationFocus(bool focused){if(!focused&&GetComponent<BattleView>()?.IsEditorReview==true)Clear();}
         private void OnApplicationPause(bool paused){if(paused&&GetComponent<BattleView>()?.IsEditorReview==true)Clear();}

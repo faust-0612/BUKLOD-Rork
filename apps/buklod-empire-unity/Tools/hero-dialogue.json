@@ -93,5 +93,10 @@
       "selection": "There is always more to learn.",
       "ultimate": "Now, the grand lesson!"
     }
-  ]
+  ],
+  "announcer": {
+    "battleStart": "Welcome to Genesis Rift. Stand united. Let the battle begin!",
+    "gender": "Male",
+    "rate": -2
+  }
 }

@@ -105,23 +105,30 @@ namespace Buklod.Empire {
             if(ReviewOnly)visuals.ValidateOfflineReview();else
 #endif
             visuals.Validate();
+            var nextBattle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
+            if(!nextBattle.SelectPlayerTactic(tactic)||covenant.HasValue&&!nextBattle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
+            var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
+            // Commit only after candidate simulation and loadout validation. Any later presentation failure is aborted by review menu.
+            Battle=nextBattle;
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
             reviewShadows=ReviewOnly?GetComponent<ReviewContactShadows>():null;if(reviewShadows)reviewShadows.Clear();
             reviewFoley=ReviewOnly?GetComponent<ArenaReviewFoley>():null;
             reviewDialogue=ReviewOnly?GetComponent<ReviewHeroDialogue>():null;if(reviewDialogue)reviewDialogue.Stop();
-            reviewMotion=MotionPreview;authoredWalk=reviewMotion&&reviewMotion.Requested;
-            if(reviewMotion)reviewMotion.Validate();
+            reviewMotion=nextMotion;authoredWalk=reviewMotion&&reviewMotion.Requested;
             worldEffects=GetComponent<WorldInteractionEffects>();if(worldEffects)worldEffects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
-            Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
-            if(!Battle.SelectPlayerTactic(tactic)||covenant.HasValue&&!Battle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             selectedHero=hero;matchPalette=ReviewOnly?palette:ReviewPalette.Original;Paused=startPaused;ControlFeedbackUntil=0;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=!startPaused;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
             fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
             Follow(true);Sync(true);fieldVisuals.Refresh();
+        }
+        internal void AbortReviewMatch(){
+            if(!ReviewOnly)return;EndReviewReveal();SetPaused(true);Battle=null;practiceAttempted=true;PracticeResultStatus="";
+            foreach(var v in active.Values)Return(v);active.Clear();foreach(var row in dying)Return(row.visual);dying.Clear();
+            if(effects)effects.Clear();if(reviewShadows)reviewShadows.Clear();if(worldEffects)worldEffects.Clear();if(fieldVisuals)fieldVisuals.Bind(this);
         }
         private void Start(){
             if(Battle==null&&!ReviewOnly)StartMatch(selectedHero);

@@ -22,11 +22,11 @@ namespace Buklod.Empire {
             }
             if(startupError==null)flow.BootReady();booting=false;Rebuild();
         }
-        bool ShowModel(RectTransform parent,string hero,bool face,Vector2 min,Vector2 max){
+        bool ShowModel(RectTransform parent,string hero,bool face,Vector2 min,Vector2 max,bool wings=false){
             if(flow==null)return false;
             try{
                 if(!showcase){var go=new GameObject("Live pre-match showcase");go.transform.SetParent(transform,false);showcase=go.AddComponent<ReviewHeroShowcase>();showcase.Initialize(view);}
-                bool ok=hero==null?showcase.ShowMap():showcase.ShowHero(hero,face,palette);
+                bool ok=hero==null?showcase.ShowMap():showcase.ShowHero(hero,face,palette,wings);
                 if(!ok){showcase.Hide();return false;}
                 var r=Rect("Live model render",parent,min,max);
                 var raw=r.gameObject.AddComponent<RawImage>();raw.texture=showcase.Texture;raw.raycastTarget=false;
@@ -38,7 +38,7 @@ namespace Buklod.Empire {
                 return false;
             }
         }
-        void EnterWizard(){if(!flow.Begin())return;showResult=false;heroDetail=false;confirmRestart=false;lockedRoster=null;page=-1;feedback.text="";Rebuild();}
+        void EnterWizard(){if(!flow.Begin())return;showResult=false;heroDetail=false;evolutionPreview=false;confirmRestart=false;lockedRoster=null;page=-1;feedback.text="";Rebuild();}
         void AdvanceWizard(){
             if(flow==null||!flow.InWizard||starting)return;
             if(flow.Stage==ReviewMatchStage.LockIn){
@@ -61,7 +61,7 @@ namespace Buklod.Empire {
             if(flow.Advance())yield return PrepareReviewMatch();else{starting=false;panelGroup.interactable=true;Rebuild();}
         }
         void BackWizard(){if(!flow.Back())return;lockedRoster=null;SyncWizardPage();Rebuild();}
-        void SyncWizardPage(){heroDetail=false;page=flow.Stage==ReviewMatchStage.Hero?0:flow.Stage==ReviewMatchStage.Loadout?1:-1;feedback.text="";}
+        void SyncWizardPage(){heroDetail=false;evolutionPreview=false;page=flow.Stage==ReviewMatchStage.Hero?0:flow.Stage==ReviewMatchStage.Loadout?1:-1;feedback.text="";}
         void ConfigureWizardControls(){
             bool wizard=flow.InWizard,boot=flow.Stage==ReviewMatchStage.Startup;
             foreach(var tab in navigationTabs)tab.gameObject.SetActive(!wizard&&!boot);
