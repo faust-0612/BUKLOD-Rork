@@ -9,9 +9,9 @@ using UnityEngine;
 namespace Buklod.Empire {
     // Content-only protocol. No code, gameplay state, user data, or remote URLs in the payload.
     public static class EmpireContentProtocol {
-        public const string Abi="empire-audio-v1";
+        public const string Abi="empire-content-v2";
         public const int MaxManifestBytes=65536,MaxBundleBytes=16*1024*1024;
-        public const long MaxRevisionBytes=32L*1024*1024;
+        public const long MaxRevisionBytes=64L*1024*1024;
         [Serializable] public sealed class Trust {public string baseUrl,modulus,exponent;public int apkVersionCode;}
         [Serializable] public sealed class Envelope {public string payload,signature;}
         [Serializable] public sealed class Manifest {public string abi,platform,unity;public int schema,minApk,maxApk,revision;public Bundle[] bundles;}
@@ -26,7 +26,13 @@ namespace Buklod.Empire {
             "stage-clear","success-chime","success-vibraphone-triad","ta-da-fanfare","task-complete-pop","three-stars-rating",
             "treasure-chest-reveal","victory-fanfare","win-jingle","xp-gain"
         };
-        public static string AssetName(string slot)=>"assets/empirecontent/audio/"+slot+".ogg";
+        public static readonly string[] StaticSlots={
+            "lux_tower","lux_core","lux_depot","lux_guardpost","lux_barracks","lux_market","lux_house",
+            "tenebra_tower","tenebra_core","tenebra_depot","tenebra_guardpost","tenebra_barracks","tenebra_market","tenebra_house",
+            "wood","stone","gold"
+        };
+        public static bool IsStatic(string slot)=>Array.IndexOf(StaticSlots,slot)>=0;
+        public static string AssetName(string slot)=>IsStatic(slot)?"assets/empirecontent/static/"+slot+".prefab":"assets/empirecontent/audio/"+slot+".ogg";
         public static bool IsHash(string value)=>value!=null&&value.Length==64&&value.All(c=>c>='0'&&c<='9'||c>='a'&&c<='f');
         public static string Hash(byte[] data){using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(data)).Replace("-","").ToLowerInvariant();}
         public static string HashFile(string file){using(var stream=File.OpenRead(file))using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-","").ToLowerInvariant();}
@@ -50,10 +56,10 @@ namespace Buklod.Empire {
                 if(!rsa.VerifyData(payload,sig,HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1))throw new CryptographicException("Invalid content signature.");
             }
             var m=JsonUtility.FromJson<Manifest>(Encoding.UTF8.GetString(payload));
-            if(m==null||m.schema!=1||m.abi!=Abi||m.platform!="Android"||m.unity!=unity||m.revision<=0||m.minApk<=0||m.maxApk<m.minApk||
+            if(m==null||m.schema!=2||m.abi!=Abi||m.platform!="Android"||m.unity!=unity||m.revision<=0||m.minApk<=0||m.maxApk<m.minApk||
                trust.apkVersionCode<m.minApk||trust.apkVersionCode>m.maxApk||m.bundles==null||m.bundles.Length<1||m.bundles.Length>8)
                 throw new InvalidDataException("Incompatible content revision.");
-            var hashes=new HashSet<string>(StringComparer.Ordinal);var allowed=new HashSet<string>(Slots,StringComparer.Ordinal);long total=0;
+            var hashes=new HashSet<string>(StringComparer.Ordinal);var allowed=new HashSet<string>(Slots.Concat(StaticSlots),StringComparer.Ordinal);long total=0;
             foreach(var b in m.bundles){
                 if(b==null||!IsHash(b.sha256)||!hashes.Add(b.sha256)||b.bytes<=0||b.bytes>MaxBundleBytes||b.slots==null||b.slots.Length==0)
                     throw new InvalidDataException("Invalid bundle.");
