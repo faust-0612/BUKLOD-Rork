@@ -6,14 +6,15 @@ namespace Buklod.Empire {
         public Material skillParticleMaterial;
         public const int Capacity=24, Segments=32;
         private sealed class Pulse {public LineRenderer line;public float start,duration,radius;public Color color;public int style;public bool skill,basicSlash;public SkillCueShape shape;public Vector3 forward;public SkillParticleBurst burst;}
-        private Pulse[] pool;private int next;private Camera battleCamera;
+        private Pulse[] pool;private int next;private Camera battleCamera;private Camera previewCamera;
+        public void ConfigurePreview(Camera camera){if(pool!=null||!camera)throw new System.InvalidOperationException("Configure before emitting preview effects.");previewCamera=camera;}
         public void Clear(){if(pool==null)return;foreach(var p in pool){p.line.enabled=false;p.burst?.Stop();}next=0;}
         private void Initialize(){
             if(pool!=null||!pulseMaterial)return;
-            pool=new Pulse[Capacity];
-            var view=GetComponent<BattleView>();battleCamera=view&&view.battleCamera?view.battleCamera:Camera.main;
-            for(int i=0;i<Capacity;i++){
-                var go=new GameObject("Pooled combat pulse");go.transform.SetParent(transform,false);
+            pool=new Pulse[previewCamera?1:Capacity];
+            var view=GetComponent<BattleView>();battleCamera=previewCamera?previewCamera:view&&view.battleCamera?view.battleCamera:Camera.main;
+            for(int i=0;i<pool.Length;i++){
+                var go=new GameObject("Pooled combat pulse");go.transform.SetParent(transform,false);go.layer=gameObject.layer;
                 var line=go.AddComponent<LineRenderer>();line.sharedMaterial=pulseMaterial;line.useWorldSpace=false;
                 line.positionCount=Segments+1;line.loop=false;line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
                 line.receiveShadows=false;line.enabled=false;pool[i]=new Pulse{line=line,burst=skillParticleMaterial?new SkillParticleBurst(transform,skillParticleMaterial):null};
@@ -22,14 +23,14 @@ namespace Buklod.Empire {
         public static Color Accent(string hero){return SacredStoneCatalog.TryGet(hero,out var stone)?Color.Lerp(stone.Accent,Color.white,.25f):Color.white;}
         public void Emit(Vector3 at,Color color,int style){
             Initialize();if(pool==null)return;
-            var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;
+            var p=pool[next];next=(next+1)%pool.Length;p.start=Time.unscaledTime;
             p.burst?.Stop();p.skill=false;p.basicSlash=false;p.style=Mathf.Clamp(style,0,4);p.duration=p.style==3?.65f:.32f;
             p.radius=p.style==3?3.5f:p.style==2?2.1f:p.style==1?1.6f:.85f;
             p.color=color;p.line.transform.position=at+Vector3.up*.11f;p.line.enabled=true;Draw(p,0);
         }
         public void EmitSkill(Vector3 at,Color color,SkillCue cue,Vector3 direction){
             Initialize();if(pool==null)return;
-            var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;p.skill=true;p.basicSlash=false;p.shape=cue.Shape;p.duration=cue.Duration;p.radius=cue.Size;p.color=color;p.style=0;
+            var p=pool[next];next=(next+1)%pool.Length;p.start=Time.unscaledTime;p.skill=true;p.basicSlash=false;p.shape=cue.Shape;p.duration=cue.Duration;p.radius=cue.Size;p.color=color;p.style=0;
             direction.y=0;p.forward=direction.sqrMagnitude>.001f?direction.normalized:Vector3.forward;
             p.line.transform.position=at+Vector3.up*.16f;p.line.enabled=true;Draw(p,0);
             p.burst?.Begin(at+Vector3.up*.14f,color,cue,p.forward);p.burst?.Draw(0,battleCamera);
@@ -39,7 +40,7 @@ namespace Buklod.Empire {
                 EmitSkill(at+Vector3.up*.65f,color,new SkillCue("basic_ranged_review",SkillCueShape.Bolt,1.3f,.24f,-1),forward);return;
             }
             Initialize();if(pool==null)return;
-            var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;
+            var p=pool[next];next=(next+1)%pool.Length;p.start=Time.unscaledTime;
             p.skill=false;p.basicSlash=true;p.style=0;p.duration=.26f;p.radius=1.55f;p.color=color;
             forward.y=0;p.forward=forward.sqrMagnitude>.001f?forward.normalized:Vector3.forward;
             p.line.transform.position=at+Vector3.up*.72f;p.line.enabled=true;

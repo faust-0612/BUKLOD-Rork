@@ -8,7 +8,11 @@ namespace Buklod.Empire {
         const int Layer=31, Width=512, Height=640;
         BattleView view;GameObject stage,actor;Camera camera;RenderTexture target;
         Animator animator;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
-        float angle;
+        float angle,castAt=-1,castEnd;SkillCue pendingCue;bool pendingEffect;BattleEffects previewEffects;SkillAudio previewAudio;
+        public static SkillCue ScaleCue(SkillCue cue,float height){
+            float size=Mathf.Clamp(cue.Size/4f,.35f,1f)*Mathf.Clamp(height,.1f,20f)*.38f;
+            return new SkillCue(cue.Id,cue.Shape,size,cue.Duration,cue.Index);
+        }
         public static float FrameSize(Vector3 size,float aspect,bool full){
             if(aspect<=0||size.y<=0||size.x<=0||float.IsNaN(size.y)||float.IsInfinity(size.y))throw new ArgumentException("Invalid preview bounds");
             return full?Mathf.Max(size.y*.61f,Mathf.Max(size.x,size.z)*.72f/aspect):Mathf.Max(size.y*.29f,size.x*.38f/aspect);
@@ -31,6 +35,10 @@ namespace Buklod.Empire {
             MakeLight("Showcase key",new Vector3(1.4f,2.8f,2.7f),new Color(1,.86f,.73f),5);
             MakeLight("Showcase fill",new Vector3(-1.8f,1.9f,2.1f),new Color(.55f,.77f,1),3);
             MakeLight("Showcase rim",new Vector3(.3f,2.5f,-2f),new Color(.45f,.75f,1),4);
+            var source=view.GetComponent<BattleEffects>();
+            if(source&&source.pulseMaterial){var fx=new GameObject("Showcase skill effects");fx.transform.SetParent(stage.transform,false);fx.layer=Layer;
+                previewEffects=fx.AddComponent<BattleEffects>();previewEffects.pulseMaterial=source.pulseMaterial;previewEffects.skillParticleMaterial=source.skillParticleMaterial;previewEffects.ConfigurePreview(camera);}
+            previewAudio=view.GetComponent<SkillAudio>();if(!previewAudio)previewAudio=view.gameObject.AddComponent<SkillAudio>();
         }
         void MakeLight(string label,Vector3 at,Color color,float intensity){
             var go=new GameObject(label);go.transform.SetParent(stage.transform,false);go.transform.localPosition=at;go.layer=Layer;
@@ -41,7 +49,7 @@ namespace Buklod.Empire {
             try{
                 CreateStage();
                 if(!actor||hero!=id){
-                    if(actor){actor.SetActive(false);Destroy(actor);}
+                    ClearCast();if(actor){actor.SetActive(false);Destroy(actor);}
                     var entry=view.visuals.heroes.Single(h=>h.id==id);
                     actor=Instantiate(entry.prefab,stage.transform);actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;
                     SetLayer(actor.transform);
@@ -70,13 +78,29 @@ namespace Buklod.Empire {
             string name=slot.ToString();
             if(!animator.parameters.Any(p=>p.name==name&&p.type==AnimatorControllerParameterType.Trigger))return false;
             foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit"})animator.ResetTrigger(trigger);
-            animator.SetTrigger(name);return true;
+            if(!SkillCueCatalog.TryGet(HeroKitCatalog.Get(hero).Skill(slot).Id,out var cue))return false;
+            ClearCast();animator.SetTrigger(name);
+            pendingCue=ScaleCue(cue,bounds.size.y);pendingEffect=true;castAt=Time.unscaledTime+.12f;
+            var clip=animator.runtimeAnimatorController.animationClips.FirstOrDefault(c=>c.name==name);
+            castEnd=Time.unscaledTime+Mathf.Max(.65f,clip?clip.length:cue.Duration);
+            return true;
         }
-        void Update(){if(!actor||!camera||!camera.enabled)return;angle+=Time.unscaledDeltaTime*.38f;actor.transform.localRotation=Quaternion.Euler(0,Mathf.Sin(angle)*18f,0);}
-        void RefreshFocus(){if(camera)camera.enabled=focused&&!appPaused;if(animator)animator.speed=focused&&!appPaused?1:0;}
+        void ClearCast(){pendingEffect=false;castAt=-1;castEnd=0;if(previewEffects)previewEffects.Clear();if(previewAudio)previewAudio.ClearPreview();}
+        void Update(){
+            if(!actor||!camera||!camera.enabled)return;
+            if(pendingEffect&&Time.unscaledTime>=castAt){
+                pendingEffect=false;
+                if(previewEffects)previewEffects.EmitSkill(bounds.center-Vector3.up*bounds.size.y*.16f,BattleEffects.Accent(hero),pendingCue,actor.transform.forward);
+                if(previewAudio)previewAudio.Play(pendingCue,actor.transform.position,true,true);
+            }
+            if(Time.unscaledTime<castEnd)return;
+            angle+=Time.unscaledDeltaTime*.38f;actor.transform.localRotation=Quaternion.Euler(0,Mathf.Sin(angle)*18f,0);
+        }
+        void RefreshFocus(){if(!focused||appPaused)ClearCast();if(camera)camera.enabled=focused&&!appPaused;if(animator)animator.speed=focused&&!appPaused?1:0;}
         void OnApplicationFocus(bool value){focused=value;RefreshFocus();}
         void OnApplicationPause(bool value){appPaused=value;RefreshFocus();}
         public void Hide(){
+            ClearCast();previewEffects=null;previewAudio=null;
             if(camera){camera.enabled=false;camera.targetTexture=null;}
             if(stage){stage.SetActive(false);foreach(var renderer in stage.GetComponentsInChildren<Renderer>(true))renderer.gameObject.layer=0;Destroy(stage);}
             if(target){target.Release();Destroy(target);}

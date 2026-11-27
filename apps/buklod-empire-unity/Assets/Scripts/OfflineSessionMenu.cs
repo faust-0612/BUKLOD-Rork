@@ -134,7 +134,10 @@ namespace Buklod.Empire {
                 }
                 var slot=(SkillSlot)i;
                 var preview=ButtonAt("Preview "+spec.Id,row,new Vector2(.19f,.05f),new Vector2(.76f,.95f),spec.Id.Replace('_',' '),()=>{
-                    feedback.text=livePreview&&livePreview.PlaySkill(slot)?"Preview only • no match action or reward":"Live animation unavailable; showing captured portrait.";
+                    if(livePreview&&livePreview.PlaySkill(slot)){
+                        feedback.text="Skill preview • no match action or reward";
+                        if(slot==SkillSlot.Ultimate){var voice=GetComponent<ReviewHeroDialogue>();if(voice){var line=voice.PreviewUltimate(selected);if(!string.IsNullOrEmpty(line))feedback.text=line+"  •  Preview";}}
+                    }else feedback.text="Live animation unavailable; showing captured portrait.";
                 });
                 preview.GetComponentInChildren<Text>().fontSize=20;
                 var cd=Label("Base cooldown",row,new Vector2(.77f,0),new Vector2(.98f,1),spec.Cooldown.ToString("0")+"s",20);cd.color=accent;

@@ -25,6 +25,14 @@ namespace Buklod.Empire.Tests {
             g.Observe(new UnityEngine.Vector2(23,0),false,2,3);
             Assert.AreEqual(3,g.Step);
         }
+        [Test] public void ShowcaseCueKeepsCanonicalIdentityAndTiming(){
+            foreach(var cue in SkillCueCatalog.All){
+                var scaled=ReviewLiveHeroPreview.ScaleCue(cue,2);
+                Assert.AreEqual(cue.Id,scaled.Id);Assert.AreEqual(cue.Index,scaled.Index);
+                Assert.AreEqual(cue.Shape,scaled.Shape);Assert.AreEqual(cue.Duration,scaled.Duration);
+                Assert.Greater(scaled.Size,0);Assert.LessOrEqual(scaled.Size,.76f);
+            }
+        }
         [Test] public void PracticeNeverPromisesReward(){Assert.AreEqual("",ArenaProgression.TrainingResult(false));StringAssert.Contains("0 BP / 0 permanent XP",ArenaProgression.TrainingResult(true));}
         [Test] public void InvalidLevelsRejected(){Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(0));Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(21));}
     }

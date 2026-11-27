@@ -17,6 +17,7 @@ namespace Buklod.Empire {
             nextVoice=Time.unscaledTime+.5f;voice.Stop();voice.volume=.65f*ReviewAudioSettings.Get(ReviewAudioChannel.Voice);voice.PlayOneShot(clip);
         }
         public string Select(string id){var row=Find(id);if(row==null)return "";Speak(row.selectionClip);return row.selection;}
+        public string PreviewUltimate(string id){if(!view||!view.IsEditorReview||!view.Paused)return "";var row=Find(id);if(row==null)return "";Speak(row.ultimateClip);return row.ultimate;}
         public void Ultimate(string id){
             if(!isActiveAndEnabled||!view||view.Paused||!focused||appPaused)return;
             var row=Find(id);if(row==null)return;
