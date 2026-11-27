@@ -27,6 +27,6 @@ with zipfile.ZipFile(apk) as z:
 h=hashlib.sha256()
 with apk.open("rb") as f:
     for b in iter(lambda:f.read(1024*1024),b""):h.update(b)
-receipt={"status":"VERIFIED_ISOLATED_TEST_ARTIFACT","package":"org.mzbministry.buklod.empire.review","bytes":apk.stat().st_size,"sha256":h.hexdigest(),"architecture":"arm64-v8a","signatureVerified":True,"deviceVerified":False,"productionApproved":False}
+receipt={"status":"VERIFIED_ISOLATED_TEST_ARTIFACT","package":"org.mzbministry.buklod.empire.review","bytes":apk.stat().st_size,"sha256":h.hexdigest(),"architecture":"arm64-v8a","signatureVerified":True,"deviceVerified":False,"productionApproved":False,"unityTestResultsVerified":False,"buildRevision":os.environ.get("BUILD_REVISION","unknown")}
 print(json.dumps(receipt,indent=2))
 apk.with_suffix(".apk.verified.json").write_text(json.dumps(receipt,indent=2)+"\n",encoding="utf-8")

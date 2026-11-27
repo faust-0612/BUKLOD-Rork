@@ -11,8 +11,13 @@ namespace Buklod.Empire.Tests {
             public Task<string> VerifyAccountAsync(string bearer,CancellationToken token)=>Task.FromResult(bearer=="valid"?"player0":bearer=="outsider"?"unknown":null);
         }
         static string Ticket(MatchSocketEndpoint endpoint,MatchLoop loop,string bearer){
-            var task=endpoint.RequestTicket(bearer,CancellationToken.None);loop.Pump();
-            return task.GetAwaiter().GetResult();
+            using(var cancel=new CancellationTokenSource(TimeSpan.FromSeconds(6))){
+                var task=endpoint.RequestTicket(bearer,cancel.Token);
+                var timer=System.Diagnostics.Stopwatch.StartNew();
+                while(!task.IsCompleted&&timer.ElapsedMilliseconds<6500){loop.Pump();Thread.Sleep(1);}
+                Assert.True(task.IsCompleted,"Ticket request did not complete within the bounded test window.");
+                return task.GetAwaiter().GetResult();
+            }
         }
         [Test] public void WireGoldenInputAndMalformedFrames(){
             var input=new MatchInput(42,7,new Vector2(.5f,-.5f),MatchAction.Cast,Vector2.right,2);

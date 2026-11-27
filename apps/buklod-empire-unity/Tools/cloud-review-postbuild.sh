@@ -5,6 +5,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 case "${BUILD_RESULT:-}" in
   FAILURE|FAILED|failure|failed|ABORTED|aborted|CANCELLED|cancelled) echo "No artifact verification: upstream build failed"; exit 0;;
 esac
+echo "BUKLOD REVIEW POSTBUILD START"
 test "${BUKLOD_EMPIRE_CLOUD_REVIEW:-}" = 1
 test -n "${UNITY_PLAYER_PATH:-}"
 test -n "${ANDROID_HOME:-}"
@@ -16,3 +17,4 @@ if [[ "${BUILDER_OS:-}" == WINDOWS ]]; then
   sdk="$(cygpath -am "$sdk")"
 fi
 "$PYTHON" Tools/verify-cloud-review.py "$player" "$sdk"
+echo "BUKLOD REVIEW POSTBUILD COMPLETE"

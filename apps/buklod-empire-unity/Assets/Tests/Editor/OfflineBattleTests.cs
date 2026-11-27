@@ -179,7 +179,10 @@ namespace Buklod.Empire.Tests {
             if(b.Drops.Count>0)Assert.False(b.CollectPlayerPickup(b.Drops[0].Id));
             var tower=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Structure&&!u.Core);
             var core=b.Units.Single(u=>u.Team==ArenaTeam.Tenebra&&u.Core);
-            foreach(var u in new[]{tower,core})while(u.State.Alive)Assert.True(b.Hit(b.Player.State,u.State,300));
+            foreach(var u in new[]{tower,core}){
+                for(int hit=0;hit<64&&u.State.Alive;hit++)Assert.True(b.Hit(b.Player.State,u.State,300));
+                Assert.False(u.State.Alive,"Structure must be destroyed within 64 successful hits.");
+            }
             for(int i=0;i<90;i++)b.Advance(.1f,Vector2.zero);
             Assert.False(enemy.State.Alive);Assert.False(b.Finished);Assert.Greater(b.RemainingUnits(ArenaTeam.Tenebra),0);
             Assert.False(b.Units.Any(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Minion));
@@ -196,7 +199,10 @@ namespace Buklod.Empire.Tests {
             var enemy=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
             var tower=b.Units.First(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Structure&&!u.Core);
             var core=b.Units.Single(u=>u.Team==ArenaTeam.Lux&&u.Core);
-            foreach(var u in new[]{tower,core})while(u.State.Alive)Assert.True(b.Hit(enemy.State,u.State,300));
+            foreach(var u in new[]{tower,core}){
+                for(int hit=0;hit<64&&u.State.Alive;hit++)Assert.True(b.Hit(enemy.State,u.State,300));
+                Assert.False(u.State.Alive,"Structure must be destroyed within 64 successful hits.");
+            }
             b.Player.Gold=1000;Assert.False(b.BuyPlayer("blade"));
         }
         [Test] public void ShopAndRejectedSkillKeepMatchStateConsistent(){
