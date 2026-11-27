@@ -44,7 +44,7 @@ function audit(heroSize,sharedSize){
  const full=new Map();
  const groups=specs.map(([dir,key,expected,status])=>{
   const folder=join(output,dir),data=readFileSync(join(folder,'manifest.json')),doc=JSON.parse(data);
-  if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize||row.geometryRevision!=='original-sculpted-geometry-v9'||row.jointTriangles!==2048))throw Error('Hero geometry cache needs targeted refresh: use --refresh-heroes');
+  if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize||row.geometryRevision!=='original-sculpted-geometry-v10'||row.jointTriangles!==2048))throw Error('Hero geometry cache needs targeted refresh: use --refresh-heroes');
   if(dir.endsWith('-materials')&&doc.resolution!==sharedSize)throw Error('Unexpected shared resolution: '+dir);
   const rows=validateRows(doc,key,expected,status,file=>readFileSync(join(folder,file)),sha);
   if(dir==='heroes')for(const row of doc.heroes){if(row.id+'.glb'!==row.file||!heroIds.includes(row.id))throw Error('Hero identity drift');full.set(row.id,row.sha256);}

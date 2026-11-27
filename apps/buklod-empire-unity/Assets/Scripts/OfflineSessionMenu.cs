@@ -390,10 +390,10 @@ namespace Buklod.Empire {
             if(ready){
                 if(authored&&authored.entrance)authored.entrance.Open();
                 title.text="GENESIS RIFT";summary.text="Enter the battlefield";feedback.text="";
-                float elapsed=0;
-                while(elapsed<.55f){
+                float elapsed=0,duration=authored&&authored.entrance?ArenaEntranceDoor.Duration:.55f;
+                while(elapsed<duration&&Application.isFocused){
                     elapsed+=Time.unscaledDeltaTime;
-                    panelGroup.alpha=1-Mathf.SmoothStep(0,1,elapsed/.55f);
+                    panelGroup.alpha=1-Mathf.SmoothStep(0,1,elapsed/duration);
                     yield return null;
                 }
                 if(Application.isFocused)Close();

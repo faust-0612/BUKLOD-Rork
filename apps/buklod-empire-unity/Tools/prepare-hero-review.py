@@ -7,6 +7,7 @@ from refine_surfaces import texture_glb
 from hd_surface import review_size
 from fidelity_geometry import add_fidelity_geometry
 from joint_geometry import add_joint_geometry
+from hair_motion import attach_hair
 from sculpt_geometry import bevel_plate, REVISION
 root=pathlib.Path(__file__).resolve().parents[1]
 repo=root.parents[1]
@@ -80,6 +81,7 @@ class Candidate(original.Hero):
         add_details(self,result)
         add_fidelity_geometry(self,result)
         self.joint_triangles=add_joint_geometry(self,result)
+        attach_hair(self,head)
         return result
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
