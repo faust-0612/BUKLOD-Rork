@@ -30,6 +30,7 @@ namespace Buklod.Empire {
             Owner();if(State!=OnlineConnectionState.Playing||float.IsNaN(direction.x)||float.IsNaN(direction.y)||float.IsInfinity(direction.x)||float.IsInfinity(direction.y)){movement=Vector2.zero;return;}
             movement=Vector2.ClampMagnitude(direction,1);
         }
+        public void SuspendInput(){Owner();movement=Vector2.zero;actions.Clear();}
         public bool QueueAction(MatchAction action,Vector2 aim=default,int target=0,string text=null){
             Owner();if(State!=OnlineConnectionState.Playing||actions.Count>=ActionLimit||action==MatchAction.None||!new MatchInput(1,1,Vector2.zero,action,aim,target,text).Valid())return false;
             actions.Enqueue((action,aim,target,text));return true;

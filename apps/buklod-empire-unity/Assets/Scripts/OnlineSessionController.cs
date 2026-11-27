@@ -52,8 +52,8 @@ namespace Buklod.Empire {
             if(lifetime!=null)lifetime.Cancel();
             if(presentation)presentation.Unbind();
         }
-        void OnApplicationFocus(bool focused){if(!focused&&Active)connection.SetMovement(Vector2.zero);}
-        void OnApplicationPause(bool paused){if(paused&&Active)connection.SetMovement(Vector2.zero);}
+        void OnApplicationFocus(bool focused){if(!focused&&Active)connection.SuspendInput();}
+        void OnApplicationPause(bool paused){if(paused&&Active)connection.SuspendInput();}
         void OnDisable(){Stop();}
     }
 }

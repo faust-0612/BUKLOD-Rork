@@ -10,7 +10,7 @@ namespace Buklod.Empire {
     }
     public sealed class MatchGrantService {
         public const int ProtocolVersion=1;
-        public const int TicketSeconds=30, IdleSeconds=15;
+        public const int TicketSeconds=30, IdleSeconds=15, FinalRetentionSeconds=120;
         sealed class Grant {public string Account;public DateTimeOffset Expires;}
         sealed class Lease {public MatchSession Session;public DateTimeOffset LastSeen;}
         readonly AuthoritativeMatch match;
@@ -19,6 +19,8 @@ namespace Buklod.Empire {
         readonly Dictionary<MatchSession,Lease> leases=new Dictionary<MatchSession,Lease>();
         readonly Dictionary<string,MatchSession> current=new Dictionary<string,MatchSession>(StringComparer.Ordinal);
         readonly Func<DateTimeOffset> now;
+        DateTimeOffset? finalUntil;
+        bool CanReadFinal=>!match.Finished||finalUntil.HasValue&&now()<finalUntil.Value;
         public Guid MatchId {get;}
         public MatchGrantService(Guid matchId,AuthoritativeMatch match,Func<DateTimeOffset> clock=null){
             if(matchId==Guid.Empty||match==null)throw new ArgumentException("Invalid match authority.");
@@ -30,7 +32,7 @@ namespace Buklod.Empire {
         static string Hash(string text){using(var sha=SHA256.Create())return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(text)));}
         internal string IssueVerified(string verifiedAccount){
             Sweep();
-            if(Aborted||match.Finished||!match.ContainsPlayer(verifiedAccount))return null;
+            if(Aborted||!CanReadFinal||!match.ContainsPlayer(verifiedAccount))return null;
             if(byAccount.TryGetValue(verifiedAccount,out var old))grants.Remove(old);
             if(grants.Count>=AuthoritativeMatch.ParticipantCount)return null;
             var bytes=new byte[32];using(var rng=RandomNumberGenerator.Create())rng.GetBytes(bytes);
@@ -40,7 +42,7 @@ namespace Buklod.Empire {
         }
         public MatchSession Redeem(Guid matchId,int protocol,string ticket){
             Sweep();
-            if(Aborted||matchId!=MatchId||protocol!=ProtocolVersion||ticket==null||ticket.Length!=44||match.Finished)return null;
+            if(Aborted||matchId!=MatchId||protocol!=ProtocolVersion||ticket==null||ticket.Length!=44||!CanReadFinal)return null;
             string key=Hash(ticket);
             if(!grants.TryGetValue(key,out var g))return null;
             grants.Remove(key);byAccount.Remove(g.Account);
@@ -59,10 +61,10 @@ namespace Buklod.Empire {
         }
         internal bool Start(){if(Aborted||Started||match.Finished||ConnectedCount!=AuthoritativeMatch.ParticipantCount)return false;Started=true;return true;}
         public bool Submit(MatchSession s,MatchInput frame){
-            if(!Started||!Active(s)||!match.Submit(s,frame))return false;
+            if(!Started||match.Finished||!Active(s)||!match.Submit(s,frame))return false;
             leases[s].LastSeen=now();return true;
         }
-        public MatchSnapshot Snapshot(MatchSession s)=>Active(s)?match.Snapshot(s):null;
+        public MatchSnapshot Snapshot(MatchSession s)=>!Aborted&&CanReadFinal&&Active(s)?match.Snapshot(s):null;
         public bool Close(MatchSession s){
             if(s==null||!leases.Remove(s))return false;
             string account=null;foreach(var kv in current)if(ReferenceEquals(kv.Value,s)){account=kv.Key;break;}
@@ -70,7 +72,9 @@ namespace Buklod.Empire {
             return match.CloseSession(s);
         }
         public void Sweep(){
-            var time=now();var expired=new List<string>();
+            var time=now();
+            if(match.Finished&&finalUntil.HasValue&&time>=finalUntil.Value){Abort();return;}
+            var expired=new List<string>();
             foreach(var kv in grants)if(kv.Value.Expires<=time)expired.Add(kv.Key);
             foreach(var key in expired){var g=grants[key];grants.Remove(key);byAccount.Remove(g.Account);}
             var stale=new List<MatchSession>();foreach(var kv in leases)if(time-kv.Value.LastSeen>=TimeSpan.FromSeconds(IdleSeconds))stale.Add(kv.Key);
@@ -79,6 +83,10 @@ namespace Buklod.Empire {
         public int ConnectedCount=>leases.Count;
         public int Tick=>match.Tick;
         public bool Finished=>match.Finished;
-        public bool AdvanceTick(){Sweep();return Started&&match.AdvanceTick();}
+        public bool AdvanceTick(){
+            Sweep();if(!Started||!match.AdvanceTick())return false;
+            if(match.Finished&&!finalUntil.HasValue)finalUntil=now().AddSeconds(FinalRetentionSeconds);
+            return true;
+        }
     }
 }
