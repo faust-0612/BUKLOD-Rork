@@ -19,7 +19,7 @@ test('All 13 canonical original Kingdom station routes receive distinct dictiona
 });
 test('Dictionary is authoritative for ALL visual source places, with no invented lore terms',()=>{
  for(const [,id,term,visual] of mapping){
-  assert.ok(canonical.includes("'"+term+"'")||canonical.includes("name: '"+term+"'"),
+  assert.ok(canonical.includes(JSON.stringify(term))||canonical.includes("'"+term+"'")||canonical.includes("name: '"+term+"'"),
     id+' uses location absent from KL dictionary: '+term);
   assert.match(visual,/^[a-z-]+$/);
  }

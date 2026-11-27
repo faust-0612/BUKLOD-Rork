@@ -6,7 +6,8 @@ const read = path => readFileSync(path, 'utf8');
 test('compact banner provides a measurable viewport probe on first render', () => {
  const component = read('src/components/BuklodAdMobBanner.tsx');
  const viewport = read('src/lib/buklodAdViewport.ts');
- assert.match(viewport, /height >= 8/);
+ assert.match(viewport, /isBuklodAdSlotVisible/);
+ assert.match(read('src/lib/buklodAdViewportVisibility.ts'), /width >= 8 && height >= 8/);
  assert.match(component, /compact\) \{[\s\S]*?style=\{\[styles.pendingShell, compactVideoCompanion && styles.videoCompanionPending\]\}/);
  assert.match(component, /minHeight: BUKLOD_DASHBOARD_BANNER_RESERVED_HEIGHT/);
  const first = read('src/components/BuklodFirstViewAd.tsx');

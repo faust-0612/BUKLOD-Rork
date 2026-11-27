@@ -13,13 +13,17 @@ test('all 13 Library hero identities and precisely 70 self-contained WAV cues',(
     'Each hero must retain two skills plus an ultimate signature');
   assert.equal(ARENA_SFX_IDS.length,70);
   assert.equal(new Set(ARENA_SFX_IDS).size,70);
-  const entries=arenaSfxEntries();
+  const result=arenaSfxEntries(process.cwd());
+  const entries=result.cues;
+  assert.equal(result.manifest.count,70);
+  assert.equal(result.manifest.prototype,false);
+  assert.equal(new Set(result.manifest.recordings.map(x=>x.sha256)).size,70);
   assert.equal(entries.length,70);
   assert.ok(entries.every(x=>x.bytes.toString('ascii',0,4)==='RIFF'));
   assert.ok(entries.every(x=>x.bytes.toString('ascii',8,12)==='WAVE'));
   assert.ok(entries.every(x=>x.bytes.readUInt32LE(4)===x.bytes.length-8));
   assert.ok(entries.every(x=>x.bytes.length>=44+22050*0.12*2));
-  assert.deepEqual(arenaSfxEntries().map(x=>x.bytes),entries.map(x=>x.bytes),'SFX must be byte-deterministic');
+  assert.deepEqual(arenaSfxEntries(process.cwd()).cues.map(x=>x.bytes),entries.map(x=>x.bytes),'SFX must be byte-deterministic');
 });
 test('native Godot packs library SFX and four strictly offline match modes',()=>{
  const pack=source('scripts/build-empire-godot-pack.mjs');

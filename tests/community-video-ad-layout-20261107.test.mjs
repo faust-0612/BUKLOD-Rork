@@ -14,7 +14,8 @@ test('Unfilled video companion ad collapses while preserving an eligible viewpor
   assert.match(banner, /videoCompanionPending:\s*\{\s*minHeight: 8/);
   assert.match(banner, /compactVideoCompanion && !loaded && styles\.videoCompanionPendingShell/);
   assert.match(banner, /compactVideoCompanion && !loaded\s*\? \{ minHeight: 8 \}/);
-  assert.match(viewport, /height >= 8/);
+  assert.match(viewport, /isBuklodAdSlotVisible/);
+  assert.match(read('src/lib/buklodAdViewportVisibility.ts'), /width >= 8 && height >= 8/);
   assert.match(banner, /onAdLoaded=\{\(\) => \{/);
   assert.match(banner, /setLoaded\(true\)/);
   assert.match(banner, /onAdImpression/);

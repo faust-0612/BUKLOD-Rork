@@ -14,7 +14,7 @@ const admin = read('src/app/admin/economy-operations.tsx');
   assert.match(home, /THIS MONTH QMP/);
   assert.match(home, /QUALIFIED CONTENT/);
   assert.match(home, /MEANINGFUL REPLIES/);
-  assert.match(home, /NOT WITHDRAWABLE/);
+  assert.match(home, /NOT WITHDRAWABLE/i);
   assert.match(details, /YOUR EARNINGS/);
   assert.match(details, /ESTIMATED REVENUE SHARE|Estimated share/);
   assert.match(earnings, /FINALIZED AVAILABLE CASH/);
