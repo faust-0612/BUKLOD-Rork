@@ -1,0 +1,60 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEditor.Build;
+using UnityEngine;
+
+namespace Buklod.Empire.Editor {
+    // Generates unsigned Android bundle inputs only. Signing and hosting are separate, local operations.
+    public static class EmpireContentPublisher {
+        [MenuItem("BUKLOD Empire/Content updates/Export unsigned audio bundles")]
+        public static void Export(){
+            if(EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android||Application.unityVersion!="6000.3.29f1")
+                throw new BuildFailedException("Use the pinned Android editor before exporting content.");
+            var trust=EmpireContentUpdater.ReadTrust();
+            if(trust==null||trust.apkVersionCode!=PlayerSettings.Android.bundleVersionCode)throw new BuildFailedException("Configure pinned public trust for this exact APK version.");
+            var output=Path.GetFullPath("Builds/EmpireContent/unsigned-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
+            if(Directory.Exists(output))throw new BuildFailedException("Content export already exists.");
+            ReviewAuthoredAssetGate.ValidateLibraryAudioInputs();
+            var paths=new Dictionary<string,string>(StringComparer.Ordinal);
+            foreach(string slot in EmpireContentProtocol.Slots){
+                var replacement="Assets/EmpireContentSource/Audio/"+slot+".ogg";
+                // For this first exporter only original pinned CC0 files are accepted. Future replacements need
+                // a separately reviewed source manifest and exporter change, not a hidden folder override.
+                if(File.Exists(replacement))throw new BuildFailedException("Unreviewed replacement source: "+replacement);
+                var choices=new[]{"Magic","Reward"}.Select(group=>"Assets/Resources/LibraryAudio/"+group+"/"+slot+".ogg").Where(File.Exists).ToArray();
+                if(choices.Length!=1||!AssetDatabase.LoadAssetAtPath<AudioClip>(choices[0]))throw new BuildFailedException("Missing licensed audio: "+slot);
+                paths.Add(slot,choices[0]);
+            }
+            Directory.CreateDirectory(output);
+            var groups=paths.GroupBy(x=>x.Value.Contains("/Magic/")?"magic":"reward").OrderBy(g=>g.Key).ToArray();
+            var builds=groups.Select(g=>new AssetBundleBuild{assetBundleName=g.Key,assetNames=g.Select(x=>x.Value).ToArray(),addressableNames=g.Select(x=>EmpireContentProtocol.AssetName(x.Key)).ToArray()}).ToArray();
+            var manifest=BuildPipeline.BuildAssetBundles(output,builds,BuildAssetBundleOptions.ChunkBasedCompression|BuildAssetBundleOptions.StrictMode,BuildTarget.Android);
+            if(!manifest)throw new BuildFailedException("Unsigned audio bundle build failed.");
+            var rows=new List<EmpireContentProtocol.Bundle>();
+            foreach(var g in groups){
+                if(manifest.GetAllDependencies(g.Key).Length!=0)throw new BuildFailedException("Unexpected bundle dependency.");
+                string file=Path.Combine(output,g.Key);
+                long bytes=new FileInfo(file).Length;
+                if(bytes<=0||bytes>EmpireContentProtocol.MaxBundleBytes)throw new BuildFailedException("Bundle exceeds content budget.");
+                string digest=EmpireContentProtocol.HashFile(file);
+                var row=new EmpireContentProtocol.Bundle{sha256=digest,bytes=(int)bytes,slots=g.Select(x=>x.Key).ToArray()};
+                File.Move(file,Path.Combine(output,EmpireContentProtocol.BundleFile(row)));rows.Add(row);
+            }
+            if(rows.Sum(x=>(long)x.bytes)>EmpireContentProtocol.MaxRevisionBytes)throw new BuildFailedException("Revision exceeds content budget.");
+            var doc=new EmpireContentProtocol.Manifest{abi=EmpireContentProtocol.Abi,platform="Android",unity=Application.unityVersion,schema=1,
+                minApk=trust.apkVersionCode,maxApk=trust.apkVersionCode,revision=0,bundles=rows.ToArray()};
+            File.WriteAllText(Path.Combine(output,"unsigned-content.json"),JsonUtility.ToJson(doc,true));
+            Debug.Log("Unsigned content exported: "+output+"; sign locally before hosting. Nothing deployed.");
+        }
+        internal static void ValidateBuildConfiguration(){
+            try{
+                var trust=EmpireContentUpdater.ReadTrust();
+                if(trust==null||trust.apkVersionCode!=PlayerSettings.Android.bundleVersionCode)throw new InvalidDataException("Missing content trust for this APK version.");
+                EmpireContentProtocol.Origin(trust);
+            }catch(Exception e){throw new BuildFailedException("Content updater build configuration invalid: "+e.Message);}
+        }
+    }
+}
