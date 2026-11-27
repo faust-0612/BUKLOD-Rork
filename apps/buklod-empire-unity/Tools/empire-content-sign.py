@@ -7,9 +7,9 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[1]
 TRUST = PROJECT / "Assets/Resources/EmpireContentTrust.json"
-ABI = "empire-audio-v1"
+ABI = "empire-content-v2"
 MAX_BUNDLE = 16 * 1024 * 1024
-MAX_REVISION = 32 * 1024 * 1024
+MAX_REVISION = 64 * 1024 * 1024
 
 def run(*args):
     return subprocess.check_output(args, stderr=subprocess.PIPE)
@@ -51,6 +51,18 @@ def make_trust(args):
         with TRUST.open("xb") as out: out.write(data)
     print("Pinned public trust:", TRUST)
 
+def expected_slots():
+    source = (PROJECT / "Assets/Scripts/EmpireContentProtocol.cs").read_text(encoding="utf-8")
+    slots=set()
+    for name in ("Slots","StaticSlots"):
+        match=re.search(r"\b"+name+r"\s*=\s*\{([^}]+)\}",source,re.S)
+        if not match: raise ValueError("Content slot contract missing: "+name)
+        rows=re.findall(r'"([a-z0-9_-]+)"',match.group(1))
+        if not rows or any(x in slots for x in rows): raise ValueError("Duplicate content slot")
+        slots.update(rows)
+    if len(slots)!=66: raise ValueError("Unexpected v2 content roster")
+    return slots
+
 def sign(args):
     key = key_path(args.key)
     trust = json.loads(TRUST.read_text(encoding="utf-8"))
@@ -58,7 +70,7 @@ def sign(args):
     output = Path(args.output).resolve()
     if output.exists(): raise FileExistsError(output)
     doc = json.loads((source / "unsigned-content.json").read_text(encoding="utf-8"))
-    if args.revision <= 0 or doc.get("revision") != 0 or doc.get("schema") != 1 or doc.get("abi") != ABI or doc.get("platform") != "Android" or doc.get("unity") != "6000.3.29f1":
+    if args.revision <= 0 or doc.get("revision") != 0 or doc.get("schema") != 2 or doc.get("abi") != ABI or doc.get("platform") != "Android" or doc.get("unity") != "6000.3.29f1":
         raise ValueError("Unexpected content protocol")
     if doc.get("minApk") != trust["apkVersionCode"] or doc.get("maxApk") != trust["apkVersionCode"]:
         raise ValueError("APK version mismatch")
@@ -71,11 +83,11 @@ def sign(args):
             raise ValueError("Invalid bundle identity")
         seen.add(h); total+=n
         for slot in row["slots"]:
-            if not re.fullmatch(r"[a-z0-9-]{1,64}",slot) or slot in slots: raise ValueError("Invalid slot")
+            if not re.fullmatch(r"[a-z0-9_-]{1,64}",slot) or slot in slots: raise ValueError("Invalid slot")
             slots.add(slot)
         path=source/(h+".bundle")
         if path.is_symlink() or path.stat().st_size!=n or digest(path.read_bytes())!=h: raise ValueError("Bundle changed")
-    if total>MAX_REVISION or len(slots)!=49: raise ValueError("Invalid initial audio roster or budget")
+    if total>MAX_REVISION or slots != expected_slots(): raise ValueError("Invalid content roster or budget")
     doc["revision"]=args.revision
     payload=json.dumps(doc,separators=(",",":"),sort_keys=True).encode()
     with tempfile.TemporaryDirectory() as temp:
