@@ -49,6 +49,8 @@ namespace Buklod.Empire.Editor {
             if(!(UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline is UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset))
                 throw new InvalidOperationException("Configure the local URP asset before review.");
             ValidateReceipt();
+            ReviewAuthoredAssetGate.ValidateLibraryAudioInputs();
+            LibraryVillageReview.ValidateInputs();
             var bank=Resources.Load<TextAsset>("SkillAudioBank");
             if(!bank)throw new InvalidOperationException("Missing committed 39-skill audio bank.");
             SkillAudio.ValidateBank(bank.bytes);
