@@ -90,12 +90,13 @@ namespace Buklod.Empire {
             return v;
         }
         public float Remaining(SkillSlot slot,float now)=>Mathf.Max(0,Cooldown(slot,now)-(now-last[(int)slot]));
+        public static float ManaCost(SkillSlot slot)=>slot==SkillSlot.Primary?18:slot==SkillSlot.Secondary?14:55;
         public bool TryCast(IHeroSkillWorld world,SkillSlot slot,Vector2 aim,float now,bool active){
             if(!active||!Alive||Kit==null||world==null||float.IsNaN(now)||float.IsInfinity(now)||now<0||!CanCast(now))return false;
             if(slot!=SkillSlot.Primary&&slot!=SkillSlot.Secondary&&slot!=SkillSlot.Ultimate)return false;
             if(float.IsNaN(aim.x)||float.IsInfinity(aim.x)||float.IsNaN(aim.y)||float.IsInfinity(aim.y))return false;
             if(slot==SkillSlot.Secondary&&Level<3||slot==SkillSlot.Ultimate&&Level<6)return false;
-            float cost=slot==SkillSlot.Primary?18:slot==SkillSlot.Secondary?14:55;
+            float cost=ManaCost(slot);
             if(Mana<cost||Remaining(slot,now)>0)return false;
             if(!HeroSkillRules.Cast(world,this,Kit.Skill(slot).Id,aim,now))return false;
             Mana-=cost;last[(int)slot]=now;LastCastAt=now;LastCastSlot=slot;LastCastAim=aim;
