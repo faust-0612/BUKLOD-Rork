@@ -11,7 +11,7 @@ const args=process.argv.slice(2);
 const usage='Usage: node Tools/run-offline-test-build.mjs --prepare | --source-preflight | --validate|--build|--resume|--candidate <absolute Unity executable> <absolute Android build-tools directory>';
 if(!((args.length===1&&['--prepare','--source-preflight'].includes(args[0]))||(args.length===3&&['--build','--resume','--validate','--candidate'].includes(args[0]))))throw Error(usage);
 const sourcePreflight=args[0]==='--source-preflight',validate=args[0]==='--validate',candidate=args[0]==='--candidate',resume=validate||candidate||args[0]==='--resume',build=candidate||args[0]==='--resume'||args[0]==='--build',unity=args[1],sdk=args[2];
-let sourceRevision=null,surfaceMode=null;
+let sourceRevision=null,surfaceMode=null,decorationReport=null;
 if(build||validate){
  if(!isAbsolute(unity)||!isAbsolute(sdk)||!existsSync(unity)||!statSync(unity).isFile()||!existsSync(sdk)||!statSync(sdk).isDirectory())throw Error(usage);
  for(const path of [join(sdk,process.platform==='win32'?'aapt.exe':'aapt'),join(sdk,'lib','apksigner.jar')])if(!existsSync(path))throw Error('Missing Android build tool: '+path);
@@ -112,6 +112,9 @@ try{
   }else console.log('EditMode tests DEFERRED — no test pass claimed. Proceeding with isolated Unity compile/import/build gates.');
   const before=new Set(readdirSync(root));
   const log=join(root,'unity-'+Date.now()+'.log');
+  process.env.BUKLOD_OFFLINE_CANDIDATE=candidate?'1':'0';
+  if(candidate){decorationReport=log+'.decorations.json';process.env.BUKLOD_DECORATION_REPORT=decorationReport;}
+  else delete process.env.BUKLOD_DECORATION_REPORT;
   console.log('Unity build log: '+log);
   try{await runLogged(unity,['-batchmode','-quit','-projectPath',project,'-buildTarget','Android','-executeMethod',(validate?'Buklod.Empire.Editor.OfflineReviewBuildBootstrap.ValidateOnly':'Buklod.Empire.Editor.OfflineReviewBuildBootstrap.Build'),'-logFile',log],{cwd:project,log,label:validate?'Unity scene preflight':'Unity APK build',idleMs:build?30*60*1000:15*60*1000,hardMs:build?180*60*1000:90*60*1000});}catch(error){if(existsSync(log))console.error(readFileSync(log,'utf8').split(/\r?\n/).slice(-100).join('\n'));throw error;}
   if(validate){
@@ -126,7 +129,9 @@ try{
   const receipt=JSON.parse(readFileSync(apk+'.verified.json','utf8'));
   if(receipt.status!=='VERIFIED_ISOLATED_TEST_ARTIFACT'||receipt.productionApproved!==false||receipt.deviceVerified!==false)throw Error('Unexpected verification receipt');
   if(candidate){
-   const metadata={status:'OFFLINE_BUILD_CANDIDATE_ONLY',sourceRevision,surfaceMode,package:receipt.package,apk:apks[0],sha256:receipt.sha256,bytes:receipt.bytes,artifactSignatureVerified:true,editModeVerified:false,deviceVerified:false,visualQualityVerified:false,onlineEnabled:false,productionApproved:false};
+   const decorations=JSON.parse(readFileSync(decorationReport,'utf8'));
+   if(decorations.status!=='OFFLINE_DECORATION_CANDIDATE'||decorations.instances!==24||decorations.productionApproved!==false||!Array.isArray(decorations.placements)||decorations.placements.length!==9||new Set(decorations.placements.map(p=>p.requested)).size!==9||decorations.placements.some(p=>!p.requested||!p.actual||!decorations.placements.some(q=>q.requested===p.actual)))throw Error('Invalid candidate decoration receipt');
+   const metadata={status:'OFFLINE_BUILD_CANDIDATE_ONLY',sourceRevision,surfaceMode,decorations,package:receipt.package,apk:apks[0],sha256:receipt.sha256,bytes:receipt.bytes,artifactSignatureVerified:true,editModeVerified:false,deviceVerified:false,visualQualityVerified:false,onlineEnabled:false,productionApproved:false};
    const path=apk+'.candidate.json';writeFileSync(path+'.tmp',JSON.stringify(metadata,null,2)+'\n');renameSync(path+'.tmp',path);
    console.log('BUKLOD_OFFLINE_CANDIDATE_APK_BUILT — signature/package verified; EditMode and device acceptance deferred.');
   }

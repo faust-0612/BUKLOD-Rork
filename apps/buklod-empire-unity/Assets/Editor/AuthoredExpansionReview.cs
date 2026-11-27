@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 namespace Buklod.Empire.Editor {
@@ -11,23 +13,54 @@ namespace Buklod.Empire.Editor {
             Root+"props/Exports/glTF/Anvil.gltf",Root+"props/Exports/glTF/Barrel.gltf",Root+"props/Exports/glTF/Banner_1.gltf",Root+"props/Exports/glTF/Chest_Wood.gltf",Root+"props/Exports/glTF/FarmCrate_Apple.gltf"
         };
         internal static bool Requested=>Environment.GetEnvironmentVariable("BUKLOD_AUTHORED_EXPANSION")=="1";
+        static bool Candidate=>Environment.GetEnvironmentVariable("BUKLOD_OFFLINE_CANDIDATE")=="1";
+        [Serializable] sealed class Placement {public string requested,actual;}
+        [Serializable] sealed class DecorationReport {public string status;public Placement[] placements;public int instances;public bool productionApproved;}
+        static Placement[] resolved;
+        static GameObject Load(string path){
+            var model=AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if(!model&&File.Exists(path)){
+                Debug.LogWarning("Retrying authored decorative import: "+path);
+                AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceUpdate|ImportAssetOptions.ForceSynchronousImport);
+                model=AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return model&&model.GetComponentsInChildren<Renderer>(true).Length>0?model:null;
+        }
         internal static void Apply(){
+            resolved=null;
             if(!Requested)return;
             if(!File.Exists(Root+"expansion-ready.json"))throw new InvalidOperationException("Prepare authored expansion before starting Unity.");
-            var holder=new GameObject("Authored medieval environment expansion (review only)");
+            // Resolve the entire roster before modifying the scene. Strict QA still requires every original.
+            var originals=ModelPaths.Select(Load).ToArray();
+            var models=new GameObject[ModelPaths.Length];
+            var rows=new Placement[ModelPaths.Length];
+            // Prefer already imported barrel/crate/wagon rather than another skinned chest.
+            var fallback=new[]{5,1,0,4,3,2,6,8}.FirstOrDefault(i=>originals[i]!=null);
             for(int i=0;i<ModelPaths.Length;i++){
-                var model=AssetDatabase.LoadAssetAtPath<GameObject>(ModelPaths[i]);
-                if(!model)throw new InvalidOperationException("Missing imported authored model: "+ModelPaths[i]);
-                for(int team=0;team<2;team++)
-                    Place(model,holder.transform,team,3.2f,5+i*(OfflineBattle.Height-10)/8f,1.8f);
+                int actual=i;
+                if(!originals[i]){
+                    if(!Candidate||!originals[fallback])throw new InvalidOperationException("Missing imported authored model: "+ModelPaths[i]);
+                    actual=fallback;
+                    Debug.LogWarning("OFFLINE_CANDIDATE_DECORATION_FALLBACK "+ModelPaths[i]+" -> "+ModelPaths[actual]);
+                }
+                models[i]=originals[actual];
+                rows[i]=new Placement{requested=ModelPaths[i],actual=ModelPaths[actual]};
             }
-            // Six additional lane-aligned banners, framing the two bases from
-            // outside the simulation rectangle. No colliders, navmesh or unit data.
-            var banner=AssetDatabase.LoadAssetAtPath<GameObject>(ModelPaths[6]);
-            if(!banner)throw new InvalidOperationException("Missing authored lane banner.");
-            for(int team=0;team<2;team++)foreach(float fraction in new[]{.19f,.5f,.81f})
-                Place(banner,holder.transform,team,1.45f,OfflineBattle.Height*fraction,2.2f);
-            Debug.Log("BUKLOD authored environment expansion: 9 models, 24 exterior decorative instances.");
+            var holder=new GameObject("Authored medieval environment expansion (review only)");
+            try{
+                for(int i=0;i<models.Length;i++)for(int team=0;team<2;team++)
+                    Place(models[i],holder.transform,team,3.2f,5+i*(OfflineBattle.Height-10)/8f,1.8f);
+                // Preserve the six exterior lane decorations even if a banner needs a candidate substitute.
+                for(int team=0;team<2;team++)foreach(float fraction in new[]{.19f,.5f,.81f})
+                    Place(models[6],holder.transform,team,1.45f,OfflineBattle.Height*fraction,2.2f);
+                resolved=rows;
+                if(Candidate){
+                    string report=Environment.GetEnvironmentVariable("BUKLOD_DECORATION_REPORT");
+                    if(string.IsNullOrEmpty(report)||!Path.IsPathRooted(report))throw new InvalidOperationException("Candidate decoration receipt path missing.");
+                    File.WriteAllText(report,JsonUtility.ToJson(new DecorationReport{status="OFFLINE_DECORATION_CANDIDATE",placements=rows,instances=24,productionApproved=false},true));
+                }
+            }catch{resolved=null;UnityEngine.Object.DestroyImmediate(holder);throw;}
+            Debug.Log("BUKLOD authored environment expansion: 9 decoration slots, 24 exterior decorative instances; substitutions="+rows.Count(r=>r.actual!=r.requested));
         }
         static Bounds BoundsFor(Renderer[] renderers){
             if(renderers.Length==0)throw new InvalidOperationException("Authored model has no renderer.");
@@ -58,7 +91,12 @@ namespace Buklod.Empire.Editor {
             if(!Requested)return;
             PremiumSurfaceReview.Validate(dependencies);
             var set=new System.Collections.Generic.HashSet<string>(dependencies,StringComparer.Ordinal);
-            foreach(var p in ModelPaths)if(!set.Contains(p))throw new UnityEditor.Build.BuildFailedException("Missing authored expansion scene dependency: "+p);
+            if(resolved==null||resolved.Length!=ModelPaths.Length)throw new UnityEditor.Build.BuildFailedException("Missing resolved authored decoration roster.");
+            for(int i=0;i<ModelPaths.Length;i++){
+                var row=resolved[i];
+                if(row.requested!=ModelPaths[i]||!ModelPaths.Contains(row.actual)||(!Candidate&&row.actual!=row.requested)||!set.Contains(row.actual))
+                    throw new UnityEditor.Build.BuildFailedException("Missing or invalid authored expansion scene dependency: "+row.requested+" -> "+row.actual);
+            }
             foreach(var name in new[]{"light_03.png","magic_03.png"}){
                 string p=Root+"vfx/addons/kenney_particle_pack/"+name;
                 if(!set.Contains(p))throw new UnityEditor.Build.BuildFailedException("Missing authored particle texture: "+p);
