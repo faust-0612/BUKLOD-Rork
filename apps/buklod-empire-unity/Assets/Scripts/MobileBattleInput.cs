@@ -14,11 +14,11 @@ namespace Buklod.Empire {
         public Vector2 Aim {get;private set;}
         public int ActiveSkill {get;private set;}=-1;
         private Finger movement,skill;
-        private Vector2 origin,contactOrigin;
+        private Vector2 origin,contactOrigin,actionOrigin;
         private Rect lastArea;
         private BattleView view;
         public void Bind(BattleView battle){view=battle;}
-        private void OnEnable(){EnhancedTouchSupport.Enable();Touch.onFingerDown+=Down;Touch.onFingerMove+=Move;Touch.onFingerUp+=Up;}
+        private void OnEnable(){lastArea=SafeArea;EnhancedTouchSupport.Enable();Touch.onFingerDown+=Down;Touch.onFingerMove+=Move;Touch.onFingerUp+=Up;}
         private void OnDisable(){Touch.onFingerDown-=Down;Touch.onFingerMove-=Move;Touch.onFingerUp-=Up;EnhancedTouchSupport.Disable();Reset();}
         private void OnApplicationFocus(bool focused){if(!focused)Reset();}
         private void OnApplicationPause(bool paused){if(paused)Reset();}
@@ -27,7 +27,7 @@ namespace Buklod.Empire {
             var at=finger.currentTouch.screenPosition;
             if(!SafeArea.Contains(at))return;
             int button=ArenaControlSettings.Nearest(SafeArea,at);
-            if(button>0){if(skill==null){skill=finger;ActiveSkill=button;Aim=Vector2.zero;}return;}
+            if(button>0){if(skill==null){skill=finger;ActiveSkill=button;actionOrigin=at;Aim=Vector2.zero;}return;}
             if(movement==null&&ArenaControlSettings.InMovementZone(SafeArea,at)){
                 movement=finger;contactOrigin=at;origin=ArenaTouchLayout.ClampCenter(SafeArea,at,Radius(0));Joystick=Vector2.zero;
             }
@@ -36,7 +36,7 @@ namespace Buklod.Empire {
         private void Move(Finger finger){
             var at=finger.currentTouch.screenPosition;
             if(finger==movement)UpdateMove(at);
-            if(finger==skill)Aim=ResolveAim(at,PixelCenter(ActiveSkill),Radius(ActiveSkill));
+            if(finger==skill)Aim=ResolveAim(at,actionOrigin,Radius(ActiveSkill));
         }
         public static Vector2 ResolveAim(Vector2 at,Vector2 center,float radius){
             var d=at-center;return d.magnitude>radius*.25f?Vector2.ClampMagnitude(d/Mathf.Max(1,radius),1):Vector2.zero;
@@ -45,7 +45,7 @@ namespace Buklod.Empire {
             if(finger==movement){movement=null;Joystick=Vector2.zero;}
             if(finger!=skill)return;
             bool cancel=finger.currentTouch.phase==UnityEngine.InputSystem.TouchPhase.Canceled||!SafeArea.Contains(finger.currentTouch.screenPosition)||Vector2.Distance(finger.currentTouch.screenPosition,PixelCenter(ActiveSkill))>Radius(ActiveSkill)*3.2f;
-            int button=ActiveSkill;Vector2 direction=cancel?Vector2.zero:ResolveAim(finger.currentTouch.screenPosition,PixelCenter(button),Radius(button));
+            int button=ActiveSkill;Vector2 direction=cancel?Vector2.zero:ResolveAim(finger.currentTouch.screenPosition,actionOrigin,Radius(button));
             skill=null;ActiveSkill=-1;Aim=Vector2.zero;
             if(!cancel&&view)view.Cast(button,direction);
         }
