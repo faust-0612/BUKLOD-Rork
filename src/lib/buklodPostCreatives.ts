@@ -1,3 +1,4 @@
+import { wallAudioMixEnabled } from '@/lib/buklodWallAudioReleaseFlags';
 import { supabase } from '@/lib/supabase';
 import {BUKLOD_MUSIC_PAGE_SIZE,type BuklodMusicFolder,type BuklodMusicCategory} from '@/lib/buklodMusicCategories';
 
@@ -30,6 +31,8 @@ export type BuklodPostCreative = {
   music_track_id: string | null;
   music_clip_start_seconds: number | null;
   music_clip_duration_seconds: number | null;
+  music_volume?: number | null;
+  video_volume?: number | null;
   music: BuklodPostMusicTrack | null;
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -58,7 +61,7 @@ export async function loadBuklodPostCreatives(ids: string[]): Promise<Record<str
   const rows: any[] = [];
   for (let offset=0; offset<unique.length; offset+=80) {
     const { data, error } = await (supabase as any).from('buklod_post_creatives')
-      .select('post_id,music_track_id,motion_preset,music_clip_start_seconds,music_clip_duration_seconds').in('post_id', unique.slice(offset, offset+80));
+      .select('post_id,music_track_id,motion_preset,music_clip_start_seconds,music_clip_duration_seconds'+(wallAudioMixEnabled()?',music_volume,video_volume':'')).in('post_id', unique.slice(offset, offset+80));
     if (error) throw error;
     rows.push(...(data ?? []));
   }
@@ -78,6 +81,8 @@ export async function loadBuklodPostCreatives(ids: string[]): Promise<Record<str
       motion_preset:normalizeBuklodMotion(r.motion_preset),
       music_clip_start_seconds:r.music_clip_start_seconds == null ? null : Number(r.music_clip_start_seconds),
       music_clip_duration_seconds:r.music_clip_duration_seconds == null ? null : Number(r.music_clip_duration_seconds),
+      music_volume:r.music_volume == null ? null : Number(r.music_volume),
+      video_volume:r.video_volume == null ? null : Number(r.video_volume),
       music:tracks.get(String(r.music_track_id ?? '')) ?? null};
   }
   return result;
@@ -85,6 +90,7 @@ export async function loadBuklodPostCreatives(ids: string[]): Promise<Record<str
 export async function saveBuklodPostCreative(input: {
   postId:string; userId:string; musicTrackId:string|null; motionPreset:BuklodPostMotionPreset;
   clipStartSeconds?:number|null; clipDurationSeconds?:number|null;
+  musicVolume?:number|null; videoVolume?:number|null;
 }) {
   const motion = normalizeBuklodMotion(input.motionPreset);
   if (motion === 'none' && !input.musicTrackId) return;
@@ -92,6 +98,12 @@ export async function saveBuklodPostCreative(input: {
   const hasClip = !!input.musicTrackId && input.clipStartSeconds != null && input.clipDurationSeconds != null;
   const clipStart = hasClip ? Number(input.clipStartSeconds) : null;
   const clipDuration = hasClip ? 30 : null;
+  const musicVolume = hasClip ? Number(input.musicVolume ?? 1) : null;
+  const videoVolume = hasClip ? Number(input.videoVolume ?? 1) : null;
+  if(hasClip && (!Number.isFinite(musicVolume) || !Number.isFinite(videoVolume) ||
+    musicVolume! < 0 || musicVolume! > 1 || videoVolume! < 0 || videoVolume! > 1)) {
+    throw new Error('Choose valid music/video volume from 0% to 100%.');
+  }
   if (hasClip && (!Number.isFinite(clipStart) || !Number.isFinite(clipDuration) ||
     clipStart! < 0 || clipStart! > 21600 || clipDuration! !== 30)) {
     throw new Error('Select a valid 30-second music clip.');
@@ -100,6 +112,7 @@ export async function saveBuklodPostCreative(input: {
     post_id:input.postId, created_by:input.userId,
     music_track_id:input.musicTrackId, motion_preset:motion,
     music_clip_start_seconds:clipStart, music_clip_duration_seconds:clipDuration,
+    ...(wallAudioMixEnabled()?{music_volume:musicVolume,video_volume:videoVolume}:{}),
   });
   if (error) throw error;
 }

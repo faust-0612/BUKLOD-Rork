@@ -11,6 +11,7 @@ type Props = {
   mentionStyle?: StyleProp<TextStyle>;
   knownNames?: string[];
   numberOfLines?: number;
+  preserveMentionColor?: boolean;
 };
 
 const MENTION_RE =
@@ -121,6 +122,7 @@ export function BuklodMentionText({
   mentionStyle,
   knownNames,
   numberOfLines,
+  preserveMentionColor = false,
 }: Props) {
   const { paletteId } = useBuklodTheme();
   const darkMentionStyle = isBuklodDarkPaletteId(paletteId)
@@ -137,7 +139,7 @@ export function BuklodMentionText({
         part.mention ? (
           <Text
             key={`${index}-${part.value}`}
-            style={[mentionStyle ?? DEFAULT_MENTION_STYLE, darkMentionStyle]}
+            style={[mentionStyle ?? DEFAULT_MENTION_STYLE, !preserveMentionColor && darkMentionStyle]}
           >
             {part.value}
           </Text>

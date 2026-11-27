@@ -69,6 +69,8 @@ import {
 
 type Props = {
   uri: string;
+  /** Author-selected original video audio level, separate from music. */
+  audioVolume?: number;
   /** Stable post identity across rotations of short-lived signed URLs. */
   playbackKey?: string;
   height?: number;
@@ -619,6 +621,7 @@ function ExpoCommunityVideoPlayback({
   uri,
   playbackKey,
   height = 380,
+  audioVolume = 1,
   autoPlay = false,
   expectedDurationSeconds,
   fullscreen = false,
@@ -779,11 +782,12 @@ function ExpoCommunityVideoPlayback({
     try {
       player.loop = !fullscreen;
       player.muted = muted;
+      player.volume = Math.max(0,Math.min(1,Number(audioVolume)));
       player.audioMixingMode = 'mixWithOthers';
     } catch {
       // Player can already be released while the feed row recycles.
     }
-  }, [fullscreen, player, soundOn]);
+  }, [fullscreen, player, soundOn, audioVolume]);
 
   useEffect(() => {
     const subscription = player.addListener(

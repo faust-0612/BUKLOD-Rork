@@ -4,9 +4,20 @@ import { BuklodMentionText } from '@/components/BuklodMentionText';
 import { useBuklodTheme } from '@/providers/BuklodThemeProvider';
 import { readableAccentOnSurface } from '@/lib/buklodTheme';
 
+import { WallPostDesignSurface, WallRankBonusFrame, wallFontTextStyle } from '@/components/BuklodWallPostDesignPicker';
+import { wallAlignmentForViewer } from '@/lib/buklodWallPostStylePersistence';
+import { rankBonusFrameForViewer } from '@/lib/buklodRankBonusFrames';
+import { visibleWallPostDesign, wallFontForViewer } from '@/lib/buklodWallPostDesigns';
+
 type Props = React.ComponentProps<typeof BuklodMentionText> & {
   /** Media captions stay on one line; short text-only posts use larger type. */
   hasMedia?: boolean;
+  /** Stored author-selected design; no viewer rank gate. */
+  designId?: string | null;
+  animationActive?: boolean;
+  fontId?: string | null;
+  bonusKey?: string | null;
+  alignment?: string | null;
 };
 
 const LARGE_TEXT_LIMIT = 80;
@@ -19,6 +30,11 @@ const MORE_HINT_MIN_CHARS = 32;
  */
 export function BuklodExpandableWallCaption({
   hasMedia = false,
+  designId = null,
+  animationActive = false,
+  fontId = 'standard',
+  bonusKey = null,
+  alignment = 'auto',
   ...mentionProps
 }: Props) {
   const { theme } = useBuklodTheme();
@@ -38,6 +54,38 @@ export function BuklodExpandableWallCaption({
   }, [fullText, hasMedia]);
 
   if (!fullText.trim()) return null;
+
+  if (!hasMedia && (designId || fontId !== 'standard' || alignment !== 'auto')) {
+    const design = visibleWallPostDesign(designId, false);
+    const limit = 240;
+    const codepoints = Array.from(fullText);
+    const truncated = !expanded && codepoints.length > limit;
+    const visibleText = truncated ? codepoints.slice(0, limit).join('').trimEnd() + '…' : fullText;
+    const align=wallAlignmentForViewer(alignment);
+    const size = largeText ? 25 : charCount <= 180 ? 21 : 17;
+    const content = (
+      <>
+        <BuklodMentionText
+          {...mentionProps}
+          mentionStyle={design ? { color: design.ink, fontWeight: '800' } : mentionStyle}
+          preserveMentionColor={!!design}
+          text={visibleText}
+          numberOfLines={undefined}
+          style={[mentionProps.style, largeText && styles.largeText, { fontSize: size, lineHeight: Math.round(size * 1.32), textAlign: align==='auto'?(charCount <= 180 ? 'center' : 'left'):align }, wallFontTextStyle(wallFontForViewer(fontId)), design && { color: design.ink }]}
+        />
+        {codepoints.length > limit && <Pressable accessibilityRole="button"
+          accessibilityLabel={expanded ? 'See less' : 'See more'}
+          onPress={() => setExpanded(v => !v)} style={styles.toggle}>
+          <Text style={[styles.toggleText,{color:design?.ink ?? accentTextColor}]}>{expanded ? 'See less' : 'See more'}</Text>
+        </Pressable>}
+      </>
+    );
+    const surface=design
+      ? <WallPostDesignSurface design={design} active={animationActive}>{content}</WallPostDesignSurface>
+      : <View style={styles.textOnlySurface}>{content}</View>;
+    const frame=rankBonusFrameForViewer(bonusKey);
+    return frame?<WallRankBonusFrame frame={frame}>{surface}</WallRankBonusFrame>:surface;
+  }
 
   if (largeText) {
     return (
@@ -99,6 +147,7 @@ export function BuklodExpandableWallCaption({
 }
 
 const styles = StyleSheet.create({
+  textOnlySurface: { minHeight: 132, paddingHorizontal: 10, paddingVertical: 16, justifyContent: 'center' },
   collapsedRow: {
     flexDirection: 'row',
     alignItems: 'center',
