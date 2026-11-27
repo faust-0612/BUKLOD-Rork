@@ -10,7 +10,7 @@ namespace Buklod.Empire {
     [RequireComponent(typeof(BattleView))]
     public sealed class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;private RectTransform canvas,panel,body;
-        private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
+        private Text title,summary,feedback;private Text contentStatus;private Button contentCheck,contentDownload;private Font font;private GameObject ownedEventSystem;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
         private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private int evolutionPreviewLevel=1;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;private ReviewLiveHeroPreview livePreview;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
@@ -208,7 +208,24 @@ namespace Buklod.Empire {
                 slider.SetValueWithoutNotify(ReviewAudioSettings.Get(channel));
                 slider.onValueChanged.AddListener(v=>{ReviewAudioSettings.Set(channel,v);value.text=Mathf.RoundToInt(v*100)+"%";});
             }
-            ButtonAt("Back to lobby",body,new Vector2(.30f,0),new Vector2(.70f,.12f),"BACK TO LOBBY",()=>{ReviewAudioSettings.Save();page=-1;Rebuild();});
+            ButtonAt("Back to lobby",body,new Vector2(.04f,0),new Vector2(.48f,.12f),"BACK TO LOBBY",()=>{ReviewAudioSettings.Save();page=-1;Rebuild();});
+            ButtonAt("Content updates",body,new Vector2(.52f,0),new Vector2(.96f,.12f),"CONTENT UPDATES",()=>{page=9;Rebuild();});
+        }
+        private void ContentPanel(){
+            title.text="CONTENT UPDATES";title.color=NavigationAccent;
+            summary.text="Optional signed audio updates • existing offline content stays installed";
+            contentStatus=Label("Content status",body,new Vector2(.05f,.46f),new Vector2(.95f,.93f),"",24);
+            contentCheck=ButtonAt("Check content",body,new Vector2(.05f,.22f),new Vector2(.48f,.43f),"CHECK",()=>{var updater=GetComponent<EmpireContentUpdater>();if(updater)updater.Check();});
+            contentDownload=ButtonAt("Download content",body,new Vector2(.52f,.22f),new Vector2(.95f,.43f),"DOWNLOAD",()=>{var updater=GetComponent<EmpireContentUpdater>();if(updater)updater.Download();});
+            ButtonAt("Back to audio",body,new Vector2(.30f,0),new Vector2(.70f,.16f),"BACK",()=>{page=8;Rebuild();});
+            RefreshContentPanel();
+        }
+        private void RefreshContentPanel(){
+            if(page!=9||!contentStatus)return;
+            var updater=GetComponent<EmpireContentUpdater>();
+            contentStatus.text=updater?updater.Status+(updater.Busy?" • "+Mathf.RoundToInt(updater.Progress*100)+"%":""):"Content updater unavailable";
+            if(contentCheck)contentCheck.interactable=updater&&!updater.Busy;
+            if(contentDownload)contentDownload.interactable=updater&&updater.CanDownload;
         }
         private void Lobby(){
             title.text="BUKLOD EMPIRE";title.color=NavigationAccent;
@@ -290,6 +307,7 @@ namespace Buklod.Empire {
             }
             title.color=Color.white;panelBackground.color=Navy;title.rectTransform.localScale=Vector3.one;
             if(view.IsEditorReview&&page==8){AudioPanel();return;}
+            if(view.IsEditorReview&&page==9){ContentPanel();return;}
             if(view.IsEditorReview&&confirmRestart){
                 title.text="START A NEW MATCH?";summary.text="The unfinished local match will be discarded.";
                 Label("Restart scope",body,new Vector2(.08f,.42f),new Vector2(.92f,.90f),"No BP, permanent XP or Sacred Stone transaction will occur.",25);
@@ -426,6 +444,7 @@ namespace Buklod.Empire {
             if(resultActions){resultActions.alpha=actions;resultActions.interactable=actions>.99f;resultActions.blocksRaycasts=actions>.99f;}
         }
         private void Update(){
+            RefreshContentPanel();
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;
             bool finished=view.Battle!=null&&view.Battle.Finished;
