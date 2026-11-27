@@ -34,6 +34,24 @@ namespace Buklod.Empire.Tests {
             b.Advance(.1f,Vector2.left);Assert.False(b.HasPendingPlayerAttack);
             Assert.AreEqual(float.NegativeInfinity,p.LastAttack);
         }
+        [Test] public void MinionTargetButtonIgnoresCloserEnemyHero(){
+            var b=new OfflineBattle("phan");var p=b.Player;
+            for(int i=0;i<55;i++)b.Advance(.1f,Vector2.zero);
+            var minion=b.Units.First(u=>u.Team!=p.Team&&u.Kind==BattleTargetKind.Minion);
+            var enemy=b.Units.First(u=>u.Team!=p.Team&&u.Kind==BattleTargetKind.Hero);
+            PlaceUnit(p,new Vector2(150,110));PlaceUnit(enemy,p.Position+Vector2.right);
+            PlaceUnit(minion,p.Position+Vector2.right*2);
+            float hp=minion.State.Health,heroHp=enemy.State.Health;
+            Assert.True(b.RequestPlayerBasic(Vector2.zero,BattleTargetKind.Minion));
+            Assert.Less(minion.State.Health,hp);Assert.AreEqual(heroHp,enemy.State.Health);
+        }
+        [Test] public void RejectedSkillExplainsLevelManaAndTargetWithoutSpending(){
+            var b=new OfflineBattle("phan");var p=b.Player.State;
+            Assert.False(b.CastPlayer(SkillSlot.Ultimate,Vector2.zero));StringAssert.Contains("level 6",b.PlayerAttackFeedback);
+            Assert.False(b.CastPlayer(SkillSlot.Primary,Vector2.zero));StringAssert.Contains("valid target",b.PlayerAttackFeedback);
+            p.Mana=0;Assert.False(b.CastPlayer(SkillSlot.Secondary,Vector2.zero));StringAssert.Contains("mana",b.PlayerAttackFeedback);
+            Assert.AreEqual(0,p.CastSequence);Assert.AreEqual(0,p.Remaining(SkillSlot.Secondary,b.Time));
+        }
         [Test] public void ProtectedCoreAndNoNearbyTargetDoNotSpendCooldown(){
             var b=new OfflineBattle("phan");var p=b.Player;
             Assert.False(b.RequestPlayerBasic(Vector2.zero,BattleTargetKind.Structure));Assert.AreEqual(0,b.BasicAttackRemaining(p));
