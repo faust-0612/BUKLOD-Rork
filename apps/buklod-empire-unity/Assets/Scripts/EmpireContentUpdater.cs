@@ -10,8 +10,10 @@ using UnityEngine.Networking;
 namespace Buklod.Empire {
     // Isolated content cache; the built-in assets always remain available. No accounts or game state.
     public sealed class EmpireContentUpdater:MonoBehaviour {
-        const long CacheBudget=128L*1024*1024,Reserve=64L*1024*1024;
+        const long CacheBudget=256L*1024*1024,Reserve=64L*1024*1024;
         static Dictionary<string,AudioClip> overrides=new Dictionary<string,AudioClip>(StringComparer.Ordinal);
+        Dictionary<string,GameObject> staticOverrides=new Dictionary<string,GameObject>(StringComparer.Ordinal);
+        BattleVisualCatalog baseCatalog,updatedCatalog;
         readonly List<AssetBundle> loaded=new List<AssetBundle>();
         EmpireContentProtocol.Trust trust;
         EmpireContentProtocol.Manifest offered;
@@ -22,6 +24,10 @@ namespace Buklod.Empire {
         HashSet<string> activeHashes=new HashSet<string>(StringComparer.Ordinal);
         UnityWebRequest request;
         public bool Busy{get;private set;}
+        public BattleVisualCatalog CatalogForNextMatch(BattleVisualCatalog baseline){
+            if(!baseCatalog||baseline!=baseCatalog&&baseline!=updatedCatalog)return baseline;
+            return updatedCatalog?updatedCatalog:baseCatalog;
+        }
         public bool CanCheck=>!Busy&&!restartRequired&&trust!=null;
         public bool CanDownload=>CanCheck&&offered!=null&&offered.revision>floor;
         public string Status{get;private set;}="Built-in content ready";
@@ -38,7 +44,7 @@ namespace Buklod.Empire {
         }
         IEnumerator Start(){
             if(!GetComponent<BattleView>()||!GetComponent<BattleView>().IsEditorReview){enabled=false;yield break;}
-            try{trust=ReadTrust();root=Path.Combine(Application.persistentDataPath,"empire-content-v1");}
+            try{baseCatalog=GetComponent<BattleView>().visuals;trust=ReadTrust();root=Path.Combine(Application.persistentDataPath,"empire-content-v2");}
             catch(Exception){Status="Content trust invalid; built-in assets available";yield break;}
             if(trust==null){Status="Content service not configured; offline assets available";yield break;}
             Busy=true;
@@ -75,6 +81,9 @@ namespace Buklod.Empire {
                 while(!check.IsCompleted)yield return null;
                 if(check.IsFaulted||check.IsCanceled||!check.Result)continue;
                 var next=new Dictionary<string,AudioClip>(StringComparer.Ordinal);
+                var visuals=new Dictionary<string,GameObject>(StringComparer.Ordinal);
+                Dictionary<string,GameObject> baseline=null;
+                try{if(m.bundles.Any(b=>b.slots.Any(EmpireContentProtocol.IsStatic)))baseline=EmpireStaticContent.Slots(baseCatalog);}catch(Exception){continue;}
                 var handles=new List<AssetBundle>();bool valid=true;
                 foreach(var b in m.bundles){
                     var load=AssetBundle.LoadFromFileAsync(Blob(b));yield return load;
@@ -82,16 +91,25 @@ namespace Buklod.Empire {
                     var expected=new HashSet<string>(b.slots.Select(EmpireContentProtocol.AssetName),StringComparer.Ordinal);
                     if(bundle.GetAllScenePaths().Length!=0||!expected.SetEquals(bundle.GetAllAssetNames())){valid=false;break;}
                     foreach(var slot in b.slots){
-                        var asset=bundle.LoadAssetAsync<AudioClip>(EmpireContentProtocol.AssetName(slot));yield return asset;
-                        var clip=asset.asset as AudioClip;
-                        if(!clip||clip.length<=0||clip.length>30||clip.channels<1||clip.channels>2){valid=false;break;}
-                        next.Add(slot,clip);
+                        if(EmpireContentProtocol.IsStatic(slot)){
+                            var asset=bundle.LoadAssetAsync<GameObject>(EmpireContentProtocol.AssetName(slot));yield return asset;
+                            var model=asset.asset as GameObject;
+                            if(baseline==null||!baseline.TryGetValue(slot,out var reference)||!EmpireStaticContent.Compatible(model,reference)){valid=false;break;}
+                            visuals.Add(slot,model);
+                        }else{
+                            var asset=bundle.LoadAssetAsync<AudioClip>(EmpireContentProtocol.AssetName(slot));yield return asset;
+                            var clip=asset.asset as AudioClip;
+                            if(!clip||clip.length<=0||clip.length>30||clip.channels<1||clip.channels>2){valid=false;break;}
+                            next.Add(slot,clip);
+                        }
                     }
                     if(!valid)break;
                 }
-                if(!valid){foreach(var bundle in handles)bundle.Unload(true);continue;}
+                BattleVisualCatalog catalog=null;
+                if(valid&&visuals.Count>0){try{catalog=EmpireStaticContent.CloneWith(baseCatalog,visuals);}catch(Exception){valid=false;}}
+                if(!valid){if(catalog&&catalog!=baseCatalog)Destroy(catalog);foreach(var bundle in handles)bundle.Unload(true);continue;}
                 // A complete compatible revision replaces the lookup atomically, never a partial bundle.
-                loaded.AddRange(handles);overrides=next;activeRevision=m.revision;activeHashes=new HashSet<string>(m.bundles.Select(b=>b.sha256),StringComparer.Ordinal);
+                loaded.AddRange(handles);overrides=next;staticOverrides=visuals;updatedCatalog=catalog;activeRevision=m.revision;activeHashes=new HashSet<string>(m.bundles.Select(b=>b.sha256),StringComparer.Ordinal);
                 Status="Active content revision "+activeRevision+(floor>activeRevision?" (recovered)":"");yield break;
             }
             Status=floor>0?"Cached content invalid; built-in assets restored":"Built-in content ready";
@@ -224,6 +242,6 @@ namespace Buklod.Empire {
                 floor=m.revision;restartRequired=true;offered=null;PendingBytes=0;Status="Revision "+floor+" verified on disk. Restart app to activate.";
             }finally{Busy=false;Progress=0;}
         }
-        void OnDestroy(){if(request!=null)request.Abort();overrides.Clear();foreach(var b in loaded)if(b)b.Unload(false);}
+        void OnDestroy(){if(request!=null)request.Abort();if(updatedCatalog&&updatedCatalog!=baseCatalog)Destroy(updatedCatalog);staticOverrides.Clear();overrides.Clear();foreach(var b in loaded)if(b)b.Unload(false);}
     }
 }
