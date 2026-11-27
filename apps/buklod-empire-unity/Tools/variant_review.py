@@ -52,7 +52,7 @@ def generate(read,write):
             signature=tuple(tuple(m['pbrMetallicRoughness']['baseColorFactor']) for m in doc['materials'] if m['name'] in CHANGED)
             if signature in palettes:raise ValueError('Duplicate palette')
             palettes.add(signature);name=hero+'_'+style+'.glb';write(name,data)
-            rows.append({'hero':hero,'style':style,'file':name,'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)})
+            rows.append({'hero':hero,'style':style,'file':name,'sha256':hashlib.sha256(data).hexdigest(),'sourceSha256':hashlib.sha256(raw).hexdigest(),'bytes':len(data)})
     if len(rows)!=39:raise ValueError('Incomplete variants')
     write('manifest.json',(json.dumps({'status':'COSMETIC_REVIEW_ONLY','variants':rows},indent=2)+'\n').encode())
     return rows

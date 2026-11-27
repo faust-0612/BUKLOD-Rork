@@ -41,11 +41,17 @@ function run(command,args,env=process.env){
  if(result.error)throw result.error;if(result.status!==0)throw Error('Failed stage: '+args.join(' '));
 }
 function audit(heroSize,sharedSize){
+ const full=new Map();
  const groups=specs.map(([dir,key,expected,status])=>{
   const folder=join(output,dir),data=readFileSync(join(folder,'manifest.json')),doc=JSON.parse(data);
   if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize||row.geometryRevision!=='original-joint-geometry-v7'||row.jointTriangles!==2048))throw Error('Hero geometry cache needs targeted refresh: use --refresh-heroes');
   if(dir.endsWith('-materials')&&doc.resolution!==sharedSize)throw Error('Unexpected shared resolution: '+dir);
   const rows=validateRows(doc,key,expected,status,file=>readFileSync(join(folder,file)),sha);
+  if(dir==='heroes')for(const row of doc.heroes){if(row.id+'.glb'!==row.file||!heroIds.includes(row.id))throw Error('Hero identity drift');full.set(row.id,row.sha256);}
+  if(dir==='hero-lod'||dir==='variants')for(const row of doc[key]){
+   const id=dir==='hero-lod'?row.id:row.hero;
+   if(!full.has(id)||row.sourceSha256!==full.get(id)||row.file!==(dir==='hero-lod'?id:id+'_'+row.style)+'.glb')throw Error('Stale derived hero asset: '+row.file);
+  }
   return {directory:dir,manifestSha256:sha(data),rows};
  });
  const folder=join(output,'environment'),data=readFileSync(join(folder,'manifest.json')),map=JSON.parse(data);
@@ -60,10 +66,15 @@ const heroSize=Number(args[offset]||1024),sharedSize=Number(args[offset+1]||2048
 if(![256,1024,2048,4096].includes(heroSize)||![1024,2048,4096].includes(sharedSize))throw Error('Unsupported texture resolution');
 mkdirSync(output,{recursive:true});
 if(existsSync(receipt))unlinkSync(receipt); // failed/incomplete runs must not leave a successful aggregate receipt
+const refreshMarker=join(output,'.hero-refresh-incomplete');
+if(refresh||!verify)writeFileSync(refreshMarker,'hero refresh in progress\n');
+if(verify&&existsSync(refreshMarker))throw Error('Incomplete hero refresh: use --refresh-heroes');
 if(refresh){
  const python=process.env.PYTHON||'python3',env={...process.env,BUKLOD_REVIEW_TEXTURE_SIZE:String(heroSize),PYTHONOPTIMIZE:''};
  run(python,['-c','import numpy, PIL'],env);
- for(const script of ['prepare-hero-review.py','variant_review.py','prepare_hero_lod.py'])run(python,['Tools/'+script],env);
+ run(python,['Tools/prepare-hero-review.py'],env);
+ run(python,['-c',"import sys,json,pathlib; sys.path.insert(0,'Tools'); from validate_skill_motions import validate_roster; root=pathlib.Path('Tools/ReviewOutput/heroes'); (root/'skill-motion-verification.json').write_text(json.dumps(validate_roster(root),indent=2)+'\\n')"],env);
+ for(const script of ['variant_review.py','prepare_hero_lod.py'])run(python,['Tools/'+script],env);
 }else if(!verify){
  const python=process.env.PYTHON||'python3',env={...process.env,BUKLOD_REVIEW_TEXTURE_SIZE:String(heroSize),PYTHONOPTIMIZE:''};
  run(python,['-c','import numpy, PIL'],env);
@@ -75,4 +86,5 @@ if(refresh){
 const groups=audit(heroSize,sharedSize);
 const doc={status:'OFFLINE_ASSETS_VERIFIED_REVIEW_ONLY',heroSize,sharedSize,groups,files:groups.reduce((n,g)=>n+g.rows.length,0),bytes:groups.reduce((n,g)=>n+g.rows.reduce((s,r)=>s+r.bytes,0),0),unityVerified:false,productionApproved:false};
 writeFileSync(receipt+'.tmp',JSON.stringify(doc,null,2)+'\n');renameSync(receipt+'.tmp',receipt);
+if(existsSync(refreshMarker))unlinkSync(refreshMarker);
 console.log('Offline candidate manifest verified:',doc.files,'files;',doc.bytes,'bytes. Unity, runtime and art acceptance still required.');

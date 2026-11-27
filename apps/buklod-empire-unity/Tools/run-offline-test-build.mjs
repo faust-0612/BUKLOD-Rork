@@ -31,8 +31,20 @@ try{
  if(resume){
   const manifest=JSON.parse(readFileSync(join(project,'Tools','ReviewOutput','heroes','manifest.json'),'utf8'));
   if(!Array.isArray(manifest.heroes)||manifest.heroes.length!==13)throw Error('Invalid existing hero cache');
-  if(manifest.heroes.some(h=>h.geometryRevision!=='original-joint-geometry-v7'))prepareArgs=['--refresh-heroes'];
+  const output=join(project,'Tools','ReviewOutput');
+  if(manifest.heroes.some(h=>h.geometryRevision!=='original-joint-geometry-v7')||existsSync(join(output,'.hero-refresh-incomplete')))prepareArgs=['--refresh-heroes'];
+  else{
+   // A crash or stale derivative cannot mix geometry generations.
+   const hashes=new Map(manifest.heroes.map(h=>[h.id,h.sha256]));
+   for(const [folder,key,id] of [['hero-lod','heroes','id'],['variants','variants','hero']]){
+    try{
+     const rows=JSON.parse(readFileSync(join(output,folder,'manifest.json'),'utf8'))[key];
+     if(!Array.isArray(rows)||rows.length!==(folder==='hero-lod'?13:39)||rows.some(r=>!hashes.has(r[id])||r.sourceSha256!==hashes.get(r[id])))prepareArgs=['--refresh-heroes'];
+    }catch{prepareArgs=['--refresh-heroes'];}
+   }
+  }
  }
+ run(process.env.PYTHON||'python3',['Tools/test_joint_geometry.py']);
  run(process.execPath,['Tools/prepare-offline-review.mjs',...prepareArgs]);
  if(build||validate){
   // Local-only larger asset acquisition; do not consume Unity Cloud allowance.
