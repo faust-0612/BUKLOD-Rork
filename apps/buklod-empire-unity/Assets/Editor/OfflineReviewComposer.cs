@@ -113,6 +113,7 @@ namespace Buklod.Empire.Editor {
             if(AuthoredExpansionReview.Requested)HeroDialogueReview.Bind(root);
             PortraitCaptureReview.Bind(root);
             ArenaAuthoredReview.Bind(root);
+            root.AddComponent<EmpireContentUpdater>();
             if(!EditorSceneManager.SaveScene(scene,ScenePath))throw new InvalidOperationException("Failed to save offline review scene.");
             AssetDatabase.SaveAssets();
             Debug.Log("Editor-only offline match scene assembled. Three lanes and both base routes verified. No production approval or Android build.");
