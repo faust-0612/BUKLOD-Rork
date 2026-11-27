@@ -8,6 +8,7 @@ from hd_surface import review_size
 from fidelity_geometry import add_fidelity_geometry
 from joint_geometry import add_joint_geometry
 from hair_motion import attach_hair
+from eye_motion import attach_eyes
 from sculpt_geometry import bevel_plate, REVISION
 root=pathlib.Path(__file__).resolve().parents[1]
 repo=root.parents[1]
@@ -78,7 +79,8 @@ class Candidate(original.Hero):
                 self.plate(1,fore,(x,y-(.08+j*.065)*self.h,z+.082),[(-.05,0),(0,.02),(.05,0),(0,-.02)],.008)
                 x,y,z=self.rest[shin]
                 self.plate(1,shin,(x,y-(.09+j*.075)*self.h,z+.082),[(-.055,0),(0,.023),(.055,0),(0,-.023)],.009)
-        add_details(self,result)
+        eyes=attach_eyes(self,head)
+        add_details(self,result,eyes)
         add_fidelity_geometry(self,result)
         self.joint_triangles=add_joint_geometry(self,result)
         attach_hair(self,head)

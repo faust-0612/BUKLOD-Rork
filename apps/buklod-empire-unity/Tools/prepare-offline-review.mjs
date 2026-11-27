@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 import {heroPipelineHash} from './hero-pipeline-hash.mjs';
+import {validateHeroGlb} from './validate-hero-skin.mjs';
 export function validateRows(doc,key,expected,status,read,hash){
  if(!doc||doc.status!==status||!Array.isArray(doc[key])||doc[key].length!==expected.length)throw Error("Invalid manifest: "+key);
  const missing=new Set(expected),rows=[];
@@ -47,7 +48,11 @@ function audit(heroSize,sharedSize){
   const folder=join(output,dir),data=readFileSync(join(folder,'manifest.json')),doc=JSON.parse(data);
   if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize||row.geometryRevision!=='original-sculpted-geometry-v10'||row.sourcePipelineSha256!==pipeline||row.jointTriangles!==2048))throw Error('Hero geometry cache needs targeted refresh: use --refresh-heroes');
   if(dir.endsWith('-materials')&&doc.resolution!==sharedSize)throw Error('Unexpected shared resolution: '+dir);
-  const rows=validateRows(doc,key,expected,status,file=>readFileSync(join(folder,file)),sha);
+  const rows=validateRows(doc,key,expected,status,file=>{
+   const bytes=readFileSync(join(folder,file));
+   if(dir==='heroes'||dir==='hero-lod')validateHeroGlb(bytes,file.slice(0,-4));
+   return bytes;
+  },sha);
   if(dir==='heroes')for(const row of doc.heroes){if(row.id+'.glb'!==row.file||!heroIds.includes(row.id))throw Error('Hero identity drift');full.set(row.id,row.sha256);}
   if(dir==='hero-lod'||dir==='variants')for(const row of doc[key]){
    const id=dir==='hero-lod'?row.id:row.hero;

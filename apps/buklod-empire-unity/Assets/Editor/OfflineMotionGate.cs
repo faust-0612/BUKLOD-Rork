@@ -47,6 +47,8 @@ namespace Buklod.Empire.Editor {
                                 string path=AnimationUtility.CalculateTransformPath(hair,root.transform);
                                 if(!bindings.Any(x=>x.path==path&&x.propertyName.StartsWith("m_LocalRotation",StringComparison.Ordinal)))throw new BuildFailedException("Missing secondary hair motion "+h.id+"/"+name);
                             }
+                            var eyes=transforms.Where(t=>t.name=="ReviewEye_L"||t.name=="ReviewEye_R").ToArray();if(eyes.Length!=2)throw new BuildFailedException("Missing facial rig "+h.id);
+                            if(name=="Idle"){clip.SampleAnimation(root,clip.length*ReviewPortraitMotion.BlinkPhase(h.id));if(eyes.Any(e=>e.localScale.y>.2f||e.localScale.y<=0))throw new BuildFailedException("Blink curve did not close "+h.id);}
                             Vector3? firstTip=null;float tipTravel=0;
                             foreach(float fraction in new[]{0f,.25f,.5f,.75f,.99f}){
                                 for(int i=0;i<transforms.Length;i++){transforms[i].localPosition=pos[i];transforms[i].localRotation=rot[i];transforms[i].localScale=scale[i];}

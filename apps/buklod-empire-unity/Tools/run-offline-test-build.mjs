@@ -47,6 +47,7 @@ try{
    }
   }
  }
+ run(process.execPath,['Tools/test-hero-skin.mjs']);
  run(process.env.PYTHON||'python3',['Tools/test_joint_geometry.py']);
  run(process.env.PYTHON||'python3',['Tools/test_sculpt_geometry.py']);
  run(process.execPath,['Tools/prepare-offline-review.mjs',...prepareArgs]);

@@ -117,6 +117,7 @@ namespace Buklod.Empire {
             if(!guideCaption)return;
             if(guideMatch!=b){guideMatch=b;guide=null;guideFinishedAt=-1;}
             if(view.Paused||b.Finished||b.AutonomousTraining){guideCaption.gameObject.SetActive(false);return;}
+            if(guideFinishedAt>=0&&ReviewPracticeGuide.Enabled){guide=null;guideFinishedAt=-1;}
             if(!ReviewPracticeGuide.Enabled&&guideFinishedAt<0){guide=null;guideCaption.gameObject.SetActive(false);return;}
             var p=b.Player;
             if(guide==null)guide=new ReviewPracticeGuide(p.Position,p.LastAttack,p.State.CastSequence);

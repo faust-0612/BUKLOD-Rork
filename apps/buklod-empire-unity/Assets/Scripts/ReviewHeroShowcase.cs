@@ -148,11 +148,12 @@ namespace Buklod.Empire {
             if(wings&&wings.gameObject.activeSelf)extent=Mathf.Max(extent,h*1.12f);
             if(Time.unscaledTime<demoUntil&&!map){extent=Mathf.Max(extent,h*1.55f);focus=bounds.center+Vector3.right*h*.55f;}
             else if(demoWasActive){demoWasActive=false;if(dummy){DisposeVisual(dummy);dummy=null;}actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;}
-            float t=Mathf.Clamp01((Time.unscaledTime-appearedAt)/.65f);
+            var choreography=map?new PortraitChoreography(22,.12f,0,.65f,.5f):ReviewPortraitMotion.Get(modelId);
+            float t=Mathf.Clamp01((Time.unscaledTime-appearedAt)/choreography.Duration);
             float entrance=1-Mathf.SmoothStep(0,1,t);
-            float orbit=angle+(map?12*Mathf.Sin(Time.unscaledTime*.16f):8*Mathf.Sin(Time.unscaledTime*.34f))+entrance*22;
+            float orbit=angle+(map?12*Mathf.Sin(Time.unscaledTime*.16f):8*Mathf.Sin(Time.unscaledTime*.34f))+entrance*choreography.Orbit;
             var dir=Quaternion.Euler(0,orbit,0)*(map?new Vector3(.48f,.91f,.70f):new Vector3(.27f,.18f,1));
-            stageCamera.orthographicSize=extent*(1+.12f*entrance);
+            focus+=Vector3.up*h*choreography.Height*entrance;stageCamera.orthographicSize=extent*(1+choreography.Zoom*entrance);
             stageCamera.transform.position=focus+dir.normalized*Mathf.Max(5,extent*2.7f);
             stageCamera.transform.LookAt(focus);
         }
@@ -160,7 +161,7 @@ namespace Buklod.Empire {
         internal void PlayEntrance(){
             if(!visible||map||!animator)return;
             // Distinct existing canonical animation for each hero's presentation.
-            string entrance=ReviewEntranceProfiles.Motion(modelId);
+            appearedAt=Time.unscaledTime;string entrance=ReviewEntranceProfiles.Motion(modelId);
             if(animator.parameters.Any(p=>p.name==entrance&&p.type==AnimatorControllerParameterType.Trigger))animator.SetTrigger(entrance);
             if(effects)effects.Emit(transform.position,BattleEffects.Accent(modelId),ReviewEntranceProfiles.Pulse(modelId));
         }
