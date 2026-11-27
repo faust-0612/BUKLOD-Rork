@@ -11,6 +11,11 @@ namespace Buklod.Empire.Editor {
         [Serializable] sealed class Receipt {public string status;public int rate;public Row[] clips;}
         [Serializable] sealed class Row {public string name,file,sha256;public int bytes,samples;}
         static string Hash(string path){using(var f=File.OpenRead(path))using(var h=SHA256.Create())return BitConverter.ToString(h.ComputeHash(f)).Replace("-","").ToLowerInvariant();}
+        internal static AudioClip LibraryReward(string name){
+            var clip=Resources.Load<AudioClip>("LibraryAudio/Reward/"+name);
+            if(!clip||clip.length<=0)throw new InvalidOperationException("Missing Library reward audio: "+name);
+            return clip;
+        }
         internal static void Bind(GameObject root){
             if(!Directory.Exists(Source))return;
             string path=Source+"/manifest.json";if(!File.Exists(path))throw new InvalidOperationException("Incomplete presentation audio generation.");
@@ -32,7 +37,7 @@ namespace Buklod.Empire.Editor {
             }
             var audio=root.AddComponent<ReviewPresentationAudio>();
             audio.menu=clips["menu"];audio.battle=clips["battle"];audio.ambience=clips["ambience"];
-            audio.victory=clips["victory"];audio.defeat=clips["defeat"];audio.draw=clips["draw"];audio.entrance=clips["entrance"];
+            audio.victory=LibraryReward("victory-fanfare");audio.defeat=clips["defeat"];audio.draw=clips["draw"];audio.entrance=clips["entrance"];
             audio.attacks=Enumerable.Range(0,9).Select(i=>clips["creature_attack_"+i]).ToArray();
             audio.defeats=Enumerable.Range(0,9).Select(i=>clips["creature_defeat_"+i]).ToArray();
         }
