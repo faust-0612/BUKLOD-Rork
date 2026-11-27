@@ -35,3 +35,14 @@ GitHub compare counts are relative to common ancestry, not a count of absent fea
 - Production / online release: NOT AUTHORIZED.
 
 Follow the nested AGENTS.md contract. Preserve existing diagnostic APK for Stage 1 verification. No native rebuild for this documentation update.
+
+
+## 2026-11-28 — Owner-reported shared combat regressions
+
+Owner reports attack button responds but heroes do not attack reliably, some skills work, minion/tower targeting is unclear, towers do not visibly attack or take damage. This reopens Stage 1 functional acceptance; the earlier screenshot evidence proves match entry only. Do not ask the owner to manually enumerate or test each hero/feature.
+
+Scoped branch: `fix/empire-stage1-combat-20261128`, based on `6627ce15beb52ba682124e5acf2c818fe187d243`. Changes: relative touch aim from actual contact, bounded one-attack approach/queued cooldown for visible eligible targets, cancellation on movement/pause/skills/death, exact minion/structure filters, explicit protected-core/target/cooldown/skill-rejection messages, invulnerable-target filtering in offline combat, confirmed tower target/attack feedback reusing existing effects. No model, texture, scene or audio asset changes; no damage-stat buff, no range inflation, no server-authoritative rule or BP/QMP changes. Existing pregame branch has some overlapping targeting/projectile work; preserve the Stage 1 fix when later reconciling. Root causes identified in source do not prove every reported failure is resolved.
+
+Automated regression coverage authored: all 13 basic attacks against heroes and towers, approach/cancel, minion-only targeting, protected core, tower damage, touch deadzone, skill rejection; PlayMode test loads the existing real generated review scene, starts each hero through BattleView and checks actual damage, live animation synchronization and unexpected logs, then tower combat. Full Editor/PlayMode suites via `node Tools/run-stage1-combat-qa.mjs <Unity.exe>` (no APK compilation). Fails closed on missing generated scene, source dirtiness, missing/skipped/failed tests. The new tests and Unity compile have NOT been executed in this environment; local device and exact APK identity still pending. Further issues must be batched from QA findings rather than requiring one-off user tests. Do not declare Stage 1 done or advance art work until accepted.
+
+No production release, no paid CI, no current APK update.
