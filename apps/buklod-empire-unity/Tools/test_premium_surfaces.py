@@ -13,6 +13,12 @@ class Tests(unittest.TestCase):
             self.assertEqual(Image.open(io.BytesIO(result)).getpixel((0,0)),(30,70,100,55))
             with self.assertRaises(ValueError):m.pack(png(Image.new("RGB",(1,1))),png(Image.new("L",(2,2))))
         finally:m.RES=old
+    def test_normal_map_preserves_channels(self):
+        old=m.RES;m.RES=2
+        try:
+            b=io.BytesIO();Image.new("RGB",(2,2),(128,128,255)).save(b,format="PNG")
+            self.assertEqual(Image.open(io.BytesIO(m.normal_png(b.getvalue()))).getpixel((0,0)),(128,128,255))
+        finally:m.RES=old
     def test_descriptor(self):
         row={"url":"https://dl.polyhaven.org/test","size":10,"md5":"a"*32}
         self.assertEqual(m.select({"diff":{"4k":{"jpg":row}}},"diff"),row)

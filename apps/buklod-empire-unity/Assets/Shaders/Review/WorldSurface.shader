@@ -2,6 +2,8 @@ Shader "BUKLOD/Review/WorldSurface" {
     Properties {
         _BaseColor("Original tint",Color)=(1,1,1,1)
         _Detail("Albedo and smoothness",2D)="white"{}
+        [Normal] _NormalDetail("Authored surface normal",2D)="bump"{}
+        _NormalStrength("Normal strength",Range(0,1))=0
         _Tile("Tiles per world unit",Float)=.45
         _Metallic("Metallic",Range(0,1))=0
         _BaseMap("Shadow pass compatibility",2D)="white"{}
@@ -24,10 +26,12 @@ Shader "BUKLOD/Review/WorldSurface" {
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             TEXTURE2D(_Detail);SAMPLER(sampler_Detail);
+            TEXTURE2D(_NormalDetail);SAMPLER(sampler_NormalDetail);
             CBUFFER_START(UnityPerMaterial)
             half4 _BaseColor;
             float _Tile;
             half _Metallic;
+            half _NormalStrength;
             CBUFFER_END
             struct Attributes {float4 positionOS:POSITION;float3 normalOS:NORMAL;};
             struct Varyings {float4 positionCS:SV_POSITION;float3 positionWS:TEXCOORD0;half3 normalWS:TEXCOORD1;half fog:TEXCOORD2;};
@@ -50,6 +54,14 @@ Shader "BUKLOD/Review/WorldSurface" {
                 half4 detail=SAMPLE_TEXTURE2D(_Detail,sampler_Detail,p.zy)*w.x+
                              SAMPLE_TEXTURE2D(_Detail,sampler_Detail,p.xz)*w.y+
                              SAMPLE_TEXTURE2D(_Detail,sampler_Detail,p.xy)*w.z;
+                // World-projected slope perturbation: no mesh UV or tangent dependency.
+                if(_NormalStrength>.001h){
+                    half3 nx=UnpackNormal(SAMPLE_TEXTURE2D(_NormalDetail,sampler_NormalDetail,p.zy));
+                    half3 ny=UnpackNormal(SAMPLE_TEXTURE2D(_NormalDetail,sampler_NormalDetail,p.xz));
+                    half3 nz=UnpackNormal(SAMPLE_TEXTURE2D(_NormalDetail,sampler_NormalDetail,p.xy));
+                    half3 slope=half3(0,nx.y,nx.x)*w.x+half3(ny.x,0,ny.y)*w.y+half3(nz.x,nz.y,0)*w.z;
+                    n=normalize(n+_NormalStrength*(slope-n*dot(n,slope)));
+                }
                 half3 baseColor=_BaseColor.rgb*detail.rgb;
                 float patch=FieldNoise(i.positionWS.xz*.11);
                 float grain=FieldNoise(i.positionWS.xz*.57);

@@ -37,7 +37,8 @@ def request(url,limit,host):
             time.sleep(2**attempt)
 def select(doc,key):
     formats=doc[key]["4k"]
-    row=next((formats[x] for x in ("jpg","png") if x in formats),None)
+    order=("png","jpg") if key=="nor_gl" else ("jpg","png")
+    row=next((formats[x] for x in order if x in formats),None)
     if not isinstance(row,dict) or not isinstance(row.get("size"),int) or not 0<row["size"]<=LIMIT or not re.fullmatch("[0-9a-f]{32}",row.get("md5","")):
         raise ValueError("Invalid provider descriptor: "+key)
     return {k:row[k] for k in ("url","size","md5")}
@@ -55,6 +56,10 @@ def pack(diff,rough):
         if a.size!=(RES,RES) or r.size!=a.size:raise ValueError("Unexpected texture dimensions")
         rgba=a.convert("RGB");rgba.putalpha(ImageOps.invert(r.convert("L")))
         out=io.BytesIO();rgba.save(out,format="PNG");return out.getvalue()
+def normal_png(data):
+    with Image.open(io.BytesIO(data)) as im:
+        if im.size!=(RES,RES):raise ValueError("Unexpected normal map dimensions")
+        out=io.BytesIO();im.convert("RGB").save(out,format="PNG");return out.getvalue()
 def main():
     print("Powered by Poly Haven — CC0 photographed surfaces; no account or paid API",flush=True)
     CACHE.mkdir(parents=True,exist_ok=True)
@@ -63,19 +68,22 @@ def main():
     rows=[]
     for kind,asset in ASSETS.items():
         pin=CACHE/"originals"/asset/"descriptor.json"
-        if pin.is_file():desc=json.loads(pin.read_text(encoding="utf8"))
-        else:
+        desc=json.loads(pin.read_text(encoding="utf8")) if pin.is_file() else {}
+        if not all(k in desc for k in ("diff","rough","nor_gl")):
             raw=request("https://api.polyhaven.com/files/"+asset,2*1024*1024,"api.polyhaven.com")
-            doc=json.loads(raw);desc={k:select(doc,k) for k in ("diff","rough")}
+            doc=json.loads(raw);desc={k:desc[k] if k in desc else select(doc,k) for k in ("diff","rough","nor_gl")}
             atomic(pin,json.dumps(desc,sort_keys=True).encode())
         # Recheck descriptors even on cached runs.
-        for k in ("diff","rough"):
+        for k in ("diff","rough","nor_gl"):
             select({k:{"4k":{"png":desc[k]}}},k)
         d=source(asset,"diff",desc["diff"]);r=source(asset,"rough",desc["rough"])
         data=pack(d,r);file=kind+".png"
         target=CACHE/file
         if not target.is_file() or sha(target.read_bytes())!=sha(data):atomic(target,data)
-        rows.append({"kind":kind,"asset":asset,"file":file,"bytes":len(data),"sha256":sha(data),"diffSha256":sha(d),"roughSha256":sha(r)})
+        normal=source(asset,"nor_gl",desc["nor_gl"])
+        normal_data=normal_png(normal);normal_file=kind+"-normal.png";normal_target=CACHE/normal_file
+        if not normal_target.is_file() or sha(normal_target.read_bytes())!=sha(normal_data):atomic(normal_target,normal_data)
+        rows.append({"kind":kind,"asset":asset,"file":file,"bytes":len(data),"sha256":sha(data),"diffSha256":sha(d),"roughSha256":sha(r),"normalFile":normal_file,"normalBytes":len(normal_data),"normalSha256":sha(normal_data),"normalSourceSha256":sha(normal)})
         print("Verified",kind,asset,flush=True)
     atomic(marker,json.dumps({"status":"POLYHAVEN_CC0_REVIEW_ONLY","resolution":RES,"provider":"Poly Haven","license":"CC0","productionApproved":False,"textures":rows},indent=2).encode())
 if __name__=="__main__":main()
