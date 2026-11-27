@@ -38,8 +38,8 @@ namespace Buklod.Empire.Tests {
             for(int i=0;i<11;i++)b.Advance(.1f,Vector2.zero);
             Assert.Greater(p.Gold,120);Assert.AreEqual(0,p.EarnedFeedbackSequence);
             var enemy=b.Units.First(u=>u.Team!=p.Team&&u.Kind==BattleTargetKind.Hero);
-            Assert.True(b.Hit(p.State,enemy.State,300));
-            Assert.AreEqual(1,p.EarnedFeedbackSequence);
+            for(int i=0;i<20&&enemy.State.Alive;i++)Assert.True(b.Hit(p.State,enemy.State,300));
+            Assert.False(enemy.State.Alive);Assert.AreEqual(1,p.EarnedFeedbackSequence);
             Assert.False(b.Hit(p.State,enemy.State,300));Assert.AreEqual(1,p.EarnedFeedbackSequence);
         }
         [Test] public void BasicAttackHudUsesSameCooldownAsCombat(){
@@ -71,6 +71,7 @@ namespace Buklod.Empire.Tests {
             Assert.True(allies.All(u=>DefenseObjective(b,u)==null));
             PlaceUnit(invader,core.Position+new Vector2(4,0));
             Assert.AreEqual(2,allies.Count(u=>DefenseObjective(b,u)==invader));
+            Assert.IsNull(DefenseObjective(b,b.Player));
             Assert.AreEqual(0,b.Player.Kills);
             var playerStart=b.Player.Position;b.Advance(.1f,Vector2.zero);Assert.AreEqual(playerStart,b.Player.Position);
         }

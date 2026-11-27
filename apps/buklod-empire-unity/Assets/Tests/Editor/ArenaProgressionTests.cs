@@ -52,6 +52,15 @@ namespace Buklod.Empire.Tests {
             }
             Assert.AreEqual(13,seen.Count);
         }
+        [Test] public void ResultPresentationReflectsActualWinnerAndBoundedReveal(){
+            Assert.AreEqual("VICTORY",ReviewResultPresentation.Outcome(ArenaTeam.Tenebra,ArenaTeam.Tenebra));
+            Assert.AreEqual("DEFEAT",ReviewResultPresentation.Outcome(ArenaTeam.Lux,ArenaTeam.Tenebra));
+            Assert.AreEqual("DRAW",ReviewResultPresentation.Outcome(ArenaTeam.Lux,null));
+            Assert.AreEqual("TENEBRA PREVAILS",ReviewResultPresentation.Faction(ArenaTeam.Tenebra));
+            Assert.AreEqual(0,ReviewResultPresentation.Reveal(.1f,.2f));
+            Assert.That(ReviewResultPresentation.Reveal(.3f,.2f),Is.InRange(.01f,.99f));
+            Assert.AreEqual(1,ReviewResultPresentation.Reveal(1,.2f));
+        }
         [Test] public void PracticeNeverPromisesReward(){Assert.AreEqual("",ArenaProgression.TrainingResult(false));StringAssert.Contains("0 BP / 0 permanent XP",ArenaProgression.TrainingResult(true));}
         [Test] public void InvalidLevelsRejected(){Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(0));Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(21));}
     }

@@ -20,6 +20,7 @@ namespace Buklod.Empire {
         private bool autoTraining,enableCovenant=true;
         private Button[] navigationTabs;
         private Button resumeButton;
+        private CanvasGroup resultStats,resultActions;private RectTransform resultEmblem;
         private Image[] navigationMarkers;
         private Text[] navigationLabels;
         private static readonly Color NavigationAccent=new Color(.63f,.94f,.42f,1);
@@ -232,7 +233,7 @@ namespace Buklod.Empire {
             }
         }
         private void Rebuild(){
-            UpdateNavigation();
+            UpdateNavigation();resultStats=null;resultActions=null;resultEmblem=null;
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
             if(!view.IsEditorReview||showResult||confirmRestart||!(page==-1||page==0&&heroDetail))HideShowcase();
@@ -242,14 +243,40 @@ namespace Buklod.Empire {
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
             if(view.IsEditorReview&&showResult&&b!=null&&b.Finished){
                 bool won=b.Winner==p.Team,draw=!b.Winner.HasValue;
-                title.color=draw?new Color(.82f,.87f,.94f):won?new Color(1,.82f,.38f):new Color(1,.50f,.43f);
+                var accent=draw?new Color(.82f,.87f,.94f):won?new Color(1,.82f,.38f):new Color(1,.50f,.43f);
+                title.text=ReviewResultPresentation.Outcome(p.Team,b.Winner);title.color=accent;
+                summary.text=ReviewResultPresentation.Faction(b.Winner)+"  •  "+b.EndReason+"  •  "+(b.Time/60).ToString("0.0")+" min";
                 panelBackground.color=draw?Navy:won?new Color(.065f,.14f,.12f,.98f):new Color(.15f,.065f,.085f,.98f);
-                Label("Match result",body,new Vector2(.05f,.62f),new Vector2(.95f,.92f),draw?"BATTLE DRAWN":won?"LUX PREVAILS":"TENEBRA PREVAILS",42);
-                Label("Match stats",body,new Vector2(.05f,.30f),new Vector2(.95f,.61f),$"{b.Time/60:0.0} min  •  Damage dealt {p.DamageDealt:0}  •  Damage taken {p.DamageTaken:0}\nKills {p.Kills}  •  Deaths {p.Deaths}  •  Assists {p.Assists}",27);
+                var left=Rect("Result hero",body,new Vector2(.02f,.06f),new Vector2(.37f,.98f));
+                var portrait=reviewPortraits?reviewPortraits.Find(p.State.Kit.Id,true):null;
+                if(portrait){
+                    var r=Rect("Result model capture",left,new Vector2(.06f,.22f),new Vector2(.94f,.98f));
+                    var img=r.gameObject.AddComponent<RawImage>();img.texture=portrait;img.raycastTarget=false;
+                    var fit=img.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
+                }
+                var name=Label("Result hero name",left,new Vector2(.04f,.10f),new Vector2(.96f,.22f),p.State.Kit.Name,24);name.color=accent;
+                Label("Match level",left,new Vector2(.04f,0),new Vector2(.96f,.10f),"MATCH LEVEL "+p.State.Level,17);
+                var right=Rect("Result details",body,new Vector2(.40f,.04f),new Vector2(.98f,.98f));
+                resultEmblem=Label("Outcome emblem",right,new Vector2(0,.78f),Vector2.one,ReviewResultPresentation.Faction(b.Winner),36).rectTransform;
+                resultEmblem.GetComponent<Text>().color=accent;
+                var statsPanel=Rect("Actual match statistics",right,new Vector2(0,.33f),new Vector2(1,.77f));
+                resultStats=statsPanel.gameObject.AddComponent<CanvasGroup>();
+                string[] names={"KILLS","DEATHS","ASSISTS","DAMAGE DEALT","DAMAGE TAKEN","MATCH GOLD"};
+                string[] values={p.Kills.ToString(),p.Deaths.ToString(),p.Assists.ToString(),p.DamageDealt.ToString("0"),p.DamageTaken.ToString("0"),p.Gold.ToString()};
+                for(int i=0;i<6;i++){
+                    float x=(i%3)/3f,y=1-(i/3+1)*.5f;
+                    var cell=Rect("Result "+names[i],statsPanel,new Vector2(x+.012f,y+.02f),new Vector2(x+1f/3-.012f,y+.48f));
+                    var backdrop=cell.gameObject.AddComponent<Image>();backdrop.color=new Color(.10f,.18f,.23f,.92f);backdrop.raycastTarget=false;
+                    Label("Statistic value",cell,new Vector2(.03f,.29f),new Vector2(.97f,.98f),values[i],29).color=accent;
+                    Label("Statistic label",cell,new Vector2(.03f,.02f),new Vector2(.97f,.28f),names[i],15);
+                }
                 var stats=view.PracticeStats(view.selectedHero);
-                string local=stats==null?view.PracticeResultStatus:$"{view.PracticeResultStatus}  •  Tier {stats.Mastery}  •  {stats.completed} matches";
-                Label("Offline scope",body,new Vector2(.05f,.07f),new Vector2(.95f,.28f),local+"\n"+ArenaProgression.TrainingResult(true),19);
-                return;
+                string local=stats==null?view.PracticeResultStatus:$"{view.PracticeResultStatus}  •  Mastery {stats.Mastery}  •  {stats.completed} matches";
+                Label("Offline scope",right,new Vector2(0,.16f),new Vector2(1,.32f),local+"\n"+ArenaProgression.TrainingResult(true),17);
+                var actions=Rect("Result navigation",right,Vector2.zero,new Vector2(1,.15f));resultActions=actions.gameObject.AddComponent<CanvasGroup>();
+                ButtonAt("Return to lobby",actions,Vector2.zero,new Vector2(.48f,1),"RETURN TO LOBBY",()=>{showResult=false;page=-1;Rebuild();});
+                ButtonAt("Choose next hero",actions,new Vector2(.52f,0),Vector2.one,"CHOOSE NEXT HERO",()=>{showResult=false;page=0;heroDetail=false;Rebuild();});
+                ApplyResultReveal();return;
             }
             title.color=Color.white;panelBackground.color=authored?Color.white:Navy;title.rectTransform.localScale=Vector3.one;
             if(view.IsEditorReview&&page==8){AudioPanel();return;}
@@ -359,7 +386,7 @@ namespace Buklod.Empire {
             yield return null;
             bool ready=false;
             try{BeginMatch(false);ready=true;}
-            catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;Rebuild();feedback.text="Unable to initialize match. Check the local review assets.";}
+            catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;matchStarted=false;Rebuild();feedback.text="Unable to initialize match. Start a new match after checking local review assets.";}
             if(ready){
                 if(authored&&authored.entrance)authored.entrance.Open();
                 title.text="GENESIS RIFT";summary.text="Enter the battlefield";feedback.text="";
@@ -379,6 +406,14 @@ namespace Buklod.Empire {
             view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);matchStarted=true;confirmRestart=false;heroDetail=false;selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
         }
         private void Close(){HideShowcase();if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
+        private void ApplyResultReveal(){
+            float elapsed=resultRevealAt<0?2f:Time.unscaledTime-resultRevealAt;
+            float headline=ReviewResultPresentation.Reveal(elapsed,0),stats=ReviewResultPresentation.Reveal(elapsed,.18f),actions=ReviewResultPresentation.Reveal(elapsed,.40f);
+            title.rectTransform.localScale=Vector3.one*Mathf.Lerp(.82f,1,headline);
+            if(resultEmblem)resultEmblem.localScale=Vector3.one*Mathf.Lerp(.85f,1,headline);
+            if(resultStats)resultStats.alpha=stats;
+            if(resultActions){resultActions.alpha=actions;resultActions.interactable=actions>.99f;resultActions.blocksRaycasts=actions>.99f;}
+        }
         private void Update(){
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;
@@ -386,9 +421,7 @@ namespace Buklod.Empire {
             if(finished&&!lastFinished&&view.IsEditorReview){showResult=true;resultRevealAt=Time.unscaledTime;}
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();lastFinished=finished;
             if(shown&&finished&&showResult&&resultRevealAt>=0){
-                float t=Mathf.Clamp01((Time.unscaledTime-resultRevealAt)/.65f);
-                title.rectTransform.localScale=Vector3.one*Mathf.Lerp(.82f,1,1-Mathf.Pow(1-t,3));
-                if(t>=1)resultRevealAt=-1;
+                ApplyResultReveal();if(Time.unscaledTime-resultRevealAt>=.9f)resultRevealAt=-1;
             }
         }
         private void OnApplicationPause(bool paused){if(paused&&view&&view.IsEditorReview)ReviewAudioSettings.Save();}

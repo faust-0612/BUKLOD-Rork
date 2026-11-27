@@ -675,7 +675,7 @@ namespace Buklod.Empire {
             if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
             var target=Enemies(a,k.BasicRange,aim).FirstOrDefault(e=>(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
             if(target==null){if(unitId!=0||kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;}
-            else {if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.AttackFacing=(Find(target).Position-u.Position).normalized;}
+            else {var facing=(Find(target).Position-u.Position).normalized;if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.AttackFacing=facing;}
             u.LastAttack=Time;return true;
         }
         public static float ExperienceThreshold(int level)=>65f*level+18f*level*level;
@@ -819,7 +819,7 @@ namespace Buklod.Empire {
         // Respond to actual visible incursions near the village. Keep at most two
         // healthy allied bots assigned per threat; never take control of the player.
         private BattleUnit DefenseThreat(BattleUnit u){
-            if(IsAuthoritative||Difficulty<ArenaDifficulty.Normal||!CoreAlive(u.Team)||u.State.Health/u.State.MaxHealth<.55f)return null;
+            if(IsAuthoritative||HumanControlled(u)||u.Retreat||(int)Difficulty<(int)ArenaDifficulty.Normal||!CoreAlive(u.Team)||u.State.Health/u.State.MaxHealth<.55f)return null;
             var home=Base(u.Team);
             if(Vector2.Distance(u.Position,home)>55f)return null;
             var threat=units.Where(v=>v.Team!=u.Team&&v.Kind==BattleTargetKind.Hero&&Attackable(v)&&
@@ -918,7 +918,7 @@ namespace Buklod.Empire {
                 u.AttackFacing=(t.Position-u.Position).normalized;u.LastAttack=Time;return;
             }
             var goal=LaneGoal(u);
-            if(!IsAuthoritative&&u.Role==MinionRole.Healer){
+            if(!IsAuthoritative&&u.Role==MinionRole.Healer&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&Time<OfflineMatchRules.MatchLimit){
                 // Stay with the wounded wave rather than walk alone into the fortress.
                 var ally=units.Where(v=>v!=u&&v.Team==u.Team&&v.Kind==BattleTargetKind.Minion&&v.Role!=MinionRole.Healer&&v.State.Alive&&v.Lane==u.Lane&&Dist(u,v)<=14f)
                     .OrderBy(v=>v.State.Health/v.State.MaxHealth).ThenBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
