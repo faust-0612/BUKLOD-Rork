@@ -37,7 +37,7 @@ namespace Buklod.Empire.Editor {
                                 for(int i=0;i<transforms.Length;i++){transforms[i].localPosition=pos[i];transforms[i].localRotation=rot[i];transforms[i].localScale=scale[i];}
                                 clip.SampleAnimation(root,clip.length*fraction);
                                 foreach(var skin in skins){
-                                    mesh.Clear();skin.BakeMesh(mesh);
+                                    mesh.Clear();skin.BakeMesh(mesh);mesh.RecalculateBounds();
                                     if(mesh.vertexCount!=skin.sharedMesh.vertexCount||mesh.vertexCount==0||!Finite(mesh.bounds.center)||!Finite(mesh.bounds.size)||mesh.bounds.size.sqrMagnitude<=.000001f)
                                         throw new BuildFailedException("Invalid sampled deformation "+h.id+"/"+name);
                                 }
