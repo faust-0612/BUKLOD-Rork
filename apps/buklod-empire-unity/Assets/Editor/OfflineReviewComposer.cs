@@ -37,6 +37,7 @@ namespace Buklod.Empire.Editor {
             c.resources=Enum.GetValues(typeof(VillageResourceKind)).Cast<VillageResourceKind>().Select(kind=>new BattleVisualCatalog.ResourceVisual{kind=kind,prefab=wildlife[kind.ToString().ToLowerInvariant()]}).ToArray();
             EconomyReviewImporter.Bind(c);
             LibraryStructureReview.Bind(c);
+            LibraryWildlifeReview.Bind(c);
             c.ValidateEditorReview(); // deliberately no production receipt
             var catalogPath=Out+"/OfflineReviewCatalog.asset";
             var old=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(catalogPath);

@@ -408,5 +408,31 @@
       "name": "Scroll.glb",
       "crop": null
     }
+  ],
+  "wildlifeReviewBindings": [
+    {
+      "kind": "AzureStag",
+      "group": "Animals",
+      "name": "Deer.glb",
+      "motion": {
+        "Idle": "Idle",
+        "Walk": "Walk",
+        "Attack": "Attack_Headbutt",
+        "Hit": "Idle_HitReact_Left",
+        "Death": "Death"
+      }
+    },
+    {
+      "kind": "CrimsonWolf",
+      "group": "Animals",
+      "name": "Wolf.glb",
+      "motion": {
+        "Idle": "Idle",
+        "Walk": "Walk",
+        "Attack": "Attack",
+        "Hit": "Idle_HitReact_Left",
+        "Death": "Death"
+      }
+    }
   ]
 }

@@ -18,7 +18,7 @@ namespace Buklod.Empire.Editor {
         [Serializable] sealed class Manifest {public string status,license,author;public Row[] models;public Binding[] staticReviewBindings;public bool releaseApproved;}
         static readonly string[] Roles={"tower","core","depot","guardPost","farm","barracks","market","house"};
         static readonly string[] Extra={"wood","stone","gold","food","crystal","field_pickup","relic_pickup"};
-        static string GitBlob(byte[] bytes){
+        internal static string GitBlob(byte[] bytes){
             var header=Encoding.ASCII.GetBytes("blob "+bytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)+"\0");
             using(var hash=SHA1.Create()){
                 hash.TransformBlock(header,0,header.Length,header,0);
@@ -61,7 +61,7 @@ namespace Buklod.Empire.Editor {
             string path=ModelPath(group,name);Directory.CreateDirectory(Path.GetDirectoryName(path));
             if(!File.Exists(path)||GitBlob(File.ReadAllBytes(path))!=row.gitBlob)File.WriteAllBytes(path,bytes);
         }
-        static Bounds BoundsOf(GameObject obj){
+        internal static Bounds BoundsOf(GameObject obj){
             var renderers=obj.GetComponentsInChildren<Renderer>(true);
             if(renderers.Length==0)throw new InvalidOperationException("No visible mesh: "+obj.name);
             var b=renderers[0].bounds;foreach(var r in renderers)b.Encapsulate(r.bounds);
@@ -69,7 +69,7 @@ namespace Buklod.Empire.Editor {
                 throw new InvalidOperationException("Invalid model bounds: "+obj.name);
             return b;
         }
-        static bool Finite(float x)=>!float.IsNaN(x)&&!float.IsInfinity(x);
+        internal static bool Finite(float x)=>!float.IsNaN(x)&&!float.IsInfinity(x);
         static GameObject Model(string group,string name,Transform parent){
             var source=AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath(group,name));
             if(!source)throw new InvalidOperationException("Unity failed to import Library model: "+group+"/"+name);
@@ -78,6 +78,27 @@ namespace Buklod.Empire.Editor {
             obj.transform.localPosition=Vector3.zero;obj.transform.localRotation=Quaternion.identity;
             foreach(var collider in obj.GetComponentsInChildren<Collider>(true))collider.enabled=false;
             return obj;
+        }
+        static void PickupMarker(Transform art,Bounds body){
+            var pivot=new GameObject("Library tier marker");pivot.transform.SetParent(art,false);
+            var marker=Model("RPG","Crystal2.glb",pivot.transform);
+            var shader=Shader.Find("Universal Render Pipeline/Lit");
+            if(!shader||!shader.isSupported)throw new InvalidOperationException("Library tier marker shader missing.");
+            const string path=Out+"crystal_library_tier.mat";
+            var mat=AssetDatabase.LoadAssetAtPath<Material>(path);
+            if(!mat){mat=new Material(shader);mat.name="crystal_library_tier";AssetDatabase.CreateAsset(mat,path);}
+            mat.shader=shader;mat.name="crystal_library_tier";mat.SetColor("_BaseColor",Color.white);
+            mat.EnableKeyword("_EMISSION");mat.SetColor("_EmissionColor",Color.white*.25f);
+            mat.SetFloat("_Metallic",.15f);mat.SetFloat("_Smoothness",.55f);EditorUtility.SetDirty(mat);
+            foreach(var renderer in marker.GetComponentsInChildren<Renderer>(true)){
+                var materials=renderer.sharedMaterials;for(int i=0;i<materials.Length;i++)materials[i]=mat;renderer.sharedMaterials=materials;
+            }
+            var b=BoundsOf(marker);
+            float span=Mathf.Max(b.size.x,Mathf.Max(b.size.y,b.size.z));
+            float bodySpan=Mathf.Max(body.size.x,Mathf.Max(body.size.y,body.size.z));
+            marker.transform.localScale*=bodySpan*.32f/span;
+            b=BoundsOf(marker);
+            marker.transform.position+=new Vector3(body.max.x-b.min.x,body.min.y-b.min.y,body.center.z-b.center.z);
         }
         static GameObject Build(Binding b,GameObject reference){
             if(!reference)throw new InvalidOperationException("Missing footprint reference: "+b.id);
@@ -88,6 +109,7 @@ namespace Buklod.Empire.Editor {
                 var target=BoundsOf(old);
                 var art=new GameObject("Authored geometry");art.transform.SetParent(root.transform,false);
                 var body=Model(b.group,b.name,art.transform);
+                if(b.id=="field_pickup"||b.id=="relic_pickup")PickupMarker(art.transform,BoundsOf(body));
                 if(!string.IsNullOrEmpty(b.crop)){
                     var field=BoundsOf(body);
                     var canopy=new GameObject("review_crop_canopy");canopy.transform.SetParent(art.transform,false);
@@ -142,6 +164,11 @@ namespace Buklod.Empire.Editor {
             var doc=Read();var set=new HashSet<string>(dependencies,StringComparer.Ordinal);
             foreach(var b in doc.staticReviewBindings){
                 if(!set.Contains(PrefabPath(b.id)))throw new BuildFailedException("Missing Library-first prefab: "+b.id);
+                if(b.id=="field_pickup"||b.id=="relic_pickup"){
+                    var deps=new HashSet<string>(AssetDatabase.GetDependencies(PrefabPath(b.id),true),StringComparer.Ordinal);
+                    if(!deps.Contains(ModelPath("RPG","Crystal2.glb"))||!deps.Contains(Out+"crystal_library_tier.mat"))
+                        throw new BuildFailedException("Missing tier-color marker: "+b.id);
+                }
                 foreach(var name in new[]{b.name,b.crop}.Where(x=>!string.IsNullOrEmpty(x))){
                     var row=Find(doc,b.group,name);Verified(row);
                     var path=ModelPath(b.group,name);
