@@ -52,6 +52,8 @@ namespace Buklod.Empire.Editor {
             var bank=Resources.Load<TextAsset>("SkillAudioBank");
             if(!bank)throw new InvalidOperationException("Missing committed 39-skill audio bank.");
             SkillAudio.ValidateBank(bank.bytes);
+            // A Library-first review must not silently use the old generated skill audio.
+            SkillAudio.LoadLibraryClips();
             CandidateReviewComposer.Prepare();
             if(AuthoredExpansionReview.Requested)PortraitCaptureReview.EnsureCurrent();
             OfflineReviewComposer.Prepare();
