@@ -98,7 +98,7 @@ namespace Buklod.Empire {
                 var c=path.corners[1];waypoint=new Vector2(c.x,c.z)/scale;return true;
             }
         }
-        public void StartMatch(string hero,ArenaDifficulty difficulty=ArenaDifficulty.Normal,ArenaTactic tactic=ArenaTactic.Renew,CovenantLoadout? covenant=null,bool autonomous=false,int seed=1){
+        public void StartMatch(string hero,ArenaDifficulty difficulty=ArenaDifficulty.Normal,ArenaTactic tactic=ArenaTactic.Renew,CovenantLoadout? covenant=null,bool autonomous=false,int seed=1,bool startPaused=false){
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
 #if UNITY_EDITOR || BUKLOD_OFFLINE_REVIEW
             if(ReviewOnly)visuals.ValidateOfflineReview();else
@@ -116,14 +116,15 @@ namespace Buklod.Empire {
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
             if(!Battle.SelectPlayerTactic(tactic)||covenant.HasValue&&!Battle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
-            selectedHero=hero;Paused=false;ControlFeedbackUntil=0;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
-            input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=true;
+            selectedHero=hero;Paused=startPaused;ControlFeedbackUntil=0;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
+            input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=!startPaused;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
             fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
             Follow(true);Sync(true);fieldVisuals.Refresh();
         }
         private void Start(){
-            if(Battle==null)StartMatch(selectedHero);
+            if(Battle==null&&!ReviewOnly)StartMatch(selectedHero);
+            else if(Battle==null)SetPaused(true);
             if(!GetComponent<OfflineSessionMenu>())gameObject.AddComponent<OfflineSessionMenu>();
         }
         private void OnApplicationPause(bool paused){if(paused&&Battle!=null&&!Battle.Finished)SetPaused(true);}

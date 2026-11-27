@@ -10,7 +10,7 @@ namespace Buklod.Empire {
         SkillCueShape shape;float radius;Color tint;Vector3 forward;
         CinematicSkillProfile cinematic;bool hasCinematic;
         public SkillParticleBurst(Transform parent,Material material){
-            root=new GameObject("Pooled skill light particles");root.transform.SetParent(parent,false);
+            root=new GameObject("Pooled skill light particles");root.layer=parent.gameObject.layer;root.transform.SetParent(parent,false);
             mesh=new Mesh{name="Skill particle billboard mesh"};mesh.MarkDynamic();
             var uv=new Vector2[count*4];var indices=new int[count*6];
             for(int i=0;i<count;i++){

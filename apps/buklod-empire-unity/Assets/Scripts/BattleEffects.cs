@@ -7,13 +7,14 @@ namespace Buklod.Empire {
         public const int Capacity=24, Segments=32;
         private sealed class Pulse {public LineRenderer line;public float start,duration,radius;public Color color;public int style;public bool skill,basicSlash;public SkillCueShape shape;public Vector3 forward;public SkillParticleBurst burst;}
         private Pulse[] pool;private int next;private Camera battleCamera;
+        internal Camera previewCamera;
         public void Clear(){if(pool==null)return;foreach(var p in pool){p.line.enabled=false;p.burst?.Stop();}next=0;}
         private void Initialize(){
             if(pool!=null||!pulseMaterial)return;
             pool=new Pulse[Capacity];
-            var view=GetComponent<BattleView>();battleCamera=view&&view.battleCamera?view.battleCamera:Camera.main;
+            var view=GetComponent<BattleView>();battleCamera=previewCamera?previewCamera:view&&view.battleCamera?view.battleCamera:Camera.main;
             for(int i=0;i<Capacity;i++){
-                var go=new GameObject("Pooled combat pulse");go.transform.SetParent(transform,false);
+                var go=new GameObject("Pooled combat pulse");go.layer=gameObject.layer;go.transform.SetParent(transform,false);
                 var line=go.AddComponent<LineRenderer>();line.sharedMaterial=pulseMaterial;line.useWorldSpace=false;
                 line.positionCount=Segments+1;line.loop=false;line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
                 line.receiveShadows=false;line.enabled=false;pool[i]=new Pulse{line=line,burst=skillParticleMaterial?new SkillParticleBurst(transform,skillParticleMaterial):null};
