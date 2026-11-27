@@ -97,7 +97,8 @@ namespace Buklod.Empire {
                 var symbol=Rect("Skill "+j,r,new Vector2(left+(1-left)*(.05f+j*.30f),.23f),new Vector2(left+(1-left)*(.30f+j*.30f),.61f)).gameObject.AddComponent<ReviewSkillGlyph>();
                 symbol.raycastTarget=false;symbol.SetCue(cue,accent);
             }
-            Label("Combat range",r,new Vector2(left,.02f),new Vector2(.97f,.22f),$"ATK {kit.BasicDamage:0}  •  RNG {kit.BasicRange:0.#}",16);
+            var stats=view.PracticeStats(kit.Id);
+            Label("Combat range",r,new Vector2(left,.02f),new Vector2(.97f,.22f),stats==null?$"ATK {kit.BasicDamage:0}  •  RNG {kit.BasicRange:0.#}":$"ATK {kit.BasicDamage:0}  •  M{stats.Mastery} / {stats.completed} matches",16);
         }
         private void RelicInventory(OfflineBattle battle){
             var p=battle.Player;
@@ -129,7 +130,8 @@ namespace Buklod.Empire {
         }
         private void Lobby(){
             title.text="BUKLOD EMPIRE";title.color=NavigationAccent;
-            summary.text="GENESIS RIFT  |  Local practice arena";
+            var stats=view.PracticeStats(selected);
+            summary.text=stats==null?"GENESIS RIFT  |  Local practice arena":$"GENESIS RIFT  |  Local mastery {stats.Mastery}  •  {stats.completed} matches  •  {stats.wins} wins";
             var kit=HeroKitCatalog.Get(selected);
             var left=Rect("Selected hero feature",body,new Vector2(.01f,.03f),new Vector2(.47f,.97f));
             var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,BattleEffects.Accent(selected),.18f);bg.raycastTarget=false;
@@ -166,7 +168,9 @@ namespace Buklod.Empire {
                 panelBackground.color=draw?Navy:won?new Color(.065f,.14f,.12f,.98f):new Color(.15f,.065f,.085f,.98f);
                 Label("Match result",body,new Vector2(.05f,.62f),new Vector2(.95f,.92f),draw?"BATTLE DRAWN":won?"LUX PREVAILS":"TENEBRA PREVAILS",42);
                 Label("Match stats",body,new Vector2(.05f,.30f),new Vector2(.95f,.61f),$"{b.Time/60:0.0} min  •  Damage dealt {p.DamageDealt:0}  •  Damage taken {p.DamageTaken:0}\nKills {p.Kills}  •  Deaths {p.Deaths}  •  Assists {p.Assists}",27);
-                Label("Offline scope",body,new Vector2(.05f,.07f),new Vector2(.95f,.28f),ArenaProgression.TrainingResult(true),21);
+                var stats=view.PracticeStats(view.selectedHero);
+                string local=stats==null?view.PracticeResultStatus:$"{view.PracticeResultStatus}  •  Tier {stats.Mastery}  •  {stats.completed} matches";
+                Label("Offline scope",body,new Vector2(.05f,.07f),new Vector2(.95f,.28f),local+"\n"+ArenaProgression.TrainingResult(true),19);
                 return;
             }
             title.color=Color.white;panelBackground.color=authored?Color.white:Navy;title.rectTransform.localScale=Vector3.one;

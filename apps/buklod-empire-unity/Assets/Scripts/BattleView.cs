@@ -17,6 +17,24 @@ namespace Buklod.Empire {
         public void ConfigureStylizedBenchmark(){if(Application.isPlaying||!IsConfiguredReview)throw new System.InvalidOperationException("Benchmark is review-only.");stylizedBenchmark=true;}
 #endif
         public OfflineBattle Battle {get;private set;}
+        LocalPracticeStore practice;System.Guid practiceMatch;bool practiceAttempted;bool practiceUnavailable;
+        internal string PracticeResultStatus {get;private set;}="";
+        LocalPracticeStore PracticeStore(){
+            if(!ReviewOnly||practiceUnavailable)return null;
+            if(practice==null)try{practice=new LocalPracticeStore(System.IO.Path.Combine(Application.persistentDataPath,"offline-practice"));}
+                catch(System.Exception e){practiceUnavailable=true;Debug.LogWarning("Local practice storage unavailable: "+e.GetType().Name);}
+            return practice;
+        }
+        internal PracticeHeroStats PracticeStats(string hero)=>PracticeStore()?.Stats(hero);
+        void SavePracticeResult(){
+            if(!ReviewOnly||practiceAttempted||Battle==null||!Battle.Finished)return;
+            practiceAttempted=true;
+            if(Battle.AutonomousTraining){PracticeResultStatus="AI demonstration — not recorded";return;}
+            var store=PracticeStore();if(store==null){PracticeResultStatus="Local practice save unavailable";return;}
+            var p=Battle.Player;int outcome=!Battle.Winner.HasValue?0:Battle.Winner.Value==p.Team?1:-1;
+            try{store.Record(practiceMatch,selectedHero,outcome,p.Kills,p.Deaths,p.Assists);PracticeResultStatus="Local mastery recorded";}
+            catch(System.Exception e){PracticeResultStatus="Local practice save failed";Debug.LogWarning("Practice record save failed: "+e.GetType().Name);}
+        }
         public bool Paused {get;private set;}
         public void SetPaused(bool value){Paused=value;if(input)input.enabled=!value;}
         public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
@@ -82,7 +100,7 @@ namespace Buklod.Empire {
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
             if(!Battle.SelectPlayerTactic(tactic)||covenant.HasValue&&!Battle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
-            selectedHero=hero;Paused=false;
+            selectedHero=hero;Paused=false;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=true;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
             fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
@@ -104,7 +122,7 @@ namespace Buklod.Empire {
             var direction=ToWorld(aim);
             switch(button){case 1:return Battle.PlayerAttack(direction);case 5:return Battle.UsePlayerTactic(direction);case 6:return Battle.RecallPlayer();case 7:return Battle.PlayerAttackTarget(BattleTargetKind.Minion,direction);case 8:return Battle.PlayerAttackTarget(BattleTargetKind.Structure,direction);default:return Battle.CastPlayer((SkillSlot)(button-2),direction);}
         }
-        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
+        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
         private void LateUpdate(){if(Battle!=null)Follow(false);}
         public Vector3 FieldPosition(Vector2 p)=>Ground(p);
         private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}

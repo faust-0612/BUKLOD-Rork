@@ -40,6 +40,19 @@ namespace Buklod.Empire.Editor {
                 if (GraphicsSettings.currentRenderPipeline != pipeline)
                     throw new BuildFailedException("Review URP activation failed.");
         }
+        // Import, scene and deformation validation only; does not call BuildPlayer.
+        public static void ValidateOnly() {
+            var previous=GraphicsSettings.defaultRenderPipeline;var quality=QualitySettings.renderPipeline;
+            try {
+                EnsureReviewPipeline();ConsolidatedOfflineReview.Prepare();StylizedArenaBenchmark.Prepare();
+                var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
+                if(!view||!view.IsConfiguredReview||!view.visuals)throw new BuildFailedException("Review scene missing.");
+                var deps=AssetDatabase.GetDependencies(StylizedArenaBenchmark.ScenePath,true);
+                ReviewAuthoredAssetGate.Validate(deps);AuthoredExpansionReview.Validate(deps);
+                OfflineMotionGate.Validate(view.visuals);
+                Debug.Log("BUKLOD_OFFLINE_PREFLIGHT_PASS — no APK or device approval.");
+            } finally {GraphicsSettings.defaultRenderPipeline=previous;QualitySettings.renderPipeline=quality;AssetDatabase.SaveAssets();}
+        }
         public static void Build() {
             if (Application.unityVersion != "6000.3.29f1")
                 throw new BuildFailedException("Use the pinned Unity editor.");
