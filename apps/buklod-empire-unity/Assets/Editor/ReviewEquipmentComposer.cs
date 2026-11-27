@@ -8,7 +8,7 @@ namespace Buklod.Empire.Editor {
     // Original beveled wearable bands, built once as shared mesh assets and
     // attached to the existing rig after LOD construction. No collider or new bone.
     internal static class ReviewEquipmentComposer {
-        const string Dir=CandidateReviewComposer.Out+"/Wearables";
+        const string Dir=CandidateReviewComposer.Out+"/WearablesV1";
         static Transform Bone(GameObject root,string name){
             var found=root.GetComponentsInChildren<Transform>(true).Where(t=>t.name==name).ToArray();
             if(found.Length!=1)throw new InvalidOperationException("Equipment anchor missing: "+name);
@@ -16,6 +16,8 @@ namespace Buklod.Empire.Editor {
         }
         static Mesh Band(string name,float radius,float length){
             string path=Dir+"/"+name+".asset";
+            var cached=AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if(cached&&cached.vertexCount==136&&cached.subMeshCount==2)return cached;
             var vertices=new List<Vector3>();var uv=new List<Vector2>();
             var armor=new List<int>();var trim=new List<int>();
             const int sides=16;
@@ -45,7 +47,11 @@ namespace Buklod.Empire.Editor {
             r.shadowCastingMode=ShadowCastingMode.On;r.receiveShadows=true;go.SetActive(false);return go;
         }
         internal static void Attach(GameObject hero){
-            System.IO.Directory.CreateDirectory(Dir);
+            if(!AssetDatabase.IsValidFolder(Dir)){
+                if(System.IO.Directory.Exists(Dir))AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                else AssetDatabase.CreateFolder(CandidateReviewComposer.Out,"WearablesV1");
+                if(!AssetDatabase.IsValidFolder(Dir))throw new InvalidOperationException("Wearable asset folder unavailable.");
+            }
             var materials=hero.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(r=>r.sharedMaterials).Where(m=>m).Distinct().ToArray();
             Material armor=materials.FirstOrDefault(m=>m.name=="armor"),trim=materials.FirstOrDefault(m=>m.name=="trim");
             if(!armor||!trim)throw new InvalidOperationException("Original hero armor materials unavailable.");

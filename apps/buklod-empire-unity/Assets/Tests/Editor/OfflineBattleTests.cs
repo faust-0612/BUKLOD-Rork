@@ -13,6 +13,20 @@ namespace Buklod.Empire.Tests {
             Assert.AreEqual(0,ReviewEquipmentVisual.Tier(p,"weapon"));
             Assert.AreEqual(0,ReviewEquipmentVisual.Tier(null,"weapon"));
         }
+        [Test] public void PooledEquipmentVisualResetsAndDoesNotLeakPriorPurchase(){
+            var root=new GameObject("wearable test");
+            try{
+                var component=root.AddComponent<ReviewEquipmentVisual>();
+                var plate=new GameObject("plate");plate.transform.SetParent(root.transform,false);
+                var trim=new GameObject("trim");trim.transform.SetParent(root.transform,false);
+                component.mounts=new[]{new ReviewEquipmentVisual.Mount{slot="weapon",basePlate=plate,advancedTrim=trim}};
+                var b=new OfflineBattle("phan");Assert.True(b.BuyPlayer("blade"));
+                component.Apply(b.Player);Assert.True(plate.activeSelf);Assert.False(trim.activeSelf);
+                component.ResetVisual();Assert.False(plate.activeSelf);Assert.False(trim.activeSelf);
+                component.Apply(new OfflineBattle("phan").Player);Assert.False(plate.activeSelf);
+                Assert.AreEqual(0,ReviewEquipmentVisual.Tier(b.Player,null));
+            }finally{Object.DestroyImmediate(root);}
+        }
         [Test] public void ReleaseAimUsesFinalPositionAndPreservesTapDeadzone(){
             var center=new Vector2(100,100);
             Assert.AreEqual(Vector2.zero,MobileBattleInput.ResolveAim(center+Vector2.right*5,center,40));

@@ -10,7 +10,7 @@ namespace Buklod.Empire {
         public Mount[] mounts;
         int[] last;
         public static int Tier(BattleUnit unit,string slot){
-            if(unit==null||unit.Kind!=BattleTargetKind.Hero||unit.State.Kit==null)return 0;
+            if(unit==null||unit.Kind!=BattleTargetKind.Hero||unit.State.Kit==null||string.IsNullOrEmpty(slot))return 0;
             int tier=0;
             if(unit.Relics.TryGetValue(slot,out var relic)&&relic!=null&&!relic.Consumable&&relic.Hero==unit.State.Kit.Id&&relic.Slot==slot)tier=Mathf.Clamp(relic.Tier,1,4);
             bool owned=false;
@@ -33,6 +33,6 @@ namespace Buklod.Empire {
                 if(m.advancedTrim)m.advancedTrim.SetActive(tier>=3);
             }
         }
-        public void ResetVisual()=>Apply(null);
+        public void ResetVisual(){last=null;Apply(null);}
     }
 }

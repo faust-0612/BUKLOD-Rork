@@ -19,6 +19,12 @@ namespace Buklod.Empire.Editor {
                     if(!animator)throw new BuildFailedException("Missing hero animator "+h.id);
                     var wearables=instance.GetComponent<ReviewEquipmentVisual>();
                     if(!wearables||wearables.mounts==null||wearables.mounts.Length!=7||wearables.mounts.Any(m=>m==null||!m.basePlate||!m.advancedTrim||m.basePlate.activeSelf||m.advancedTrim.activeSelf))throw new BuildFailedException("Missing or pre-unlocked wearable mount "+h.id);
+                    var slots=wearables.mounts.GroupBy(m=>m.slot).ToDictionary(x=>x.Key,x=>x.Count());
+                    if(slots.Count!=5||!slots.TryGetValue("armor",out var armorCount)||armorCount!=2||!slots.TryGetValue("boots",out var bootCount)||bootCount!=2||!new[]{"weapon","shield","jewel"}.All(x=>slots.TryGetValue(x,out var n)&&n==1))throw new BuildFailedException("Incomplete wearable slots "+h.id);
+                    foreach(var mount in wearables.mounts)foreach(var obj in new[]{mount.basePlate,mount.advancedTrim}){
+                        var filter=obj.GetComponent<MeshFilter>();var renderer=obj.GetComponent<MeshRenderer>();
+                        if(!filter||!filter.sharedMesh||filter.sharedMesh.vertexCount!=136||filter.sharedMesh.subMeshCount!=2||!renderer||renderer.sharedMaterials.Length!=2||renderer.sharedMaterials.Any(m=>!m)||obj.GetComponent<Collider>())throw new BuildFailedException("Invalid wearable geometry "+h.id);
+                    }
                     var root=animator.gameObject;
                     var skins=root.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(s=>s.sharedMesh&&s.transform.name!="Mobile LOD1").ToArray();
                     if(skins.Length==0)throw new BuildFailedException("Missing hero deformation mesh "+h.id);
