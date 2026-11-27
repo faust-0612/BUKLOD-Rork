@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-27",
+  "status": "VERIFIED_TARGETED_DATA_RECONCILIATION",
+  "main": "yhanxndaqbmuzbdqlblu",
+  "source": "cjtehbfspgimyhifnjon",
+  "migrationCandidate": "2b5d9d66ee3e9d35f42ad15a8be46b1e346f1189",
+  "sourceChecks": {
+    "draftDocuments": 0,
+    "draftQuestions": 0,
+    "draftRoster": 0,
+    "draftAttempts": 0,
+    "draftRooms": 0,
+    "draftJobs": 0,
+    "draftOwnerExistsInMain": true,
+    "staleRoomMembers": 0,
+    "staleRoomAttempts": 0,
+    "staleRoomAllowances": 0,
+    "staleRoomOverrides": 0
+  },
+  "committedMain": {
+    "draftExamsInserted": 1,
+    "sectionsInserted": 1,
+    "staleRoomsQuarantined": 1,
+    "staleRoomsActivated": 0
+  },
+  "verification": {
+    "exactDraftJsonHashMatch": true,
+    "exactSectionJsonHashMatch": true,
+    "exactRoomQuarantineJsonHashMatch": true,
+    "examCount": 21,
+    "sectionCount": 61,
+    "attempts": 951,
+    "responses": 61909,
+    "released": 460,
+    "quarantineCount": 83
+  },
+  "remaining": {
+    "unmappedReleasedAttempt": 1,
+    "responses": 50,
+    "pendingHistoricalAttemptsWithoutFrozenReferences": 116,
+    "withVerifiedAssignmentPoints": 39,
+    "withoutAssignmentPoints": 77,
+    "productionLauncherStillDedicated": true
+  },
+  "productionFrontendChanged": false,
+  "productionSqlPatchesApplied": false,
+  "dedicatedDeleted": false
+}
