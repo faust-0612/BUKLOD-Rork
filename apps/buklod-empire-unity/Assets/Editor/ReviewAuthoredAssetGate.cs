@@ -18,6 +18,7 @@ namespace Buklod.Empire.Editor {
         internal static void Validate(IEnumerable<string> dependencies){
             var present=new HashSet<string>(dependencies,StringComparer.Ordinal);
             LibraryVillageReview.ValidateDependencies(present);
+            LibraryStructureReview.ValidateDependencies(present);
             if(!present.Contains("Assets/Resources/LibraryAudio/Reward/victory-fanfare.ogg"))throw new BuildFailedException("Library victory fanfare dependency missing.");
             SkillAudio.LoadLibraryClips();
             foreach(var path in Required)if(!present.Contains(path))throw new BuildFailedException("Required authored review scene dependency missing: "+path);

@@ -15,6 +15,24 @@
       "mirror": "Hakhyun-Kim/constellation-defense",
       "sourceCommit": "8ad1c93e382e2a6a5755882c1b9b2922877fab6e",
       "sourceDirectory": "assets/models/"
+    },
+    "RPG": {
+      "sourceUrl": "https://quaternius.com/packs/ultimaterpg.html",
+      "mirror": "trebeljahr/quaternius-showcase",
+      "sourceCommit": "0128ca510d653bb04d6d1e4885bd8890b5050b4f",
+      "sourceDirectory": "public/glb/rpg_items_pack/"
+    },
+    "Animals": {
+      "sourceUrl": "https://quaternius.com/packs/ultimateanimatedanimals.html",
+      "mirror": "trebeljahr/quaternius-showcase",
+      "sourceCommit": "0128ca510d653bb04d6d1e4885bd8890b5050b4f",
+      "sourceDirectory": "public/glb/animals_pack/"
+    },
+    "Enemies": {
+      "sourceUrl": "https://quaternius.com/packs/easyenemy.html",
+      "mirror": "trebeljahr/quaternius-showcase",
+      "sourceCommit": "0128ca510d653bb04d6d1e4885bd8890b5050b4f",
+      "sourceDirectory": "public/glb/easy_enemies_pack/"
     }
   },
   "models": [
@@ -205,8 +223,190 @@
       "bytes": 604656,
       "clips": 14,
       "source": "Monsters"
+    },
+    {
+      "source": "RPG",
+      "name": "Crystal2.glb",
+      "gitBlob": "e2bb4c16abbfa1d5e241d7f213c15e8730dee655",
+      "bytes": 10248,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Potion1_Filled.glb",
+      "gitBlob": "7e2b9676afc0d607e78de0a55c075761ebad75e3",
+      "bytes": 37360,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Scroll.glb",
+      "gitBlob": "6791ee1e013807c462f2e632648ab2fc9aeac5af",
+      "bytes": 54328,
+      "clips": 0
+    },
+    {
+      "source": "Animals",
+      "name": "Deer.glb",
+      "gitBlob": "0c1a5a5d55ec13ca7899dd3a57256724cd9fca4e",
+      "bytes": 662108,
+      "clips": 14
+    },
+    {
+      "source": "Animals",
+      "name": "Wolf.glb",
+      "gitBlob": "c54b02936167a3b0d9a7e8d467432ba4fa788d6b",
+      "bytes": 608660,
+      "clips": 13
+    },
+    {
+      "source": "Enemies",
+      "name": "Snake.glb",
+      "gitBlob": "fdb107f06725f487fed66c7386b31c56c236e8ad",
+      "bytes": 216696,
+      "clips": 4
     }
   ],
   "unityImported": false,
-  "releaseApproved": false
+  "releaseApproved": false,
+  "staticReviewBindings": [
+    {
+      "id": "lux_tower",
+      "group": "RTS",
+      "name": "WatchTower_FirstAge_Level3.glb",
+      "crop": null
+    },
+    {
+      "id": "lux_core",
+      "group": "RTS",
+      "name": "TownCenter_FirstAge_Level3.glb",
+      "crop": null
+    },
+    {
+      "id": "lux_depot",
+      "group": "RTS",
+      "name": "Storage_FirstAge_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "lux_guardPost",
+      "group": "RTS",
+      "name": "WatchTower_FirstAge_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "lux_farm",
+      "group": "RTS",
+      "name": "Farm_FirstAge_Level1.glb",
+      "crop": "Farm_FirstAge_Level1_Wheat.glb"
+    },
+    {
+      "id": "lux_barracks",
+      "group": "RTS",
+      "name": "Barracks_FirstAge_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "lux_market",
+      "group": "RTS",
+      "name": "Market_FirstAge_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "lux_house",
+      "group": "RTS",
+      "name": "Houses_FirstAge_1_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "tenebra_tower",
+      "group": "RTS",
+      "name": "WatchTower_SecondAge_Level3.glb",
+      "crop": null
+    },
+    {
+      "id": "tenebra_core",
+      "group": "RTS",
+      "name": "TownCenter_SecondAge_Level3.glb",
+      "crop": null
+    },
+    {
+      "id": "tenebra_depot",
+      "group": "RTS",
+      "name": "Storage_SecondAge_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "tenebra_guardPost",
+      "group": "RTS",
+      "name": "WatchTower_SecondAge_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "tenebra_farm",
+      "group": "RTS",
+      "name": "Farm_SecondAge_Level1.glb",
+      "crop": "Farm_SecondAge_Level1_Wheat.glb"
+    },
+    {
+      "id": "tenebra_barracks",
+      "group": "RTS",
+      "name": "Barracks_SecondAge_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "tenebra_market",
+      "group": "RTS",
+      "name": "Market_SecondAge_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "tenebra_house",
+      "group": "RTS",
+      "name": "Houses_SecondAge_1_Level1.glb",
+      "crop": null
+    },
+    {
+      "id": "wood",
+      "group": "RTS",
+      "name": "Resource_PineTree.glb",
+      "crop": null
+    },
+    {
+      "id": "stone",
+      "group": "RTS",
+      "name": "Resource_Rock_1.glb",
+      "crop": null
+    },
+    {
+      "id": "gold",
+      "group": "RTS",
+      "name": "Resource_Gold_1.glb",
+      "crop": null
+    },
+    {
+      "id": "food",
+      "group": "RTS",
+      "name": "Farm_Dirt_Level1.glb",
+      "crop": "Farm_FirstAge_Level1_Wheat.glb"
+    },
+    {
+      "id": "crystal",
+      "group": "RPG",
+      "name": "Crystal2.glb",
+      "crop": null
+    },
+    {
+      "id": "field_pickup",
+      "group": "RPG",
+      "name": "Potion1_Filled.glb",
+      "crop": null
+    },
+    {
+      "id": "relic_pickup",
+      "group": "RPG",
+      "name": "Scroll.glb",
+      "crop": null
+    }
+  ]
 }
