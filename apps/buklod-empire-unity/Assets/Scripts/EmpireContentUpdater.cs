@@ -18,9 +18,12 @@ namespace Buklod.Empire {
         byte[] offerEnvelope;
         string root;
         int floor,activeRevision;
+        bool restartRequired;
+        HashSet<string> activeHashes=new HashSet<string>(StringComparer.Ordinal);
         UnityWebRequest request;
         public bool Busy{get;private set;}
-        public bool CanDownload=>!Busy&&offered!=null&&offered.revision>floor;
+        public bool CanCheck=>!Busy&&!restartRequired&&trust!=null;
+        public bool CanDownload=>CanCheck&&offered!=null&&offered.revision>floor;
         public string Status{get;private set;}="Built-in content ready";
         public long PendingBytes{get;private set;}
         public float Progress{get;private set;}
@@ -66,7 +69,7 @@ namespace Buklod.Empire {
             if(work.IsFaulted||work.IsCanceled){Status="Cache unavailable; built-in content";yield break;}
             var candidates=work.Result;
             if(candidates.Count>0)floor=candidates[0].manifest.revision;
-            foreach(var candidate in candidates.Take(2)){
+            foreach(var candidate in candidates.Take(3)){
                 var m=candidate.manifest;
                 var check=Task.Run(()=>m.bundles.All(b=>EmpireContentProtocol.Matches(Blob(b),b)));
                 while(!check.IsCompleted)yield return null;
@@ -88,24 +91,27 @@ namespace Buklod.Empire {
                 }
                 if(!valid){foreach(var bundle in handles)bundle.Unload(true);continue;}
                 // A complete compatible revision replaces the lookup atomically, never a partial bundle.
-                loaded.AddRange(handles);overrides=next;activeRevision=m.revision;
+                loaded.AddRange(handles);overrides=next;activeRevision=m.revision;activeHashes=new HashSet<string>(m.bundles.Select(b=>b.sha256),StringComparer.Ordinal);
                 Status="Active content revision "+activeRevision+(floor>activeRevision?" (recovered)":"");yield break;
             }
             Status=floor>0?"Cached content invalid; built-in assets restored":"Built-in content ready";
         }
         public void Check(){
-            if(Busy||trust==null||Application.internetReachability==NetworkReachability.NotReachable)return;
+            if(!CanCheck)return;
+            if(Application.internetReachability==NetworkReachability.NotReachable){Status="Offline; existing content retained";return;}
             StartCoroutine(CheckRoutine());
         }
         public void Download(){
-            if(!CanDownload||Application.internetReachability==NetworkReachability.NotReachable)return;
+            if(!CanDownload)return;
+            if(Application.internetReachability==NetworkReachability.NotReachable){Status="Offline; retry when connected";return;}
             StartCoroutine(DownloadRoutine());
         }
         sealed class BoundedHandler:DownloadHandlerScript{
             readonly MemoryStream stream=new MemoryStream();readonly int limit;
             public BoundedHandler(int max):base(new byte[32768]){limit=max;}
             protected override bool ReceiveData(byte[] data,int length){
-                if(data==null||length<0||stream.Length+length>limit)return false;
+                if(length==0)return true;
+                if(data==null||length<0||length>data.Length||stream.Length+length>limit)return false;
                 stream.Write(data,0,length);return true;
             }
             public byte[] Bytes()=>stream.ToArray();
@@ -145,9 +151,9 @@ namespace Buklod.Empire {
             }finally{Busy=false;Progress=0;}
         }
         // Keep the two newest signed receipts plus the actually active recovery revision.
-        void Prune(EmpireContentProtocol.Manifest incoming){
+        void Prune(EmpireContentProtocol.Manifest incoming,string unity){
             Directory.CreateDirectory(root);
-            var receipts=ReadReceipts(root,trust,Application.unityVersion);
+            var receipts=ReadReceipts(root,trust,unity);
             var keep=receipts.Take(2).Concat(receipts.Where(x=>x.manifest.revision==activeRevision)).ToArray();
             var names=new HashSet<string>(keep.SelectMany(x=>x.manifest.bundles).Select(EmpireContentProtocol.BundleFile),StringComparer.Ordinal);
             foreach(var b in incoming.bundles)names.Add(EmpireContentProtocol.BundleFile(b));
@@ -168,21 +174,25 @@ namespace Buklod.Empire {
         IEnumerator DownloadRoutine(){
             Busy=true;Progress=0;var m=offered;var envelope=offerEnvelope;Status="Preparing content download...";
             try{
-                bool ready=true;
-                try{
-                    Prune(m);
+                string unity=Application.unityVersion;
+                var prepare=Task.Run(()=>{
+                    Prune(m,unity);
                     long used=Directory.EnumerateFiles(root).Sum(p=>new FileInfo(p).Length);
-                    long missing=m.bundles.Where(b=>!EmpireContentProtocol.Matches(Blob(b),b)).Sum(b=>(long)b.bytes);
-                    if(used+missing+EmpireContentProtocol.MaxManifestBytes>CacheBudget||AvailableSpace(root)<missing+Reserve)ready=false;
-                }catch(Exception){ready=false;}
+                    var missing=m.bundles.Where(b=>!EmpireContentProtocol.Matches(Blob(b),b)).ToArray();
+                    return new {used,missing,bytes=missing.Sum(b=>(long)b.bytes)};
+                });
+                while(!prepare.IsCompleted)yield return null;
+                if(prepare.IsFaulted||prepare.IsCanceled){Status="Content storage unavailable";yield break;}
+                var plan=prepare.Result;bool ready=false;
+                try{ready=plan.used+plan.bytes+EmpireContentProtocol.MaxManifestBytes<=CacheBudget&&AvailableSpace(root)>=plan.bytes+Reserve;}
+                catch(Exception){}
                 if(!ready){Status="Insufficient or unavailable content storage; existing content retained";yield break;}
-                foreach(var b in m.bundles){
-                    bool exists=false;try{exists=EmpireContentProtocol.Matches(Blob(b),b);}catch(IOException){}
-                    if(exists)continue;
+                foreach(var b in plan.missing){
                     byte[] data=null;Status="Downloading revision "+m.revision+"...";
                     yield return Fetch("bundles/"+EmpireContentProtocol.BundleFile(b),b.bytes,x=>data=x);
                     if(data==null||data.Length!=b.bytes){Status="Interrupted download; retry to reuse completed bundles";yield break;}
                     string destination=Blob(b);
+                    bool active=activeHashes.Contains(b.sha256);
                     var write=Task.Run(()=>{
                         if(EmpireContentProtocol.Hash(data)!=b.sha256)throw new InvalidDataException("Hash mismatch");
                         string temp=destination+".partial";
@@ -191,6 +201,7 @@ namespace Buklod.Empire {
                             if(File.Exists(destination)){
                                 if(!EmpireContentProtocol.Matches(destination,b)){
                                     // Never replace a file currently loaded by a known-good revision.
+                                    if(active)throw new InvalidDataException("Active bundle changed on disk; restart before recovery");
                                     File.Delete(destination);File.Move(temp,destination);
                                 }else File.Delete(temp);
                             }else File.Move(temp,destination);
@@ -210,7 +221,7 @@ namespace Buklod.Empire {
                 });
                 while(!commit.IsCompleted)yield return null;
                 if(commit.IsFaulted||commit.IsCanceled){Status="Activation receipt failed; current assets retained";yield break;}
-                floor=m.revision;offered=null;PendingBytes=0;Status="Revision "+floor+" verified on disk. Restart app to activate.";
+                floor=m.revision;restartRequired=true;offered=null;PendingBytes=0;Status="Revision "+floor+" verified on disk. Restart app to activate.";
             }finally{Busy=false;Progress=0;}
         }
         void OnDestroy(){if(request!=null)request.Abort();overrides.Clear();foreach(var b in loaded)if(b)b.Unload(false);}
