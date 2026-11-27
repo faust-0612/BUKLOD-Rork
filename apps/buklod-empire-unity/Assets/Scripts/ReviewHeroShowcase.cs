@@ -9,7 +9,7 @@ namespace Buklod.Empire {
         const int StageLayer=31;
         BattleView view;Camera stageCamera;RenderTexture target;GameObject actor;
         BattleEffects effects;Light key,rim;Animator animator;string modelId;Bounds bounds;
-        float angle,appearedAt;bool map,close,visible,focused=true,appPaused;float demoUntil;GameObject dummy,platform;Material platformMat,trimMat;bool demoWasActive;ReviewEvolutionWings wings;int oldMask;bool maskOwned;
+        float angle,appearedAt;bool map,close,visible,focused=true,appPaused;float demoUntil;GameObject dummy,platform;Material platformMat,trimMat;bool demoWasActive;ReviewEvolutionWings wings;ReviewEquipmentVisual previewEquipment;int evolutionStage;Vector3 wingScale;int oldMask;bool maskOwned;
         Vector3 focus;
         internal Texture Texture=>target;
         internal void Initialize(BattleView owner){
@@ -47,11 +47,11 @@ namespace Buklod.Empire {
             l.type=LightType.Directional;l.color=color;l.intensity=intensity;l.cullingMask=1<<StageLayer;
             l.transform.rotation=Quaternion.Euler(rotation);return l;
         }
-        internal bool ShowHero(string id,bool face,ReviewPalette palette,bool evolution=false){
+        internal bool ShowHero(string id,bool face,ReviewPalette palette,int evolutionLevel=1){
             if(!view||!view.visuals||view.visuals.heroes==null)return false;
             var row=view.visuals.heroes.FirstOrDefault(h=>h!=null&&h.id==id);
             if(row==null||!Show(row.prefab,id,false,face))return false;
-            ReviewHeroPalette.Apply(actor,palette);SetWings(evolution&&!face);Frame();return true;
+            evolutionStage=ArenaProgression.PreviewStage(evolutionLevel);ApplyPreviewLook(evolutionStage);ReviewHeroPalette.Apply(actor,palette);SetWings(evolutionStage>=3&&!face);Frame();return true;
         }
         internal bool ShowMap()=>view&&view.visuals&&Show(view.visuals.genesisRift,"map",true,false);
         bool Show(GameObject prefab,string id,bool isMap,bool face){
@@ -60,7 +60,7 @@ namespace Buklod.Empire {
             if(dummy){DisposeVisual(dummy);dummy=null;}demoWasActive=false;demoUntil=0;
             if(actor){actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;}
             if(changed){
-                wings=null;if(effects)effects.Clear();
+                wings=null;previewEquipment=null;if(effects)effects.Clear();
                 if(actor){DisposeVisual(actor);}
                 // Inactive parent prevents prefab gameplay scripts from running before isolation.
                 var holder=new GameObject("Visual-only "+id);holder.transform.SetParent(transform,false);holder.SetActive(false);
@@ -71,7 +71,7 @@ namespace Buklod.Empire {
                 animator=holder.GetComponentInChildren<Animator>(true);
                 if(animator){animator.applyRootMotion=false;animator.updateMode=AnimatorUpdateMode.UnscaledTime;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;}
                 holder.SetActive(true);
-                var equipment=holder.GetComponentInChildren<ReviewEquipmentVisual>(true);if(equipment)equipment.ResetVisual();
+                previewEquipment=holder.GetComponentInChildren<ReviewEquipmentVisual>(true);if(previewEquipment)previewEquipment.ResetVisual();
                 if(isMap){var terrain=holder.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r=>r.name.Contains("GenesisRift_terrain"));if(terrain&&Mathf.Abs(terrain.bounds.max.x-transform.position.x)<.1f)clone.transform.localScale=new Vector3(-clone.transform.localScale.x,clone.transform.localScale.y,clone.transform.localScale.z);}
                 var rs=holder.GetComponentsInChildren<Renderer>(true).Where(r=>r.enabled&&r.gameObject.activeInHierarchy).ToArray();
                 if(rs.Length==0){DisposeVisual(holder);actor=null;return false;}
@@ -123,10 +123,14 @@ namespace Buklod.Empire {
                 if(!armor||!trim)return;
                 var mount=new GameObject("LOCKED EVOLUTION PREVIEW ONLY");mount.layer=StageLayer;mount.transform.SetParent(actor.transform,false);
                 mount.transform.position=bounds.center+Vector3.up*bounds.size.y*.24f-actor.transform.forward*bounds.size.y*.13f;
-                mount.transform.localScale=Vector3.one*bounds.size.y*.66f;
+                wingScale=Vector3.one*bounds.size.y*.66f;mount.transform.localScale=wingScale;
                 wings=mount.AddComponent<ReviewEvolutionWings>();wings.Initialize(armor,trim);
             }
-            if(wings)wings.gameObject.SetActive(enabled);
+            if(wings){wings.transform.localScale=wingScale*(evolutionStage==3?.70f:1f);wings.gameObject.SetActive(enabled);}
+        }
+        void ApplyPreviewLook(int stage){
+            if(!previewEquipment||previewEquipment.mounts==null)return;
+            foreach(var mount in previewEquipment.mounts){if(mount==null)continue;bool on=stage>=2||stage==1&&(mount.slot=="armor"||mount.slot=="weapon");if(mount.basePlate){mount.basePlate.SetActive(on);mount.basePlate.transform.localScale=Vector3.one*(1+.04f*Mathf.Max(0,stage-1));}if(mount.advancedTrim)mount.advancedTrim.SetActive(on&&stage>=3);}
         }
         public static SkillCue ScaleCue(SkillCue cue,float height){
             float size=Mathf.Clamp(cue.Size/4f,.35f,1f)*Mathf.Clamp(height,.1f,20f)*.38f;

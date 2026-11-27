@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         public bool premiumVisuals=true;
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
-        ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
+        ReviewCombatOverlay combatOverlay;ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
         private ArenaReviewFoley reviewFoley;
         private ReviewHeroDialogue reviewDialogue;
         ReviewMotionLibrary reviewMotion;bool authoredWalk;
@@ -123,10 +123,11 @@ namespace Buklod.Empire {
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=!startPaused;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
             fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
+            if(ReviewOnly){combatOverlay=GetComponent<ReviewCombatOverlay>();if(!combatOverlay)combatOverlay=gameObject.AddComponent<ReviewCombatOverlay>();combatOverlay.Bind(this);}
             Follow(true);Sync(true);fieldVisuals.Refresh();
         }
         internal void AbortReviewMatch(){
-            if(!ReviewOnly)return;EndReviewReveal();SetPaused(true);Battle=null;practiceAttempted=true;PracticeResultStatus="";
+            if(!ReviewOnly)return;EndReviewReveal();SetPaused(true);if(combatOverlay)combatOverlay.ResetOverlay();Battle=null;practiceAttempted=true;PracticeResultStatus="";
             foreach(var v in active.Values)Return(v);active.Clear();foreach(var row in dying)Return(row.visual);dying.Clear();
             if(effects)effects.Clear();if(reviewShadows)reviewShadows.Clear();if(worldEffects)worldEffects.Clear();if(fieldVisuals)fieldVisuals.Bind(this);
         }
@@ -204,7 +205,7 @@ namespace Buklod.Empire {
         }
         private void Sync(bool immediate){
             for(int i=dying.Count-1;i>=0;i--)if(immediate||Time.unscaledTime>=dying[i].until){Return(dying[i].visual);dying.RemoveAt(i);}
-            seen.Clear();
+            seen.Clear();if(combatOverlay)combatOverlay.BeginFrame();
             if(reviewShadows)reviewShadows.Begin();
             reviewFarmNodes.Clear();
             if(ReviewOnly)foreach(var node in Battle.ResourceNodes)if(node.StructureId!=0&&node.Kind==VillageResourceKind.Food)reviewFarmNodes[node.StructureId]=node;
@@ -308,6 +309,10 @@ namespace Buklod.Empire {
                 }
                 if(!castThisFrame&&!attackedThisFrame&&tookHit&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");
                 if(tookHit&&!immediate&&inView&&reviewFoley)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,t.position);
+                if(combatOverlay&&inView&&hero){
+                    float damage=existing&&!immediate?Mathf.Max(0,u.DamageTaken-v.damageTaken):0;
+                    combatOverlay.Observe(u.Id,t.position+Vector3.up*Mathf.Max(1.6f,worldScale*2.25f),u.State.Health,u.State.MaxHealth,u.State.Shield,u.State.Level,u.Team==Battle.Player.Team,player,damage);
+                }
                 v.damageTaken=u.DamageTaken;
             }
             removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){
@@ -333,7 +338,7 @@ namespace Buklod.Empire {
                 removed.Add(pair.Key);
             }
             foreach(int id in removed)active.Remove(id);
-            if(reviewShadows)reviewShadows.End();
+            if(reviewShadows)reviewShadows.End();if(combatOverlay)combatOverlay.EndFrame();
         }
         private void Follow(bool immediate){
             var at=Ground(Battle.Player.Position);

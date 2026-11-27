@@ -12,7 +12,8 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,evolutionPreview,confirmRestart,matchStarted;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
+        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
+        private int evolutionPreviewLevel=1;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -89,7 +90,7 @@ namespace Buklod.Empire {
             var r=Rect(kit.Id,body,new Vector2(x+.008f,y+.01f),new Vector2(x+.192f,y+.25f));
             var accent=BattleEffects.Accent(kit.Id);bool chosen=kit.Id==selected;
             var bg=r.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,chosen?.31f:.12f);
-            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;r.gameObject.AddComponent<ReviewButtonMotion>();btn.onClick.AddListener(()=>{if(authored)authored.Click();selected=kit.Id;heroDetail=true;fullBody=true;evolutionPreview=false;var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)feedback.text=dialogue.Select(kit.Id);Rebuild();});
+            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;r.gameObject.AddComponent<ReviewButtonMotion>();btn.onClick.AddListener(()=>{if(authored)authored.Click();selected=kit.Id;heroDetail=true;fullBody=true;evolutionPreviewLevel=1;var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)feedback.text=dialogue.Select(kit.Id);Rebuild();});
             AddArt(r,ReviewMenuArt.Kind.Card,accent,chosen?1:.48f);
             var portrait=reviewPortraits?reviewPortraits.Find(kit.Id):null;
             float left=portrait ? .37f : .05f;
@@ -116,14 +117,14 @@ namespace Buklod.Empire {
             var left=Rect("Hero showcase",body,new Vector2(.015f,.04f),new Vector2(.44f,.98f));
             var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,.13f);bg.raycastTarget=false;AddArt(left,ReviewMenuArt.Kind.Card,accent,.8f);
             var portrait=reviewPortraits?reviewPortraits.Find(selected,fullBody):null;
-            if(!ShowModel(left,selected,!fullBody,new Vector2(.025f,.31f),new Vector2(.975f,.99f),evolutionPreview&&fullBody)&&portrait){
+            if(!ShowModel(left,selected,!fullBody,new Vector2(.025f,.31f),new Vector2(.975f,.99f),fullBody?evolutionPreviewLevel:1)&&portrait){
                 var r=Rect("Actual model capture",left,new Vector2(.04f,.21f),new Vector2(.96f,.99f));
                 var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
                 var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
             }
-            ButtonAt("Portrait angle",left,new Vector2(.03f,.03f),new Vector2(.48f,.19f),fullBody?"FACE / ARMOR":"FULL BODY",()=>{fullBody=!fullBody;evolutionPreview=false;Rebuild();});
-            ButtonAt("Locked evolution",left,new Vector2(.50f,.03f),new Vector2(.97f,.19f),evolutionPreview?"BASE LOOK":"WING PREVIEW",()=>{evolutionPreview=!evolutionPreview;fullBody=true;Rebuild();});
-            if(evolutionPreview)Label("Locked wing disclaimer",left,new Vector2(.03f,.90f),new Vector2(.97f,.99f),"LOCKED • PREVIEW ONLY",16).color=accent;
+            ButtonAt("Portrait angle",left,new Vector2(.03f,.03f),new Vector2(.48f,.19f),fullBody?"FACE / ARMOR":"FULL BODY",()=>{fullBody=!fullBody;evolutionPreviewLevel=1;Rebuild();});
+            ButtonAt("Locked evolution",left,new Vector2(.50f,.03f),new Vector2(.97f,.19f),"NEXT STAGE",()=>{evolutionPreviewLevel=ArenaProgression.NextPreviewLevel(evolutionPreviewLevel);fullBody=true;Rebuild();});
+            if(evolutionPreviewLevel>1)Label("Locked evolution disclaimer",left,new Vector2(.03f,.88f),new Vector2(.97f,.99f),"L"+evolutionPreviewLevel+" • "+ArenaProgression.Evolution(evolutionPreviewLevel)+" • LOCKED PREVIEW",16).color=accent;
             ButtonAt("Rotate hero",left,new Vector2(.66f,.20f),new Vector2(.97f,.30f),"↻",()=>{if(showcase)showcase.Rotate(45);});
             ButtonAt("Practice palette",left,new Vector2(.03f,.20f),new Vector2(.62f,.30f),palette.ToString().ToUpperInvariant(),()=>{palette=(ReviewPalette)(((int)palette+1)%3);Rebuild();});
             var right=Rect("Hero profile",body,new Vector2(.46f,.04f),new Vector2(.99f,.98f));
@@ -139,7 +140,7 @@ namespace Buklod.Empire {
                 ButtonAt("Preview skill",row,new Vector2(.18f,.03f),new Vector2(.76f,.97f),spec.Id.Replace('_',' ')+"  ▷",()=>{try{if(showcase&&showcase.PlaySkill(slot,out string outcome)){feedback.text=outcome;if(slot==SkillSlot.Ultimate){var voice=GetComponent<ReviewHeroDialogue>();if(voice)voice.PreviewUltimate(selected);}}else feedback.text="Preview asset unavailable";}catch(Exception error){Debug.LogWarning("Skill review unavailable: "+error.GetType().Name);feedback.text="Skill trial unavailable; current match unchanged.";}});
                 var cd=Label("Base cooldown",row,new Vector2(.77f,0),new Vector2(.98f,1),spec.Cooldown.ToString("0")+"s",20);cd.color=accent;
             }
-            Label("Evolution scope",right,new Vector2(0,.10f),new Vector2(1,.21f),"Permanent evolution requires verified eligibility and items. Offline practice does not unlock it.",16);
+            Label("Evolution scope",right,new Vector2(0,.10f),new Vector2(1,.21f),"Offline practice: local mastery only. Permanent evolution requires MAIN-verified BP eligibility and items.",16);
             ButtonAt("Back to roster",right,Vector2.zero,new Vector2(.47f,.10f),"ROSTER",()=>{heroDetail=false;Rebuild();});
             ButtonAt("Choose hero",right,new Vector2(.51f,0),new Vector2(1,.10f),"USE IN NEXT MATCH",()=>{heroDetail=false;if(flow!=null&&flow.Stage==ReviewMatchStage.Hero)AdvanceWizard();else{page=-1;Rebuild();}feedback.text=kit.Name+" selected for the next match.";});
         }
@@ -406,7 +407,7 @@ namespace Buklod.Empire {
         }
         private void BeginMatch(bool close=true){
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
-            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed,!close,flow!=null?palette:ReviewPalette.Original);matchStarted=true;confirmRestart=false;heroDetail=false;evolutionPreview=false;selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
+            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed,!close,flow!=null?palette:ReviewPalette.Original);matchStarted=true;confirmRestart=false;heroDetail=false;evolutionPreviewLevel=1;selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
         }
         private void Close(){if(showcase)showcase.Hide();if(flow!=null&&flow.Stage!=ReviewMatchStage.InBattle)flow.ResumeBattle();if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void ApplyResultReveal(){

@@ -11,10 +11,13 @@ namespace Buklod.Empire {
             view=GetComponent<BattleView>();if(!view||!view.IsEditorReview){enabled=false;return;}
             voice=gameObject.AddComponent<AudioSource>();voice.playOnAwake=false;voice.spatialBlend=0;voice.loop=false;
         }
+        AudioClip currentClip;
         Entry Find(string id){if(entries!=null)foreach(var row in entries)if(row!=null&&row.id==id)return row;return null;}
         void Speak(AudioClip clip){
-            if(!isActiveAndEnabled||!focused||appPaused||!voice||!clip||Time.unscaledTime<nextVoice)return;
-            nextVoice=Time.unscaledTime+.5f;voice.Stop();voice.volume=.65f*ReviewAudioSettings.Get(ReviewAudioChannel.Voice);voice.PlayOneShot(clip);
+            if(!isActiveAndEnabled||!focused||appPaused||!voice)return;
+            if(!clip){voice.Stop();currentClip=null;return;}
+            if(currentClip==clip&&Time.unscaledTime<nextVoice)return;
+            nextVoice=Time.unscaledTime+.5f;voice.Stop();currentClip=clip;voice.volume=.65f*ReviewAudioSettings.Get(ReviewAudioChannel.Voice);voice.PlayOneShot(clip);
         }
         public string Select(string id){var row=Find(id);if(row==null)return "";Speak(row.selectionClip);return row.selection;}
         public string PreviewUltimate(string id){if(!view||!view.IsEditorReview||!view.Paused)return "";var row=Find(id);if(row==null)return "";Speak(row.ultimateClip);return row.ultimate;}
@@ -29,7 +32,7 @@ namespace Buklod.Empire {
             Speak(row.ultimateClip);
         }
         public string Caption=>!view||view.Paused||view.Battle==null||view.Battle.Finished||Time.unscaledTime>=captionUntil?"":caption;
-        public void Stop(){if(voice)voice.Stop();caption="";captionUntil=0;nextVoice=0;}
+        public void Stop(){if(voice)voice.Stop();currentClip=null;caption="";captionUntil=0;nextVoice=0;}
         void Update(){if(voice)voice.volume=.65f*ReviewAudioSettings.Get(ReviewAudioChannel.Voice);}
         void OnApplicationFocus(bool value){focused=value;if(!value)Stop();}
         void OnApplicationPause(bool value){appPaused=value;if(value)Stop();}

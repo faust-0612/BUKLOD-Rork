@@ -5,7 +5,7 @@ namespace Buklod.Empire {
         private BattleView view; private MobileBattleInput input;
         private Canvas canvas;private Sprite circle,reviewControl;
         private ArenaAuthoredUi authored;
-        internal Sprite ControlPreviewSprite=>authored&&authored.action?authored.action:reviewControl?reviewControl:circle;
+        internal Sprite ControlPreviewSprite=>reviewControl?reviewControl:authored&&authored.action?authored.action:circle;
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
@@ -68,8 +68,8 @@ namespace Buklod.Empire {
             t.color=new Color(.95f,.98f,1);
         }
         private void BuildReview(){
-            if(!authored)reviewControl=MakeReviewControl();
-            foreach(var button in buttons){button.sprite=ControlPreviewSprite;button.color=Color.white;}
+            reviewControl=MakeReviewControl();
+            foreach(var button in buttons){button.sprite=reviewControl;button.color=Color.white;}
             if(authored){buttons[0].sprite=authored.stickPad;knob.sprite=authored.stickNub;knob.color=Color.white;}
             foreach(var label in labels)if(label)ImproveText(label);
             ImproveText(status);
@@ -182,6 +182,8 @@ namespace Buklod.Empire {
                 bool available=!view.Paused&&!b.Finished&&!b.AutonomousTraining&&s.Alive;
                 if(i==1||i==7||i==8)available&=s.CanAttack(b.Time);
                 else if(i>=2&&i<=5)available&=s.CanCast(b.Time);
+                if(i>=1&&i<=5||i==7||i==8)available&=cooldown[i].fillAmount<=.001f;
+                if(review&&available&&i>=2&&i<=4)baseTint=Color.Lerp(Color.white,BattleEffects.Accent(s.Kit.Id),.20f);
                 if(!available)baseTint=Color.Lerp(baseTint,new Color(.35f,.39f,.43f,.7f),.65f);
                 if(i==view.ControlFeedbackButton&&Time.unscaledTime<view.ControlFeedbackUntil)
                     baseTint=Color.Lerp(baseTint,view.ControlFeedbackAccepted?new Color(.65f,1,.55f,1):new Color(1,.35f,.25f,1),.8f);

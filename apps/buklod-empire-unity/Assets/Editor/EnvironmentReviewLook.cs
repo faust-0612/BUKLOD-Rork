@@ -45,11 +45,11 @@ namespace Buklod.Empire.Editor {
             var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
             if(!profile){profile=ScriptableObject.CreateInstance<VolumeProfile>();AssetDatabase.CreateAsset(profile,path);}
             var bloom=Get<Bloom>(profile);
-            bloom.threshold.Override(1.25f);bloom.intensity.Override(.24f);bloom.scatter.Override(.58f);
+            bloom.threshold.Override(1.30f);bloom.intensity.Override(.30f);bloom.scatter.Override(.63f);
             var grading=Get<ColorAdjustments>(profile);
-            grading.postExposure.Override(-.18f);grading.contrast.Override(16f);grading.saturation.Override(7f);
+            grading.postExposure.Override(-.12f);grading.contrast.Override(18f);grading.saturation.Override(9f);
             var balance=Get<WhiteBalance>(profile);balance.temperature.Override(-4f);balance.tint.Override(2f);
-            var vignette=Get<Vignette>(profile);vignette.intensity.Override(.10f);vignette.smoothness.Override(.72f);
+            var vignette=Get<Vignette>(profile);vignette.intensity.Override(.08f);vignette.smoothness.Override(.72f);
             vignette.color.Override(new Color(.08f,.12f,.17f));
             EditorUtility.SetDirty(balance);EditorUtility.SetDirty(vignette);
             var tone=Get<Tonemapping>(profile);tone.mode.Override(TonemappingMode.Neutral);
