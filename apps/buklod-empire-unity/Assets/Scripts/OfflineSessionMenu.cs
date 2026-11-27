@@ -216,11 +216,12 @@ namespace Buklod.Empire {
             ButtonAt("Settings",right,new Vector2(0,.28f),new Vector2(.49f,.46f),"CONTROLS",()=>{page=7;Rebuild();});
             ButtonAt("Sound",right,new Vector2(.51f,.28f),new Vector2(1,.46f),"AUDIO SETTINGS",()=>{page=8;Rebuild();});
             var motion=view.MotionPreview;
+            ButtonAt("Beginner guide",right,new Vector2(.63f,.05f),new Vector2(1,.24f),ReviewPracticeGuide.Enabled?"GUIDE ON":"GUIDE OFF",()=>{ReviewPracticeGuide.SetEnabled(!ReviewPracticeGuide.Enabled);Rebuild();});
             if(motion){
-                ButtonAt("Motion comparison",right,new Vector2(0,.05f),new Vector2(1,.24f),
+                ButtonAt("Motion comparison",right,new Vector2(0,.05f),new Vector2(.60f,.24f),
                     "NEXT MATCH MOTION: "+(motion.Requested?"AUTHORED PREVIEW":"ORIGINAL"),()=>{motion.SetRequested(!motion.Requested);Rebuild();});
             }else{
-                var offline=ButtonAt("Offline scope",right,new Vector2(0,.05f),new Vector2(1,.24f),"OFFLINE ONLY • NO ACCOUNT SYNC",()=>{});
+                var offline=ButtonAt("Offline scope",right,new Vector2(0,.05f),new Vector2(.60f,.24f),"OFFLINE ONLY • NO ACCOUNT SYNC",()=>{});
                 offline.interactable=false;
             }
         }
@@ -328,14 +329,15 @@ namespace Buklod.Empire {
             Cell(16,5,4,"ZOOM −",()=>{ArenaControlSettings.ChangeZoom(.1f);Rebuild();});
             Cell(17,5,4,ArenaControlSettings.DetailedInfo?"INFO FULL":"INFO MINIMAL",()=>{ArenaControlSettings.ToggleInfo();Rebuild();});
             Cell(18,5,4,ArenaControlSettings.Fullscreen?"FULLSCREEN ON":"FULLSCREEN OFF",()=>{ArenaControlSettings.ToggleFullscreen();Rebuild();});
-            Cell(19,5,4,"DRAG EDITOR",OpenLayoutEditor);
+            Cell(19,5,4,"DRAG EDITOR",OpenLayoutEditor,view.GetComponent<BattleHud>()!=null||authored&&authored.action);
         }
         private void OpenLayoutEditor(){
             if(layoutEditor!=null)return;
             var hud=view.GetComponent<BattleHud>();
-            if(!hud)return;
+            var sprite=hud?hud.ControlPreviewSprite:authored?authored.action:null;
+            if(!sprite)return;
             panelGroup.interactable=false;
-            layoutEditor=new ArenaHudLayoutEditor(safeRoot,font,hud.ControlPreviewSprite,()=>{layoutEditor=null;panelGroup.interactable=true;Rebuild();});
+            layoutEditor=new ArenaHudLayoutEditor(safeRoot,font,sprite,()=>{layoutEditor=null;panelGroup.interactable=true;Rebuild();});
         }
         private void Resume(){if(Active&&layoutEditor==null&&(!view.IsEditorReview||matchStarted)&&!confirmRestart)Close();}
         private void StartNew(){

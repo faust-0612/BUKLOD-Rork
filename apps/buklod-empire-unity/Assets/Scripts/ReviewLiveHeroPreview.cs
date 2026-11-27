@@ -78,7 +78,7 @@ namespace Buklod.Empire {
         void OnApplicationPause(bool value){appPaused=value;RefreshFocus();}
         public void Hide(){
             if(camera){camera.enabled=false;camera.targetTexture=null;}
-            if(stage){stage.SetActive(false);Destroy(stage);}
+            if(stage){stage.SetActive(false);foreach(var renderer in stage.GetComponentsInChildren<Renderer>(true))renderer.gameObject.layer=0;Destroy(stage);}
             if(target){target.Release();Destroy(target);}
             if(maskOwned&&view&&view.battleCamera)view.battleCamera.cullingMask=oldMask;
             maskOwned=false;stage=null;actor=null;camera=null;target=null;animator=null;hero=null;
