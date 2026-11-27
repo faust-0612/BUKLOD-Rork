@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         public bool premiumVisuals=true;
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
-        ReviewCombatOverlay combatOverlay;float collapseUntil;ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
+        ReviewCombatOverlay combatOverlay;ReviewProjectileEffects projectileEffects;float collapseUntil;ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
         private ArenaReviewFoley reviewFoley;
         private ReviewHeroDialogue reviewDialogue;
         ReviewMotionLibrary reviewMotion;bool authoredWalk;
@@ -49,7 +49,7 @@ namespace Buklod.Empire {
             if(fieldVisuals)fieldVisuals.SetPaused(value);
             foreach(var visual in active.Values){if(visual.animator)visual.animator.speed=value?0f:1f;if(value&&visual.weaponTrail)visual.weaponTrail.Cancel();}
             foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value||row.visual.collapsing?0f:1f;
-            if(value){collapseUntil=0;if(effects)effects.Clear();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
+            if(value){collapseUntil=0;if(projectileEffects)projectileEffects.Clear();if(effects)effects.Clear();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
         public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
         [SerializeField, HideInInspector] private bool editorReviewOnly;
@@ -125,7 +125,7 @@ namespace Buklod.Empire {
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=!startPaused;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
             fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
-            if(ReviewOnly){combatOverlay=GetComponent<ReviewCombatOverlay>();if(!combatOverlay)combatOverlay=gameObject.AddComponent<ReviewCombatOverlay>();combatOverlay.Bind(this);}
+            if(ReviewOnly){combatOverlay=GetComponent<ReviewCombatOverlay>();if(!combatOverlay)combatOverlay=gameObject.AddComponent<ReviewCombatOverlay>();combatOverlay.Bind(this);projectileEffects=GetComponent<ReviewProjectileEffects>();if(!projectileEffects)projectileEffects=gameObject.AddComponent<ReviewProjectileEffects>();projectileEffects.Bind(this,effects?effects.pulseMaterial:null);}
             Follow(true);Sync(true);fieldVisuals.Refresh();
         }
         internal void AbortReviewMatch(){
@@ -159,7 +159,7 @@ namespace Buklod.Empire {
             return ok;
         }
         private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));if(ReviewOnly&&Battle.Finished&&input)input.enabled=false;SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
-        private void LateUpdate(){if(Battle!=null&&!revealActive)Follow(false);}
+        private void LateUpdate(){if(Battle!=null&&!revealActive&&!Paused&&!Battle.Finished)Follow(false);}
         internal void BeginReviewReveal(){
             if(!ReviewOnly||Battle==null||!Paused||!battleCamera)return;
             Follow(true);var t=battleCamera.transform;revealEnd=t.position;revealEndRotation=t.rotation;revealEndSize=battleCamera.orthographicSize;
@@ -291,7 +291,7 @@ namespace Buklod.Empire {
                         var aim=cast.Aim;var forward=aim.sqrMagnitude>.0025f?new Vector3(aim.x,0,aim.y):t.forward;
                         if(aim.sqrMagnitude>.0025f)t.rotation=Quaternion.LookRotation(forward);
                         if(effects&&(!ReviewOnly||inView))effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward,ReviewOnly&&cast.Slot==SkillSlot.Ultimate);
-                        if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
+                        if(skillAudio&&(!ReviewOnly||inView)&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
                         if(reviewDialogue&&u==Battle.Player&&cast.Slot==SkillSlot.Ultimate)reviewDialogue.Ultimate(u.State.Kit.Id);
                         castThisFrame=true;if(ReviewOnly&&hero){v.facingHold=.14f;if(v.weaponTrail)v.weaponTrail.Cancel();}
                     }
@@ -363,7 +363,7 @@ namespace Buklod.Empire {
                 removed.Add(pair.Key);
             }
             foreach(int id in removed)active.Remove(id);
-            if(reviewShadows)reviewShadows.End();if(combatOverlay)combatOverlay.EndFrame();
+            if(reviewShadows)reviewShadows.End();if(combatOverlay)combatOverlay.EndFrame();if(projectileEffects)projectileEffects.Consume(immediate);
         }
         private void Follow(bool immediate){
             var at=Ground(Battle.Player.Position);

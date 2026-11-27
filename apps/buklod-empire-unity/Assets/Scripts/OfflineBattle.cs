@@ -428,7 +428,37 @@ namespace Buklod.Empire {
             var a=Find(actor);if(a==null)return Array.Empty<SkillActor>();
             return units.Where(u=>u.Team==a.Team&&u.Kind==BattleTargetKind.Hero&&u.State.Alive&&Dist(a,u)<=radius).OrderBy(u=>u.Id).Select(u=>u.State).ToArray();
         }
-        public bool Hit(SkillActor actor,SkillActor target,float damage)=>ResolveHit(actor,target,damage,false);
+        private ReviewProjectileFeed projectileFeed;
+        public ReviewProjectileFeed ProjectileFeed=>projectileFeed;
+        private BattleUnit projectileCaster;
+        private bool capturedProjectile;
+        private Vector2 capturedFrom,capturedTo;
+        private bool VisibleProjectile(BattleUnit source,Vector2 to)=>!IsAuthoritative&&Player!=null&&source!=null&&source.State.Kit!=null&&IsVisibleTo(Player.Team,source)&&IsPositionVisibleTo(Player.Team,to);
+        private void PresentProjectile(BattleUnit source,Vector2 from,Vector2 to,bool skill){
+            if(IsAuthoritative)return;
+            if(projectileFeed==null)projectileFeed=new ReviewProjectileFeed();
+            projectileFeed.Add(source.State.Kit.Id,from,to,Time,skill);
+        }
+        private bool TryHeroCast(BattleUnit u,SkillSlot slot,Vector2 aim){
+            // Capture only directed damaging skills. Area, support, movement and summon cues remain unchanged.
+            bool capture=!IsAuthoritative&&u.State.Kit!=null&&(slot==SkillSlot.Primary||slot==SkillSlot.Secondary||slot==SkillSlot.Ultimate)&&
+                SkillCueCatalog.TryGet(u.State.Kit.Skill(slot).Id,out var cue)&&(cue.Shape==SkillCueShape.Bolt||cue.Id=="question_sigil");
+            if(!capture)return u.State.TryCast(this,slot,aim,Time,!Finished);
+            projectileCaster=u;capturedProjectile=false;
+            try{
+                bool ok=u.State.TryCast(this,slot,aim,Time,!Finished);
+                if(ok&&capturedProjectile)PresentProjectile(u,capturedFrom,capturedTo,true);
+                return ok;
+            }finally{projectileCaster=null;capturedProjectile=false;}
+        }
+        public bool Hit(SkillActor actor,SkillActor target,float damage){
+            var source=projectileCaster;var victim=source!=null&&source.State==actor&&!capturedProjectile?Find(target):null;
+            bool capture=victim!=null&&VisibleProjectile(source,victim.Position)&&IsVisibleTo(Player.Team,victim);
+            Vector2 from=capture?source.Position:Vector2.zero,to=capture?victim.Position:Vector2.zero;
+            bool ok=ResolveHit(actor,target,damage,false);
+            if(ok&&capture){capturedFrom=from;capturedTo=to;capturedProjectile=true;}
+            return ok;
+        }
         private bool ResolveHit(SkillActor actor,SkillActor target,float damage,bool basic){
             var a=Find(actor);var t=Find(target);
             if(Finished||a==null||t==null||!actor.Alive||a.Team==t.Team||!Attackable(t)||float.IsNaN(damage)||float.IsInfinity(damage)||damage<=0)return false;
@@ -626,7 +656,7 @@ namespace Buklod.Empire {
             if(IsAuthoritative||AutonomousTraining||u!=Player)return;
             if(rewardFeed==null)rewardFeed=new ReviewRewardFeed();rewardFeed.Add(Time,name,gold,xp,effect,amount,tier);
         }
-        public bool CastPlayer(SkillSlot slot,Vector2 aim){bool ok=Player.State.TryCast(this,slot,aim,Time,!Finished);if(ok)Player.RecallEnds=0;return ok;}
+        public bool CastPlayer(SkillSlot slot,Vector2 aim){bool ok=TryHeroCast(Player,slot,aim);if(ok)Player.RecallEnds=0;return ok;}
         public bool PlayerAttack(Vector2 aim)=>Basic(Player,aim);
         public bool PlayerAttackTarget(BattleTargetKind kind,Vector2 aim)=>Basic(Player,aim,kind);
         public bool PlayerAttackUnit(int unitId)=>unitId>0&&Basic(Player,Vector2.zero,null,0,unitId);
@@ -684,10 +714,24 @@ namespace Buklod.Empire {
         private bool Basic(BattleUnit u,Vector2 aim,BattleTargetKind? kind=null,int campId=0,int unitId=0){
             var a=u.State;var k=a.Kit;
             if(Finished||!a.CanAttack(Time)||a.Buff("blind",Time)>0||k==null||!Finite(aim)||BasicAttackRemaining(u)>0)return false;
-            if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
+            bool ranged=k.BasicRange>=8f;Vector2 from=u.Position;
+            if(campId!=0){
+                var camp=wilderness.Find(campId);bool show=ranged&&camp!=null&&VisibleProjectile(u,camp.Position);
+                if(campId<0||!HitCamp(u,camp,k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;
+                if(show)PresentProjectile(u,from,camp.Position,false);u.LastAttack=Time;return true;
+            }
             var target=BasicTarget(u,aim,kind,unitId);
-            if(target==null){if(unitId!=0||kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;}
-            else {var facing=(Find(target).Position-u.Position).normalized;if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.AttackFacing=facing;}
+            if(target==null){
+                if(unitId!=0||kind.HasValue)return false;
+                var camp=FindCamp(u,aim,k.BasicRange);bool show=ranged&&camp!=null&&VisibleProjectile(u,camp.Position);
+                if(!HitCamp(u,camp,k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;
+                if(show)PresentProjectile(u,from,camp.Position,false);
+            }else{
+                var victim=Find(target);var to=victim.Position;var facing=(to-u.Position).normalized;
+                bool show=ranged&&VisibleProjectile(u,to)&&IsVisibleTo(Player.Team,victim);
+                if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.AttackFacing=facing;
+                if(show)PresentProjectile(u,from,to,false);
+            }
             u.LastAttack=Time;return true;
         }
         private SkillActor BasicTarget(BattleUnit u,Vector2 aim,BattleTargetKind? kind,int unitId=0)=>Enemies(u.State,u.State.Kit.BasicRange,aim).FirstOrDefault(e=>e.Buff("invulnerable",Time)<=0&&(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
@@ -864,13 +908,13 @@ namespace Buklod.Empire {
             bool danger=units.Any(v=>v.Team!=u.Team&&v.Kind==BattleTargetKind.Hero&&Attackable(v)&&IsVisibleTo(u.Team,v)&&Dist(u,v)<10);
             if(!hurt&&!danger)return false;
             switch(a.Kit.Id){
-                case "van":if(hurt&&a.TryCast(this,SkillSlot.Primary,Vector2.zero,Time,!Finished))return true;break;
-                case "ace":if(hurt&&a.TryCast(this,SkillSlot.Primary,Vector2.zero,Time,!Finished))return true;break;
-                case "lhen":if(hurt&&a.TryCast(this,SkillSlot.Secondary,Vector2.zero,Time,!Finished))return true;break;
-                case "ellusur":if(hurt&&a.TryCast(this,SkillSlot.Secondary,Vector2.zero,Time,!Finished))return true;break;
+                case "van":if(hurt&&TryHeroCast(u,SkillSlot.Primary,Vector2.zero))return true;break;
+                case "ace":if(hurt&&TryHeroCast(u,SkillSlot.Primary,Vector2.zero))return true;break;
+                case "lhen":if(hurt&&TryHeroCast(u,SkillSlot.Secondary,Vector2.zero))return true;break;
+                case "ellusur":if(hurt&&TryHeroCast(u,SkillSlot.Secondary,Vector2.zero))return true;break;
             }
             if((int)Difficulty>=(int)ArenaDifficulty.Advanced&&danger&&allies.Count(v=>v.State.Health<v.State.MaxHealth*.8f)>=2){
-                switch(a.Kit.Id){case "van":case "ace":case "lhen":case "ellusur":case "christian":case "phan":case "angel":return a.TryCast(this,SkillSlot.Ultimate,Vector2.zero,Time,!Finished);}
+                switch(a.Kit.Id){case "van":case "ace":case "lhen":case "ellusur":case "christian":case "phan":case "angel":return TryHeroCast(u,SkillSlot.Ultimate,Vector2.zero);}
             }return false;
         }
         private void Bot(BattleUnit u,float speed){
@@ -907,9 +951,9 @@ namespace Buklod.Empire {
             if(supported||Finished)return;
             // One successful skill per decision: preserve mana and make the action readable.
             int nearby=Enemies(a,8,Vector2.zero).Count;
-            if(nearby>=3&&a.TryCast(this,SkillSlot.Ultimate,dir,Time,!Finished))return;
-            if(nearby>=2&&a.TryCast(this,SkillSlot.Secondary,dir,Time,!Finished))return;
-            if(Dist(u,t)<=Mathf.Max(9f,a.Kit.BasicRange)&&ClearSight(u.Position,t.Position))a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);
+            if(nearby>=3&&TryHeroCast(u,SkillSlot.Ultimate,dir))return;
+            if(nearby>=2&&TryHeroCast(u,SkillSlot.Secondary,dir))return;
+            if(Dist(u,t)<=Mathf.Max(9f,a.Kit.BasicRange)&&ClearSight(u.Position,t.Position))TryHeroCast(u,SkillSlot.Primary,dir);
         }
         // Bounded retaliation, no pursuit, resource minting or construction override.
         private void DefendVillageWorker(BattleUnit worker){
