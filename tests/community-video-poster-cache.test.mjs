@@ -41,11 +41,16 @@ test('poster cache is bounded and returns null for unknown media', () => {
 
 test('CommunityVideo generates bounded posters only on native visible-player path and paints inactive previews', () => {
   const source = readFileSync('src/components/CommunityVideo.tsx', 'utf8');
-  assert.match(source, /Platform\.OS !== 'web'.*beginCommunityVideoPosterGeneration/);
+  assert.match(source, /isPlaying && Platform\.OS !== 'web'[\s\S]*?!activeRef\.current \|\| !playingRef\.current[\s\S]*?beginCommunityVideoPosterGeneration/);
   assert.match(source, /generateThumbnailsAsync\(0\.1, \{ maxWidth: 720, maxHeight: 720 \}\)/);
   assert.match(source, /<ExpoImage[\s\S]*?source=\{poster\}/);
   assert.match(source, /posterScrim/);
-  assert.match(source, /!poster \? \([\s\S]*?inactiveLabel/);
+  assert.match(source, /Platform\.OS === 'web' \|\| active \|\| !preload \|\| posterSource \|\| posterUri \|\|\s*playerStatus !== 'readyToPlay'/);
+  assert.match(source, /generateThumbnailsAsync\(0\.1, \{ maxWidth: 480, maxHeight: 480 \}\)/);
+  assert.match(source, /const showManualPlay = !autoPlay && !fullscreen && !onOpenFullscreen/);
+  assert.match(source, /firstFrameFallback/);
+
+  assert.match(source, /!poster && showManualPlay \? \([\s\S]*?inactiveLabel/);
 });
 
 test('rotating signed URL query tokens reuse the same durable media poster key', () => {
