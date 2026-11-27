@@ -108,6 +108,8 @@ namespace Buklod.Empire {
             var candidate=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
             if(!candidate.SelectPlayerTactic(tactic)||covenant.HasValue&&!candidate.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
+            // Commit the candidate before any destructive visual operation. A later exception must not advertise the retired match as resumable.
+            Paused=true;Battle=candidate;
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
@@ -117,7 +119,6 @@ namespace Buklod.Empire {
             reviewMotion=nextMotion;authoredWalk=reviewMotion&&reviewMotion.Requested;
             worldEffects=GetComponent<WorldInteractionEffects>();if(worldEffects)worldEffects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
-            Battle=candidate;
             selectedHero=hero;Paused=false;ControlFeedbackUntil=0;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=true;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();

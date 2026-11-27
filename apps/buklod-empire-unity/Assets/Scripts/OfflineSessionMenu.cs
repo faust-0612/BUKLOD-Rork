@@ -400,6 +400,7 @@ namespace Buklod.Empire {
                     panelGroup.alpha=1-Mathf.SmoothStep(0,1,elapsed/duration);
                     yield return null;
                 }
+                if(authored&&authored.entrance&&authored.entrance.IsOpening)authored.entrance.Complete();
                 if(Application.isFocused)Close();
                 else {shown=true;view.SetPaused(true);Rebuild();}
             }
