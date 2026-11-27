@@ -224,7 +224,7 @@ namespace Buklod.Empire {
             if(page!=9||!contentStatus)return;
             var updater=GetComponent<EmpireContentUpdater>();
             contentStatus.text=updater?updater.Status+(updater.Busy?" • "+Mathf.RoundToInt(updater.Progress*100)+"%":""):"Content updater unavailable";
-            if(contentCheck)contentCheck.interactable=updater&&!updater.Busy;
+            if(contentCheck)contentCheck.interactable=updater&&updater.CanCheck;
             if(contentDownload)contentDownload.interactable=updater&&updater.CanDownload;
         }
         private void Lobby(){
