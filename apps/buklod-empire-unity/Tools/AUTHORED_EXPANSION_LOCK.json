@@ -321,6 +321,34 @@
           "bytes": 8061600
         }
       ]
+    },
+    {
+      "id": "vfx",
+      "source": "Calinou/kenney-particle-pack",
+      "commit": "ab7086639ee73be31abd87feb21bf1402d4e8144",
+      "prefix": "",
+      "license": "LICENSE.txt",
+      "models": [
+        "addons/kenney_particle_pack/light_03.png",
+        "addons/kenney_particle_pack/magic_03.png"
+      ],
+      "rows": [
+        {
+          "path": "LICENSE.txt",
+          "sha": "e198510d3c6ac7e3dc4370f1f0861d8c617362e8",
+          "bytes": 629
+        },
+        {
+          "path": "addons/kenney_particle_pack/light_03.png",
+          "sha": "ccd8472c9416b7a6df85bde8f1115e8f5e4dd788",
+          "bytes": 94243
+        },
+        {
+          "path": "addons/kenney_particle_pack/magic_03.png",
+          "sha": "47c4a22ff7b104ec9ab8926bd6e68d8709fe7b1a",
+          "bytes": 55275
+        }
+      ]
     }
   ]
 }

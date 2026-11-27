@@ -36,7 +36,7 @@ def fetch(pack,row):
             print("Retry",attempt+1,pack["id"],row["path"],str(e),flush=True);time.sleep(2**attempt)
 def validate_lock(doc):
     assert doc["schema"]==1 and doc["status"]=="AUTHORED_REVIEW_CANDIDATES_ONLY"
-    assert {p["id"] for p in doc["packs"]}=={"village","props","heroes","animation"}
+    assert {p["id"] for p in doc["packs"]}=={"village","props","heroes","animation","vfx"}
     for p in doc["packs"]:
         assert re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",p["source"])
         assert re.fullmatch(r"[0-9a-f]{40}",p["commit"])
@@ -57,7 +57,7 @@ def main():
         for row in pack["rows"]:fetch(pack,row)
         # Only authored environment props are admitted to the playable review scene.
         # Hero/animation library stays outside Assets until rig/identity retargeting review.
-        if pack["id"] in ("village","props"):
+        if pack["id"] in ("village","props","vfx"):
             for row in pack["rows"]:
                 source=CACHE/pack["id"]/safe_path(row["path"]);target=DEST/pack["id"]/safe_path(row["path"])
                 target.parent.mkdir(parents=True,exist_ok=True)

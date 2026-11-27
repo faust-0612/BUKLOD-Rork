@@ -55,10 +55,11 @@ namespace Buklod.Empire {
                 var scope=Label("Mode status",panel,new Vector2(.035f,.985f),new Vector2(.965f,1f),"OFFLINE PRACTICE  •  ONLINE NOT ENABLED",12);
                 scope.color=new Color(.85f,.91f,.96f);
             }
-            string[] tabs=view.IsEditorReview?new[]{"HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS","SETTINGS"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","HUD"};
+            string[] tabs=view.IsEditorReview?new[]{"LOBBY","HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS","SETTINGS"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","HUD"};
+            if(view.IsEditorReview){page=-1;AudioListener.volume=Mathf.Clamp01(PlayerPrefs.GetFloat("buklod.empire.review.masterVolume",1));}
             navigationTabs=new Button[tabs.Length];navigationMarkers=new Image[tabs.Length];navigationLabels=new Text[tabs.Length];
             for(int i=0;i<tabs.Length;i++){
-                int tab=i;float step=.93f/tabs.Length;
+                int tab=view.IsEditorReview?i-1:i;float step=.93f/tabs.Length;
                 var button=ButtonAt(tabs[i],panel,new Vector2(.035f+i*step,.72f),new Vector2(.035f+(i+1)*step-.01f,.79f),tabs[i],()=>{showResult=false;page=tab;feedback.text="";Rebuild();});
                 navigationTabs[i]=button;navigationLabels[i]=button.GetComponentInChildren<Text>();
                 var marker=Rect("Active section",button.transform,new Vector2(.12f,.025f),new Vector2(.88f,.095f)).gameObject.AddComponent<Image>();
@@ -120,11 +121,38 @@ namespace Buklod.Empire {
         private void UpdateNavigation(){
             if(navigationTabs==null)return;
             for(int i=0;i<navigationTabs.Length;i++){
-                bool active=!showResult&&page==i;
+                bool active=!showResult&&page==(view.IsEditorReview?i-1:i);
                 navigationMarkers[i].enabled=active;
                 navigationLabels[i].color=active?NavigationAccent:Color.white;
                 navigationLabels[i].fontStyle=active?FontStyle.Bold:FontStyle.Normal;
             }
+        }
+        private void Lobby(){
+            title.text="BUKLOD EMPIRE";title.color=NavigationAccent;
+            summary.text="GENESIS RIFT  |  Local practice arena";
+            var kit=HeroKitCatalog.Get(selected);
+            var left=Rect("Selected hero feature",body,new Vector2(.01f,.03f),new Vector2(.47f,.97f));
+            var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,BattleEffects.Accent(selected),.18f);bg.raycastTarget=false;
+            var portrait=reviewPortraits?reviewPortraits.Find(selected):null;
+            if(portrait){
+                var r=Rect("Selected hero portrait",left,new Vector2(.04f,.25f),new Vector2(.96f,.98f));
+                var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
+                var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
+            }
+            var name=Label("Selected hero name",left,new Vector2(.04f,.09f),new Vector2(.96f,.25f),kit.Name,32);name.color=BattleEffects.Accent(selected);
+            Label("Roster label",left,new Vector2(.04f,0),new Vector2(.96f,.09f),"13 HEROES  •  39 SKILLS",16);
+            var right=Rect("Play and settings",body,new Vector2(.49f,.03f),new Vector2(.99f,.97f));
+            var practice=ButtonAt("Practice",right,new Vector2(0,.70f),Vector2.one,"PLAY OFFLINE  •  "+difficulty,StartNew);
+            practice.GetComponentInChildren<Text>().color=NavigationAccent;
+            ButtonAt("Hero selection",right,new Vector2(0,.49f),new Vector2(.49f,.67f),"HEROES",()=>{page=0;Rebuild();});
+            ButtonAt("Match loadout",right,new Vector2(.51f,.49f),new Vector2(1,.67f),"LOADOUT",()=>{page=1;Rebuild();});
+            ButtonAt("Settings",right,new Vector2(0,.28f),new Vector2(.49f,.46f),"CONTROLS",()=>{page=7;Rebuild();});
+            ButtonAt("Sound",right,new Vector2(.51f,.28f),new Vector2(1,.46f),"AUDIO "+Mathf.RoundToInt(AudioListener.volume*100)+"%",()=>{
+                int step=Mathf.RoundToInt(AudioListener.volume*4);AudioListener.volume=((step+1)%5)*.25f;
+                PlayerPrefs.SetFloat("buklod.empire.review.masterVolume",AudioListener.volume);PlayerPrefs.Save();Rebuild();
+            });
+            var online=ButtonAt("Unavailable online",right,new Vector2(0,.05f),new Vector2(1,.24f),"ONLINE  •  NOT AVAILABLE IN THIS BUILD",()=>{});
+            online.interactable=false;
         }
         private void Rebuild(){
             UpdateNavigation();
@@ -142,6 +170,7 @@ namespace Buklod.Empire {
                 return;
             }
             title.color=Color.white;panelBackground.color=authored?Color.white:Navy;title.rectTransform.localScale=Vector3.one;
+            if(view.IsEditorReview&&page==-1){Lobby();return;}
             if(page==0){
                 for(int i=0;i<HeroKitCatalog.All.Count;i++){var kit=HeroKitCatalog.All[i];if(view.IsEditorReview)HeroCard(i,kit);else Cell(i,5,3,(selected==kit.Id?"✓ ":"")+kit.Name,()=>{selected=kit.Id;Rebuild();});}
                 if(view.IsEditorReview){var kit=HeroKitCatalog.Get(selected);summary.text=kit.Name+"  •  "+kit.Passive.Replace('_',' ')+"  •  "+string.Join(" / ",new[]{kit.Primary.Id,kit.Secondary.Id,kit.Ultimate.Id}.Select(x=>x.Replace('_',' ')));}

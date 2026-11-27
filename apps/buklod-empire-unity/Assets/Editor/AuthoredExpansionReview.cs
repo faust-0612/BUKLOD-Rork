@@ -41,6 +41,10 @@ namespace Buklod.Empire.Editor {
             if(!Requested)return;
             var set=new System.Collections.Generic.HashSet<string>(dependencies,StringComparer.Ordinal);
             foreach(var p in ModelPaths)if(!set.Contains(p))throw new UnityEditor.Build.BuildFailedException("Missing authored expansion scene dependency: "+p);
+            foreach(var name in new[]{"light_03.png","magic_03.png"}){
+                string p=Root+"vfx/addons/kenney_particle_pack/"+name;
+                if(!set.Contains(p))throw new UnityEditor.Build.BuildFailedException("Missing authored particle texture: "+p);
+            }
         }
     }
 }
