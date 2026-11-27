@@ -20,10 +20,6 @@ namespace Buklod.Empire.Editor {
             ReviewAuthoredAssetGate.ValidateLibraryAudioInputs();
             var paths=new Dictionary<string,string>(StringComparer.Ordinal);
             foreach(string slot in EmpireContentProtocol.Slots){
-                var replacement="Assets/EmpireContentSource/Audio/"+slot+".ogg";
-                // For this first exporter only original pinned CC0 files are accepted. Future replacements need
-                // a separately reviewed source manifest and exporter change, not a hidden folder override.
-                if(File.Exists(replacement))throw new BuildFailedException("Unreviewed replacement source: "+replacement);
                 var choices=new[]{"Magic","Reward"}.Select(group=>"Assets/Resources/LibraryAudio/"+group+"/"+slot+".ogg").Where(File.Exists).ToArray();
                 if(choices.Length!=1||!AssetDatabase.LoadAssetAtPath<AudioClip>(choices[0]))throw new BuildFailedException("Missing licensed audio: "+slot);
                 paths.Add(slot,choices[0]);
@@ -39,8 +35,9 @@ namespace Buklod.Empire.Editor {
                     throw new BuildFailedException("Static art not compatible: "+row.Key);
                 paths.Add(row.Key,assetPath);
             }
+            EmpireContentSources.Apply(paths,catalog);
             Directory.CreateDirectory(output);
-            var groups=paths.GroupBy(x=>EmpireContentProtocol.IsStatic(x.Key)?"static":x.Value.Contains("/Magic/")?"magic":"reward").OrderBy(g=>g.Key).ToArray();
+            var groups=paths.GroupBy(x=>EmpireContentProtocol.IsStatic(x.Key)?"static":Array.IndexOf(EmpireContentProtocol.Slots,x.Key)<21?"magic":"reward").OrderBy(g=>g.Key).ToArray();
             var builds=groups.Select(g=>new AssetBundleBuild{assetBundleName=g.Key,assetNames=g.Select(x=>x.Value).ToArray(),addressableNames=g.Select(x=>EmpireContentProtocol.AssetName(x.Key)).ToArray()}).ToArray();
             var manifest=BuildPipeline.BuildAssetBundles(output,builds,BuildAssetBundleOptions.ChunkBasedCompression|BuildAssetBundleOptions.StrictMode,BuildTarget.Android);
             if(!manifest)throw new BuildFailedException("Unsigned content bundle build failed.");
