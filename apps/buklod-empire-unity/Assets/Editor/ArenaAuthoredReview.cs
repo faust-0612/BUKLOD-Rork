@@ -48,6 +48,7 @@ namespace Buklod.Empire.Editor {
             var foley=root.AddComponent<ArenaReviewFoley>();
             foley.steps=new[]{Audio("step-grass-a"),Audio("step-grass-b")};
             foley.metal=Audio("metal-hit");foley.wood=Audio("wood-hit");foley.coins=PresentationAudioReview.LibraryReward("coin-collect");foley.levelUp=PresentationAudioReview.LibraryReward("level-up-magic-harp");
+            foley.pickup=PresentationAudioReview.LibraryReward("item-get");foley.relic=PresentationAudioReview.LibraryReward("rare-item-found");foley.purchase=PresentationAudioReview.LibraryReward("purchase-ka-ching");
             foley.fight=Audio("fight");foley.win=Audio("you_win");foley.lose=Audio("you_lose");foley.draw=Audio("tie");
         }
     }
