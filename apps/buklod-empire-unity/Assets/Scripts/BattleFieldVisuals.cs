@@ -110,14 +110,14 @@ namespace Buklod.Empire {
                     if(presentationAudio)presentationAudio.Creature(c.Kind,false,go.transform.position);
                     Vector2 delta=c.LastAttackPosition-c.Position;
                     if(delta.sqrMagnitude>.001f)go.transform.rotation=Quaternion.LookRotation(new Vector3(delta.x,0,delta.y));
-                    if(campAnimators.TryGetValue(c.Id,out var animator)&&animator)animator.SetTrigger("Attack");
+                    if(campAnimators.TryGetValue(c.Id,out var animator)&&animator){animator.ResetTrigger("Hit");animator.ResetTrigger("Roar");animator.SetTrigger("Attack");}
                     if(battleEffects){
                         var forward=go.transform.forward;
                         var cue=new SkillCue("neutral_"+c.Kind, c.Boss?SkillCueShape.Impact:SkillCueShape.Surge,c.Boss?4.2f:1.8f,c.Boss?.65f:.35f,-1);
                         battleEffects.EmitSkill(go.transform.position,CampTint(c.Kind),cue,forward);
                     }
                 }else if(!fresh&&wasSeen&&c.HitSequence>prior.hit){
-                    if(campAnimators.TryGetValue(c.Id,out var animator)&&animator)animator.SetTrigger("Hit");
+                    if(campAnimators.TryGetValue(c.Id,out var animator)&&animator&&!animator.GetCurrentAnimatorStateInfo(0).IsName("Attack")&&!animator.GetCurrentAnimatorStateInfo(0).IsName("Base Layer.Attack"))animator.SetTrigger("Hit");
                 }
             }else if(review&&visible&&wasSeen&&c.DefeatSequence>prior.defeat&&active.TryGetValue(key,out var defeatedVisual)&&defeatedVisual){
                 // A real defeat, not a fog transition or the reinforcement cutoff.
