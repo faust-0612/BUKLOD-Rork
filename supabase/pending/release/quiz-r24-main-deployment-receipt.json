@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-27",
+  "status": "MAIN_R24_BACKEND_DEPLOYED_R25_DEV_PREFLIGHT_PASS_PUBLIC_CUTOVER_PENDING",
+  "sqlCandidate": "2b5d9d66ee3e9d35f42ad15a8be46b1e346f1189",
+  "bundleCommit": "935f4d6234da98d5096777b2248d80226dd45056",
+  "migration": "buklod_quiz_r24_verified_backend_cutover_preparation",
+  "sqlMigrationSuccess": true,
+  "transactionRecordHashGuardsPassed": true,
+  "main": "yhanxndaqbmuzbdqlblu",
+  "verifiedAfter": {
+    "attempts": 951,
+    "responses": 61909,
+    "released": 460,
+    "pending": 116,
+    "exams": 21,
+    "sections": 61,
+    "quarantine": 83,
+    "tablesWithoutRls": 0
+  },
+  "edge": [
+    {
+      "slug": "buklod-quiz-review-ai",
+      "version": 20,
+      "blob": "6bfb1ef8cf977183c82092dab6c66776e5b59daf",
+      "exactDeployedSource": true,
+      "verifyJwt": true
+    },
+    {
+      "slug": "buklod-quiz-review-job-v2",
+      "version": 14,
+      "blob": "0665238ae66ca6c6f67bad0d3b43fbf34abbcb34",
+      "exactDeployedSource": true,
+      "verifyJwt": true
+    }
+  ],
+  "r25": {
+    "sqlCommit": "45340bcf0bd29fac6b29b064cbb0426417740bc9",
+    "testCommit": "8ca2fba31d85afc8978f7dd00e0abd2e2b3d626f",
+    "webCommit": "5d643744507fe2e2b1a79fe50bfbe977251eb968",
+    "liveVisibilityRollbackPreflight": {
+      "passed": true,
+      "historicalAttempts": 116,
+      "historicalResponses": 932,
+      "manualEligible": 39,
+      "evidenceRequired": 77,
+      "frozenQueueRows": 0
+    },
+    "rollbackConfirmed": true,
+    "syntheticWriteTestsPending": true,
+    "webBuildPending": true,
+    "liveApplied": false
+  },
+  "securityAdvisorsRemaining": [
+    "rls_enabled_no_policy",
+    "anon_security_definer_function_executable",
+    "authenticated_security_definer_function_executable"
+  ],
+  "productionWebAliasChanged": false,
+  "dedicatedDeleted": false,
+  "remaining": [
+    "Focused R25 write test and web build",
+    "Apply R25 with guards, authenticated preview verification",
+    "MAIN launcher release / legacy bridge compatibility",
+    "Final source backup, monitoring and dedicated retirement"
+  ]
+}
