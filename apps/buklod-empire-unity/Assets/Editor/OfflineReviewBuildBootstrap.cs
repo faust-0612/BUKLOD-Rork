@@ -50,7 +50,7 @@ namespace Buklod.Empire.Editor {
                 var deps=AssetDatabase.GetDependencies(StylizedArenaBenchmark.ScenePath,true);
                 ReviewAuthoredAssetGate.Validate(deps);AuthoredExpansionReview.Validate(deps);
                 OfflineMotionGate.Validate(view.visuals);
-                if(AuthoredExpansionReview.Requested)OfflineAuthoredMotionReview.Prepare(view.visuals);
+                OfflineAuthoredMotionReview.ValidateDependencies(deps);
                 Debug.Log("BUKLOD_OFFLINE_PREFLIGHT_PASS — no APK or device approval.");
             } finally {GraphicsSettings.defaultRenderPipeline=previous;QualitySettings.renderPipeline=quality;AssetDatabase.SaveAssets();}
         }

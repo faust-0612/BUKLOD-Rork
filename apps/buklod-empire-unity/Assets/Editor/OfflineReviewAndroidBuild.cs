@@ -30,6 +30,7 @@ namespace Buklod.Empire.Editor {
             var dependencies=AssetDatabase.GetDependencies(Scene,true);
             ReviewAuthoredAssetGate.Validate(dependencies);
             AuthoredExpansionReview.Validate(dependencies);
+            OfflineAuthoredMotionReview.ValidateDependencies(dependencies);
             if(!dependencies.Contains(Catalog)||!dependencies.Contains(Nav)||dependencies.Any(p=>p.StartsWith("Assets/Production/",StringComparison.OrdinalIgnoreCase)||p==ArenaSceneComposer.ScenePath))
                 throw new BuildFailedException("Invalid or production scene dependencies.");
             var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(Catalog);

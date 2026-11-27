@@ -13,6 +13,8 @@ namespace Buklod.Empire {
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
         private ArenaReviewFoley reviewFoley;
+        ReviewMotionLibrary reviewMotion;bool authoredWalk;
+        internal ReviewMotionLibrary MotionPreview=>ReviewOnly?GetComponent<ReviewMotionLibrary>():null;
 #if UNITY_EDITOR
         public void ConfigureStylizedBenchmark(){if(Application.isPlaying||!IsConfiguredReview)throw new System.InvalidOperationException("Benchmark is review-only.");stylizedBenchmark=true;}
 #endif
@@ -96,6 +98,8 @@ namespace Buklod.Empire {
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
             reviewShadows=ReviewOnly?GetComponent<ReviewContactShadows>():null;if(reviewShadows)reviewShadows.Clear();
             reviewFoley=ReviewOnly?GetComponent<ArenaReviewFoley>():null;
+            reviewMotion=MotionPreview;authoredWalk=reviewMotion&&reviewMotion.Requested;
+            if(reviewMotion)reviewMotion.Validate();
             worldEffects=GetComponent<WorldInteractionEffects>();if(worldEffects)worldEffects.Clear();
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
@@ -140,7 +144,7 @@ namespace Buklod.Empire {
                 var r=v.renderers[i];v.originalShadows[i]=r.shadowCastingMode;
                 if(r is SkinnedMeshRenderer skin)skin.updateWhenOffscreen=false;
             }
-            if(v.animator){v.animator.cullingMode=AnimatorCullingMode.CullUpdateTransforms;v.animator.Rebind();foreach(var p in v.animator.parameters)v.parameters.Add(p.name);}
+            if(v.animator){if(reviewMotion)reviewMotion.Apply(prefab,v.animator,authoredWalk);v.animator.cullingMode=AnimatorCullingMode.CullUpdateTransforms;v.animator.Rebind();foreach(var p in v.animator.parameters)v.parameters.Add(p.name);}
             return v;
         }
         private void SetShadows(Visual v,bool enabled){

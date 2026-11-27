@@ -153,8 +153,14 @@ namespace Buklod.Empire {
                 int step=Mathf.RoundToInt(AudioListener.volume*4);AudioListener.volume=((step+1)%5)*.25f;
                 PlayerPrefs.SetFloat("buklod.empire.review.masterVolume",AudioListener.volume);PlayerPrefs.Save();Rebuild();
             });
-            var online=ButtonAt("Unavailable online",right,new Vector2(0,.05f),new Vector2(1,.24f),"ONLINE  •  NOT AVAILABLE IN THIS BUILD",()=>{});
-            online.interactable=false;
+            var motion=view.MotionPreview;
+            if(motion){
+                ButtonAt("Motion comparison",right,new Vector2(0,.05f),new Vector2(1,.24f),
+                    "NEXT MATCH MOTION: "+(motion.Requested?"AUTHORED PREVIEW":"ORIGINAL"),()=>{motion.SetRequested(!motion.Requested);Rebuild();});
+            }else{
+                var offline=ButtonAt("Offline scope",right,new Vector2(0,.05f),new Vector2(1,.24f),"OFFLINE ONLY • NO ACCOUNT SYNC",()=>{});
+                offline.interactable=false;
+            }
         }
         private void Rebuild(){
             UpdateNavigation();

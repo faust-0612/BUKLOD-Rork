@@ -349,6 +349,28 @@
           "bytes": 55275
         }
       ]
+    },
+    {
+      "id": "locomotion",
+      "source": "w5ohr/Dereth",
+      "commit": "dfebce4d0b84172240a75f80d266ab2a780afbee",
+      "prefix": "assets/models/quaternius/",
+      "license": "LICENSE-UniversalAnimationLibrary.txt",
+      "models": [
+        "animations/UAL1_Standard.glb"
+      ],
+      "rows": [
+        {
+          "path": "LICENSE-UniversalAnimationLibrary.txt",
+          "sha": "82f86ca5040ab545e31a904133747336cbdd0576",
+          "bytes": 332
+        },
+        {
+          "path": "animations/UAL1_Standard.glb",
+          "sha": "473e59080288428d0b6da826ba19324d07b191f0",
+          "bytes": 7618436
+        }
+      ]
     }
   ]
 }
