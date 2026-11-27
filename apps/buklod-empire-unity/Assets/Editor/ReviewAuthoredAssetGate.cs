@@ -12,11 +12,14 @@ namespace Buklod.Empire.Editor {
             Ui+"action.png",Ui+"stick-pad.png",Ui+"stick-nub.png",Ui+"menu-button.png",Ui+"menu-panel.png",Ui+"click.ogg",
             "Assets/ThirdParty/KayKitReview/doorway.glb",
             Ui+"Combat/step-grass-a.ogg",Ui+"Combat/step-grass-b.ogg",Ui+"Combat/metal-hit.ogg",Ui+"Combat/wood-hit.ogg",
-            Ui+"Combat/door-open.ogg",Ui+"Combat/coins.ogg",Ui+"Combat/fight.ogg",Ui+"Combat/you_win.ogg",Ui+"Combat/you_lose.ogg",Ui+"Combat/tie.ogg",
+            Ui+"Combat/door-open.ogg","Assets/Resources/LibraryAudio/Reward/coin-collect.ogg",Ui+"Combat/fight.ogg",Ui+"Combat/you_win.ogg",Ui+"Combat/you_lose.ogg",Ui+"Combat/tie.ogg",
             Nature+"Bush_Common.gltf",Nature+"Grass_Common_Short.gltf",Nature+"Grass_Common_Tall.gltf"
         };
         internal static void Validate(IEnumerable<string> dependencies){
             var present=new HashSet<string>(dependencies,StringComparer.Ordinal);
+            LibraryVillageReview.ValidateDependencies(present);
+            if(!present.Contains("Assets/Resources/LibraryAudio/Reward/victory-fanfare.ogg"))throw new BuildFailedException("Library victory fanfare dependency missing.");
+            SkillAudio.LoadLibraryClips();
             foreach(var path in Required)if(!present.Contains(path))throw new BuildFailedException("Required authored review scene dependency missing: "+path);
             foreach(var name in new[]{"ReviewRiftWater","ReviewRiftCascade","ReviewLeafA","ReviewLeafB"}){
                 string path=CandidateReviewComposer.Out+"/"+name+".mat";
