@@ -174,6 +174,11 @@ namespace Buklod.Empire {
         }
         private Vector2 Normalized(Vector2 pixel)=>new Vector2(pixel.x/Mathf.Max(1,width),pixel.y/Mathf.Max(1,height));
         private void Update(){
+            if(!view||!canvas)return;
+            if(!input)input=GetComponent<MobileBattleInput>();
+            // Do not leave gameplay controls visible behind the review lobby or result screen.
+            canvas.enabled=!review||view.Battle!=null&&!view.Paused&&!view.Battle.Finished;
+            if(!canvas.enabled||!input)return;
             if(width!=Screen.width||height!=Screen.height||safeArea!=MobileBattleInput.SafeArea||layoutRevision!=ArenaControlSettings.Revision)Layout();
             if(dialogueCaption)dialogueCaption.text=dialogue?dialogue.Caption:"";
             if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo);

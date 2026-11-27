@@ -120,11 +120,14 @@ namespace Buklod.Empire {
             if(enabled&&!wings&&actor){
                 var materials=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(r=>r.sharedMaterials).Where(m=>m).Distinct().ToArray();
                 var armor=materials.FirstOrDefault(m=>m.name=="armor");var trim=materials.FirstOrDefault(m=>m.name=="trim");
-                if(!armor||!trim)return;
+                if(!armor||!trim){Debug.LogWarning("Optional evolution wings unavailable; base showcase retained.");return;}
                 var mount=new GameObject("LOCKED EVOLUTION PREVIEW ONLY");mount.layer=StageLayer;mount.transform.SetParent(actor.transform,false);
-                mount.transform.position=bounds.center+Vector3.up*bounds.size.y*.24f-actor.transform.forward*bounds.size.y*.13f;
-                wingScale=Vector3.one*bounds.size.y*.66f;mount.transform.localScale=wingScale;
-                wings=mount.AddComponent<ReviewEvolutionWings>();wings.Initialize(armor,trim);
+                // Bounds are captured in the neutral actor frame in Show().
+                mount.transform.localPosition=new Vector3(0,bounds.size.y*.74f,-bounds.size.y*.13f);
+                var scale=actor.transform.lossyScale;float size=bounds.size.y*.66f;
+                wingScale=new Vector3(size/Mathf.Max(.001f,Mathf.Abs(scale.x)),size/Mathf.Max(.001f,Mathf.Abs(scale.y)),size/Mathf.Max(.001f,Mathf.Abs(scale.z)));mount.transform.localScale=wingScale;
+                try{wings=mount.AddComponent<ReviewEvolutionWings>();wings.Initialize(armor,trim);}
+                catch(Exception error){Debug.LogWarning("Optional evolution wings unavailable: "+error.Message);mount.SetActive(false);Destroy(mount);wings=null;}
             }
             if(wings){wings.transform.localScale=wingScale*(evolutionStage==3?.70f:1f);wings.gameObject.SetActive(enabled);}
         }
