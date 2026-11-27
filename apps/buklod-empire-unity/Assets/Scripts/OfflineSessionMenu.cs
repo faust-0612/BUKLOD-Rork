@@ -56,7 +56,7 @@ namespace Buklod.Empire {
                 scope.color=new Color(.85f,.91f,.96f);
             }
             string[] tabs=view.IsEditorReview?new[]{"LOBBY","HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS","SETTINGS"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","HUD"};
-            if(view.IsEditorReview){page=-1;AudioListener.volume=Mathf.Clamp01(PlayerPrefs.GetFloat("buklod.empire.review.masterVolume",1));}
+            if(view.IsEditorReview){page=-1;ReviewAudioSettings.ApplyMaster();}
             navigationTabs=new Button[tabs.Length];navigationMarkers=new Image[tabs.Length];navigationLabels=new Text[tabs.Length];
             for(int i=0;i<tabs.Length;i++){
                 int tab=view.IsEditorReview?i-1:i;float step=.93f/tabs.Length;
@@ -128,6 +128,28 @@ namespace Buklod.Empire {
                 navigationLabels[i].fontStyle=active?FontStyle.Bold:FontStyle.Normal;
             }
         }
+        private void AudioPanel(){
+            title.text="AUDIO SETTINGS";title.color=NavigationAccent;
+            summary.text="Offline audio mix • saved on this device";
+            var channels=new[]{ReviewAudioChannel.Master,ReviewAudioChannel.Music,ReviewAudioChannel.Effects,ReviewAudioChannel.Voice};
+            for(int i=0;i<channels.Length;i++){
+                var channel=channels[i];float top=.97f-i*.21f;
+                Label(channel.ToString(),body,new Vector2(.02f,top-.17f),new Vector2(.29f,top),channel.ToString().ToUpperInvariant(),24);
+                var value=Label("Gain",body,new Vector2(.81f,top-.17f),new Vector2(.98f,top),Mathf.RoundToInt(ReviewAudioSettings.Get(channel)*100)+"%",24);
+                var track=Rect("Audio gain "+channel,body,new Vector2(.32f,top-.14f),new Vector2(.79f,top-.03f));
+                var background=track.gameObject.AddComponent<Image>();background.color=new Color(.13f,.23f,.28f);
+                var slider=track.gameObject.AddComponent<Slider>();slider.minValue=0;slider.maxValue=1;slider.wholeNumbers=false;
+                var fillArea=Rect("Fill area",track,new Vector2(.02f,.17f),new Vector2(.98f,.83f));
+                var fill=Rect("Fill",fillArea,Vector2.zero,Vector2.one).gameObject.AddComponent<Image>();fill.color=NavigationAccent;fill.raycastTarget=false;
+                var handleArea=Rect("Handle area",track,new Vector2(.02f,0),new Vector2(.98f,1));
+                var knob=Rect("Handle",handleArea,Vector2.zero,Vector2.one);knob.sizeDelta=new Vector2(24,0);
+                var handle=knob.gameObject.AddComponent<Image>();handle.color=Color.white;
+                slider.fillRect=fill.rectTransform;slider.handleRect=knob;slider.targetGraphic=handle;
+                slider.SetValueWithoutNotify(ReviewAudioSettings.Get(channel));
+                slider.onValueChanged.AddListener(v=>{ReviewAudioSettings.Set(channel,v);value.text=Mathf.RoundToInt(v*100)+"%";});
+            }
+            ButtonAt("Back to lobby",body,new Vector2(.30f,0),new Vector2(.70f,.12f),"BACK TO LOBBY",()=>{ReviewAudioSettings.Save();page=-1;Rebuild();});
+        }
         private void Lobby(){
             title.text="BUKLOD EMPIRE";title.color=NavigationAccent;
             var stats=view.PracticeStats(selected);
@@ -149,10 +171,7 @@ namespace Buklod.Empire {
             ButtonAt("Hero selection",right,new Vector2(0,.49f),new Vector2(.49f,.67f),"HEROES",()=>{page=0;Rebuild();});
             ButtonAt("Match loadout",right,new Vector2(.51f,.49f),new Vector2(1,.67f),"LOADOUT",()=>{page=1;Rebuild();});
             ButtonAt("Settings",right,new Vector2(0,.28f),new Vector2(.49f,.46f),"CONTROLS",()=>{page=7;Rebuild();});
-            ButtonAt("Sound",right,new Vector2(.51f,.28f),new Vector2(1,.46f),"AUDIO "+Mathf.RoundToInt(AudioListener.volume*100)+"%",()=>{
-                int step=Mathf.RoundToInt(AudioListener.volume*4);AudioListener.volume=((step+1)%5)*.25f;
-                PlayerPrefs.SetFloat("buklod.empire.review.masterVolume",AudioListener.volume);PlayerPrefs.Save();Rebuild();
-            });
+            ButtonAt("Sound",right,new Vector2(.51f,.28f),new Vector2(1,.46f),"AUDIO SETTINGS",()=>{page=8;Rebuild();});
             var motion=view.MotionPreview;
             if(motion){
                 ButtonAt("Motion comparison",right,new Vector2(0,.05f),new Vector2(1,.24f),
@@ -180,6 +199,7 @@ namespace Buklod.Empire {
                 return;
             }
             title.color=Color.white;panelBackground.color=authored?Color.white:Navy;title.rectTransform.localScale=Vector3.one;
+            if(view.IsEditorReview&&page==8){AudioPanel();return;}
             if(view.IsEditorReview&&page==-1){Lobby();return;}
             if(page==0){
                 for(int i=0;i<HeroKitCatalog.All.Count;i++){var kit=HeroKitCatalog.All[i];if(view.IsEditorReview)HeroCard(i,kit);else Cell(i,5,3,(selected==kit.Id?"✓ ":"")+kit.Name,()=>{selected=kit.Id;Rebuild();});}
@@ -297,7 +317,7 @@ namespace Buklod.Empire {
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
             view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
         }
-        private void Close(){shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
+        private void Close(){if(view.IsEditorReview)ReviewAudioSettings.Save();shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void Update(){
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;
@@ -310,6 +330,7 @@ namespace Buklod.Empire {
                 if(t>=1)resultRevealAt=-1;
             }
         }
-        private void OnDestroy(){if(ownedEventSystem)Destroy(ownedEventSystem);}
+        private void OnApplicationPause(bool paused){if(paused&&view&&view.IsEditorReview)ReviewAudioSettings.Save();}
+        private void OnDestroy(){if(view&&view.IsEditorReview)ReviewAudioSettings.Save();if(ownedEventSystem)Destroy(ownedEventSystem);}
     }
 }

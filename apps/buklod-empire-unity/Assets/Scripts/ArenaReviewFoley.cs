@@ -27,12 +27,15 @@ namespace Buklod.Empire {
         void Update(){
             if(!Active||!feet)return;
             var b=view.Battle;var player=b.Player;
+            float effects=ReviewAudioSettings.Get(ReviewAudioChannel.Effects);
+            feet.volume=effects;economy.volume=effects;announcer.volume=ReviewAudioSettings.Get(ReviewAudioChannel.Voice);
+            foreach(var hit in hits)hit.volume=effects;
             if(match!=b){StopAll();match=b;entered=finished=false;previous=player.Position;stride=0;lastGold=player.Gold;nextCoin=nextImpact=0;}
             if(b.Finished){
                 if(!finished){finished=true;StopAll();Speak(!b.Winner.HasValue?draw:b.Winner.Value==player.Team?win:lose);}
                 return;
             }
-            if(view.Paused){previous=player.Position;lastGold=player.Gold;stride=0;if(feet.isPlaying)feet.Stop();return;}
+            if(view.Paused){previous=player.Position;lastGold=player.Gold;stride=0;StopAll();return;}
             if(!entered){entered=true;Speak(fight);}
             float delta=Vector2.Distance(previous,player.Position);previous=player.Position;
             if(player.State.Alive&&delta<2f){stride+=delta;if(stride>=1.3f){stride%=1.3f;if(steps!=null&&steps.Length>0&&!feet.isPlaying){var clip=steps[nextStep++%steps.Length];if(clip)feet.PlayOneShot(clip,.22f);}}}

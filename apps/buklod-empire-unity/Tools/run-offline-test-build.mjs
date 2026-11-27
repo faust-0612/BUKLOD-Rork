@@ -30,6 +30,14 @@ try{
   // Local-only larger asset acquisition; do not consume Unity Cloud allowance.
   run(process.env.PYTHON||'python3',['Tools/acquire-authored-expansion.py']);
   process.env.BUKLOD_AUTHORED_EXPANSION='1';
+  // Run the entire project EditMode suite BEFORE asset import or APK packaging.
+  // Test Runner owns process exit; do not pass -quit to -runTests.
+  const stamp=Date.now(),tests=join(root,'editmode-'+stamp+'.xml'),testLog=join(root,'editmode-'+stamp+'.log');
+  console.log('Unity EditMode test log: '+testLog);
+  try{
+   run(unity,['-batchmode','-projectPath',project,'-buildTarget','Android','-runTests','-testPlatform','EditMode','-assemblyNames','Buklod.Empire.Tests','-testResults',tests,'-logFile',testLog]);
+   run(process.env.PYTHON||'python3',['Tools/verify-unity-editmode.py',tests]);
+  }catch(error){if(existsSync(testLog))console.error(readFileSync(testLog,'utf8').split(/\r?\n/).slice(-100).join('\n'));throw error;}
   const before=new Set(readdirSync(root));
   const log=join(root,'unity-'+Date.now()+'.log');
   console.log('Unity build log: '+log);

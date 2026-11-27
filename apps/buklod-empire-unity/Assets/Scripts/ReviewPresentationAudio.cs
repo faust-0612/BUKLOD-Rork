@@ -20,6 +20,7 @@ namespace Buklod.Empire {
             voices=new AudioSource[VoiceLimit];for(int i=0;i<voices.Length;i++)voices[i]=Voice("Creature voice "+i,true);
         }
         static void Loop(AudioSource source,AudioClip clip,float volume){
+            source.volume=volume;
             if(source.clip==clip&&source.isPlaying)return;
             source.Stop();source.clip=clip;source.loop=true;source.volume=volume;if(clip)source.Play();
         }
@@ -27,6 +28,8 @@ namespace Buklod.Empire {
         void Update(){
             if(!view||view.Battle==null||!music||!focused||appPaused)return;
             var b=view.Battle;
+            float musicGain=ReviewAudioSettings.Get(ReviewAudioChannel.Music),effectsGain=ReviewAudioSettings.Get(ReviewAudioChannel.Effects);
+            stinger.volume=effectsGain;foreach(var voice in voices)voice.volume=effectsGain;
             if(match!=b){match=b;entered=false;result=false;stinger.Stop();StopSpatial();}
             if(b.Finished){
                 music.Stop();ambient.Stop();StopSpatial();
@@ -34,9 +37,9 @@ namespace Buklod.Empire {
                 return;
             }
             if(view.Paused){
-                Loop(music,menu,.27f);ambient.Stop();StopSpatial();stinger.Stop();return;
+                Loop(music,menu,.27f*musicGain);ambient.Stop();StopSpatial();stinger.Stop();return;
             }
-            Loop(music,battle,.24f);Loop(ambient,ambience,.20f);
+            Loop(music,battle,.24f*musicGain);Loop(ambient,ambience,.20f*musicGain);
             if(!entered){entered=true;if(entrance)stinger.PlayOneShot(entrance,.36f);}
         }
         public void Creature(WildernessKind kind,bool defeated,Vector3 position){
@@ -45,7 +48,7 @@ namespace Buklod.Empire {
             if(clips==null||i<0||i>=clips.Length||!clips[i])return;
             if(Vector3.Distance(view.FieldPosition(view.Battle.Player.Position),position)>38)return;
             var s=voices[next];next=(next+1)%voices.Length;s.Stop();s.transform.position=position;
-            s.clip=clips[i];s.volume=defeated?.43f:.30f;s.Play();
+            s.volume=ReviewAudioSettings.Get(ReviewAudioChannel.Effects);s.PlayOneShot(clips[i],defeated?.43f:.30f);
         }
         void StopAll(){if(music)music.Stop();if(ambient)ambient.Stop();if(stinger)stinger.Stop();StopSpatial();}
         void OnApplicationFocus(bool value){focused=value;if(!value)StopAll();}

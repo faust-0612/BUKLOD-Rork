@@ -92,6 +92,7 @@ namespace Buklod.Empire.Editor {
                         var targetRoot=animator.gameObject;var tb=Bones(targetRoot,false);
                         var targetPose=new Pose(targetRoot);var targetRest=tb.Select(t=>t.rotation).ToArray();
                         foreach(var pair in new[]{(slot:"Walk",clip:walk,rig:locomotion,hash:walkHash),(slot:"Attack",clip:attack,rig:source,hash:sourceHash)}){
+                            targetPose.Reset();
                             var sb=Bones(pair.rig,true);var sourcePose=new Pose(pair.rig);
                             var sourceRest=sb.Select(t=>t.rotation).ToArray();
                             var change=Basis(tb)*Quaternion.Inverse(Basis(sb));

@@ -38,9 +38,11 @@ namespace Buklod.Empire {
             if(!isActiveAndEnabled||volume<=0||!Init()||cue.Index<0||cue.Index>=clips.Length)return;
             int chosen=-1;for(int i=0;i<voices.Length;i++)if(!voices[i].isPlaying){chosen=i;break;}
             if(chosen<0){if(!player)return;chosen=0;for(int i=1;i<voices.Length;i++)if(started[i]<started[chosen])chosen=i;voices[chosen].Stop();}
-            var s=voices[chosen];s.transform.position=position;s.volume=volume;s.clip=clips[cue.Index];started[chosen]=Time.unscaledTime;s.Play();
+            var s=voices[chosen];s.transform.position=position;var view=GetComponent<BattleView>();s.volume=volume*(view&&view.IsEditorReview?ReviewAudioSettings.Get(ReviewAudioChannel.Effects):1);s.clip=clips[cue.Index];started[chosen]=Time.unscaledTime;s.Play();
         }
         public void Clear(){if(voices!=null)foreach(var s in voices)s.Stop();}
+        private void OnApplicationFocus(bool focused){if(!focused&&GetComponent<BattleView>()?.IsEditorReview==true)Clear();}
+        private void OnApplicationPause(bool paused){if(paused&&GetComponent<BattleView>()?.IsEditorReview==true)Clear();}
         private void OnDisable(){Clear();}
         private void OnDestroy(){if(clips!=null)foreach(var clip in clips)if(clip)Destroy(clip);}
     }

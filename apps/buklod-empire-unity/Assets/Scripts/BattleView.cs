@@ -38,7 +38,7 @@ namespace Buklod.Empire {
             catch(System.Exception e){PracticeResultStatus="Local practice save failed";Debug.LogWarning("Practice record save failed: "+e.GetType().Name);}
         }
         public bool Paused {get;private set;}
-        public void SetPaused(bool value){Paused=value;if(input)input.enabled=!value;}
+        public void SetPaused(bool value){Paused=value;if(input)input.enabled=!value;if(value&&ReviewOnly&&skillAudio)skillAudio.Clear();}
         public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
         [SerializeField, HideInInspector] private bool editorReviewOnly;
 #if UNITY_EDITOR
