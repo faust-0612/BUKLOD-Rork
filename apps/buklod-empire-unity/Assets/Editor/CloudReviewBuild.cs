@@ -52,6 +52,7 @@ namespace Buklod.Empire.Editor {
                 throw new BuildFailedException("Only the generated stylized review scene is allowed.");
             string catalogPath=CandidateReviewComposer.Out+"/OfflineReviewCatalog.asset",navPath=CandidateReviewComposer.Out+"/OfflineReviewNavMesh.asset";
             var deps=AssetDatabase.GetDependencies(path,true);
+            ReviewAuthoredAssetGate.Validate(deps);
             if(!deps.Contains(catalogPath)||!deps.Contains(navPath)||deps.Any(x=>x.StartsWith("Assets/Production/",StringComparison.OrdinalIgnoreCase)||x==ArenaSceneComposer.ScenePath))
                 throw new BuildFailedException("Review dependency scope mismatch.");
             var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(catalogPath);

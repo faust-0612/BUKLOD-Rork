@@ -18,6 +18,10 @@ namespace Buklod.Empire {
         private CovenantPath path=CovenantPath.Valor;
         private CovenantTalent first=CovenantTalent.Fortitude,second=CovenantTalent.Resolve,third=CovenantTalent.Sustenance;
         private bool autoTraining,enableCovenant=true;
+        private Button[] navigationTabs;
+        private Image[] navigationMarkers;
+        private Text[] navigationLabels;
+        private static readonly Color NavigationAccent=new Color(.63f,.94f,.42f,1);
         private static readonly string[] GearIds={"blade","armor","boots","sealbreaker","withering_thorn","precision","fervor","renewal","wisdom","aegis","vitality","giantbane"};
         private static readonly Color Navy=new Color(.055f,.09f,.13f,.98f);
         private RectTransform Rect(string name,Transform parent,Vector2 min,Vector2 max){
@@ -47,12 +51,24 @@ namespace Buklod.Empire {
             panel=Rect("Session panel",safeRoot,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;if(authored){panelBackground.sprite=authored.menuPanel;panelBackground.type=Image.Type.Sliced;panelBackground.color=Color.white;}panelGroup=panel.gameObject.AddComponent<CanvasGroup>();
             title=Label("Title",panel,new Vector2(.08f,.88f),new Vector2(.92f,.98f),"OFFLINE TRAINING",36);
             summary=Label("Summary",panel,new Vector2(.04f,.80f),new Vector2(.96f,.88f),"",21);
-            string[] tabs=view.IsEditorReview?new[]{"HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS","HUD"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","HUD"};
-            for(int i=0;i<tabs.Length;i++){int tab=i;float step=.93f/tabs.Length;ButtonAt(tabs[i],panel,new Vector2(.035f+i*step,.72f),new Vector2(.035f+(i+1)*step-.01f,.79f),tabs[i],()=>{showResult=false;page=tab;feedback.text="";Rebuild();});}
+            if(view.IsEditorReview){
+                var scope=Label("Mode status",panel,new Vector2(.035f,.985f),new Vector2(.965f,1f),"OFFLINE PRACTICE  •  ONLINE NOT ENABLED",12);
+                scope.color=new Color(.85f,.91f,.96f);
+            }
+            string[] tabs=view.IsEditorReview?new[]{"HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS","SETTINGS"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","HUD"};
+            navigationTabs=new Button[tabs.Length];navigationMarkers=new Image[tabs.Length];navigationLabels=new Text[tabs.Length];
+            for(int i=0;i<tabs.Length;i++){
+                int tab=i;float step=.93f/tabs.Length;
+                var button=ButtonAt(tabs[i],panel,new Vector2(.035f+i*step,.72f),new Vector2(.035f+(i+1)*step-.01f,.79f),tabs[i],()=>{showResult=false;page=tab;feedback.text="";Rebuild();});
+                navigationTabs[i]=button;navigationLabels[i]=button.GetComponentInChildren<Text>();
+                var marker=Rect("Active section",button.transform,new Vector2(.12f,.025f),new Vector2(.88f,.095f)).gameObject.AddComponent<Image>();
+                marker.color=NavigationAccent;marker.raycastTarget=false;navigationMarkers[i]=marker;
+            }
             body=Rect("Commands",panel,new Vector2(.035f,.18f),new Vector2(.965f,.71f));
             feedback=Label("Feedback",panel,new Vector2(.03f,.10f),new Vector2(.97f,.18f),"",20);
             ButtonAt("Resume",panel,new Vector2(.06f,.015f),new Vector2(.46f,.10f),"RESUME",Resume);
-            ButtonAt("Start",panel,new Vector2(.54f,.015f),new Vector2(.94f,.10f),"START NEW MATCH",StartNew);
+            var start=ButtonAt("Start",panel,new Vector2(.54f,.015f),new Vector2(.94f,.10f),"START NEW MATCH",StartNew);
+            if(view.IsEditorReview){var startLabel=start.GetComponentInChildren<Text>();startLabel.color=NavigationAccent;startLabel.fontStyle=FontStyle.Bold;}
             Open();
         }
         private void ApplySafeArea(){lastSafe=MobileBattleInput.SafeArea;safeRoot.anchorMin=new Vector2(lastSafe.xMin/Mathf.Max(1,Screen.width),lastSafe.yMin/Mathf.Max(1,Screen.height));safeRoot.anchorMax=new Vector2(lastSafe.xMax/Mathf.Max(1,Screen.width),lastSafe.yMax/Mathf.Max(1,Screen.height));}
@@ -101,7 +117,17 @@ namespace Buklod.Empire {
             }
             Label("Relic policy",body,new Vector2(.02f,.01f),new Vector2(.98f,.09f),"Practice inventory only • No persistent rewards",17);
         }
+        private void UpdateNavigation(){
+            if(navigationTabs==null)return;
+            for(int i=0;i<navigationTabs.Length;i++){
+                bool active=!showResult&&page==i;
+                navigationMarkers[i].enabled=active;
+                navigationLabels[i].color=active?NavigationAccent:Color.white;
+                navigationLabels[i].fontStyle=active?FontStyle.Bold:FontStyle.Normal;
+            }
+        }
         private void Rebuild(){
+            UpdateNavigation();
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");

@@ -1,0 +1,22 @@
+using System;
+using System.Collections.Generic;
+using UnityEditor.Build;
+namespace Buklod.Empire.Editor {
+    // Verify real serialized scene dependencies, not merely presence in the checkout.
+    internal static class ReviewAuthoredAssetGate {
+        const string Ui="Assets/ThirdParty/KenneyReview/";
+        const string Nature="Assets/ThirdParty/QuaterniusReview/nature/glTF/";
+        internal static readonly string[] Required={
+            Ui+"action.png",Ui+"stick-pad.png",Ui+"stick-nub.png",Ui+"menu-button.png",Ui+"menu-panel.png",Ui+"click.ogg",
+            "Assets/ThirdParty/KayKitReview/doorway.glb",
+            Ui+"Combat/step-grass-a.ogg",Ui+"Combat/step-grass-b.ogg",Ui+"Combat/metal-hit.ogg",Ui+"Combat/wood-hit.ogg",
+            Ui+"Combat/door-open.ogg",Ui+"Combat/coins.ogg",Ui+"Combat/fight.ogg",Ui+"Combat/you_win.ogg",Ui+"Combat/you_lose.ogg",Ui+"Combat/tie.ogg",
+            Nature+"Bush_Common.gltf",Nature+"Grass_Common_Short.gltf",Nature+"Grass_Common_Tall.gltf"
+        };
+        internal static void Validate(IEnumerable<string> dependencies){
+            var present=new HashSet<string>(dependencies,StringComparer.Ordinal);
+            foreach(var path in Required)if(!present.Contains(path))throw new BuildFailedException("Required authored review scene dependency missing: "+path);
+            UnityEngine.Debug.Log("BUKLOD REVIEW AUTHORED SCENE DEPENDENCIES VERIFIED: "+Required.Length);
+        }
+    }
+}

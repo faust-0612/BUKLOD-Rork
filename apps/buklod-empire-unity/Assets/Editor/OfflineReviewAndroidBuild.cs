@@ -28,6 +28,7 @@ namespace Buklod.Empire.Editor {
             if(scenes.Length!=1||scenes[0].path!=Scene||!AssetDatabase.LoadAssetAtPath<SceneAsset>(Scene))
                 throw new BuildFailedException("Only the offline review scene is allowed.");
             var dependencies=AssetDatabase.GetDependencies(Scene,true);
+            ReviewAuthoredAssetGate.Validate(dependencies);
             if(!dependencies.Contains(Catalog)||!dependencies.Contains(Nav)||dependencies.Any(p=>p.StartsWith("Assets/Production/",StringComparison.OrdinalIgnoreCase)||p==ArenaSceneComposer.ScenePath))
                 throw new BuildFailedException("Invalid or production scene dependencies.");
             var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(Catalog);
