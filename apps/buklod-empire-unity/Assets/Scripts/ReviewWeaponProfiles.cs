@@ -30,6 +30,26 @@ namespace Buklod.Empire {
             if(hero==null||!profiles.TryGetValue(hero,out var p))throw new ArgumentException("Unknown review weapon identity.");
             return p;
         }
+        // Distinct playback treatments of existing licensed/review foley.
+        // This is not a new recorded weapon sound library.
+        public static (bool Wood,float Pitch) Audio(string hero){
+            switch(Get(hero).Equipment){
+                case "mallet":return (true,.74f);
+                case "compass":return (false,1.32f);
+                case "shield":return (false,.72f);
+                case "banner":return (true,.97f);
+                case "tambourine":return (false,1.48f);
+                case "cuff":return (false,1.20f);
+                case "crook":return (true,1.08f);
+                case "radio":return (false,1.10f);
+                case "caddy":return (true,1.19f);
+                case "loudhailer":return (false,.86f);
+                case "ledger":return (true,1.30f);
+                case "trowel":return (false,.98f);
+                case "puppet":return (true,1.43f);
+                default:throw new ArgumentException("Unknown weapon audio identity.");
+            }
+        }
         public static float Duration(float original,float cooldown){
             if(float.IsNaN(original)||float.IsInfinity(original)||original<=0||float.IsNaN(cooldown)||float.IsInfinity(cooldown)||cooldown<=0)
                 throw new ArgumentException("Invalid attack timing.");

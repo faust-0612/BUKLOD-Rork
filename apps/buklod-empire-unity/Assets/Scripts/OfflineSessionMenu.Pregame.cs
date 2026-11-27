@@ -34,7 +34,7 @@ namespace Buklod.Empire {
                 return true;
             }catch(Exception error){
                 Debug.LogWarning("Review showcase unavailable: "+error.GetType().Name);
-                if(showcase){showcase.Hide();Destroy(showcase.gameObject);showcase=null;}
+                if(showcase){showcase.DisposeStage();Destroy(showcase.gameObject);showcase=null;}
                 return false;
             }
         }

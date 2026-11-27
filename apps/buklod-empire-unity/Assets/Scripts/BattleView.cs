@@ -257,7 +257,10 @@ namespace Buklod.Empire {
                     v.attack=u.LastAttack;
                     if(u.Kind!=BattleTargetKind.Structure&&u.AttackFacing.sqrMagnitude>.001f)t.rotation=Quaternion.LookRotation(new Vector3(u.AttackFacing.x,0,u.AttackFacing.y));
                     if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");
-                    if(effects&&u.Kind==BattleTargetKind.Hero)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
+                    if(u.Kind==BattleTargetKind.Hero){
+                        if(effects)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
+                        if(reviewFoley&&inView&&!immediate)reviewFoley.WeaponAttack(u.State.Kit.Id,t.position,player);
+                    }
                 }
                 bool castThisFrame=false;
                 int latest=u.State.CastSequence;

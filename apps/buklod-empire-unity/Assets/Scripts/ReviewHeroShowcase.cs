@@ -57,11 +57,11 @@ namespace Buklod.Empire {
         bool Show(GameObject prefab,string id,bool isMap,bool face){
             if(!prefab||!stageCamera||!target)return false;
             bool changed=!actor||modelId!=id;
-            if(dummy){dummy.SetActive(false);Destroy(dummy);dummy=null;}demoWasActive=false;demoUntil=0;
+            if(dummy){DisposeVisual(dummy);dummy=null;}demoWasActive=false;demoUntil=0;
             if(actor){actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;}
             if(changed){
                 wings=null;if(effects)effects.Clear();
-                if(actor){actor.SetActive(false);Destroy(actor);}
+                if(actor){DisposeVisual(actor);}
                 // Inactive parent prevents prefab gameplay scripts from running before isolation.
                 var holder=new GameObject("Visual-only "+id);holder.transform.SetParent(transform,false);holder.SetActive(false);
                 actor=holder;
@@ -74,9 +74,9 @@ namespace Buklod.Empire {
                 var equipment=holder.GetComponentInChildren<ReviewEquipmentVisual>(true);if(equipment)equipment.ResetVisual();
                 if(isMap){var terrain=holder.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r=>r.name.Contains("GenesisRift_terrain"));if(terrain&&Mathf.Abs(terrain.bounds.max.x-transform.position.x)<.1f)clone.transform.localScale=new Vector3(-clone.transform.localScale.x,clone.transform.localScale.y,clone.transform.localScale.z);}
                 var rs=holder.GetComponentsInChildren<Renderer>(true).Where(r=>r.enabled&&r.gameObject.activeInHierarchy).ToArray();
-                if(rs.Length==0){holder.SetActive(false);Destroy(holder);actor=null;return false;}
+                if(rs.Length==0){DisposeVisual(holder);actor=null;return false;}
                 bounds=rs[0].bounds;foreach(var r in rs.Skip(1))bounds.Encapsulate(r.bounds);
-                if(bounds.size.sqrMagnitude<.01f){holder.SetActive(false);Destroy(holder);actor=null;return false;}
+                if(bounds.size.sqrMagnitude<.01f){DisposeVisual(holder);actor=null;return false;}
                 // Recenter geometry on an invariant pivot, retaining the imported rig.
                 clone.transform.position+=transform.position-bounds.center+Vector3.up*bounds.extents.y;
                 bounds.center=transform.position+Vector3.up*bounds.extents.y;
@@ -89,6 +89,7 @@ namespace Buklod.Empire {
             if(platform){platform.SetActive(!map);if(!map&&trimMat)trimMat.SetColor("_BaseColor",Color.Lerp(new Color(.50f,.34f,.13f),BattleEffects.Accent(modelId),.40f));}
             Frame();if(changed&&!map)PlayEntrance();return true;
         }
+        void DisposeVisual(GameObject root){if(!root)return;root.SetActive(false);foreach(var t in root.GetComponentsInChildren<Transform>(true))t.gameObject.layer=0;Destroy(root);}
         void Isolate(GameObject root){
             foreach(var t in root.GetComponentsInChildren<Transform>(true))t.gameObject.layer=StageLayer;
                 foreach(var c in root.GetComponentsInChildren<Collider>(true))c.enabled=false;
@@ -142,7 +143,7 @@ namespace Buklod.Empire {
             float extent=map?Mathf.Max(h,w)*.68f:FrameSize(bounds.size,stageCamera.aspect,!close);
             if(wings&&wings.gameObject.activeSelf)extent=Mathf.Max(extent,h*1.12f);
             if(Time.unscaledTime<demoUntil&&!map){extent=Mathf.Max(extent,h*1.55f);focus=bounds.center+Vector3.right*h*.55f;}
-            else if(demoWasActive){demoWasActive=false;if(dummy){dummy.SetActive(false);Destroy(dummy);dummy=null;}actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;}
+            else if(demoWasActive){demoWasActive=false;if(dummy){DisposeVisual(dummy);dummy=null;}actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;}
             float t=Mathf.Clamp01((Time.unscaledTime-appearedAt)/.65f);
             float entrance=1-Mathf.SmoothStep(0,1,t);
             float orbit=angle+(map?12*Mathf.Sin(Time.unscaledTime*.16f):8*Mathf.Sin(Time.unscaledTime*.34f))+entrance*22;
@@ -163,7 +164,7 @@ namespace Buklod.Empire {
             outcome="";if(!visible||map||!animator||!ArenaDraftRules.Known(modelId))return false;
             string trigger=slot.ToString();if(!animator.parameters.Any(p=>p.name==trigger&&p.type==AnimatorControllerParameterType.Trigger))return false;
             var trial=ReviewSkillTrial.Evaluate(modelId,slot);outcome=trial.Summary;
-            if(dummy){dummy.SetActive(false);Destroy(dummy);dummy=null;}
+            if(dummy){DisposeVisual(dummy);dummy=null;}
             var foe=view.visuals.heroes.FirstOrDefault(h=>h!=null&&h.id==trial.Enemy);
             float hgt=Mathf.Max(.5f,bounds.size.y);
             if(foe!=null&&foe.prefab){
@@ -187,14 +188,16 @@ namespace Buklod.Empire {
             return true;
         }
         internal void Hide(){
-            visible=false;if(stageCamera)stageCamera.enabled=false;if(actor)actor.SetActive(false);if(dummy){dummy.SetActive(false);Destroy(dummy);dummy=null;}if(platform)platform.SetActive(false);if(view){var audio=view.GetComponent<SkillAudio>();if(audio)audio.ClearPreview();}
+            visible=false;if(stageCamera)stageCamera.enabled=false;if(actor)actor.SetActive(false);if(dummy){DisposeVisual(dummy);dummy=null;}if(platform)platform.SetActive(false);if(view){var audio=view.GetComponent<SkillAudio>();if(audio)audio.ClearPreview();}
             if(key)key.enabled=false;if(rim)rim.enabled=false;if(effects)effects.Clear();
         }
         void LateUpdate(){if(visible&&focused&&!appPaused){if(wings&&wings.gameObject.activeSelf)wings.Animate(Time.unscaledDeltaTime);Frame();}}
         void RefreshFocus(){bool active=focused&&!appPaused&&visible;if(stageCamera)stageCamera.enabled=active;if(animator)animator.speed=active?1:0;if(!active){if(effects)effects.Clear();if(view){var audio=view.GetComponent<SkillAudio>();if(audio)audio.ClearPreview();}}}
         void OnApplicationPause(bool value){appPaused=value;RefreshFocus();}
         void OnApplicationFocus(bool value){focused=value;RefreshFocus();}
+        internal void DisposeStage(){Hide();gameObject.SetActive(false);foreach(var t in GetComponentsInChildren<Transform>(true))t.gameObject.layer=0;ReleaseMask();}
+        void ReleaseMask(){if(maskOwned&&view&&view.battleCamera){int mask=view.battleCamera.cullingMask;view.battleCamera.cullingMask=(mask&~(1<<StageLayer))|(oldMask&(1<<StageLayer));}maskOwned=false;}
         void OnDisable(){Hide();}
-        void OnDestroy(){if(stageCamera){stageCamera.enabled=false;stageCamera.targetTexture=null;}if(target){target.Release();Destroy(target);}if(platformMat)Destroy(platformMat);if(trimMat)Destroy(trimMat);if(maskOwned&&view&&view.battleCamera){int mask=view.battleCamera.cullingMask;view.battleCamera.cullingMask=(mask&~(1<<StageLayer))|(oldMask&(1<<StageLayer));}}
+        void OnDestroy(){if(stageCamera){stageCamera.enabled=false;stageCamera.targetTexture=null;}if(target){target.Release();Destroy(target);}if(platformMat)Destroy(platformMat);if(trimMat)Destroy(trimMat);ReleaseMask();}
     }
 }
