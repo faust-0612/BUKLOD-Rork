@@ -21,6 +21,7 @@ namespace Buklod.Empire {
         private Button[] navigationTabs;
         private Button resumeButton,startButton;
         private CanvasGroup resultStats,resultActions;private RectTransform resultEmblem;
+        ReviewMenuArt backdrop;CanvasGroup bodyReveal;Text stageLine;RectTransform stageSteps;float bodyOpened;string lastScreen;
         private Image[] navigationMarkers;
         private Text[] navigationLabels;
         private static readonly Color NavigationAccent=new Color(.63f,.94f,.42f,1);
@@ -33,7 +34,8 @@ namespace Buklod.Empire {
             var r=Rect(name,parent,min,max);var t=r.gameObject.AddComponent<Text>();t.font=font;t.text=value;t.fontSize=size;t.color=Color.white;t.alignment=TextAnchor.MiddleCenter;t.resizeTextForBestFit=true;t.resizeTextMinSize=12;t.resizeTextMaxSize=size;t.raycastTarget=false;return t;
         }
         private Button ButtonAt(string name,Transform parent,Vector2 min,Vector2 max,string value,Action action){
-            var r=Rect(name,parent,min,max);var image=r.gameObject.AddComponent<Image>();image.color=new Color(.15f,.31f,.32f,1);if(authored){image.sprite=authored.menuButton;image.type=Image.Type.Sliced;image.color=Color.white;}var b=r.gameObject.AddComponent<Button>();b.targetGraphic=image;b.onClick.AddListener(()=>{if(authored)authored.Click();action();});if(view&&view.IsEditorReview)r.gameObject.AddComponent<ReviewButtonMotion>();Label("Label",r,Vector2.zero,Vector2.one,value,23);return b;
+            var r=Rect(name,parent,min,max);var image=r.gameObject.AddComponent<Image>();image.color=new Color(.15f,.31f,.32f,1);if(authored){image.sprite=authored.menuButton;image.type=Image.Type.Sliced;image.color=Color.white;}var b=r.gameObject.AddComponent<Button>();b.targetGraphic=image;if(view&&view.IsEditorReview){image.sprite=null;image.type=Image.Type.Simple;image.color=new Color(.055f,.095f,.13f,.97f);var colors=b.colors;colors.highlightedColor=new Color(1.12f,1.16f,1.2f);colors.pressedColor=new Color(.78f,.88f,.95f);colors.disabledColor=new Color(.45f,.49f,.53f,.65f);b.colors=colors;AddArt(r,ReviewMenuArt.Kind.Button,name=="Start"||name=="Practice"?NavigationAccent:new Color(.62f,.72f,.80f),.7f);}
+            b.onClick.AddListener(()=>{if(authored)authored.Click();action();});if(view&&view.IsEditorReview)r.gameObject.AddComponent<ReviewButtonMotion>();Label("Label",r,Vector2.zero,Vector2.one,value,23);return b;
         }
         private void Cell(int i,int cols,int rows,string text,Action action,bool enabled=true){
             float x=(i%cols)/(float)cols,y=1-(i/cols+1)/(float)rows;
@@ -54,6 +56,8 @@ namespace Buklod.Empire {
             title=Label("Title",panel,new Vector2(.08f,.88f),new Vector2(.92f,.98f),"OFFLINE TRAINING",36);
             summary=Label("Summary",panel,new Vector2(.04f,.80f),new Vector2(.96f,.88f),"",21);
             if(view.IsEditorReview){
+                panelBackground.sprite=null;panelBackground.color=Navy;backdrop=AddArt(panel,ReviewMenuArt.Kind.Backdrop,NavigationAccent,1);backdrop.transform.SetAsFirstSibling();
+                title.fontStyle=FontStyle.Bold;summary.color=new Color(.74f,.83f,.90f);
                 var scope=Label("Mode status",panel,new Vector2(.035f,.985f),new Vector2(.965f,1f),"OFFLINE PRACTICE  •  ONLINE NOT ENABLED",12);
                 scope.color=new Color(.85f,.91f,.96f);
             }
@@ -67,7 +71,8 @@ namespace Buklod.Empire {
                 var marker=Rect("Active section",button.transform,new Vector2(.12f,.025f),new Vector2(.88f,.095f)).gameObject.AddComponent<Image>();
                 marker.color=NavigationAccent;marker.raycastTarget=false;navigationMarkers[i]=marker;
             }
-            body=Rect("Commands",panel,new Vector2(.035f,.18f),new Vector2(.965f,.71f));
+            if(view.IsEditorReview){stageSteps=Rect("Preparation stages",panel,new Vector2(.04f,.72f),new Vector2(.96f,.79f));stageLine=Label("Stage progress",stageSteps,Vector2.zero,Vector2.one,"",18);stageLine.color=new Color(.76f,.87f,.94f);stageSteps.gameObject.SetActive(false);}
+            body=Rect("Commands",panel,new Vector2(.035f,.18f),new Vector2(.965f,.71f));if(view.IsEditorReview)bodyReveal=body.gameObject.AddComponent<CanvasGroup>();
             feedback=Label("Feedback",panel,new Vector2(.03f,.10f),new Vector2(.97f,.18f),"",20);
             resumeButton=ButtonAt("Resume",panel,new Vector2(.06f,.015f),new Vector2(.46f,.10f),"RESUME CURRENT MATCH",Resume);
             var start=startButton=ButtonAt("Start",panel,new Vector2(.54f,.015f),new Vector2(.94f,.10f),"START NEW MATCH",StartNew);
@@ -85,7 +90,7 @@ namespace Buklod.Empire {
             var accent=BattleEffects.Accent(kit.Id);bool chosen=kit.Id==selected;
             var bg=r.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,chosen?.31f:.12f);
             var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;r.gameObject.AddComponent<ReviewButtonMotion>();btn.onClick.AddListener(()=>{if(authored)authored.Click();selected=kit.Id;heroDetail=true;fullBody=true;evolutionPreview=false;var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)feedback.text=dialogue.Select(kit.Id);Rebuild();});
-            var stripe=Rect("Sacred stone accent",r,new Vector2(0,.94f),Vector2.one).gameObject.AddComponent<Image>();stripe.color=accent;stripe.raycastTarget=false;
+            AddArt(r,ReviewMenuArt.Kind.Card,accent,chosen?1:.48f);
             var portrait=reviewPortraits?reviewPortraits.Find(kit.Id):null;
             float left=portrait ? .37f : .05f;
             if(portrait){
@@ -94,7 +99,7 @@ namespace Buklod.Empire {
                 pic.texture=portrait;pic.raycastTarget=false;
                 var fit=pic.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
             }
-            var name=Label("Hero name",r,new Vector2(left,.63f),new Vector2(.95f,.94f),(chosen?"✓ ":"")+kit.Name,27);name.color=accent;
+            var name=Label("Hero name",r,new Vector2(left,.63f),new Vector2(.95f,.94f),(chosen?"✓ ":"")+kit.Name,27);name.color=accent;name.fontStyle=FontStyle.Bold;
             for(int j=0;j<3;j++){
                 if(!SkillCueCatalog.TryGet(kit.Skill((SkillSlot)j).Id,out var cue))continue;
                 var symbol=Rect("Skill "+j,r,new Vector2(left+(1-left)*(.05f+j*.30f),.23f),new Vector2(left+(1-left)*(.30f+j*.30f),.61f)).gameObject.AddComponent<ReviewSkillGlyph>();
@@ -109,7 +114,7 @@ namespace Buklod.Empire {
             SacredStoneCatalog.TryGet(selected,out var stone);
             summary.text=stone==null?"Next match selection":stone.Name+"  •  "+stone.VirtueTl+"  •  Next match selection";
             var left=Rect("Hero showcase",body,new Vector2(.015f,.04f),new Vector2(.44f,.98f));
-            var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,.13f);bg.raycastTarget=false;
+            var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,.13f);bg.raycastTarget=false;AddArt(left,ReviewMenuArt.Kind.Card,accent,.8f);
             var portrait=reviewPortraits?reviewPortraits.Find(selected,fullBody):null;
             if(!ShowModel(left,selected,!fullBody,new Vector2(.025f,.31f),new Vector2(.975f,.99f),evolutionPreview&&fullBody)&&portrait){
                 var r=Rect("Actual model capture",left,new Vector2(.04f,.21f),new Vector2(.96f,.99f));
@@ -194,7 +199,7 @@ namespace Buklod.Empire {
             summary.text=stats==null?"GENESIS RIFT  |  Local practice arena":$"GENESIS RIFT  |  Local mastery {stats.Mastery}  •  {stats.completed} matches  •  {stats.wins} wins";
             var kit=HeroKitCatalog.Get(selected);
             var left=Rect("Selected hero feature",body,new Vector2(.01f,.03f),new Vector2(.47f,.97f));
-            var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,BattleEffects.Accent(selected),.18f);bg.raycastTarget=false;
+            var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,BattleEffects.Accent(selected),.18f);bg.raycastTarget=false;AddArt(left,ReviewMenuArt.Kind.Card,BattleEffects.Accent(selected),.85f);
             var portrait=reviewPortraits?reviewPortraits.Find(selected,true):null;
             if(!ShowModel(left,selected,false,new Vector2(.025f,.24f),new Vector2(.975f,.99f))&&portrait){
                 var r=Rect("Selected hero portrait",left,new Vector2(.04f,.25f),new Vector2(.96f,.98f));
@@ -204,7 +209,7 @@ namespace Buklod.Empire {
             var name=Label("Selected hero name",left,new Vector2(.04f,.09f),new Vector2(.96f,.25f),kit.Name,32);name.color=BattleEffects.Accent(selected);
             Label("Roster label",left,new Vector2(.04f,0),new Vector2(.96f,.09f),"13 HEROES  •  39 SKILLS",16);
             var right=Rect("Play and settings",body,new Vector2(.49f,.03f),new Vector2(.99f,.97f));
-            var practice=ButtonAt("Practice",right,new Vector2(0,.70f),Vector2.one,"PLAY OFFLINE  •  "+difficulty,StartNew);
+            var practice=ButtonAt("Practice",right,new Vector2(0,.70f),Vector2.one,"ENTER GENESIS RIFT  •  "+difficulty,StartNew);
             practice.GetComponentInChildren<Text>().color=NavigationAccent;
             ButtonAt("Hero selection",right,new Vector2(0,.49f),new Vector2(.49f,.67f),"HEROES",()=>{page=0;Rebuild();});
             ButtonAt("Match loadout",right,new Vector2(.51f,.49f),new Vector2(1,.67f),"LOADOUT",()=>{page=1;Rebuild();});
@@ -226,7 +231,7 @@ namespace Buklod.Empire {
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
             if(resumeButton)resumeButton.interactable=active&&(!view.IsEditorReview||matchStarted)&&!confirmRestart;
-            if(flow!=null){ConfigureWizardControls();for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=b!=null||i<3||i>=8;}
+            if(flow!=null){ConfigureWizardControls();for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=b!=null||i<3||i>=8;ApplyScreenStyle();}
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
             if(view.IsEditorReview&&showResult&&b!=null&&b.Finished){
@@ -234,8 +239,8 @@ namespace Buklod.Empire {
                 var accent=draw?new Color(.82f,.87f,.94f):won?new Color(1,.82f,.38f):new Color(1,.50f,.43f);
                 title.text=ReviewResultPresentation.Outcome(p.Team,b.Winner);title.color=accent;
                 summary.text=ReviewResultPresentation.Faction(b.Winner)+"  •  "+b.EndReason+"  •  "+(b.Time/60).ToString("0.0")+" min";
-                panelBackground.color=draw?Navy:won?new Color(.065f,.14f,.12f,.98f):new Color(.15f,.065f,.085f,.98f);
-                var left=Rect("Result hero",body,new Vector2(.02f,.06f),new Vector2(.37f,.98f));
+                panelBackground.color=Navy;if(backdrop)backdrop.SetAccent(accent);
+                var left=Rect("Result hero",body,new Vector2(.02f,.06f),new Vector2(.37f,.98f));AddArt(left,ReviewMenuArt.Kind.Card,accent,.85f);
                 var portrait=reviewPortraits?reviewPortraits.Find(p.State.Kit.Id,true):null;
                 if(portrait){
                     var r=Rect("Result model capture",left,new Vector2(.06f,.22f),new Vector2(.94f,.98f));
@@ -254,7 +259,7 @@ namespace Buklod.Empire {
                 for(int i=0;i<6;i++){
                     float x=(i%3)/3f,y=1-(i/3+1)*.5f;
                     var cell=Rect("Result "+names[i],statsPanel,new Vector2(x+.012f,y+.02f),new Vector2(x+1f/3-.012f,y+.48f));
-                    var backdrop=cell.gameObject.AddComponent<Image>();backdrop.color=new Color(.10f,.18f,.23f,.92f);backdrop.raycastTarget=false;
+                    var statBg=cell.gameObject.AddComponent<Image>();statBg.color=new Color(.06f,.11f,.15f,.92f);statBg.raycastTarget=false;AddArt(cell,ReviewMenuArt.Kind.Card,accent,.50f);
                     Label("Statistic value",cell,new Vector2(.03f,.29f),new Vector2(.97f,.98f),values[i],29).color=accent;
                     Label("Statistic label",cell,new Vector2(.03f,.02f),new Vector2(.97f,.28f),names[i],15);
                 }
@@ -266,7 +271,7 @@ namespace Buklod.Empire {
                 ButtonAt("Choose next hero",actions,new Vector2(.52f,0),Vector2.one,"CHOOSE NEXT HERO",()=>{showResult=false;page=0;heroDetail=false;Rebuild();});
                 ApplyResultReveal();return;
             }
-            title.color=Color.white;panelBackground.color=authored?Color.white:Navy;title.rectTransform.localScale=Vector3.one;
+            title.color=Color.white;panelBackground.color=flow!=null?Navy:authored?Color.white:Navy;title.rectTransform.localScale=Vector3.one;
             if(flow!=null&&RenderWizard())return;
             if(view.IsEditorReview&&page==8){AudioPanel();return;}
             if(view.IsEditorReview&&confirmRestart){
@@ -387,10 +392,10 @@ namespace Buklod.Empire {
                 float hold=0;
                 while(hold<.8f){if(Application.isFocused)hold+=Time.unscaledDeltaTime;yield return null;}
                 if(authored&&authored.entrance)authored.entrance.Open();
-                view.BeginReviewReveal();float elapsed=0;
-                while(elapsed<.85f){
+                view.BeginReviewReveal();float elapsed=0,duration=authored&&authored.entrance?ArenaEntranceDoor.Duration:.85f;
+                while(elapsed<duration){
                     if(Application.isFocused)elapsed+=Time.unscaledDeltaTime;
-                    view.SetReviewReveal(Mathf.Clamp01(elapsed/.85f));panelGroup.alpha=1-Mathf.SmoothStep(0,1,elapsed/.85f);
+                    view.SetReviewReveal(Mathf.Clamp01(elapsed/duration));panelGroup.alpha=1-Mathf.SmoothStep(0,1,elapsed/duration);
                     yield return null;
                 }
                 view.EndReviewReveal();flow.CompleteLoading();page=-1;
@@ -414,6 +419,7 @@ namespace Buklod.Empire {
         }
         private void Update(){
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
+            if(bodyReveal&&shown){float t=Mathf.Clamp01((Time.unscaledTime-bodyOpened)/.22f);bodyReveal.alpha=Mathf.Lerp(.48f,1,Mathf.SmoothStep(0,1,t));}
             if(starting||layoutEditor!=null)return;
             bool finished=view.Battle!=null&&view.Battle.Finished;
             if(finished&&!lastFinished&&view.IsEditorReview){showResult=true;resultRevealAt=Time.unscaledTime;}

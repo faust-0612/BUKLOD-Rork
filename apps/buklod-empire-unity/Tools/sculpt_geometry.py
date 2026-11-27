@@ -1,7 +1,7 @@
 """Original close-up geometry accents; no measured likeness or external models."""
 import math
 
-REVISION='original-sculpted-geometry-v9'
+REVISION='original-sculpted-geometry-v10'
 
 def bevel_triangles(outline,depth):
     # Strict convex polygons containing their local origin only; other outlines

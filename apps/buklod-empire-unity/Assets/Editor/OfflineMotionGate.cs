@@ -41,6 +41,11 @@ namespace Buklod.Empire.Editor {
                             if(!bindings.Any(b=>b.type==typeof(Transform)))throw new BuildFailedException("Missing rig curves "+h.id+"/"+name);
                             foreach(var binding in bindings.Where(b=>b.type==typeof(Transform)))
                                 if(!string.IsNullOrEmpty(binding.path)&&!root.transform.Find(binding.path))throw new BuildFailedException("Unbound motion "+h.id+"/"+name+"/"+binding.path);
+                            var hair=transforms.SingleOrDefault(x=>x.name=="ReviewHair");
+                            if(hair&&(name=="Idle"||name=="Walk"||name=="Run")){
+                                string path=AnimationUtility.CalculateTransformPath(hair,root.transform);
+                                if(!bindings.Any(x=>x.path==path&&x.propertyName.StartsWith("m_LocalRotation",StringComparison.Ordinal)))throw new BuildFailedException("Missing secondary hair motion "+h.id+"/"+name);
+                            }
                             foreach(float fraction in new[]{0f,.5f,.99f}){
                                 for(int i=0;i<transforms.Length;i++){transforms[i].localPosition=pos[i];transforms[i].localRotation=rot[i];transforms[i].localScale=scale[i];}
                                 clip.SampleAnimation(root,clip.length*fraction);

@@ -34,6 +34,14 @@ class SculptGeometryTests(unittest.TestCase):
         center=(.045,1.85,.12);size=(.0022,.0022,.0015)
         self.assertEqual(adjust_feature(h,5,0,center,size),(center,size))
         self.assertNotEqual(adjust_feature(h,5,0,center,(.027,.011,.011)),(center,(.027,.011,.011)))
+    def test_hair_weight_anchors_face_and_roots(self):
+        from hair_motion import tip_weight
+        self.assertEqual(tip_weight(1.5,.12,1.,'long'),0.)
+        self.assertEqual(tip_weight(1.9,-.1,1.,'long'),0.)
+        self.assertEqual(tip_weight(1.5,-.1,1.,'hood'),0.)
+        self.assertGreater(tip_weight(1.57,-.1,1.,'long'),.95)
+        self.assertLess(tip_weight(1.99,-.1,1.,'short'),.5)
+        self.assertGreater(tip_weight(1.99,-.1,1.,'short'),0.)
     def test_relief_gradient_and_normals(self):
         x,y,z=.045,-.012,.09;h,w=.16,.13
         d,dx,dy,dz=facial_relief(x,y,z,h,w)

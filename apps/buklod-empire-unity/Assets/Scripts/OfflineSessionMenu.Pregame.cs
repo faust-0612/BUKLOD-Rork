@@ -73,7 +73,7 @@ namespace Buklod.Empire {
             startButton.interactable=!starting;
         }
         void RenderHeroRoster(){
-            title.text="CHOOSE YOUR HERO";summary.text=(flow.Stage==ReviewMatchStage.Hero?"03 / 04  •  ":"")+"13 original heroes • Preview motion, skills & practice palettes";
+            title.text="CHOOSE YOUR HERO";summary.text="13 original heroes • Preview motion, skills & practice palettes";
             var names=new[]{"ALL HEROES","CLOSE RANGE","RANGED"};
             for(int i=0;i<3;i++){int filter=i;var button=ButtonAt(names[i],body,new Vector2(.01f+i*.33f,.84f),new Vector2(.32f+i*.33f,.99f),(roleFilter==i?"✓ ":"")+names[i],()=>{roleFilter=filter;Rebuild();});if(roleFilter==i)button.GetComponentInChildren<Text>().color=NavigationAccent;}
             int index=0;foreach(var kit in HeroKitCatalog.All){if(roleFilter==1&&kit.BasicRange>=8f||roleFilter==2&&kit.BasicRange<8f)continue;HeroCard(index++,kit);}
@@ -82,34 +82,38 @@ namespace Buklod.Empire {
             switch(flow.Stage){
                 case ReviewMatchStage.Startup:
                     title.text="BUKLOD EMPIRE";title.color=NavigationAccent;summary.text="GENESIS • LET THERE BE LIGHT";
-                    Label("Startup brand",body,new Vector2(.08f,.28f),new Vector2(.92f,.95f),"E M P I R E",58);
-                    Label("Boot status",body,new Vector2(.08f,.08f),new Vector2(.92f,.28f),startupError??"Checking local arena and hero assets…",21);
-                    if(startupError!=null)ButtonAt("Retry",body,new Vector2(.32f,0),new Vector2(.68f,.12f),"RETRY",()=>StartCoroutine(BootReview()));
+                    var seal=Rect("Genesis original emblem",body,new Vector2(.35f,.28f),new Vector2(.65f,.99f));var aspect=seal.gameObject.AddComponent<AspectRatioFitter>();aspect.aspectMode=AspectRatioFitter.AspectMode.FitInParent;aspect.aspectRatio=1;AddArt(seal,ReviewMenuArt.Kind.Seal,NavigationAccent,1);
+                    var brand=Label("Startup brand",body,new Vector2(.05f,.12f),new Vector2(.95f,.31f),"E M P I R E",48);brand.fontStyle=FontStyle.Bold;
+                    Label("Boot status",body,new Vector2(.08f,.015f),new Vector2(.92f,.12f),startupError??"Checking local arena and hero assets…",21);
+                    if(startupError!=null)ButtonAt("Retry",body,new Vector2(.37f,-.12f),new Vector2(.63f,-.015f),"RETRY",()=>StartCoroutine(BootReview()));
                     return true;
                 case ReviewMatchStage.Mode:
-                    title.text="CHOOSE YOUR BATTLE";summary.text="01 / 04  •  Genesis Rift  •  Offline";
-                    var mapFrame=Rect("Map showcase",body,new Vector2(.015f,.02f),new Vector2(.52f,.98f));
+                    title.text="CHOOSE YOUR BATTLE";summary.text="Genesis Rift  •  Offline";
+                    var mapFrame=Rect("Map showcase",body,new Vector2(.015f,.02f),new Vector2(.52f,.98f));AddArt(mapFrame,ReviewMenuArt.Kind.Card,new Color(.56f,.82f,.88f),.85f);
                     if(!ShowModel(mapFrame,null,false,Vector2.zero,Vector2.one))Label("Map fallback",mapFrame,Vector2.zero,Vector2.one,"Genesis Rift preview unavailable",22);
                     var info=Rect("Mode information",body,new Vector2(.54f,.02f),new Vector2(.99f,.98f));
-                    Label("Mode",info,new Vector2(0,.72f),Vector2.one,"GENESIS RIFT • 5v5",32);
+                    Label("Mode",info,new Vector2(0,.72f),Vector2.one,"GENESIS RIFT • 5v5",32).fontStyle=FontStyle.Bold;
                     Label("Objectives",info,new Vector2(0,.50f),new Vector2(1,.72f),"Three lanes • village economy • wilderness camps\nBreak the fortress and defeat remaining heroes",20);
                     ButtonAt("Difficulty",info,new Vector2(0,.30f),new Vector2(1,.48f),"DIFFICULTY: "+difficulty,()=>{difficulty=(ArenaDifficulty)(((int)difficulty+1)%5);Rebuild();});
                     ButtonAt("Mode type",info,new Vector2(0,.10f),new Vector2(1,.28f),autoTraining?"AI DEMONSTRATION":"PLAY AS HERO",()=>{autoTraining=!autoTraining;Rebuild();});
                     return true;
                 case ReviewMatchStage.Team:
-                    title.text="ASSEMBLE YOUR TEAM";summary.text="02 / 04  •  Local AI teammates and opponents";
+                    title.text="ASSEMBLE YOUR TEAM";summary.text="Local AI teammates and opponents";
+                    AddArt(Rect("Lux faction",body,new Vector2(.015f,0),new Vector2(.485f,.99f)),ReviewMenuArt.Kind.Card,new Color(.45f,.75f,1),.9f);
+                    AddArt(Rect("Tenebra faction",body,new Vector2(.515f,0),new Vector2(.985f,.99f)),ReviewMenuArt.Kind.Card,new Color(1,.42f,.38f),.9f);
                     Label("Lux",body,new Vector2(.03f,.78f),new Vector2(.48f,1),"LUX",30).color=new Color(.45f,.75f,1);
                     Label("Tenebra",body,new Vector2(.52f,.78f),new Vector2(.97f,1),"TENEBRA",30).color=new Color(1,.42f,.38f);
                     for(int i=0;i<5;i++){
                         float top=.77f-i*.145f;
-                        Label("Lux slot "+i,body,new Vector2(.03f,top-.13f),new Vector2(.48f,top),i==0?(autoTraining?"AI featured hero":"YOU • choose your hero"):"AI ALLY "+i,22);
-                        Label("Tenebra slot "+i,body,new Vector2(.52f,top-.13f),new Vector2(.97f,top),"AI OPPONENT "+(i+1),22);
+                        var ally=Rect("Lux slot "+i,body,new Vector2(.04f,top-.13f),new Vector2(.46f,top));AddArt(ally,ReviewMenuArt.Kind.Button,new Color(.45f,.75f,1),i==0?1:.4f);
+                        Label("Slot name",ally,Vector2.zero,Vector2.one,i==0?(autoTraining?"AI featured hero":"YOU • choose your hero"):"AI ALLY "+i,22);
+                        var foe=Rect("Tenebra slot "+i,body,new Vector2(.54f,top-.13f),new Vector2(.96f,top));AddArt(foe,ReviewMenuArt.Kind.Button,new Color(1,.42f,.38f),.4f);Label("Slot name",foe,Vector2.zero,Vector2.one,"AI OPPONENT "+(i+1),22);
                     }
                     return true;
                 case ReviewMatchStage.Hero: return false;
                 case ReviewMatchStage.Loadout: return false;
                 case ReviewMatchStage.LockIn:
-                    title.text="CONFIRM YOUR HERO";summary.text="04 / 04  •  "+HeroKitCatalog.Get(selected).Name+"  •  "+palette+"  •  "+difficulty+"  •  "+tactic;
+                    title.text="CONFIRM YOUR HERO";summary.text=HeroKitCatalog.Get(selected).Name+"  •  "+palette+"  •  "+difficulty+"  •  "+tactic;
                     lockedRoster=ArenaDraftRules.PracticeRoster(selected,seed);
                     ShowVersus(false);
                     feedback.text="Offline practice • no Sacred Stone spent • no account reward";return true;
@@ -122,11 +126,12 @@ namespace Buklod.Empire {
         void ShowVersus(bool ready){
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             if(lockedRoster==null||lockedRoster.Length!=10)return;
+            Label("Versus divider",body,new Vector2(.05f,.46f),new Vector2(.95f,.54f),"LUX     ◆     TENEBRA",20).color=new Color(.86f,.77f,.52f);
             for(int i=0;i<10;i++){
                 bool lux=i<5;var kit=HeroKitCatalog.Get(lockedRoster[i]);float x=(i%5)/5f;
-                float bottom=lux?.52f:.02f,top=lux?.98f:.48f;
+                float bottom=lux?.55f:.015f,top=lux?.985f:.45f;
                 var cell=Rect("Locked "+kit.Id,body,new Vector2(x+.012f,bottom),new Vector2(x+.188f,top));
-                var bg=cell.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,BattleEffects.Accent(kit.Id),.25f);bg.raycastTarget=false;
+                var bg=cell.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,BattleEffects.Accent(kit.Id),.12f);bg.raycastTarget=false;AddArt(cell,ReviewMenuArt.Kind.Card,lux?new Color(.45f,.75f,1):new Color(1,.42f,.38f),i==0?1:.65f);
                 var portrait=reviewPortraits?reviewPortraits.Find(kit.Id,true):null;
                 if(portrait){
                     var r=Rect("Hero portrait",cell,new Vector2(.04f,.24f),new Vector2(.96f,.95f));var raw=r.gameObject.AddComponent<RawImage>();raw.texture=portrait;raw.raycastTarget=false;
