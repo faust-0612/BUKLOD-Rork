@@ -11,7 +11,7 @@ namespace Buklod.Empire {
             if(!cue||Time.unscaledTime<nextFeedback)return;
             if(!feedback){feedback=gameObject.AddComponent<AudioSource>();feedback.playOnAwake=false;feedback.spatialBlend=0;}
             feedback.Stop();feedback.volume=.32f*ReviewAudioSettings.Get(ReviewAudioChannel.Effects);
-            feedback.PlayOneShot(cue);nextFeedback=Time.unscaledTime+.15f;
+            feedback.PlayOneShot(EmpireContentUpdater.Resolve(cue));nextFeedback=Time.unscaledTime+.15f;
         }
         void OnDisable(){if(source)source.Stop();if(feedback)feedback.Stop();}
         void OnApplicationPause(bool paused){if(paused){if(source)source.Stop();if(feedback)feedback.Stop();}}
