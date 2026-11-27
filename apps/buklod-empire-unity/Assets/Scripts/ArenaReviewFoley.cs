@@ -4,12 +4,12 @@ namespace Buklod.Empire {
     // No client-side reward creation or hidden-opponent information.
     public sealed class ArenaReviewFoley:MonoBehaviour {
         public AudioClip[] steps;
-        public AudioClip metal,wood,coins,fight,win,lose,draw,levelUp;
+        public AudioClip metal,wood,coins,fight,win,lose,draw,levelUp,pickup,relic,purchase;
         BattleView view;OfflineBattle match;
         AudioSource feet,announcer,economy,work,playerAttack,progression;
         AudioSource[] alliedAttacks;int nextAttack;float nextOtherAttack;
         AudioSource[] hits;
-        int nextHit,nextStep,lastEarned,lastLevel;bool entered,finished,focused=true,appPaused;
+        int nextHit,nextStep,lastEarned,lastLevel,lastPickup,lastRelic,lastPurchase;bool entered,finished,focused=true,appPaused;
         Vector2 previous;float stride,nextImpact,nextCoin;
         AudioSource Source(string name,bool spatial){
             var go=new GameObject(name);go.transform.SetParent(transform,false);
@@ -26,6 +26,10 @@ namespace Buklod.Empire {
         bool Active=>isActiveAndEnabled&&focused&&!appPaused&&view&&view.IsEditorReview&&view.Battle!=null;
         void Speak(AudioClip clip){if(clip&&announcer){announcer.Stop();announcer.PlayOneShot(clip,.62f);}}
         void StopAll(bool preserveResult=false){if(feet)feet.Stop();if(announcer&&!preserveResult)announcer.Stop();if(economy)economy.Stop();if(progression)progression.Stop();if(work)work.Stop();if(hits!=null)foreach(var s in hits)s.Stop();if(playerAttack)playerAttack.Stop();if(alliedAttacks!=null)foreach(var s in alliedAttacks)s.Stop();}
+        void SyncFeedback(BattleUnit player){
+            lastEarned=player.EarnedFeedbackSequence;lastLevel=player.State.Level;
+            lastPickup=player.PickupFeedbackSequence;lastRelic=player.RelicFeedbackSequence;lastPurchase=player.PurchaseFeedbackSequence;
+        }
         void Update(){
             if(!Active||!feet)return;
             var b=view.Battle;var player=b.Player;
@@ -33,23 +37,24 @@ namespace Buklod.Empire {
             feet.volume=effects;economy.volume=effects;progression.volume=effects;work.volume=effects;announcer.volume=ReviewAudioSettings.Get(ReviewAudioChannel.Voice);
             foreach(var hit in hits)hit.volume=effects;
             if(playerAttack)playerAttack.volume=effects;foreach(var attack in alliedAttacks)attack.volume=effects;
-            if(match!=b){StopAll();match=b;entered=finished=false;previous=player.Position;stride=0;lastEarned=player.EarnedFeedbackSequence;lastLevel=player.State.Level;nextCoin=nextImpact=nextOtherAttack=0;nextAttack=0;}
+            if(match!=b){StopAll();match=b;entered=finished=false;previous=player.Position;stride=0;SyncFeedback(player);nextCoin=nextImpact=nextOtherAttack=0;nextAttack=0;}
             if(b.Finished){
                 if(!finished){finished=true;StopAll();Speak(!b.Winner.HasValue?draw:b.Winner.Value==player.Team?win:lose);}
                 return;
             }
-            if(view.Paused){previous=player.Position;lastEarned=player.EarnedFeedbackSequence;lastLevel=player.State.Level;stride=0;StopAll();return;}
+            if(view.Paused){previous=player.Position;SyncFeedback(player);stride=0;StopAll();return;}
             if(!entered){entered=true;Speak(fight);}
             float delta=Vector2.Distance(previous,player.Position);previous=player.Position;
             if(player.State.Alive&&delta<2f){stride+=delta;if(stride>=1.3f){stride%=1.3f;if(steps!=null&&steps.Length>0&&!feet.isPlaying){var clip=steps[nextStep++%steps.Length];if(clip)feet.PlayOneShot(clip,.22f);}}}
             else stride=0;
-            if(player.EarnedFeedbackSequence>lastEarned&&Time.unscaledTime>=nextCoin&&coins){economy.PlayOneShot(coins,.16f);nextCoin=Time.unscaledTime+1.2f;}
-            lastEarned=player.EarnedFeedbackSequence;
+            // One bounded economy voice; a specific accepted action takes precedence over generic earnings.
+            var cue=player.RelicFeedbackSequence>lastRelic?relic:player.PurchaseFeedbackSequence>lastPurchase?purchase:player.PickupFeedbackSequence>lastPickup?pickup:player.EarnedFeedbackSequence>lastEarned?coins:null;
+            if(cue&&Time.unscaledTime>=nextCoin){economy.Stop();economy.PlayOneShot(cue,cue==coins?.16f:.25f);nextCoin=Time.unscaledTime+1.2f;}
             // Actual accepted match-state transition, never an XP/BP grant.
             if(player.State.Level>lastLevel&&levelUp){progression.Stop();progression.PlayOneShot(levelUp,.28f);}
-            lastLevel=player.State.Level;
+            SyncFeedback(player);
         }
-        public void SuspendBattleAudio(){StopAll(finished&&view&&view.Battle==match&&match!=null&&match.Finished);stride=0;if(view&&view.Battle!=null){previous=view.Battle.Player.Position;lastEarned=view.Battle.Player.EarnedFeedbackSequence;lastLevel=view.Battle.Player.State.Level;}}
+        public void SuspendBattleAudio(){StopAll(finished&&view&&view.Battle==match&&match!=null&&match.Finished);stride=0;if(view&&view.Battle!=null){previous=view.Battle.Player.Position;SyncFeedback(view.Battle.Player);}}
         // Emit only for an accepted attack from a currently presented hero.
         // The player gets a dedicated voice; nearby heroes share a bounded pool.
         public void WeaponAttack(string hero,Vector3 point,bool player){
