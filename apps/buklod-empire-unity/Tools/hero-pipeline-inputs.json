@@ -12,5 +12,7 @@
   "Tools/skill_motions.py",
   "Tools/prepare_hero_lod.py",
   "Tools/variant_review.py",
+  "Tools/premium_surface.py",
+  "Tools/validate_skill_motions.py",
   "Tools/hero-pipeline-inputs.json"
 ]

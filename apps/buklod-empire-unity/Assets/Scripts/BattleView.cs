@@ -109,7 +109,7 @@ namespace Buklod.Empire {
             if(!candidate.SelectPlayerTactic(tactic)||covenant.HasValue&&!candidate.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
             // Commit the candidate before any destructive visual operation. A later exception must not advertise the retired match as resumable.
-            Paused=true;Battle=candidate;
+            SetPaused(true);Battle=candidate;
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
