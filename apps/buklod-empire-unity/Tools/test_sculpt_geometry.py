@@ -16,6 +16,17 @@ class SculptGeometryTests(unittest.TestCase):
         self.assertIsNone(bevel_triangles([(0,0),(1,0),(1,1)],.02))
         self.assertIsNone(bevel_triangles([(-1,-1),(1,-1),(0,0),(1,1),(-1,1)],.02))
         self.assertIsNone(bevel_triangles([(-1,-1),(1,-1),(1,1),(-1,1)],.001))
+    def test_face_depth_tracks_taper_and_hood_boundary(self):
+        from types import SimpleNamespace
+        from identity_detail import face_depth, PROFILES
+        h=SimpleNamespace(id='phan',face='square',hair='crest',h=1.04)
+        y=1.76*h.h-.09;x=.07;r=.154*h.h;w=.135
+        taper=PROFILES[h.id][0]*(.09/r)**2
+        z=.119*math.sqrt(1-(x/(w*(1-taper)))**2-(.09/r)**2)
+        self.assertAlmostEqual(face_depth(h,x,y),z+facial_relief(x,y-1.76*h.h,z,r,w)[0])
+        h.id='vhen';h.face='round';h.hair='hood'
+        self.assertEqual(face_depth(h,.2,1.755*h.h),0)
+        self.assertGreater(face_depth(h,0,1.755*h.h),.14)
     def test_relief_gradient_and_normals(self):
         x,y,z=.045,-.012,.09;h,w=.16,.13
         d,dx,dy,dz=facial_relief(x,y,z,h,w)

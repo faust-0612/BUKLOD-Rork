@@ -99,6 +99,28 @@ def add_fidelity_geometry(h,result):
             dx=(k-1.5)*.023
             _detail_ellipsoid(h,8,hand,(x+dx,y-.087,z+.035),(.012,.028,.014))
         _detail_ellipsoid(h,8,hand,(x+.048 if x>0 else x-.048,y-.052,z+.04),(.016,.025,.018))
+    # Role-specific layered metal and cloth silhouettes, deliberately confined
+    # to existing joint regions. No new bones or material slots.
+    if h.role in ('guardian','commander','artisan','builder'):
+        for thigh,_,_ in legs:
+            x,y,z=h.rest[thigh]
+            for j in range(3):
+                h.plate(0,thigh,(x,y-(.055+.045*j)*h.h,z+.115),
+                    [(-.060,.022),(.060,.022),(.053,-.024),(0,-.037),(-.053,-.024)],.008)
+    elif h.role in ('scout','skirmisher','disruptor','controller'):
+        for upper,_,_ in arms:
+            x,y,z=h.rest[upper]
+            for j in range(2):
+                h.plate(1,upper,(x,y-(.045+.045*j)*h.h,z+.104),
+                    [(-.042,.015),(.042,.015),(.028,-.028),(-.028,-.028)],.007)
+    else:
+        # Healer/support robes: decorated waist panels without widening the
+        # collision silhouette or interfering with hands and held equipment.
+        for side in (-1,1):
+            h.plate(2,pelvis,(side*.125*h.waist,.84*h.h,.147),
+                [(-.050,.065),(.050,.065),(.045,-.070),(0,-.105),(-.045,-.070)],.008)
+            h.plate(1,pelvis,(side*.125*h.waist,.80*h.h,.164),
+                [(0,.032),(.028,0),(0,-.032),(-.028,0)],.006)
     # Thin raised stitching and armour seams on the original forearm/knee equipment.
     for (_,fore,_),(_,shin,_) in zip(arms,legs):
         for joint in (fore,shin):

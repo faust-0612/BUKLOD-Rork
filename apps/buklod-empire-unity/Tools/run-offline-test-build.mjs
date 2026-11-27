@@ -32,7 +32,7 @@ try{
   const manifest=JSON.parse(readFileSync(join(project,'Tools','ReviewOutput','heroes','manifest.json'),'utf8'));
   if(!Array.isArray(manifest.heroes)||manifest.heroes.length!==13)throw Error('Invalid existing hero cache');
   const output=join(project,'Tools','ReviewOutput');
-  if(manifest.heroes.some(h=>h.geometryRevision!=='original-sculpted-geometry-v8')||existsSync(join(output,'.hero-refresh-incomplete')))prepareArgs=['--refresh-heroes'];
+  if(manifest.heroes.some(h=>h.geometryRevision!=='original-sculpted-geometry-v9')||existsSync(join(output,'.hero-refresh-incomplete')))prepareArgs=['--refresh-heroes'];
   else{
    // A crash or stale derivative cannot mix geometry generations.
    const hashes=new Map(manifest.heroes.map(h=>[h.id,h.sha256]));

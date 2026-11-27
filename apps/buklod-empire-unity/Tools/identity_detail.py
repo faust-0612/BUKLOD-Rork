@@ -21,10 +21,15 @@ def face_depth(h,x,y):
     """Front surface of the existing head (including the hood face insert)."""
     w={'square':.135,'oval':.113,'round':.135,'long':.115}[h.face]
     r={'square':.154,'oval':.166,'round':.15,'long':.178}[h.face]*h.h
-    z=.119*math.sqrt(max(0,1-(x/w)**2-((y-1.76*h.h)/r)**2))
+    # Invert the same jaw taper used by the sculpted surface, otherwise
+    # the mouth and nose float on a wider imaginary head.
+    dy=y-1.76*h.h
+    taper=PROFILES[h.id][0]*max(0,min(1,-dy/r))**2
+    z=.119*math.sqrt(max(0,1-(x/(w*(1-taper)))**2-(dy/r)**2))
     if h.hair=='hood':
-        z=max(z,.075+.075*math.sqrt(max(0,1-(x/.105)**2-((y-1.755*h.h)/.131)**2)))
-    else:z+=facial_relief(x,y-1.76*h.h,z,r,w)[0]
+        hood=1-(x/.105)**2-((y-1.755*h.h)/.131)**2
+        if hood>=0:z=max(z,.075+.075*math.sqrt(hood))
+    else:z+=facial_relief(x,dy,z,r,w)[0]
     return z
 
 def adjust_feature(h,mat,joint,center,size):
@@ -32,10 +37,10 @@ def adjust_feature(h,mat,joint,center,size):
     x,y,z=center;_,_,eye,nose,_=PROFILES[h.id]
     if mat in (5,6):
         x*=1.01 if h.face=='round' else .97
-        z=face_depth(h,x,y)+(.004 if mat==5 else .013)
-        size=(size[0]*eye,size[1]*.82,size[2]*.65)
+        z=face_depth(h,x,y)+(.0015 if mat==5 else .007)
+        size=(size[0]*eye,size[1]*(.78 if mat==5 else .88),size[2]*.48)
     elif mat==3 and tuple(size)==(.019,.028,.027):
-        z=face_depth(h,x,y)+.012;size=(size[0]*nose,.026,.024)
+        z=face_depth(h,x,y)+.008;size=(size[0]*nose,.024,.019)
     return (x,y,z),size
 
 def sculpt_surface(h,mat,joint,center,size,start):
@@ -55,9 +60,12 @@ def replace_face_box(h,mat,joint,c,s):
     x,y,z=c;_,tilt,eye,_,mouth=PROFILES[h.id]
     if mat==4 and tuple(s)==(.057,.008,.014):
         side=1 if x>0 else -1
-        for k in range(5):
-            dx=(k-2)*.010*eye;yy=y+tilt*side*dx+.004*(1-abs(k-2)/2)
-            h.ell(4,joint,(x+dx,yy,face_depth(h,x+dx,yy)+.003),(.009,.0045,.0045),8,4)
+        # Tapered continuous brow silhouette; no five disconnected beads.
+        for k in range(7):
+            t=(k-3)/3;dx=t*.026*eye
+            yy=y+tilt*side*dx+.004*(1-t*t)
+            thickness=.0025+.0017*(1-abs(t))
+            h.ell(4,joint,(x+dx,yy,face_depth(h,x+dx,yy)+.0015),(.0065,thickness,.0028),8,4)
         return True
     if mat==8 and tuple(s)==(.045,.006,.009):
         front=face_depth(h,0,y)
@@ -74,6 +82,18 @@ def add_details(h,result):
     y=1.736*h.h
     for s in (-1,1):
         x=s*.012*nose;h.ell(3,head,(x,y,face_depth(h,x,y)+.008),(.009,.009,.011),10,5)
+    # Model eyelid rims on the existing head, following the sculpted surface.
+    # The inset eye remains a separate material, with an unobtrusive catchlight.
+    _,tilt,eye,_,mouth=PROFILES[h.id]
+    for side in (-1,1):
+        cx=side*.050*(1.01 if h.face=='round' else .97);cy=1.775*h.h
+        for upper in (True,False):
+            for k in range(5 if getattr(h,'mobile_lod',False) else 9):
+                t=k/(4 if getattr(h,'mobile_lod',False) else 8)*2-1
+                xx=cx+t*.027*eye
+                yy=cy+side*tilt*t*.008+(1 if upper else -1)*.009*math.sqrt(max(0,1-t*t))
+                h.ell(3,head,(xx,yy,face_depth(h,xx,yy)+.005),(.0048,.0025 if upper else .0018,.0035),6,3)
+        h.ell(5,head,(cx-.0028,cy+.003,face_depth(h,cx,cy)+.010),(.0022,.0022,.0015),6,3)
     # Distinct raised detail on the existing canonical hand-held equipment.
     hand=arms[1][2];x,y,z=h.rest[hand];c=(x+.025,y-.025,z+.05)
     def at(dx,dy,dz):return (c[0]+dx,c[1]+dy,c[2]+dz)
