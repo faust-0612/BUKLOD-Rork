@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {resolve,join,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {heroPipelineHash} from './hero-pipeline-hash.mjs';
+import {runLogged} from './run-logged-unity.mjs';
 const project=fileURLToPath(new URL('../',import.meta.url));
 const args=process.argv.slice(2);
 const usage='Usage: node Tools/run-offline-test-build.mjs --prepare | --source-preflight | --validate|--build|--resume <absolute Unity executable> <absolute Android build-tools directory>';
@@ -70,13 +71,13 @@ try{
   const stamp=Date.now(),tests=join(root,'editmode-'+stamp+'.xml'),testLog=join(root,'editmode-'+stamp+'.log');
   console.log('Unity EditMode test log: '+testLog);
   try{
-   run(unity,['-batchmode','-projectPath',project,'-buildTarget','Android','-runTests','-testPlatform','EditMode','-assemblyNames','Buklod.Empire.Tests','-testResults',tests,'-logFile',testLog]);
+   await runLogged(unity,['-batchmode','-projectPath',project,'-buildTarget','Android','-runTests','-testPlatform','EditMode','-assemblyNames','Buklod.Empire.Tests','-testResults',tests,'-logFile',testLog],{cwd:project,log:testLog,label:'Unity EditMode'});
    run(process.env.PYTHON||'python3',['Tools/verify-unity-editmode.py',tests]);
   }catch(error){if(existsSync(testLog))console.error(readFileSync(testLog,'utf8').split(/\r?\n/).slice(-100).join('\n'));throw error;}
   const before=new Set(readdirSync(root));
   const log=join(root,'unity-'+Date.now()+'.log');
   console.log('Unity build log: '+log);
-  try{run(unity,['-batchmode','-quit','-projectPath',project,'-buildTarget','Android','-executeMethod',(validate?'Buklod.Empire.Editor.OfflineReviewBuildBootstrap.ValidateOnly':'Buklod.Empire.Editor.OfflineReviewBuildBootstrap.Build'),'-logFile',log]);}catch(error){if(existsSync(log))console.error(readFileSync(log,'utf8').split(/\r?\n/).slice(-100).join('\n'));throw error;}
+  try{await runLogged(unity,['-batchmode','-quit','-projectPath',project,'-buildTarget','Android','-executeMethod',(validate?'Buklod.Empire.Editor.OfflineReviewBuildBootstrap.ValidateOnly':'Buklod.Empire.Editor.OfflineReviewBuildBootstrap.Build'),'-logFile',log],{cwd:project,log,label:validate?'Unity scene preflight':'Unity APK build'});}catch(error){if(existsSync(log))console.error(readFileSync(log,'utf8').split(/\r?\n/).slice(-100).join('\n'));throw error;}
   if(validate){
    if(!readFileSync(log,'utf8').includes('BUKLOD_OFFLINE_PREFLIGHT_PASS'))throw Error('Missing Unity preflight completion marker');
    if(readdirSync(root).some(x=>!before.has(x)&&x.endsWith('.apk')))throw Error('Unexpected APK during validate-only');
