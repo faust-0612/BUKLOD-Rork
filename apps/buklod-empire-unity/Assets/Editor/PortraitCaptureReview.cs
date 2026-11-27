@@ -13,7 +13,7 @@ namespace Buklod.Empire.Editor {
     public static class PortraitCaptureReview {
         const string Out=CandidateReviewComposer.Out+"/Portraits";
         const int Width=512,Height=640;
-        [Serializable] sealed class Row {public string id,sourceHash,sha256;}
+        [Serializable] sealed class Row {public string id,sourceHash,sha256,fullSha256;}
         [Serializable] sealed class Receipt {public string status;public Row[] rows;}
         static string Prefab(string id)=>CandidateReviewComposer.Out+"/Prefabs/"+id+".prefab";
         static string SourceHash(string id)=>AssetDatabase.GetAssetDependencyHash(Prefab(id)).ToString();
@@ -29,16 +29,20 @@ namespace Buklod.Empire.Editor {
                         var row=doc.rows.SingleOrDefault(x=>x!=null&&x.id==id);
                         string path=Out+"/"+id+".tga";
                         var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-                        return row!=null&&row.sourceHash==SourceHash(id)&&File.Exists(path)&&row.sha256==Hash(File.ReadAllBytes(path))&&tex&&tex.width==Width&&tex.height==Height;
+                        return row!=null&&row.sourceHash==SourceHash(id)&&ValidTexture(path,row.sha256)&&ValidTexture(Out+"/"+id+"-full.tga",row.fullSha256);
                     }))return;
                 }catch(ArgumentException){}catch(InvalidOperationException){}catch(IOException){}
             }
             Capture();
         }
+        static bool ValidTexture(string path,string hash){
+            if(string.IsNullOrEmpty(hash)||!File.Exists(path)||Hash(File.ReadAllBytes(path))!=hash)return false;
+            var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(path);return tex&&tex.width==Width&&tex.height==Height;
+        }
         internal static void ValidateDependencies(string[] dependencies){
             if(!AuthoredExpansionReview.Requested)return;
             foreach(var h in HeroKitCatalog.All)
-                if(!dependencies.Contains(Out+"/"+h.Id+".tga"))throw new UnityEditor.Build.BuildFailedException("Missing actual rendered hero portrait: "+h.Id);
+                if(!dependencies.Contains(Out+"/"+h.Id+".tga")||!dependencies.Contains(Out+"/"+h.Id+"-full.tga"))throw new UnityEditor.Build.BuildFailedException("Missing actual rendered hero portrait: "+h.Id);
         }
         [MenuItem("BUKLOD Empire/Capture all 13 review portraits")]
         public static void Capture(){
@@ -59,11 +63,14 @@ namespace Buklod.Empire.Editor {
                     if(!cam)throw new InvalidOperationException("Missing portrait camera: "+hero.Id);
                     var bytes=CaptureCamera(cam);
                     File.WriteAllBytes(Out+"/"+hero.Id+".tga",bytes);
-                    rows.Add(new Row{id=hero.Id,sourceHash=SourceHash(hero.Id),sha256=Hash(bytes)});
+                    var full=GameObject.Find("Full-detail portrait camera")?.GetComponent<Camera>();
+                    if(!full)throw new InvalidOperationException("Missing full-body camera: "+hero.Id);
+                    var fullBytes=CaptureCamera(full);File.WriteAllBytes(Out+"/"+hero.Id+"-full.tga",fullBytes);
+                    rows.Add(new Row{id=hero.Id,sourceHash=SourceHash(hero.Id),sha256=Hash(bytes),fullSha256=Hash(fullBytes)});
                 }
                 AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-                foreach(var row in rows){
-                    string path=Out+"/"+row.id+".tga";
+                foreach(var row in rows)foreach(string suffix in new[]{"","-full"}){
+                    string path=Out+"/"+row.id+suffix+".tga";
                     var importer=AssetImporter.GetAtPath(path) as TextureImporter;
                     if(importer==null)throw new InvalidOperationException("Portrait texture import unavailable: "+row.id);
                     importer.textureType=TextureImporterType.Default;importer.npotScale=TextureImporterNPOTScale.None;
@@ -104,7 +111,7 @@ namespace Buklod.Empire.Editor {
             var doc=JsonUtility.FromJson<Receipt>(File.ReadAllText(manifest));
             var ids=HeroKitCatalog.All.Select(h=>h.Id).ToArray();
             if(doc==null||doc.status!="REVIEW_ONLY"||doc.rows==null||doc.rows.Length!=ids.Length)throw new InvalidOperationException("Incomplete portrait manifest.");
-            var portraits=new Texture2D[ids.Length];
+            var portraits=new Texture2D[ids.Length];var fullBodies=new Texture2D[ids.Length];
             for(int i=0;i<ids.Length;i++){
                 string id=ids[i],path=Out+"/"+id+".tga";
                 var row=doc.rows.SingleOrDefault(x=>x!=null&&x.id==id);
@@ -113,8 +120,11 @@ namespace Buklod.Empire.Editor {
                 var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                 if(!tex||tex.width!=Width||tex.height!=Height)throw new InvalidOperationException("Unexpected portrait dimensions: "+id);
                 portraits[i]=tex;
+                string fullPath=Out+"/"+id+"-full.tga";
+                if(!ValidTexture(fullPath,row.fullSha256))throw new InvalidOperationException("Missing or stale full-body capture: "+id);
+                fullBodies[i]=AssetDatabase.LoadAssetAtPath<Texture2D>(fullPath);
             }
-            var component=root.AddComponent<ReviewPortraits>();component.ids=ids;component.portraits=portraits;
+            var component=root.AddComponent<ReviewPortraits>();component.ids=ids;component.portraits=portraits;component.fullBodies=fullBodies;
         }
     }
 }

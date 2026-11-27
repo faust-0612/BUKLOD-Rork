@@ -12,13 +12,14 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
+        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
         private CovenantTalent first=CovenantTalent.Fortitude,second=CovenantTalent.Resolve,third=CovenantTalent.Sustenance;
         private bool autoTraining,enableCovenant=true;
         private Button[] navigationTabs;
+        private Button resumeButton;
         private Image[] navigationMarkers;
         private Text[] navigationLabels;
         private static readonly Color NavigationAccent=new Color(.63f,.94f,.42f,1);
@@ -60,14 +61,14 @@ namespace Buklod.Empire {
             navigationTabs=new Button[tabs.Length];navigationMarkers=new Image[tabs.Length];navigationLabels=new Text[tabs.Length];
             for(int i=0;i<tabs.Length;i++){
                 int tab=view.IsEditorReview?i-1:i;float step=.93f/tabs.Length;
-                var button=ButtonAt(tabs[i],panel,new Vector2(.035f+i*step,.72f),new Vector2(.035f+(i+1)*step-.01f,.79f),tabs[i],()=>{showResult=false;page=tab;feedback.text="";Rebuild();});
+                var button=ButtonAt(tabs[i],panel,new Vector2(.035f+i*step,.72f),new Vector2(.035f+(i+1)*step-.01f,.79f),tabs[i],()=>{showResult=false;heroDetail=false;confirmRestart=false;page=tab;feedback.text="";Rebuild();});
                 navigationTabs[i]=button;navigationLabels[i]=button.GetComponentInChildren<Text>();
                 var marker=Rect("Active section",button.transform,new Vector2(.12f,.025f),new Vector2(.88f,.095f)).gameObject.AddComponent<Image>();
                 marker.color=NavigationAccent;marker.raycastTarget=false;navigationMarkers[i]=marker;
             }
             body=Rect("Commands",panel,new Vector2(.035f,.18f),new Vector2(.965f,.71f));
             feedback=Label("Feedback",panel,new Vector2(.03f,.10f),new Vector2(.97f,.18f),"",20);
-            ButtonAt("Resume",panel,new Vector2(.06f,.015f),new Vector2(.46f,.10f),"RESUME",Resume);
+            resumeButton=ButtonAt("Resume",panel,new Vector2(.06f,.015f),new Vector2(.46f,.10f),"RESUME CURRENT MATCH",Resume);
             var start=ButtonAt("Start",panel,new Vector2(.54f,.015f),new Vector2(.94f,.10f),"START NEW MATCH",StartNew);
             if(view.IsEditorReview){var startLabel=start.GetComponentInChildren<Text>();startLabel.color=NavigationAccent;startLabel.fontStyle=FontStyle.Bold;}
             Open();
@@ -81,7 +82,7 @@ namespace Buklod.Empire {
             var r=Rect(kit.Id,body,new Vector2(x+.008f,y+.015f),new Vector2(x+.192f,y+1f/3-.015f));
             var accent=BattleEffects.Accent(kit.Id);bool chosen=kit.Id==selected;
             var bg=r.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,chosen?.31f:.12f);
-            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;btn.onClick.AddListener(()=>{selected=kit.Id;var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)feedback.text=dialogue.Select(kit.Id);Rebuild();});
+            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;btn.onClick.AddListener(()=>{if(authored)authored.Click();selected=kit.Id;heroDetail=true;fullBody=true;var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)feedback.text=dialogue.Select(kit.Id);Rebuild();});
             var stripe=Rect("Sacred stone accent",r,new Vector2(0,.94f),Vector2.one).gameObject.AddComponent<Image>();stripe.color=accent;stripe.raycastTarget=false;
             var portrait=reviewPortraits?reviewPortraits.Find(kit.Id):null;
             float left=portrait ? .37f : .05f;
@@ -99,6 +100,36 @@ namespace Buklod.Empire {
             }
             var stats=view.PracticeStats(kit.Id);
             Label("Combat range",r,new Vector2(left,.02f),new Vector2(.97f,.22f),stats==null?$"ATK {kit.BasicDamage:0}  •  RNG {kit.BasicRange:0.#}":$"ATK {kit.BasicDamage:0}  •  M{stats.Mastery} / {stats.completed} matches",16);
+        }
+        private void HeroDetails(){
+            var kit=HeroKitCatalog.Get(selected);var accent=BattleEffects.Accent(selected);
+            title.text=kit.Name.ToUpperInvariant()+"  •  HERO PROFILE";title.color=accent;
+            SacredStoneCatalog.TryGet(selected,out var stone);
+            summary.text=stone==null?"Next match selection":stone.Name+"  •  "+stone.VirtueTl+"  •  Next match selection";
+            var left=Rect("Hero showcase",body,new Vector2(.015f,.04f),new Vector2(.44f,.98f));
+            var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,.13f);bg.raycastTarget=false;
+            var portrait=reviewPortraits?reviewPortraits.Find(selected,fullBody):null;
+            if(portrait){
+                var r=Rect("Actual model capture",left,new Vector2(.04f,.21f),new Vector2(.96f,.99f));
+                var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
+                var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
+            }
+            ButtonAt("Portrait angle",left,new Vector2(.06f,.03f),new Vector2(.94f,.19f),fullBody?"FACE & ARMOR":"FULL CHARACTER",()=>{fullBody=!fullBody;Rebuild();});
+            var right=Rect("Hero profile",body,new Vector2(.46f,.04f),new Vector2(.99f,.98f));
+            Label("Hero stats",right,new Vector2(0,.78f),Vector2.one,$"ATK {kit.BasicDamage:0}   RANGE {kit.BasicRange:0.#}   SPEED {kit.Speed:0.##}\nPassive: "+kit.Passive.Replace('_',' '),22);
+            for(int i=0;i<3;i++){
+                var spec=kit.Skill((SkillSlot)i);float y=.76f-i*.18f;
+                var row=Rect("Skill "+i,right,new Vector2(0,y-.16f),new Vector2(1,y));
+                var background=row.gameObject.AddComponent<Image>();background.color=new Color(.10f,.18f,.23f,.95f);background.raycastTarget=false;
+                if(SkillCueCatalog.TryGet(spec.Id,out var cue)){
+                    var glyph=Rect("Skill symbol",row,new Vector2(.02f,.08f),new Vector2(.16f,.92f)).gameObject.AddComponent<ReviewSkillGlyph>();glyph.raycastTarget=false;glyph.SetCue(cue,accent);
+                }
+                Label("Skill name",row,new Vector2(.19f,0),new Vector2(.76f,1),spec.Id.Replace('_',' '),21);
+                var cd=Label("Base cooldown",row,new Vector2(.77f,0),new Vector2(.98f,1),spec.Cooldown.ToString("0")+"s",20);cd.color=accent;
+            }
+            Label("Evolution scope",right,new Vector2(0,.10f),new Vector2(1,.21f),"Permanent evolution requires verified eligibility and items. Offline practice does not unlock it.",16);
+            ButtonAt("Back to roster",right,Vector2.zero,new Vector2(.47f,.10f),"ROSTER",()=>{heroDetail=false;Rebuild();});
+            ButtonAt("Choose hero",right,new Vector2(.51f,0),new Vector2(1,.10f),"USE IN NEXT MATCH",()=>{heroDetail=false;page=-1;Rebuild();feedback.text=kit.Name+" selected for the next match.";});
         }
         private void RelicInventory(OfflineBattle battle){
             var p=battle.Player;
@@ -157,7 +188,7 @@ namespace Buklod.Empire {
             var kit=HeroKitCatalog.Get(selected);
             var left=Rect("Selected hero feature",body,new Vector2(.01f,.03f),new Vector2(.47f,.97f));
             var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,BattleEffects.Accent(selected),.18f);bg.raycastTarget=false;
-            var portrait=reviewPortraits?reviewPortraits.Find(selected):null;
+            var portrait=reviewPortraits?reviewPortraits.Find(selected,true):null;
             if(portrait){
                 var r=Rect("Selected hero portrait",left,new Vector2(.04f,.25f),new Vector2(.96f,.98f));
                 var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
@@ -185,6 +216,7 @@ namespace Buklod.Empire {
             UpdateNavigation();
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
+            if(resumeButton)resumeButton.interactable=active&&(!view.IsEditorReview||matchStarted)&&!confirmRestart;
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
             if(view.IsEditorReview&&showResult&&b!=null&&b.Finished){
@@ -200,8 +232,15 @@ namespace Buklod.Empire {
             }
             title.color=Color.white;panelBackground.color=authored?Color.white:Navy;title.rectTransform.localScale=Vector3.one;
             if(view.IsEditorReview&&page==8){AudioPanel();return;}
+            if(view.IsEditorReview&&confirmRestart){
+                title.text="START A NEW MATCH?";summary.text="The unfinished local match will be discarded.";
+                Label("Restart scope",body,new Vector2(.08f,.42f),new Vector2(.92f,.90f),"No BP, permanent XP or Sacred Stone transaction will occur.",25);
+                ButtonAt("Keep match",body,new Vector2(.08f,.10f),new Vector2(.47f,.36f),"KEEP CURRENT MATCH",()=>{confirmRestart=false;Rebuild();});
+                ButtonAt("Discard match",body,new Vector2(.53f,.10f),new Vector2(.92f,.36f),"START NEW MATCH",()=>{confirmRestart=false;StartCoroutine(PrepareReviewMatch());});return;
+            }
             if(view.IsEditorReview&&page==-1){Lobby();return;}
             if(page==0){
+                if(view.IsEditorReview&&heroDetail){HeroDetails();return;}
                 for(int i=0;i<HeroKitCatalog.All.Count;i++){var kit=HeroKitCatalog.All[i];if(view.IsEditorReview)HeroCard(i,kit);else Cell(i,5,3,(selected==kit.Id?"✓ ":"")+kit.Name,()=>{selected=kit.Id;Rebuild();});}
                 if(view.IsEditorReview){var kit=HeroKitCatalog.Get(selected);summary.text=kit.Name+"  •  "+kit.Passive.Replace('_',' ')+"  •  "+string.Join(" / ",new[]{kit.Primary.Id,kit.Secondary.Id,kit.Ultimate.Id}.Select(x=>x.Replace('_',' ')));}
                 Cell(13,5,3,"AI: "+difficulty,()=>{difficulty=(ArenaDifficulty)(((int)difficulty+1)%5);Rebuild();});
@@ -284,10 +323,10 @@ namespace Buklod.Empire {
             panelGroup.interactable=false;
             layoutEditor=new ArenaHudLayoutEditor(safeRoot,font,hud.ControlPreviewSprite,()=>{layoutEditor=null;panelGroup.interactable=true;Rebuild();});
         }
-        private void Resume(){if(Active&&layoutEditor==null)Close();}
+        private void Resume(){if(Active&&layoutEditor==null&&(!view.IsEditorReview||matchStarted)&&!confirmRestart)Close();}
         private void StartNew(){
             if(starting)return;
-            if(view.IsEditorReview){StartCoroutine(PrepareReviewMatch());return;}
+            if(view.IsEditorReview){if(confirmRestart)return;if(matchStarted&&Active){confirmRestart=true;Rebuild();return;}StartCoroutine(PrepareReviewMatch());return;}
             BeginMatch();
         }
         private IEnumerator PrepareReviewMatch(){
@@ -315,7 +354,7 @@ namespace Buklod.Empire {
         }
         private void BeginMatch(bool close=true){
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
-            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
+            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);matchStarted=true;confirmRestart=false;heroDetail=false;selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
         }
         private void Close(){if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void Update(){
