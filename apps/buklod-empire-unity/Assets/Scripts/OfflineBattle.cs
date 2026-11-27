@@ -802,14 +802,41 @@ namespace Buklod.Empire {
             string w=OfflineMatchRules.TimeLimitWinner(luxCoreRatio,tenebraCoreRatio);
             return w=="A"?ArenaTeam.Lux:w=="B"?ArenaTeam.Tenebra:(ArenaTeam?)null;
         }
+        // The fixed map's structures are known objectives, not hidden moving targets.
+        // Rotate into the fortress after clearing the assigned lane rather than stall at its edge.
         private Vector2 LaneGoal(BattleUnit u){
-            float y=LaneY[(int)u.Lane];if(Mathf.Abs(u.Position.y-y)>4&&Mathf.Abs(u.Position.x-u.Spawn.x)<24)return new Vector2(u.Position.x,y);
+            float y=LaneY[(int)u.Lane];
+            if(Mathf.Abs(u.Position.y-y)>4&&Mathf.Abs(u.Position.x-u.Spawn.x)<24)return new Vector2(u.Position.x,y);
+            var enemy=(ArenaTeam)(1-(int)u.Team);
+            if(!IsAuthoritative){
+                var tower=ActiveTowers(enemy).FirstOrDefault(v=>v.Lane==u.Lane);
+                if(tower!=null)return tower.Position;
+                var core=units.FirstOrDefault(v=>v.Team==enemy&&v.Core&&Attackable(v));
+                if(core!=null)return core.Position;
+            }
             return new Vector2(u.Team==ArenaTeam.Lux?Width-14:14,y);
+        }
+        // Respond to actual visible incursions near the village. Keep at most two
+        // healthy allied bots assigned per threat; never take control of the player.
+        private BattleUnit DefenseThreat(BattleUnit u){
+            if(IsAuthoritative||Difficulty<ArenaDifficulty.Normal||!CoreAlive(u.Team)||u.State.Health/u.State.MaxHealth<.55f)return null;
+            var home=Base(u.Team);
+            if(Vector2.Distance(u.Position,home)>55f)return null;
+            var threat=units.Where(v=>v.Team!=u.Team&&v.Kind==BattleTargetKind.Hero&&Attackable(v)&&
+                Vector2.Distance(v.Position,home)<=24f&&IsVisibleTo(u.Team,v))
+                .OrderBy(v=>Vector2.Distance(v.Position,home)).ThenBy(v=>v.Id).FirstOrDefault();
+            if(threat==null)return null;
+            float distance=Dist(u,threat);
+            int closer=units.Count(v=>v!=u&&v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&
+                !HumanControlled(v)&&!v.Retreat&&v.State.Health/v.State.MaxHealth>=.55f&&
+                Vector2.Distance(v.Position,home)<=55f&&
+                (Dist(v,threat)<distance||(Dist(v,threat)==distance&&v.Id<u.Id)));
+            return closer<2?threat:null;
         }
         private void Steer(BattleUnit u,Vector2 dir,float speed){
             if(dir.sqrMagnitude<1)return;float n=Mathf.Min(speed*Step,dir.magnitude);
             if(Move(u,dir,n))return;
-            if(navigation!=null&&navigation.TryWaypoint(u.Position,u.Position+dir,out var waypoint)&&Move(u,waypoint-u.Position,n))return;
+            if(navigation!=null&&navigation.TryWaypoint(u.Position,u.Position+dir,out var waypoint)&&Move(u,waypoint-u.Position,Mathf.Min(n,Vector2.Distance(u.Position,waypoint))))return;
             if(!Move(u,new Vector2(-dir.y,dir.x),n))Move(u,new Vector2(dir.y,-dir.x),n);
         }
         private bool TrySupport(BattleUnit u){
@@ -835,21 +862,35 @@ namespace Buklod.Empire {
             }
             if(u.Retreat){if(a.Health/a.MaxHealth<.45f)UseTactic(u,Vector2.zero);if(!units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<15)&&BeginRecall(u))return;Steer(u,u.Spawn-u.Position,speed);return;}
             int decisionTicks=Difficulty==ArenaDifficulty.Beginner?10:Difficulty==ArenaDifficulty.Normal?6:Difficulty==ArenaDifficulty.Advanced?4:Difficulty==ArenaDifficulty.Expert?3:2;
-            if(tick%decisionTicks==0)TrySupport(u);
+            bool supported=tick%decisionTicks==0&&TrySupport(u);
             var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&v.Villager?.Job.Effect==VillageEffect.Gather?4:0)+(ClearSight(u.Position,v.Position)?3:0)).ThenBy(v=>v.Id).FirstOrDefault();
+            var defense=DefenseThreat(u);if(defense!=null)t=defense;
             if(t==null&&u.Jungler&&CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&a.Health/a.MaxHealth>.55f){
                 var camp=wilderness.Camps.Where(c=>c.Alive&&(c.Boss?Vector2.Distance(u.Position,c.Position)<40:((u.Team==ArenaTeam.Lux)==(c.Position.x<Width/2)))&&(Time<180||Vector2.Distance(u.Position,c.Position)<35)).OrderBy(c=>Vector2.Distance(u.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
                 if(camp!=null){var campDirection=camp.Position-u.Position;if(campDirection.magnitude>a.Kit.BasicRange*.9f||!ClearSight(u.Position,camp.Position))Steer(u,campDirection,speed);else{if(camp.Health<=90)UseTactic(u,campDirection);Basic(u,campDirection,null,camp.Id);}return;}
             }
             if(t==null&&(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit))t=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
             var goal=t==null?LaneGoal(u):t.Position;
-            if(CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&t!=null&&t.Kind==BattleTargetKind.Structure&&t.State.Health>80&&!units.Any(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Minion&&v.State.Alive&&Dist(v,t)<12)&&Dist(u,t)<11){Steer(u,u.Position-t.Position,speed);return;}
+            if(CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&t!=null&&t.IsCombatStructure&&t.State.Health>80&&!units.Any(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Minion&&v.State.Alive&&Dist(v,t)<12)){
+                float distance=Dist(u,t);
+                if(distance<10.5f){Steer(u,u.Position-t.Position,speed);return;}
+                // Hold just outside tower range instead of oscillating in and out.
+                // Ranged heroes can still engage if their real attack range permits.
+                if(distance<12f){
+                    if(tick%decisionTicks==0&&distance<=a.Kit.BasicRange&&ClearSight(u.Position,t.Position))Basic(u,t.Position-u.Position,null,0,t.Id);
+                    return;
+                }
+            }
             if(t==null||Dist(u,t)>Mathf.Max(1.5f,a.Kit.BasicRange*.82f)||!ClearSight(u.Position,t.Position))Steer(u,goal-u.Position,speed);
             else if((int)Difficulty>=(int)ArenaDifficulty.Expert&&a.Kit.BasicRange>=8&&t.Kind==BattleTargetKind.Hero&&t.State.Kit.BasicRange<5&&Dist(u,t)<4)Steer(u,u.Position-t.Position,speed);
             if(t==null||tick%decisionTicks!=0)return;
-            var dir=t.Position-u.Position;Basic(u,dir,null,0,t.Id);a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);
-            if(Enemies(a,8,Vector2.zero).Count>=2)a.TryCast(this,SkillSlot.Secondary,dir,Time,!Finished);
-            if(Enemies(a,8,Vector2.zero).Count>=3)a.TryCast(this,SkillSlot.Ultimate,dir,Time,!Finished);
+            var dir=t.Position-u.Position;Basic(u,dir,null,0,t.Id);
+            if(supported||Finished)return;
+            // One successful skill per decision: preserve mana and make the action readable.
+            int nearby=Enemies(a,8,Vector2.zero).Count;
+            if(nearby>=3&&a.TryCast(this,SkillSlot.Ultimate,dir,Time,!Finished))return;
+            if(nearby>=2&&a.TryCast(this,SkillSlot.Secondary,dir,Time,!Finished))return;
+            if(Dist(u,t)<=Mathf.Max(9f,a.Kit.BasicRange)&&ClearSight(u.Position,t.Position))a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);
         }
         // Bounded retaliation, no pursuit, resource minting or construction override.
         private void DefendVillageWorker(BattleUnit worker){
@@ -877,7 +918,15 @@ namespace Buklod.Empire {
                 u.AttackFacing=(t.Position-u.Position).normalized;u.LastAttack=Time;return;
             }
             var goal=LaneGoal(u);
-            if(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit){var enemy=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();if(enemy!=null)goal=enemy.Position;}
+            if(!IsAuthoritative&&u.Role==MinionRole.Healer){
+                // Stay with the wounded wave rather than walk alone into the fortress.
+                var ally=units.Where(v=>v!=u&&v.Team==u.Team&&v.Kind==BattleTargetKind.Minion&&v.Role!=MinionRole.Healer&&v.State.Alive&&v.Lane==u.Lane&&Dist(u,v)<=14f)
+                    .OrderBy(v=>v.State.Health/v.State.MaxHealth).ThenBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
+                if(ally!=null){
+                    if(Dist(u,ally)<=s.RangeSourceUnits/40*.8f)return;
+                    goal=ally.Position;
+                }
+            }else if(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit){var enemy=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();if(enemy!=null)goal=enemy.Position;}
             Steer(u,goal-u.Position,s.SpeedSourceUnits/40*(1+u.State.Buff("haste",Time))*(1-Mathf.Clamp(u.State.Buff("slow",Time),0,.45f)));
         }
         private IEnumerable<BattleUnit> ActiveTowers(ArenaTeam team)=>units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&!u.IsVillageBuilding&&u.State.Alive);

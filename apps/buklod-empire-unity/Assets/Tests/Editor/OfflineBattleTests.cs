@@ -27,6 +27,29 @@ namespace Buklod.Empire.Tests {
             for(int i=0;i<100;i++)b.Advance(.1f,Vector2.zero);
             Assert.AreEqual(0,b.BasicAttackRemaining(p));
         }
+        static Vector2 LaneObjective(OfflineBattle b,BattleUnit u)=>(Vector2)typeof(OfflineBattle).GetMethod("LaneGoal",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(b,new object[]{u});
+        static BattleUnit DefenseObjective(OfflineBattle b,BattleUnit u)=>(BattleUnit)typeof(OfflineBattle).GetMethod("DefenseThreat",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(b,new object[]{u});
+        static void PlaceUnit(BattleUnit u,Vector2 position)=>typeof(BattleUnit).GetProperty(nameof(BattleUnit.Position)).SetValue(u,position);
+        [Test] public void LaneClearedBotsRotateToFortress(){
+            var b=new OfflineBattle("phan");var bot=b.Units.First(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Hero&&u.Lane==ArenaLane.Top);
+            var tower=b.Units.Single(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Structure&&!u.Core&&u.Lane==ArenaLane.Top);
+            var core=b.Units.Single(u=>u.Team==ArenaTeam.Tenebra&&u.Core);
+            PlaceUnit(bot,new Vector2(tower.Position.x-12,tower.Position.y));
+            Assert.AreEqual(tower.Position,LaneObjective(b,bot));
+            for(int i=0;i<10&&tower.State.Alive;i++)Assert.True(b.Hit(bot.State,tower.State,300));
+            Assert.False(tower.State.Alive);Assert.AreEqual(core.Position,LaneObjective(b,bot));Assert.False(b.Finished);
+        }
+        [Test] public void VisibleBaseIncursionAssignsAtMostTwoBotsWithoutTakingPlayerControl(){
+            var b=new OfflineBattle("phan",difficulty:ArenaDifficulty.Expert);
+            var invader=b.Units.First(u=>u.Team==ArenaTeam.Tenebra&&u.Kind==BattleTargetKind.Hero);
+            var core=b.Units.Single(u=>u.Core&&u.Team==ArenaTeam.Lux);
+            var allies=b.Units.Where(u=>u.Team==ArenaTeam.Lux&&u.Kind==BattleTargetKind.Hero&&u!=b.Player).ToArray();
+            Assert.True(allies.All(u=>DefenseObjective(b,u)==null));
+            PlaceUnit(invader,core.Position+new Vector2(4,0));
+            Assert.AreEqual(2,allies.Count(u=>DefenseObjective(b,u)==invader));
+            Assert.AreEqual(0,b.Player.Kills);
+            var playerStart=b.Player.Position;b.Advance(.1f,Vector2.zero);Assert.AreEqual(playerStart,b.Player.Position);
+        }
         [Test] public void InvalidSummonsDoNotChangeFactionCount(){
             var b=new OfflineBattle("phan");int before=b.RemainingUnits(ArenaTeam.Lux);
             Assert.False(b.Turret(b.Player.State,Vector2.right,5,float.NaN,10,20));
