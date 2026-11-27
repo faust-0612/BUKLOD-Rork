@@ -3,6 +3,16 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void EquipmentPresentationTracksActualPurchaseAndSale(){
+            var b=new OfflineBattle("phan");var p=b.Player;
+            Assert.AreEqual(0,ReviewEquipmentVisual.Tier(p,"weapon"));
+            Assert.True(b.BuyPlayer("blade"));
+            Assert.AreEqual(1,ReviewEquipmentVisual.Tier(p,"weapon"));
+            Assert.AreEqual(0,ReviewEquipmentVisual.Tier(p,"armor"));
+            Assert.True(b.SellPlayer("blade"));
+            Assert.AreEqual(0,ReviewEquipmentVisual.Tier(p,"weapon"));
+            Assert.AreEqual(0,ReviewEquipmentVisual.Tier(null,"weapon"));
+        }
         [Test] public void ReleaseAimUsesFinalPositionAndPreservesTapDeadzone(){
             var center=new Vector2(100,100);
             Assert.AreEqual(Vector2.zero,MobileBattleInput.ResolveAim(center+Vector2.right*5,center,40));

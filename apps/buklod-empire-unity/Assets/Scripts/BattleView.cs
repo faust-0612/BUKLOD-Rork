@@ -82,7 +82,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -152,7 +152,7 @@ namespace Buklod.Empire {
             else go=Instantiate(prefab,transform);
             go.SetActive(true);
             var v=new Visual{instance=go,prefab=prefab,animator=go.GetComponentInChildren<Animator>(true)};
-            if(ReviewOnly)v.farmGrowth=go.GetComponent<ReviewFarmGrowth>();
+            if(ReviewOnly){v.farmGrowth=go.GetComponent<ReviewFarmGrowth>();v.equipment=go.GetComponent<ReviewEquipmentVisual>();if(v.equipment)v.equipment.ResetVisual();}
             v.lodGroups=go.GetComponentsInChildren<LODGroup>(true);
             v.renderers=go.GetComponentsInChildren<Renderer>(true);v.originalShadows=new ShadowCastingMode[v.renderers.Length];
             for(int i=0;i<v.renderers.Length;i++){
@@ -207,6 +207,7 @@ namespace Buklod.Empire {
                 if(ReviewOnly&&u.IsFarm&&v.farmGrowth&&reviewFarmNodes.TryGetValue(u.Id,out var farmNode))
                     v.farmGrowth.Apply(farmNode.Stock,farmNode.Capacity,immediate||!existing,Time.deltaTime);
                 bool hero=u.Kind==BattleTargetKind.Hero;
+                if(hero&&v.equipment)v.equipment.Apply(u);
                 int requestedLod=premiumVisuals?0:-1;
                 if(hero&&v.lodGroups!=null&&v.forcedLod!=requestedLod){
                     foreach(var lod in v.lodGroups)if(lod)lod.ForceLOD(requestedLod);

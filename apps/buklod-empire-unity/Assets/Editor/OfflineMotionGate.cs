@@ -17,6 +17,8 @@ namespace Buklod.Empire.Editor {
                 try{
                     var animator=instance.GetComponentInChildren<Animator>(true);
                     if(!animator)throw new BuildFailedException("Missing hero animator "+h.id);
+                    var wearables=instance.GetComponent<ReviewEquipmentVisual>();
+                    if(!wearables||wearables.mounts==null||wearables.mounts.Length!=7||wearables.mounts.Any(m=>m==null||!m.basePlate||!m.advancedTrim||m.basePlate.activeSelf||m.advancedTrim.activeSelf))throw new BuildFailedException("Missing or pre-unlocked wearable mount "+h.id);
                     var root=animator.gameObject;
                     var skins=root.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(s=>s.sharedMesh&&s.transform.name!="Mobile LOD1").ToArray();
                     if(skins.Length==0)throw new BuildFailedException("Missing hero deformation mesh "+h.id);

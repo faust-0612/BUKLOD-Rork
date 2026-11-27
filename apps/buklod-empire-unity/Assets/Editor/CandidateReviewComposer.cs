@@ -126,6 +126,7 @@ namespace Buklod.Empire.Editor {
                             ?ReviewWeaponMotion.Bake(instance,id,candidates[0])
                             :UnityEngine.Object.Instantiate(candidates[0]);
                         clone.name=name;clone.legacy=false;
+                        if(HeroKitCatalog.All.Any(h=>h.Id==id)&&(name=="Idle"||name=="Walk"||name=="Run"))ReviewSecondaryMotion.Bake(instance,clone,name);
                         var settings=AnimationUtility.GetAnimationClipSettings(clone);settings.loopTime=name=="Idle"||name=="Walk"||name=="Run";AnimationUtility.SetAnimationClipSettings(clone,settings);
                         var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
                         if(clip){EditorUtility.CopySerialized(clone,clip);UnityEngine.Object.DestroyImmediate(clone);}
@@ -162,7 +163,7 @@ namespace Buklod.Empire.Editor {
                     if(crop.Length!=1)throw new InvalidOperationException("Regenerate economy models: farm crop canopy missing or duplicated.");
                     instance.AddComponent<ReviewFarmGrowth>().Configure(crop[0]);
                 }
-                if(HeroKitCatalog.All.Any(h=>h.Id==id))HeroLodReviewImporter.Attach(instance,id);
+                if(HeroKitCatalog.All.Any(h=>h.Id==id)){HeroLodReviewImporter.Attach(instance,id);ReviewEquipmentComposer.Attach(instance);}
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);
                 return saved;
