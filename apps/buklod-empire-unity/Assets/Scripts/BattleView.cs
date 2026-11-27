@@ -148,7 +148,7 @@ namespace Buklod.Empire {
         private void LateUpdate(){if(Battle!=null)Follow(false);}
         public Vector3 FieldPosition(Vector2 p)=>Ground(p);
         private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}
-        private Visual Rent(GameObject prefab){
+        private Visual Rent(GameObject prefab,BattleUnit unit){
             if(!pool.TryGetValue(prefab,out var stack)){stack=new Stack<GameObject>();pool[prefab]=stack;}
             GameObject go;
             if(stack.Count>0){go=stack.Pop();pooledCount--;}
@@ -162,7 +162,18 @@ namespace Buklod.Empire {
                 var r=v.renderers[i];v.originalShadows[i]=r.shadowCastingMode;
                 if(r is SkinnedMeshRenderer skin)skin.updateWhenOffscreen=false;
             }
-            if(v.animator){v.animator.speed=Paused?0f:1f;if(reviewMotion)reviewMotion.Apply(prefab,v.animator,authoredWalk);v.animator.cullingMode=AnimatorCullingMode.CullUpdateTransforms;v.animator.Rebind();foreach(var p in v.animator.parameters)v.parameters.Add(p.name);}
+            try{
+                if(v.animator){
+                    v.animator.speed=Paused?0f:1f;if(reviewMotion)reviewMotion.Apply(prefab,v.animator,authoredWalk);
+                    if(ReviewOnly&&unit.Kind==BattleTargetKind.Hero){
+                        // A live, active Animator must initialize its graph before reading parameters.
+                        v.animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;v.animator.Rebind();v.animator.Update(0f);
+                        BattleVisualCatalog.ValidateHeroParameters(v.animator.parameters,unit.State.Kit.Id);
+                    }else v.animator.Rebind();
+                    v.animator.cullingMode=AnimatorCullingMode.CullUpdateTransforms;
+                    foreach(var p in v.animator.parameters)v.parameters.Add(p.name);
+                }else if(ReviewOnly&&unit.Kind==BattleTargetKind.Hero)throw new System.InvalidOperationException("Missing live hero animator: "+unit.State.Kit.Id);
+            }catch{go.SetActive(false);Destroy(go);throw;}
             return v;
         }
         private void SetShadows(Visual v,bool enabled){
@@ -205,7 +216,7 @@ namespace Buklod.Empire {
                 if(!BattleRenderBudget.RetainVisual(player,inView,existing,distanceSquared))continue;
                 seen.Add(u.Id);
                 if(!existing){
-                    v=Rent(visuals.Resolve(u,ReviewOnly));v.unit=u;active.Add(u.Id,v);
+                    v=Rent(visuals.Resolve(u,ReviewOnly),u);v.unit=u;active.Add(u.Id,v);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     // A reused visual must not inherit the previous unit's rotation.
                     if(u.Kind!=BattleTargetKind.Structure)v.instance.transform.rotation=Quaternion.LookRotation(u.Team==ArenaTeam.Lux?Vector3.right:Vector3.left);

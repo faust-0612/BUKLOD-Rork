@@ -62,10 +62,16 @@ namespace Buklod.Empire {
         // Explicitly unapproved test assets; only the isolated package can use this path.
         public void ValidateOfflineReview(){
             if(provenanceReceipt)throw new InvalidOperationException("Offline test catalog must not assert production provenance.");
-            ValidateStructure();ValidateHybridAssets();
+            ValidateStructure(true);ValidateHybridAssets();
         }
 #endif
-        private void ValidateStructure(){
+        internal static void ValidateHeroParameters(AnimatorControllerParameter[] source,string id){
+            var parameters=new Dictionary<string,AnimatorControllerParameterType>();
+            foreach(var parameter in source)parameters[parameter.name]=parameter.type;
+            if(!parameters.TryGetValue("Speed",out var speed)||speed!=AnimatorControllerParameterType.Float)throw new InvalidOperationException("Missing Speed float: "+id);
+            foreach(var action in new[]{"Attack","Primary","Secondary","Ultimate"})if(!parameters.TryGetValue(action,out var type)||type!=AnimatorControllerParameterType.Trigger)throw new InvalidOperationException("Missing animation trigger "+action+": "+id);
+        }
+        private void ValidateStructure(bool offlineReview=false){
             if(!genesisRift||heroes==null||factions==null)throw new InvalidOperationException("Incomplete battle visuals.");
             var ids=new HashSet<string>();var meshes=new HashSet<Mesh>();
             foreach(var h in heroes){
@@ -81,10 +87,18 @@ namespace Buklod.Empire {
                     int count=0;foreach(var motion in motions)if(motion.name==slot)count++;
                     if(count!=1)throw new InvalidOperationException("Distinct named skill clip required: "+h.id+"/"+slot);
                 }
-                var parameters=new Dictionary<string,AnimatorControllerParameterType>();
-                foreach(var parameter in rig.parameters)parameters[parameter.name]=parameter.type;
-                if(!parameters.TryGetValue("Speed",out var speed)||speed!=AnimatorControllerParameterType.Float)throw new InvalidOperationException("Missing Speed float: "+h.id);
-                foreach(var action in new[]{"Attack","Primary","Secondary","Ultimate"})if(!parameters.TryGetValue(action,out var type)||type!=AnimatorControllerParameterType.Trigger)throw new InvalidOperationException("Missing animation trigger "+action+": "+h.id);
+                // Android prefab assets have no initialized Animator playable graph.
+                // Authoring validates the controller asset, while isolated player builds
+                // validate each instantiated hero in BattleView before using its parameters.
+#if UNITY_EDITOR
+                RuntimeAnimatorController controller=rig.runtimeAnimatorController;
+                while(controller is AnimatorOverrideController over)controller=over.runtimeAnimatorController;
+                if(controller is UnityEditor.Animations.AnimatorController authored)
+                    ValidateHeroParameters(authored.parameters,h.id);
+                else ValidateHeroParameters(rig.parameters,h.id);
+#else
+                if(!offlineReview)ValidateHeroParameters(rig.parameters,h.id);
+#endif
             }
             if(ids.Count!=HeroKitCatalog.All.Count)throw new InvalidOperationException("All 13 original heroes are required.");
             var teams=new HashSet<ArenaTeam>();

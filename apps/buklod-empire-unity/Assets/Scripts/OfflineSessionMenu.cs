@@ -25,7 +25,8 @@ namespace Buklod.Empire {
         private Text[] navigationLabels;
         private static readonly Color NavigationAccent=new Color(.63f,.94f,.42f,1);
         private static readonly string[] GearIds={"blade","armor","boots","sealbreaker","withering_thorn","precision","fervor","renewal","wisdom","aegis","vitality","giantbane"};
-        private static readonly Color Navy=new Color(.055f,.09f,.13f,.98f);
+        private static readonly Color Navy=new Color(.035f,.065f,.105f,.99f);
+        private static readonly Color MenuButton=new Color(.105f,.19f,.24f,1f);
         private RectTransform Rect(string name,Transform parent,Vector2 min,Vector2 max){
             var go=new GameObject(name,typeof(RectTransform));var r=go.GetComponent<RectTransform>();r.SetParent(parent,false);r.anchorMin=min;r.anchorMax=max;r.offsetMin=r.offsetMax=Vector2.zero;return r;
         }
@@ -33,7 +34,12 @@ namespace Buklod.Empire {
             var r=Rect(name,parent,min,max);var t=r.gameObject.AddComponent<Text>();t.font=font;t.text=value;t.fontSize=size;t.color=Color.white;t.alignment=TextAnchor.MiddleCenter;t.resizeTextForBestFit=true;t.resizeTextMinSize=12;t.resizeTextMaxSize=size;t.raycastTarget=false;return t;
         }
         private Button ButtonAt(string name,Transform parent,Vector2 min,Vector2 max,string value,Action action){
-            var r=Rect(name,parent,min,max);var image=r.gameObject.AddComponent<Image>();image.color=new Color(.15f,.31f,.32f,1);if(authored){image.sprite=authored.menuButton;image.type=Image.Type.Sliced;image.color=Color.white;}var b=r.gameObject.AddComponent<Button>();b.targetGraphic=image;b.onClick.AddListener(()=>{if(authored)authored.Click();action();});Label("Label",r,Vector2.zero,Vector2.one,value,23);return b;
+            var r=Rect(name,parent,min,max);var image=r.gameObject.AddComponent<Image>();image.color=MenuButton;
+            // Preserve legibility; the old cream sprite washed out every white/green label.
+            var border=r.gameObject.AddComponent<Outline>();border.effectColor=new Color(.31f,.54f,.58f,.8f);border.effectDistance=new Vector2(1,-1);
+            var b=r.gameObject.AddComponent<Button>();b.targetGraphic=image;
+            var colors=b.colors;colors.normalColor=Color.white;colors.highlightedColor=new Color(1.15f,1.15f,1.15f);colors.pressedColor=new Color(.74f,.82f,.84f);colors.selectedColor=Color.white;colors.disabledColor=new Color(.48f,.52f,.57f,.68f);b.colors=colors;
+            b.onClick.AddListener(()=>{if(authored)authored.Click();action();});Label("Label",r,Vector2.zero,Vector2.one,value,23);return b;
         }
         private void Cell(int i,int cols,int rows,string text,Action action,bool enabled=true){
             float x=(i%cols)/(float)cols,y=1-(i/cols+1)/(float)rows;
@@ -50,7 +56,7 @@ namespace Buklod.Empire {
             ButtonAt("Menu",safeRoot,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
             ButtonAt("Zoom in",safeRoot,new Vector2(.91f,.81f),new Vector2(.99f,.89f),"+",()=>ArenaControlSettings.ChangeZoom(-.1f));
             ButtonAt("Zoom out",safeRoot,new Vector2(.91f,.71f),new Vector2(.99f,.79f),"−",()=>ArenaControlSettings.ChangeZoom(.1f));
-            panel=Rect("Session panel",safeRoot,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;if(authored){panelBackground.sprite=authored.menuPanel;panelBackground.type=Image.Type.Sliced;panelBackground.color=Color.white;}panelGroup=panel.gameObject.AddComponent<CanvasGroup>();
+            panel=Rect("Session panel",safeRoot,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;panelGroup=panel.gameObject.AddComponent<CanvasGroup>();
             title=Label("Title",panel,new Vector2(.08f,.88f),new Vector2(.92f,.98f),"OFFLINE TRAINING",36);
             summary=Label("Summary",panel,new Vector2(.04f,.80f),new Vector2(.96f,.88f),"",21);
             if(view.IsEditorReview){
@@ -282,7 +288,7 @@ namespace Buklod.Empire {
                 ButtonAt("Choose next hero",actions,new Vector2(.52f,0),Vector2.one,"CHOOSE NEXT HERO",()=>{showResult=false;page=0;heroDetail=false;Rebuild();});
                 ApplyResultReveal();return;
             }
-            title.color=Color.white;panelBackground.color=authored?Color.white:Navy;title.rectTransform.localScale=Vector3.one;
+            title.color=Color.white;panelBackground.color=Navy;title.rectTransform.localScale=Vector3.one;
             if(view.IsEditorReview&&page==8){AudioPanel();return;}
             if(view.IsEditorReview&&confirmRestart){
                 title.text="START A NEW MATCH?";summary.text="The unfinished local match will be discarded.";
@@ -390,7 +396,7 @@ namespace Buklod.Empire {
             yield return null;
             bool ready=false;var previousMatch=view.Battle;bool previouslyStarted=matchStarted;
             try{BeginMatch(false);ready=true;}
-            catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;matchStarted=previouslyStarted&&previousMatch!=null&&ReferenceEquals(previousMatch,view.Battle);Rebuild();feedback.text=matchStarted?"New match could not initialize. Previous match retained.":"Unable to initialize match. Start a new match after checking local review assets.";}
+            catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;matchStarted=previouslyStarted&&previousMatch!=null&&ReferenceEquals(previousMatch,view.Battle);Rebuild();feedback.color=new Color(1f,.70f,.49f);feedback.text=(matchStarted?"Previous match retained. ":"Match initialization failed: ")+error.Message;}
             if(ready){
                 if(authored&&authored.entrance)authored.entrance.Open();
                 title.text="GENESIS RIFT";summary.text="Enter the battlefield";feedback.text="";

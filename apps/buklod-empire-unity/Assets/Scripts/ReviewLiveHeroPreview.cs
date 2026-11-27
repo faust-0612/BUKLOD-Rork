@@ -62,6 +62,7 @@ namespace Buklod.Empire {
                     animator=actor.GetComponentInChildren<Animator>(true);
                     if(!animator||!animator.runtimeAnimatorController)throw new InvalidOperationException("Preview rig missing.");
                     animator.applyRootMotion=false;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;animator.updateMode=AnimatorUpdateMode.UnscaledTime;
+                    animator.Rebind();animator.Update(0f);BattleVisualCatalog.ValidateHeroParameters(animator.parameters,id);
                     var skins=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.name!="Mobile LOD1").ToArray();
                     if(skins.Length==0)throw new InvalidOperationException("Preview mesh missing.");
                     bounds=skins[0].bounds;foreach(var skin in skins.Skip(1))bounds.Encapsulate(skin.bounds);
