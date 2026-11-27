@@ -50,6 +50,7 @@ namespace Buklod.Empire.Editor {
                 var texture=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                 if(!texture||texture.width!=doc.resolution||texture.height!=doc.resolution)throw new InvalidOperationException("Unexpected environment texture dimensions.");
             }
+            PremiumSurfaceReview.Prepare();
             return true;
         }
         internal static void Apply(GameObject obj,string id){
@@ -67,7 +68,8 @@ namespace Buklod.Empire.Editor {
                     if(!m){m=new Material(shader);AssetDatabase.CreateAsset(m,path);}else m.shader=shader;
                     var texture=AssetDatabase.LoadAssetAtPath<Texture2D>(Out+"/"+kind+".tga");
                     if(!texture)throw new InvalidOperationException("Missing environmental texture: "+kind);
-                    m.SetColor("_BaseColor",original.GetColor(colorProperty));m.SetTexture("_Detail",texture);
+                    var authored=PremiumSurfaceReview.Get(kind);
+                    m.SetColor("_BaseColor",authored?Color.Lerp(original.GetColor(colorProperty),Color.white,.55f):original.GetColor(colorProperty));m.SetTexture("_Detail",authored?authored:texture);
                     m.SetFloat("_Tile",kind=="paving"?.18f:kind=="metal"?.65f:.42f);
                     float metal=original.HasProperty("_Metallic")?original.GetFloat("_Metallic"):original.HasProperty("_MetallicFactor")?original.GetFloat("_MetallicFactor"):kind=="metal"?.5f:0;
                     m.SetFloat("_Metallic",Mathf.Clamp01(metal));EditorUtility.SetDirty(m);

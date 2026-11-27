@@ -56,6 +56,7 @@ namespace Buklod.Empire.Editor {
         }
         internal static void Validate(string[] dependencies){
             if(!Requested)return;
+            PremiumSurfaceReview.Validate(dependencies);
             var set=new System.Collections.Generic.HashSet<string>(dependencies,StringComparer.Ordinal);
             foreach(var p in ModelPaths)if(!set.Contains(p))throw new UnityEditor.Build.BuildFailedException("Missing authored expansion scene dependency: "+p);
             foreach(var name in new[]{"light_03.png","magic_03.png"}){

@@ -51,6 +51,9 @@ try{
   // Local-only larger asset acquisition; do not consume Unity Cloud allowance.
   run(process.env.PYTHON||'python3',['Tools/acquire-authored-expansion.py']);
   process.env.BUKLOD_AUTHORED_EXPANSION='1';
+  run(process.env.PYTHON||'python3',['Tools/test_premium_surfaces.py']);
+  run(process.env.PYTHON||'python3',['Tools/acquire-premium-surfaces.py']);
+  process.env.BUKLOD_PREMIUM_SURFACES='1';
   run(process.env.PYTHON||'python3',['Tools/prepare-hero-voice.py']);
   // Run the entire project EditMode suite BEFORE asset import or APK packaging.
   // Test Runner owns process exit; do not pass -quit to -runTests.
