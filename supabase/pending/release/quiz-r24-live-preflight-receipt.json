@@ -1,0 +1,27 @@
+{
+  "status": "LIVE_MAIN_DDL_PREFLIGHT_PASS_ROLLED_BACK",
+  "date": "2026-11-27",
+  "verifiedCandidate": "2b5d9d66ee3e9d35f42ad15a8be46b1e346f1189",
+  "pinnedBundleCommit": "935f4d6234da98d5096777b2248d80226dd45056",
+  "staging": {
+    "deployment": "sxgw89iv0q",
+    "ownerConfirmedLoginAndRecords": true,
+    "independentFullWorkflowVerification": false
+  },
+  "preflight": {
+    "sqlPatches": 22,
+    "serverResult": "R24_MAIN_LIVE_DDL_PREFLIGHT_PASS_ROLLBACK",
+    "rollbackConfirmed": true,
+    "attempts": 951,
+    "responses": 61909,
+    "released": 460,
+    "active": 0,
+    "r24FunctionsPersisted": false
+  },
+  "productionReleased": false,
+  "blockers": [
+    "Historical review compatibility: 116 pending historical attempts have no frozen reference sets; legacy approval workflow must not silently regrade or be lost.",
+    "MAIN launcher still uses dedicated edge in default branch; production clients must migrate before dedicated retirement.",
+    "Final full backup and dependency verification before permanent deletion."
+  ]
+}
