@@ -69,6 +69,7 @@ namespace Buklod.Empire {
         internal int VillageThreatId;
         internal float VillageThreatUntil;
         public Vector2 AttackFacing {get;internal set;}
+        public Vector2 LastAttackTargetPosition {get;internal set;}
         public bool Retreat; public float LastAttack=float.NegativeInfinity;
         public ArenaTactic Tactic {get;internal set;}=ArenaTactic.Renew;
         public float TacticReadyAt {get;internal set;}
@@ -615,6 +616,59 @@ namespace Buklod.Empire {
             counterTarget=enemy;counterUntil=Time+ArenaStoneRules.CounterDuration;practiceCounterUsed=true;return true;
         }
         public bool CastPlayer(SkillSlot slot,Vector2 aim){bool ok=Player.State.TryCast(this,slot,aim,Time,!Finished);if(ok)Player.RecallEnds=0;return ok;}
+        // Offline touch intent: one bounded approach/attack, never an infinite auto-chase.
+        // The authoritative network action and direct simulation APIs retain their original contract.
+        private int pendingAttackUnit,pendingAttackCamp;
+        private float pendingAttackUntil,attackFeedbackUntil;
+        private string attackFeedback="";
+        public bool HasPendingPlayerAttack=>pendingAttackUnit!=0||pendingAttackCamp!=0;
+        public string PlayerAttackFeedback=>Time<attackFeedbackUntil?attackFeedback:"";
+        private void AttackFeedback(string message){attackFeedback=message;attackFeedbackUntil=Time+1.7f;}
+        public void CancelPlayerAttack(){pendingAttackUnit=pendingAttackCamp=0;pendingAttackUntil=0;attackFeedback="";attackFeedbackUntil=0;}
+        private bool ValidAttackUnit(BattleUnit u)=>u!=null&&u.Team!=Player.Team&&Attackable(u)&&u.State.Buff("invulnerable",Time)<=0&&IsVisibleTo(Player.Team,u)&&ClearSight(Player.Position,u.Position);
+        private bool ValidAttackCamp(WildernessCamp c)=>c!=null&&c.Alive&&IsPositionVisibleTo(Player.Team,c.Position)&&ClearSight(Player.Position,c.Position);
+        private static string AttackName(BattleUnit u)=>u.State.Kit!=null?u.State.Kit.Name:u.Core?"fortress core":u.IsVillageBuilding?"building":u.Kind==BattleTargetKind.Structure?"tower":u.Kind.ToString().ToLowerInvariant();
+        public bool RequestPlayerBasic(Vector2 aim,BattleTargetKind? kind=null){
+            if(IsAuthoritative||AutonomousTraining||Finished||!Finite(aim)||kind.HasValue&&kind!=BattleTargetKind.Minion&&kind!=BattleTargetKind.Structure)return false;
+            CancelPlayerAttack();
+            var p=Player;var a=p.State;
+            if(!a.CanAttack(Time)||a.Buff("blind",Time)>0){AttackFeedback("Attack unavailable");return false;}
+            float range=a.Kit.BasicRange,searchRange=range+8f;
+            var candidates=Enemies(a,searchRange,aim).Select(Find).Where(u=>ValidAttackUnit(u)&&(!kind.HasValue||u.Kind==kind.Value));
+            var target=candidates.OrderBy(u=>Dist(p,u)>range?1:0).FirstOrDefault();
+            WildernessCamp camp=null;
+            if(!kind.HasValue&&(target==null||Dist(p,target)>range)){
+                camp=wilderness.Camps.Where(c=>ValidAttackCamp(c)&&Vector2.Distance(p.Position,c.Position)<=searchRange&&OfflineMatchRules.InAimCone(c.Position-p.Position,aim))
+                    .OrderBy(c=>Vector2.Distance(p.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
+                if(camp!=null&&target!=null&&Vector2.Distance(p.Position,camp.Position)>range)camp=null;
+            }
+            if(camp!=null)target=null;
+            if(target==null&&camp==null){AttackFeedback(kind==BattleTargetKind.Structure?"No exposed enemy structure nearby":kind==BattleTargetKind.Minion?"No enemy minion nearby":"No enemy or creature nearby");return false;}
+            pendingAttackUnit=target?.Id??0;pendingAttackCamp=camp?.Id??0;
+            pendingAttackUntil=Time+3.5f;
+            p.RecallEnds=0;
+            return AdvancePlayerAttack(0);
+        }
+        private bool AdvancePlayerAttack(float speed){
+            if(!HasPendingPlayerAttack)return false;
+            var p=Player;var a=p.State;
+            if(Finished||Time>=pendingAttackUntil||!a.CanAttack(Time)||a.Buff("blind",Time)>0){CancelPlayerAttack();AttackFeedback("Attack cancelled");return false;}
+            var target=pendingAttackUnit==0?null:units.FirstOrDefault(u=>u.Id==pendingAttackUnit);
+            var camp=pendingAttackCamp==0?null:wilderness.Find(pendingAttackCamp);
+            if(pendingAttackUnit!=0&&!ValidAttackUnit(target)||pendingAttackCamp!=0&&!ValidAttackCamp(camp)){CancelPlayerAttack();AttackFeedback("Target lost or protected");return false;}
+            Vector2 at=target!=null?target.Position:camp.Position;
+            string name=target!=null?AttackName(target):camp.Kind.ToString();
+            float distance=Vector2.Distance(p.Position,at),range=a.Kit.BasicRange;
+            if(distance>range+8f){CancelPlayerAttack();AttackFeedback("Target too far");return false;}
+            if(distance<=range){
+                if(BasicAttackRemaining(p)>0){AttackFeedback("Attack queued: cooldown");return true;}
+                bool hit=Basic(p,Vector2.zero,null,pendingAttackCamp,pendingAttackUnit);
+                CancelPlayerAttack();AttackFeedback(hit?"Hit: "+name:"Attack blocked");return hit;
+            }
+            if(!a.CanMove(Time)){CancelPlayerAttack();AttackFeedback("Cannot approach target");return false;}
+            if(speed>0)Steer(p,at-p.Position,speed);
+            AttackFeedback("Approaching "+name);return true;
+        }
         public bool PlayerAttack(Vector2 aim)=>Basic(Player,aim);
         public bool PlayerAttackTarget(BattleTargetKind kind,Vector2 aim)=>Basic(Player,aim,kind);
         public bool PlayerAttackUnit(int unitId)=>unitId>0&&Basic(Player,Vector2.zero,null,0,unitId);
@@ -672,10 +726,10 @@ namespace Buklod.Empire {
         private bool Basic(BattleUnit u,Vector2 aim,BattleTargetKind? kind=null,int campId=0,int unitId=0){
             var a=u.State;var k=a.Kit;
             if(Finished||!a.CanAttack(Time)||k==null||!Finite(aim)||BasicAttackRemaining(u)>0)return false;
-            if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
-            var target=Enemies(a,k.BasicRange,aim).FirstOrDefault(e=>(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
-            if(target==null){if(unitId!=0||kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;}
-            else {var facing=(Find(target).Position-u.Position).normalized;if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.AttackFacing=facing;}
+            if(campId!=0){var camp=wilderness.Find(campId);if(campId<0||!HitCamp(u,camp,k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttackTargetPosition=camp.Position;u.LastAttack=Time;return true;}
+            var target=Enemies(a,k.BasicRange,aim).FirstOrDefault(e=>(IsAuthoritative||e.Buff("invulnerable",Time)<=0)&&(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
+            if(target==null){var camp=FindCamp(u,aim,k.BasicRange);if(unitId!=0||kind.HasValue||!HitCamp(u,camp,k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttackTargetPosition=camp.Position;}
+            else {var at=Find(target).Position;var facing=(at-u.Position).normalized;if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.AttackFacing=facing;u.LastAttackTargetPosition=at;}
             u.LastAttack=Time;return true;
         }
         public static float ExperienceThreshold(int level)=>65f*level+18f*level*level;
@@ -762,6 +816,7 @@ namespace Buklod.Empire {
                 if(Finished)break;var a=u.State;if(u.Villager!=null){if(!IsAuthoritative)DefendVillageWorker(u);continue;}
                 if(u.Temporary&&u.Expires<=Time)a.Health=0;
                 if(!a.Alive){
+                    if(u==Player&&!IsAuthoritative)CancelPlayerAttack();
                     if(u.Kind==BattleTargetKind.Hero&&CanRespawn(u.Team)&&Time>=u.RespawnAt){a.Respawn();u.Position=u.Spawn;u.Retreat=false;}
                     continue;
                 }
@@ -780,7 +835,7 @@ namespace Buklod.Empire {
                     float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+u.RelicStats.Speed+u.CovenantBonus.Speed)*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
                     if(a.Kit.Id=="jawo"&&Time-u.RhythmAt<=4)speed*=1+.02f*u.RhythmStacks;
                     if(units.Any(v=>v.Team==u.Team&&v.State.Alive&&v.State.Kit?.Id=="ellusur"&&Dist(u,v)<=8.75f))speed*=1.1f;
-                    if(human){Move(u,heroMove,speed*heroMove.magnitude*Step);CollectNearby(u);continue;}
+                    if(human){if(!IsAuthoritative&&heroMove.sqrMagnitude>=.0025f)CancelPlayerAttack();if(!IsAuthoritative&&HasPendingPlayerAttack)AdvancePlayerAttack(speed);else Move(u,heroMove,speed*heroMove.magnitude*Step);CollectNearby(u);continue;}
                     Bot(u,speed);if(!Finished)CollectNearby(u);
                 }else if(u.Kind==BattleTargetKind.Minion)Minion(u);
                 else Structure(u);
@@ -1030,14 +1085,14 @@ namespace Buklod.Empire {
         private void Structure(BattleUnit u){
             if(!u.IsCombatStructure||!u.State.CanAttack(Time)||Time-u.LastAttack<1)return;
             bool guardian=!u.Core&&!u.Temporary;
-            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=10&&IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))
+            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&(IsAuthoritative||v.State.Buff("invulnerable",Time)<=0)&&Dist(u,v)<=10&&IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))
                 .OrderBy(v=>OfflineMatchRules.TowerPriority(v.Kind,guardian&&v.Id==u.AggressorId&&Time<u.AggroUntil))
                 .ThenBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
             if(t==null){u.LastTowerTarget=0;u.ConsecutiveTowerHits=0;return;}
             int hits=guardian&&t.Kind==BattleTargetKind.Hero&&u.LastTowerTarget==t.Id?u.ConsecutiveTowerHits:0;
             float multiplier=guardian&&t.Kind==BattleTargetKind.Hero?OfflineMatchRules.TowerRamp(hits):1;
             if(Hit(u.State,t.State,u.AttackDamage*u.TowerDamageMultiplier*multiplier)){
-                u.LastAttack=Time;u.LastTowerTarget=t.Id;u.ConsecutiveTowerHits=Math.Min(4,hits+1);
+                u.LastAttackTargetPosition=t.Position;u.AttackFacing=(t.Position-u.Position).normalized;u.LastAttack=Time;u.LastTowerTarget=t.Id;u.ConsecutiveTowerHits=Math.Min(4,hits+1);
             }
         }
     }
