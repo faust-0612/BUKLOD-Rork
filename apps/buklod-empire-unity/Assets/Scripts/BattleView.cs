@@ -43,7 +43,7 @@ namespace Buklod.Empire {
         public bool ControlFeedbackAccepted {get;private set;}
         public float ControlFeedbackUntil {get;private set;}
         public void SetPaused(bool value){
-            Paused=value;if(input)input.enabled=!value;if(value)ControlFeedbackUntil=0;
+            Paused=value;if(input)input.enabled=!value;if(value){ControlFeedbackUntil=0;Battle?.CancelPlayerAttack();}
             foreach(var visual in active.Values)if(visual.animator)visual.animator.speed=value?0f:1f;
             foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value?0f:1f;
             if(value){if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
@@ -140,8 +140,9 @@ namespace Buklod.Empire {
             if(Battle==null||Paused||Battle.Finished||Battle.AutonomousTraining||button<1||button>8)return false;
             var direction=ToWorld(aim);
             bool ok;
-            switch(button){case 1:ok=Battle.PlayerAttack(direction);break;case 5:ok=Battle.UsePlayerTactic(direction);break;case 6:ok=Battle.RecallPlayer();break;case 7:ok=Battle.PlayerAttackTarget(BattleTargetKind.Minion,direction);break;case 8:ok=Battle.PlayerAttackTarget(BattleTargetKind.Structure,direction);break;default:ok=Battle.CastPlayer((SkillSlot)(button-2),direction);break;}
-            ControlFeedbackButton=button;ControlFeedbackAccepted=ok;ControlFeedbackUntil=Time.unscaledTime+.28f;
+            if(button!=1&&button!=7&&button!=8)Battle.CancelPlayerAttack();
+            switch(button){case 1:ok=Battle.RequestPlayerBasic(direction);break;case 5:ok=Battle.UsePlayerTactic(direction);break;case 6:ok=Battle.RecallPlayer();break;case 7:ok=Battle.RequestPlayerBasic(direction,BattleTargetKind.Minion);break;case 8:ok=Battle.RequestPlayerBasic(direction,BattleTargetKind.Structure);break;default:ok=Battle.CastPlayer((SkillSlot)(button-2),direction);break;}
+            ControlFeedbackButton=button;ControlFeedbackAccepted=ok&&!Battle.HasPendingPlayerAttack;ControlFeedbackUntil=Battle.HasPendingPlayerAttack?0:Time.unscaledTime+.28f;
             return ok;
         }
         private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
@@ -272,6 +273,12 @@ namespace Buklod.Empire {
                     if(u.Kind==BattleTargetKind.Hero){
                         if(effects)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
                         if(reviewFoley&&inView&&!immediate)reviewFoley.WeaponAttack(u.State.Kit.Id,t.position,player);
+                    }else if(u.IsCombatStructure&&effects&&inView&&!immediate&&Battle.IsPositionVisibleTo(Battle.Player.Team,u.LastAttackTargetPosition)){
+                        // Reuse the existing bolt effect for confirmed tower fire; no new art assets.
+                        var at=Ground(u.LastAttackTargetPosition);var direction=at-t.position;direction.y=0;
+                        var color=u.Team==ArenaTeam.Lux?new Color(.35f,.8f,1):new Color(1,.28f,.35f);
+                        if(direction.sqrMagnitude>.001f)effects.EmitSkill(t.position+Vector3.up*.65f,color,new SkillCue("structure_attack_feedback",SkillCueShape.Bolt,direction.magnitude/1.5f,.24f,-1),direction);
+                        effects.Emit(at,color,0);
                     }
                 }
                 bool castThisFrame=false;
