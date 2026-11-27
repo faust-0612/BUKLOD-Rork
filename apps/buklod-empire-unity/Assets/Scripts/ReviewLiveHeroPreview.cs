@@ -73,13 +73,19 @@ namespace Buklod.Empire {
                 if(showWings&&!wings){
                     var materials=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(r=>r.sharedMaterials).Where(m=>m).Distinct().ToArray();
                     var armor=materials.FirstOrDefault(m=>m.name=="armor");var trim=materials.FirstOrDefault(m=>m.name=="trim");
-                    if(!armor||!trim)throw new InvalidOperationException("Evolution preview materials missing.");
+                    if(!armor||!trim){Debug.LogWarning("Optional evolution wings unavailable; base live preview retained.");showWings=false;}
+                    else{
                     var mount=new GameObject("LOCKED EVOLUTION PREVIEW ONLY");mount.layer=Layer;mount.transform.SetParent(actor.transform,false);
+                    // Anchor in the unrotated actor frame; retain position while the preview turns.
+                    var priorRotation=actor.transform.localRotation;actor.transform.localRotation=Quaternion.identity;
                     mount.transform.position=bounds.center+Vector3.up*bounds.size.y*.24f-actor.transform.forward*bounds.size.y*.13f;
+                    actor.transform.localRotation=priorRotation;
                     var scale=actor.transform.lossyScale;float size=bounds.size.y*.66f;
                     mount.transform.localScale=new Vector3(size/Mathf.Max(.001f,Mathf.Abs(scale.x)),size/Mathf.Max(.001f,Mathf.Abs(scale.y)),size/Mathf.Max(.001f,Mathf.Abs(scale.z)));
                     fullWingScale=mount.transform.localScale;
-                    wings=mount.AddComponent<ReviewEvolutionWings>();wings.Initialize(armor,trim);
+                    try{wings=mount.AddComponent<ReviewEvolutionWings>();wings.Initialize(armor,trim);}
+                    catch(Exception error){Debug.LogWarning("Optional evolution wings unavailable: "+error.Message);mount.SetActive(false);Destroy(mount);wings=null;showWings=false;}
+                    }
                 }
                 if(wings){wings.transform.localScale=fullWingScale*(previewStage==3?.70f:1f);wings.gameObject.SetActive(showWings);}
                 float aspect=(float)Width/Height;camera.orthographicSize=FrameSize(bounds.size,aspect,full);
