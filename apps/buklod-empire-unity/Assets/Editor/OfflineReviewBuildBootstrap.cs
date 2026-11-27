@@ -49,7 +49,7 @@ namespace Buklod.Empire.Editor {
                 if(!view||!view.IsConfiguredReview||!view.visuals)throw new BuildFailedException("Review scene missing.");
                 var deps=AssetDatabase.GetDependencies(StylizedArenaBenchmark.ScenePath,true);
                 ReviewAuthoredAssetGate.Validate(deps);AuthoredExpansionReview.Validate(deps);
-                OfflineMotionGate.Validate(view.visuals);
+                OfflineMotionGate.Validate(view.visuals);ReviewFortressGate.Validate(view.visuals);
                 OfflineAuthoredMotionReview.ValidateDependencies(deps);
                 PortraitCaptureReview.ValidateDependencies(deps);
                 HeroDialogueReview.ValidateDependencies(view.gameObject,deps);

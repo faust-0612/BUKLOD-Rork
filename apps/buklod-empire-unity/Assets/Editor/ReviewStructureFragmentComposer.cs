@@ -20,7 +20,8 @@ namespace Buklod.Empire.Editor {
             foreach(var f in sources){var matrix=root.transform.worldToLocalMatrix*f.transform.localToWorldMatrix;
                 foreach(var v in f.sharedMesh.vertices){var p=matrix.MultiplyPoint3x4(v);if(!found){bound=new Bounds(p,Vector3.zero);found=true;}else bound.Encapsulate(p);}}
             if(!found||bound.size.y<.01f)return;
-            Directory.CreateDirectory(Folder);
+            if(!AssetDatabase.IsValidFolder(Folder)){if(Directory.Exists(Folder))AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);else AssetDatabase.CreateFolder(CandidateReviewComposer.Out,"StructureFragments");}
+            if(!AssetDatabase.IsValidFolder(Folder))throw new InvalidOperationException("Fragment asset folder unavailable.");
             var mats=sourcesRenderers.SelectMany(r=>r.sharedMaterials).Distinct().ToArray();
             if(mats.Length==0||mats.Any(m=>!m))return;
             var groups=Enumerable.Range(0,MaxPieces).Select(_=>new Group(mats.Length)).ToArray();
@@ -55,7 +56,7 @@ namespace Buklod.Empire.Editor {
                 var used=Enumerable.Range(0,mats.Length).Where(i=>g.Indices[i].Count>0).ToArray();mesh.subMeshCount=used.Length;
                 for(int j=0;j<used.Length;j++)mesh.SetTriangles(g.Indices[used[j]],j);mesh.RecalculateBounds();
                 string path=Folder+"/"+id+"_"+k+".asset";var old=AssetDatabase.LoadAssetAtPath<Mesh>(path);
-                if(old){EditorUtility.CopySerialized(mesh,old);UnityEngine.Object.DestroyImmediate(mesh);mesh=old;}else AssetDatabase.CreateAsset(mesh,path);
+                if(old){EditorUtility.CopySerialized(mesh,old);UnityEngine.Object.DestroyImmediate(mesh);mesh=old;EditorUtility.SetDirty(mesh);}else AssetDatabase.CreateAsset(mesh,path);
                 var go=new GameObject("Structure fragment "+k);go.transform.SetParent(root.transform,false);go.transform.localPosition=pivot;go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterials=used.Select(i=>mats[i]).ToArray();go.SetActive(false);
                 var direction=pivot-bound.center;direction.y=0;if(direction.sqrMagnitude<.001f)direction=new Vector3((k&1)==0?-1:1,0,(k&4)==0?-1:1);
                 pieces.Add(new ReviewStructureFragments.Piece{root=go.transform,origin=pivot,direction=direction.normalized,tier=(k&2)==0?2:0});

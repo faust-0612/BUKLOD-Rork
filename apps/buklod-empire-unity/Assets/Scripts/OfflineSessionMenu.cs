@@ -82,7 +82,7 @@ namespace Buklod.Empire {
             if(flow!=null)StartCoroutine(BootReview());
         }
         private void ApplySafeArea(){lastSafe=MobileBattleInput.SafeArea;safeRoot.anchorMin=new Vector2(lastSafe.xMin/Mathf.Max(1,Screen.width),lastSafe.yMin/Mathf.Max(1,Screen.height));safeRoot.anchorMax=new Vector2(lastSafe.xMax/Mathf.Max(1,Screen.width),lastSafe.yMax/Mathf.Max(1,Screen.height));}
-        private void Open(){if(starting||booting)return;panelGroup.alpha=1;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
+        private void Open(){if(starting||booting||view.IsEditorReview&&view.Battle!=null&&view.Battle.Finished&&!view.ReadyForReviewResult)return;panelGroup.alpha=1;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
         private bool Active=>view.Battle!=null&&!view.Battle.Finished;
         private void Reply(bool ok,string success){feedback.text=ok?success:"Not available: check eligibility, funds, distance or cooldown.";Rebuild();}
         private void HeroCard(int i,HeroKit kit){
@@ -427,7 +427,7 @@ namespace Buklod.Empire {
             if(bodyReveal&&shown){float t=Mathf.Clamp01((Time.unscaledTime-bodyOpened)/.22f);bodyReveal.alpha=Mathf.Lerp(.48f,1,Mathf.SmoothStep(0,1,t));}
             if(starting||layoutEditor!=null)return;
             bool finished=view.Battle!=null&&view.Battle.Finished;
-            if(finished&&!lastFinished&&!shown&&view.ShowingCoreCollapse)return;
+            if(finished&&!lastFinished&&view.IsEditorReview&&(!Foreground||!view.ReadyForReviewResult))return;
             if(finished&&!lastFinished&&view.IsEditorReview){showResult=true;resultRevealAt=Time.unscaledTime;}
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();lastFinished=finished;
             if(shown&&finished&&showResult&&resultRevealAt>=0){

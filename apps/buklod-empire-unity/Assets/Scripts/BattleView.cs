@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         public bool premiumVisuals=true;
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
-        ReviewCombatOverlay combatOverlay;ReviewProjectileEffects projectileEffects;float collapseUntil;ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
+        ReviewCombatOverlay combatOverlay;ReviewProjectileEffects projectileEffects;float collapseUntil;bool finishSynced;ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
         private ArenaReviewFoley reviewFoley;
         private ReviewHeroDialogue reviewDialogue;
         ReviewMotionLibrary reviewMotion;bool authoredWalk;
@@ -40,7 +40,8 @@ namespace Buklod.Empire {
             catch(System.Exception e){PracticeResultStatus="Local practice save failed";Debug.LogWarning("Practice record save failed: "+e.GetType().Name);}
         }
         public bool Paused {get;private set;}
-        internal bool ShowingCoreCollapse=>ReviewOnly&&Battle!=null&&Battle.Finished&&!Paused&&Application.isFocused&&Time.unscaledTime<collapseUntil;
+        internal bool ReadyForReviewResult=>Battle!=null&&Battle.Finished&&finishSynced&&Application.isFocused&&(Paused||Time.unscaledTime>=collapseUntil);
+        internal bool ShowingCoreCollapse=>ReviewOnly&&Battle!=null&&Battle.Finished&&!ReadyForReviewResult;
         public int ControlFeedbackButton {get;private set;}
         public bool ControlFeedbackAccepted {get;private set;}
         public float ControlFeedbackUntil {get;private set;}
@@ -111,7 +112,7 @@ namespace Buklod.Empire {
             if(!nextBattle.SelectPlayerTactic(tactic)||covenant.HasValue&&!nextBattle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
             // Commit only after candidate simulation and loadout validation. Any later presentation failure is aborted by review menu.
-            SetPaused(true);Battle=nextBattle;collapseUntil=0;
+            SetPaused(true);Battle=nextBattle;collapseUntil=0;finishSynced=false;
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
@@ -158,7 +159,7 @@ namespace Buklod.Empire {
             ControlFeedbackButton=button;ControlFeedbackAccepted=ok;ControlFeedbackUntil=Time.unscaledTime+.28f;
             return ok;
         }
-        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));if(ReviewOnly&&Battle.Finished&&input)input.enabled=false;SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
+        private void Update(){if(Battle==null)return;if(Paused){if(ReviewOnly&&Battle.Finished&&!finishSynced){Sync(true);SavePracticeResult();}return;}Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));if(ReviewOnly&&Battle.Finished&&input)input.enabled=false;SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
         private void LateUpdate(){if(Battle!=null&&!revealActive&&!Paused&&!Battle.Finished)Follow(false);}
         internal void BeginReviewReveal(){
             if(!ReviewOnly||Battle==null||!Paused||!battleCamera)return;
@@ -363,7 +364,7 @@ namespace Buklod.Empire {
                 removed.Add(pair.Key);
             }
             foreach(int id in removed)active.Remove(id);
-            if(reviewShadows)reviewShadows.End();if(combatOverlay)combatOverlay.EndFrame();if(projectileEffects)projectileEffects.Consume(immediate);
+            if(reviewShadows)reviewShadows.End();if(combatOverlay)combatOverlay.EndFrame();if(projectileEffects)projectileEffects.Consume(immediate);if(Battle.Finished)finishSynced=true;
         }
         private void Follow(bool immediate){
             var at=Ground(Battle.Player.Position);
