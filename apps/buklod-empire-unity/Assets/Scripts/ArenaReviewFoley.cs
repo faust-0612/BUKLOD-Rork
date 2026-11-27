@@ -8,7 +8,7 @@ namespace Buklod.Empire {
         BattleView view;OfflineBattle match;
         AudioSource feet,announcer,economy;
         AudioSource[] hits;
-        int nextHit,nextStep,lastGold;bool entered,finished,focused=true,appPaused;
+        int nextHit,nextStep,lastEarned;bool entered,finished,focused=true,appPaused;
         Vector2 previous;float stride,nextImpact,nextCoin;
         AudioSource Source(string name,bool spatial){
             var go=new GameObject(name);go.transform.SetParent(transform,false);
@@ -30,21 +30,22 @@ namespace Buklod.Empire {
             float effects=ReviewAudioSettings.Get(ReviewAudioChannel.Effects);
             feet.volume=effects;economy.volume=effects;announcer.volume=ReviewAudioSettings.Get(ReviewAudioChannel.Voice);
             foreach(var hit in hits)hit.volume=effects;
-            if(match!=b){StopAll();match=b;entered=finished=false;previous=player.Position;stride=0;lastGold=player.Gold;nextCoin=nextImpact=0;}
+            if(match!=b){StopAll();match=b;entered=finished=false;previous=player.Position;stride=0;lastEarned=player.EarnedFeedbackSequence;nextCoin=nextImpact=0;}
             if(b.Finished){
                 if(!finished){finished=true;StopAll();Speak(!b.Winner.HasValue?draw:b.Winner.Value==player.Team?win:lose);}
                 return;
             }
-            if(view.Paused){previous=player.Position;lastGold=player.Gold;stride=0;StopAll();return;}
+            if(view.Paused){previous=player.Position;lastEarned=player.EarnedFeedbackSequence;stride=0;StopAll();return;}
             if(!entered){entered=true;Speak(fight);}
             float delta=Vector2.Distance(previous,player.Position);previous=player.Position;
             if(player.State.Alive&&delta<2f){stride+=delta;if(stride>=1.3f){stride%=1.3f;if(steps!=null&&steps.Length>0&&!feet.isPlaying){var clip=steps[nextStep++%steps.Length];if(clip)feet.PlayOneShot(clip,.22f);}}}
             else stride=0;
-            if(player.Gold>lastGold&&Time.unscaledTime>=nextCoin&&coins){economy.PlayOneShot(coins,.16f);nextCoin=Time.unscaledTime+1.2f;}
-            lastGold=player.Gold;
+            if(player.EarnedFeedbackSequence>lastEarned&&Time.unscaledTime>=nextCoin&&coins){economy.PlayOneShot(coins,.16f);nextCoin=Time.unscaledTime+1.2f;}
+            lastEarned=player.EarnedFeedbackSequence;
         }
+        public void SuspendBattleAudio(){StopAll();stride=0;if(view&&view.Battle!=null){previous=view.Battle.Player.Position;lastEarned=view.Battle.Player.EarnedFeedbackSequence;}}
         public void Impact(bool structure,Vector3 point){
-            if(!Active||view.Paused||view.Battle.Finished||hits==null||Time.unscaledTime<nextImpact)return;
+            if(!Active||view.Paused||hits==null||Time.unscaledTime<nextImpact)return;
             if(Vector3.Distance(view.FieldPosition(view.Battle.Player.Position),point)>20)return;
             var clip=structure?wood:metal;if(!clip)return;
             var s=hits[nextHit++%hits.Length];s.Stop();s.transform.position=point;s.PlayOneShot(clip,.22f);nextImpact=Time.unscaledTime+.12f;

@@ -47,6 +47,8 @@ namespace Buklod.Empire {
         public float Power=1, AttackDamage=18, Expires=float.PositiveInfinity, RespawnAt, Xp;
         public int Gold=120, TowerLevel=1;
         public int Kills {get;internal set;} public int Deaths {get;internal set;} public int Assists {get;internal set;}
+        // Presentation receipt for successful active rewards, never passive gold or settlement.
+        public int EarnedFeedbackSequence {get;internal set;}
         internal int AggressorId, LastTowerTarget, ConsecutiveTowerHits,KillStreak,ConsecutiveDeaths;
         public float DamageDealt {get;internal set;} public float DamageTaken {get;internal set;}
         internal float AggroUntil;
@@ -464,14 +466,14 @@ namespace Buklod.Empire {
             if(actor.Kit?.Id=="jawo"&&n>0&&Time-a.RhythmAt>=.39f){a.RhythmStacks=Time-a.RhythmAt>4?1:Math.Min(5,a.RhythmStacks+1);a.RhythmAt=Time;}
             if(target.Kit?.Id=="trudice"&&hpDamage>0)actor.Health=Mathf.Max(1,actor.Health-hpDamage*Mathf.Clamp(target.Buff("reflect",Time),0,.3f));
             if(!target.Alive){
-                if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager&&!t.RevivedMinion){a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?OfflineMatchRules.KillGold(t.ConsecutiveDeaths,t.KillStreak):t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16);}
+                if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager&&!t.RevivedMinion){a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?OfflineMatchRules.KillGold(t.ConsecutiveDeaths,t.KillStreak):t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16);a.EarnedFeedbackSequence++;}
                 if(t.Kind==BattleTargetKind.Hero){
                     t.Deaths++;t.ConsecutiveDeaths++;t.KillStreak=0;t.RespawnAt=Time+OfflineMatchRules.RespawnDelay(Time);
                     if(a.Kind==BattleTargetKind.Hero){a.Kills++;a.KillStreak++;a.ConsecutiveDeaths=0;}
                     foreach(var contribution in t.RecentHeroDamage){
                         if(contribution.Key==a.Id||Time-contribution.Value>OfflineMatchRules.AssistWindow)continue;
                         var helper=units.FirstOrDefault(v=>v.Id==contribution.Key&&v.Team==a.Team&&v.Kind==BattleTargetKind.Hero);
-                        if(helper!=null){helper.Assists++;helper.Gold=Mathf.Min(9999,helper.Gold+OfflineMatchRules.AssistGold);}
+                        if(helper!=null){helper.Assists++;helper.Gold=Mathf.Min(9999,helper.Gold+OfflineMatchRules.AssistGold);helper.EarnedFeedbackSequence++;}
                     }
                     t.RecentHeroDamage.Clear();
                 }
@@ -508,6 +510,7 @@ namespace Buklod.Empire {
             hero.AttackFacing=(camp.Position-hero.Position).normalized;
             hero.RecallEnds=0;hero.State.Set("revealed",1,Time+2,Time);
             if(defeated){
+                hero.EarnedFeedbackSequence++;
                 var a=hero.State;hero.Gold=Mathf.Min(9999,hero.Gold+Mathf.RoundToInt((camp.Boss?90:30)*(1+hero.CovenantBonus.NeutralReward)));GainXp(hero,(camp.Boss?90:35)*(1+hero.CovenantBonus.NeutralReward));
                 switch(camp.Kind){
                     case WildernessKind.AzureStag:a.Mana=Mathf.Min(a.MaxMana,a.Mana+25);a.Set("cooldown",.15f,Time+45,Time);break;
@@ -559,7 +562,7 @@ namespace Buklod.Empire {
                 a.ShieldCapacity=105+current.ShieldMax;a.PickupShield(Mathf.Max(0,current.ShieldMax-old.ShieldMax),Time);
                 a.EquipmentCooldown=(u.Gear.Contains("wisdom")?.12f:0)+current.Cooldown;
             }
-            relicDrops.Remove(d);return true;
+            relicDrops.Remove(d);u.EarnedFeedbackSequence++;return true;
         }
         public bool CollectPlayerPickup(int id)=>CollectPickup(Player,id);
         private bool CollectPickup(BattleUnit u,int id){
@@ -576,7 +579,7 @@ namespace Buklod.Empire {
                 case "cooldown":amount=s.ReduceActiveCooldowns(v/1000,Time);break;
                 case "haste":case "fury":case "guard":case "regen":if(s.ExtendPickupBuff(item.Effect,v,item.Duration,Time))amount=v;break;
             }
-            if(amount<=0)return false;drops.Remove(d);return true;
+            if(amount<=0)return false;drops.Remove(d);u.EarnedFeedbackSequence++;return true;
         }
         private void CollectNearby(BattleUnit u){for(int i=drops.Count-1;i>=0;i--)if(CollectPickup(u,drops[i].Id))break;for(int i=relicDrops.Count-1;i>=0;i--)if(CollectRelic(u,relicDrops[i].Id))break;}
         public bool Dash(SkillActor actor,Vector2 direction,float distance)=>Move(Find(actor),direction,distance);

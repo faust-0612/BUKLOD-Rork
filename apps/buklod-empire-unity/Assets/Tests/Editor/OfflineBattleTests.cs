@@ -9,6 +9,15 @@ namespace Buklod.Empire.Tests {
             Assert.AreEqual(Vector2.left,MobileBattleInput.ResolveAim(center+Vector2.left*80,center,40));
             Assert.AreEqual(new Vector2(0,.5f),MobileBattleInput.ResolveAim(center+Vector2.up*20,center,40));
         }
+        [Test] public void PassiveIncomeDoesNotTriggerEarnedFeedbackButKillDoes(){
+            var b=new OfflineBattle("phan");var p=b.Player;
+            for(int i=0;i<11;i++)b.Advance(.1f,Vector2.zero);
+            Assert.Greater(p.Gold,120);Assert.AreEqual(0,p.EarnedFeedbackSequence);
+            var enemy=b.Units.First(u=>u.Team!=p.Team&&u.Kind==BattleTargetKind.Hero);
+            Assert.True(b.Hit(p.State,enemy.State,300));
+            Assert.AreEqual(1,p.EarnedFeedbackSequence);
+            Assert.False(b.Hit(p.State,enemy.State,300));Assert.AreEqual(1,p.EarnedFeedbackSequence);
+        }
         [Test] public void InvalidSummonsDoNotChangeFactionCount(){
             var b=new OfflineBattle("phan");int before=b.RemainingUnits(ArenaTeam.Lux);
             Assert.False(b.Turret(b.Player.State,Vector2.right,5,float.NaN,10,20));
