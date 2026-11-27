@@ -38,7 +38,7 @@ namespace Buklod.Empire.Editor {
             foreach(var entry in doc.entries){
                 if(entry==null||!paths.TryGetValue(entry.slot,out var baseline)||!seen.Add(entry.slot)||!Safe(entry.assetPath)||
                     !entry.redistributionReviewed||string.IsNullOrWhiteSpace(entry.author)||
-                    (entry.license!="CC0-1.0"&&entry.license!="CC-BY-4.0"&&entry.license!="CC-BY-3.0")||
+                    entry.license!="CC0-1.0"||
                     !Uri.TryCreate(entry.sourceUrl,UriKind.Absolute,out var url)||url.Scheme!="https"||entry.files==null||entry.files.Length<1)
                     throw new BuildFailedException("Unreviewed supplemental content entry.");
                 var declared=new HashSet<string>(StringComparer.Ordinal);
