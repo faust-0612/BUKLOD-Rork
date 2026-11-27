@@ -58,6 +58,11 @@ namespace Buklod.Empire.Editor {
             File.WriteAllText(Path.Combine(output,"unsigned-content.json"),JsonUtility.ToJson(doc,true));
             Debug.Log("Unsigned content exported: "+output+"; sign locally before hosting. Nothing deployed.");
         }
+        internal static void ValidateBase(BattleVisualCatalog catalog){
+            foreach(var row in EmpireStaticContent.Slots(catalog))
+                if(!EmpireStaticContent.Compatible(row.Value,row.Value))
+                    throw new BuildFailedException("Base static content ABI incompatible: "+row.Key);
+        }
         internal static void ValidateBuildConfiguration(){
             try{
                 var trust=EmpireContentUpdater.ReadTrust();
