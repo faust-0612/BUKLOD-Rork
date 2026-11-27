@@ -48,8 +48,7 @@ namespace Buklod.Empire {
             catch(Exception){Status="Content trust invalid; built-in assets available";yield break;}
             if(trust==null){Status="Content service not configured; offline assets available";yield break;}
             Busy=true;
-            yield return Restore();
-            Busy=false;
+            try{yield return Restore();}finally{Busy=false;}
             if(Application.internetReachability!=NetworkReachability.NotReachable)Check();
         }
         string Receipt(int revision)=>Path.Combine(root,"revision-"+revision+".json");
@@ -94,7 +93,9 @@ namespace Buklod.Empire {
                         if(EmpireContentProtocol.IsStatic(slot)){
                             var asset=bundle.LoadAssetAsync<GameObject>(EmpireContentProtocol.AssetName(slot));yield return asset;
                             var model=asset.asset as GameObject;
-                            if(baseline==null||!baseline.TryGetValue(slot,out var reference)||!EmpireStaticContent.Compatible(model,reference)){valid=false;break;}
+                            if(baseline==null||!baseline.TryGetValue(slot,out var reference)){valid=false;break;}
+                            try{valid=EmpireStaticContent.Compatible(model,reference);}catch(Exception){valid=false;}
+                            if(!valid)break;
                             visuals.Add(slot,model);
                         }else{
                             var asset=bundle.LoadAssetAsync<AudioClip>(EmpireContentProtocol.AssetName(slot));yield return asset;
@@ -106,7 +107,16 @@ namespace Buklod.Empire {
                     if(!valid)break;
                 }
                 BattleVisualCatalog catalog=null;
-                if(valid&&visuals.Count>0){try{catalog=EmpireStaticContent.CloneWith(baseCatalog,visuals);}catch(Exception){valid=false;}}
+                if(valid&&visuals.Count>0){
+                    try{
+                        catalog=EmpireStaticContent.CloneWith(baseCatalog,visuals);
+#if UNITY_EDITOR || BUKLOD_OFFLINE_REVIEW
+                        catalog.ValidateOfflineReview();
+#else
+                        valid=false;
+#endif
+                    }catch(Exception){valid=false;}
+                }
                 if(!valid){if(catalog&&catalog!=baseCatalog)Destroy(catalog);foreach(var bundle in handles)bundle.Unload(true);continue;}
                 // A complete compatible revision replaces the lookup atomically, never a partial bundle.
                 loaded.AddRange(handles);overrides=next;staticOverrides=visuals;updatedCatalog=catalog;activeRevision=m.revision;activeHashes=new HashSet<string>(m.bundles.Select(b=>b.sha256),StringComparer.Ordinal);
