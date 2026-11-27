@@ -186,7 +186,7 @@ namespace Buklod.Empire {
             animator.SetTrigger(trigger);
             if(effects&&SkillCueCatalog.TryGet(HeroKitCatalog.Get(modelId).Skill(slot).Id,out var cue)){
                 var scaled=ScaleCue(cue,hgt);
-                effects.Clear();effects.EmitSkill(transform.position,BattleEffects.Accent(modelId),scaled,Vector3.right);
+                effects.Clear();effects.EmitSkill(transform.position,BattleEffects.Accent(modelId),scaled,Vector3.right,slot==SkillSlot.Ultimate);
                 var audio=view.GetComponent<SkillAudio>();if(audio&&view.battleCamera)audio.Play(cue,view.battleCamera.transform.position,true,true);
             }
             return true;

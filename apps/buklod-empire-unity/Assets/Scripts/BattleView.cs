@@ -47,7 +47,7 @@ namespace Buklod.Empire {
             Paused=value;if(input)input.enabled=!value;if(value)ControlFeedbackUntil=0;
             foreach(var visual in active.Values)if(visual.animator)visual.animator.speed=value?0f:1f;
             foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value?0f:1f;
-            if(value){if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
+            if(value){if(effects)effects.Clear();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
         public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
         [SerializeField, HideInInspector] private bool editorReviewOnly;
@@ -78,7 +78,7 @@ namespace Buklod.Empire {
         private readonly HashSet<int> seen=new HashSet<int>();
         private readonly Dictionary<int,VillageResourceNode> reviewFarmNodes=new Dictionary<int,VillageResourceNode>();
         private readonly List<int> removed=new List<int>();
-        private readonly List<(Visual visual,float until)> dying=new List<(Visual,float)>();
+        private readonly List<(Visual visual,float remaining)> dying=new List<(Visual,float)>();
         private readonly Plane[] frustum=new Plane[6];
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
@@ -204,7 +204,7 @@ namespace Buklod.Empire {
             return GeometryUtility.TestPlanesAABB(frustum,new Bounds(center,Vector3.one*(2*radius)));
         }
         private void Sync(bool immediate){
-            for(int i=dying.Count-1;i>=0;i--)if(immediate||Time.unscaledTime>=dying[i].until){Return(dying[i].visual);dying.RemoveAt(i);}
+            for(int i=dying.Count-1;i>=0;i--){var row=dying[i];row.remaining-=Mathf.Max(0,Time.deltaTime);if(immediate||row.remaining<=0){Return(row.visual);dying.RemoveAt(i);}else dying[i]=row;}
             seen.Clear();if(combatOverlay)combatOverlay.BeginFrame();
             if(reviewShadows)reviewShadows.Begin();
             reviewFarmNodes.Clear();
@@ -259,7 +259,7 @@ namespace Buklod.Empire {
                     if(u.Kind!=BattleTargetKind.Structure&&u.AttackFacing.sqrMagnitude>.001f)t.rotation=Quaternion.LookRotation(new Vector3(u.AttackFacing.x,0,u.AttackFacing.y));
                     if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");
                     if(u.Kind==BattleTargetKind.Hero){
-                        if(effects)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
+                        if(effects&&(!ReviewOnly||inView))effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f,ReviewOnly?u.State.Kit.Id:null);
                         if(reviewFoley&&inView&&!immediate)reviewFoley.WeaponAttack(u.State.Kit.Id,t.position,player);
                     }
                 }
@@ -271,7 +271,7 @@ namespace Buklod.Empire {
                         if(!u.State.TryGetCast(seq,out var cast)||u.State.Kit==null||!SkillCueCatalog.TryGet(u.State.Kit.Skill(cast.Slot).Id,out var cue))continue;
                         var aim=cast.Aim;var forward=aim.sqrMagnitude>.0025f?new Vector3(aim.x,0,aim.y):t.forward;
                         if(aim.sqrMagnitude>.0025f)t.rotation=Quaternion.LookRotation(forward);
-                        if(effects)effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward);
+                        if(effects&&(!ReviewOnly||inView))effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward,ReviewOnly&&cast.Slot==SkillSlot.Ultimate);
                         if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
                         if(reviewDialogue&&u==Battle.Player&&cast.Slot==SkillSlot.Ultimate)reviewDialogue.Ultimate(u.State.Kit.Id);
                         castThisFrame=true;
@@ -309,6 +309,7 @@ namespace Buklod.Empire {
                 }
                 if(!castThisFrame&&!attackedThisFrame&&tookHit&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");
                 if(tookHit&&!immediate&&inView&&reviewFoley)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,t.position);
+                if(ReviewOnly&&tookHit&&!immediate&&inView&&hero&&effects)effects.EmitImpact(t.position+Vector3.up*.7f,u.Team==Battle.Player.Team?new Color(1,.65f,.36f):new Color(1,.88f,.58f));
                 if(combatOverlay&&inView&&hero){
                     float damage=existing&&!immediate?Mathf.Max(0,u.DamageTaken-v.damageTaken):0;
                     combatOverlay.Observe(u.Id,t.position+Vector3.up*Mathf.Max(1.6f,worldScale*2.25f),u.State.Health,u.State.MaxHealth,u.State.Shield,u.State.Level,u.Team==Battle.Player.Team,player,damage);
@@ -325,7 +326,7 @@ namespace Buklod.Empire {
                     var tint=u.Team==ArenaTeam.Lux?new Color(.55f,.69f,.82f):new Color(.48f,.25f,.28f);
                     if(worldEffects)worldEffects.Emit(v.instance.transform.position,kind,unchecked(u.Id*397+(int)(Battle.Time*10)),tint);
                     if(reviewFoley&&u.DamageTaken>v.damageTaken+.001f)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,v.instance.transform.position);
-                    if(effects)effects.Emit(v.instance.transform.position,tint,u.Core?3:u.Kind==BattleTargetKind.Structure?2:1);
+                    if(effects){if(ReviewOnly&&u.Core)effects.EmitCoreCollapse(v.instance.transform.position,tint);else effects.Emit(v.instance.transform.position,tint,u.Core?3:u.Kind==BattleTargetKind.Structure?2:1);}
                 }
                 if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&v.parameters.Contains("Death")){
                     foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit","Work","Skill"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
@@ -333,7 +334,7 @@ namespace Buklod.Empire {
                     v.animator.SetTrigger("Death");
                     var duration=1.2f;
                     foreach(var clip in v.animator.runtimeAnimatorController.animationClips)if(clip&&clip.name=="Death")duration=Mathf.Clamp(clip.length+.1f,.4f,2.5f);
-                    dying.Add((v,Time.unscaledTime+duration));
+                    dying.Add((v,duration));
                 }else Return(v);
                 removed.Add(pair.Key);
             }

@@ -232,7 +232,7 @@ namespace Buklod.Empire {
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
             if(resumeButton)resumeButton.interactable=active&&(!view.IsEditorReview||matchStarted)&&!confirmRestart;
-            if(flow!=null){ConfigureWizardControls();for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=b!=null||i<3||i>=8;ApplyScreenStyle();}
+            if(flow!=null){ConfigureWizardControls();for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=(active&&matchStarted)||i<3||i>=8;ApplyScreenStyle();}
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
             if(view.IsEditorReview&&showResult&&b!=null&&b.Finished){
@@ -384,9 +384,9 @@ namespace Buklod.Empire {
             Rebuild();
             // Display the exact locked roster before synchronous local initialization.
             yield return null;
-            bool ready=false;var previous=view.Battle;
+            bool ready=false;var previous=view.Battle;bool previouslyStarted=matchStarted;
             try{BeginMatch(false);ready=true;}
-            catch(Exception error){Debug.LogException(error);if(!ReferenceEquals(previous,view.Battle)){view.AbortReviewMatch();matchStarted=false;}view.SetPaused(true);flow.FailLoading();page=-1;heroDetail=false;shown=true;panel.gameObject.SetActive(true);Rebuild();feedback.text="Match initialization failed. Review assets and retry.";}
+            catch(Exception error){Debug.LogException(error);if(!ReferenceEquals(previous,view.Battle))view.AbortReviewMatch();matchStarted=previouslyStarted&&previous!=null&&ReferenceEquals(previous,view.Battle);view.SetPaused(true);flow.FailLoading();page=-1;heroDetail=false;shown=true;panel.gameObject.SetActive(true);Rebuild();feedback.text=matchStarted?"New match failed. Previous match retained; back to lobby to resume.":"Match initialization failed. Review assets and retry.";}
             if(ready){
                 title.text="GENESIS RIFT";summary.text="All ten heroes initialized • battlefield ready";
                 feedback.text="Local assets ready";ShowVersus(true);
