@@ -72,6 +72,7 @@ namespace Buklod.Empire.Editor {
                     m.SetColor("_BaseColor",authored?Color.Lerp(original.GetColor(colorProperty),Color.white,.55f):original.GetColor(colorProperty));m.SetTexture("_Detail",authored?authored:texture);
                     var normal=PremiumSurfaceReview.Get(kind,true);m.SetTexture("_NormalDetail",normal);m.SetFloat("_NormalStrength",normal?.75f:0f);
                     m.SetFloat("_Tile",kind=="paving"?.18f:kind=="metal"?.65f:.42f);
+                    m.SetFloat("_RiftWidth",OfflineBattle.Width);m.SetFloat("_TerrainAtmosphere",id=="genesis_rift_candidate"&&kind!="metal"?.7f:0f);
                     float metal=original.HasProperty("_Metallic")?original.GetFloat("_Metallic"):original.HasProperty("_MetallicFactor")?original.GetFloat("_MetallicFactor"):kind=="metal"?.5f:0;
                     m.SetFloat("_Metallic",Mathf.Clamp01(metal));EditorUtility.SetDirty(m);
                     materials[i]=m;changed=true;count++;

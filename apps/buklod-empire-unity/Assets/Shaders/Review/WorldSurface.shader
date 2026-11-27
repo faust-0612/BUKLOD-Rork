@@ -6,6 +6,8 @@ Shader "BUKLOD/Review/WorldSurface" {
         _NormalStrength("Normal strength",Range(0,1))=0
         _Tile("Tiles per world unit",Float)=.45
         _Metallic("Metallic",Range(0,1))=0
+        _RiftWidth("Map width",Float)=320
+        _TerrainAtmosphere("Terrain atmosphere",Range(0,1))=0
         _BaseMap("Shadow pass compatibility",2D)="white"{}
         _Cutoff("Cutoff",Range(0,1))=.5
     }
@@ -32,6 +34,8 @@ Shader "BUKLOD/Review/WorldSurface" {
             float _Tile;
             half _Metallic;
             half _NormalStrength;
+            float _RiftWidth;
+            half _TerrainAtmosphere;
             CBUFFER_END
             struct Attributes {float4 positionOS:POSITION;float3 normalOS:NORMAL;};
             struct Varyings {float4 positionCS:SV_POSITION;float3 positionWS:TEXCOORD0;half3 normalWS:TEXCOORD1;half fog:TEXCOORD2;};
@@ -63,6 +67,11 @@ Shader "BUKLOD/Review/WorldSurface" {
                     n=normalize(n+_NormalStrength*(slope-n*dot(n,slope)));
                 }
                 half3 baseColor=_BaseColor.rgb*detail.rgb;
+                // Subtle public terrain color gradient, independent of units and visibility.
+                float zone=saturate(i.positionWS.x/max(1.0,_RiftWidth));
+                half3 east=half3(.87,.93,1.06),west=half3(1.06,1.035,.91);
+                half3 atmosphere=lerp(west,east,smoothstep(.2,.8,zone));
+                baseColor*=lerp(half3(1,1,1),atmosphere,_TerrainAtmosphere);
                 float patch=FieldNoise(i.positionWS.xz*.11);
                 float grain=FieldNoise(i.positionWS.xz*.57);
                 half ground=saturate(abs(n.y))* (1-_Metallic);

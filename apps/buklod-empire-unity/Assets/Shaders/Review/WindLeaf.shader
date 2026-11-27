@@ -29,7 +29,8 @@ Shader "BUKLOD/Review/WindLeaf" {
                 Varyings o;
                 float3 p=TransformObjectToWorld(v.positionOS.xyz);
                 float h=clamp(p.y,0,2.4);
-                float wave=sin(p.x*.35+p.z*.19+_Time.y*1.6);
+                float gust=.68+.32*sin(p.x*.071-p.z*.063+_Time.y*.48);
+                float wave=(sin(p.x*.35+p.z*.19+_Time.y*1.6)*.78+sin(p.x*.91-p.z*.61+_Time.y*2.3)*.22)*gust;
                 p.x+=wave*_Wind*h*h;p.z+=cos(p.x*.21+_Time.y)*_Wind*h*.4;
                 o.positionCS=TransformWorldToHClip(p);o.positionWS=p;
                 o.normalWS=TransformObjectToWorldNormal(v.normalOS);

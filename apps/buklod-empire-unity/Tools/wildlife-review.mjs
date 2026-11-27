@@ -1,6 +1,14 @@
 // Original procedural wildlife and resource review candidates. Node 18+, zero dependencies.
 import {mkdirSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+export function wildlifeDuration(type,clip){
+ const pace={stag:1.05,wolf:.82,serpent:1.12,scarab:.76,golem:1.32,spirit:1.16,falcon:.80,sentinel:1.25,guardian:1.38}[type];
+ const base={Idle:2.8,Walk:.8,Attack:.9,Hit:.35,Death:1.2,Roar:1.5}[clip];
+ if(!pace||!base)throw Error("Unknown wildlife motion");
+ return clip==="Death"?base:base*pace;
+}
 function wildlifeRotation(type,clip,j,t){
  const profiles={stag:[.82,.43,.82,.17,.95],wolf:[1.28,.62,.65,.29,1.16],serpent:[.91,.38,.43,.40,.76],scarab:[1.60,.34,.34,.19,.62],golem:[.62,.28,.54,.12,.52],spirit:[.73,.31,.46,.32,.72],falcon:[1.45,.70,.42,.21,.90],sentinel:[.48,.35,.75,.15,.85],guardian:[.40,.39,1.05,.18,1.12]};
  const [cadence,step,strike,sway,roar]=profiles[type];const a=2*Math.PI*t,w=Math.sin(a),p=Math.sin(Math.PI*t),side=j===3||j===5?-1:1,front=j===3||j===4,limb=j>=3&&j<=6;
@@ -128,14 +136,16 @@ export function generateWildlife(){
   const chunks=[],views=[],accessors=[];let offset=0;
   function acc(values,width,type="VEC"+width,short=false,bounds=false){let pad=(4-offset%4)%4;if(pad){chunks.push(new Uint8Array(pad));offset+=pad}const bytes=new Uint8Array(values.length*(short?2:4)),d=new DataView(bytes.buffer);for(let i=0;i<values.length;i++)short?d.setUint16(i*2,values[i],true):d.setFloat32(i*4,values[i],true);views.push({buffer:0,byteOffset:offset,byteLength:bytes.length});offset+=bytes.length;chunks.push(bytes);let a={bufferView:views.length-1,componentType:short?5123:5126,count:values.length/width,type};if(bounds){a.min=Array(width).fill(Infinity);a.max=Array(width).fill(-Infinity);for(let i=0;i<values.length;i++){let v=d.getFloat32(i*4,true);a.min[i%width]=Math.min(a.min[i%width],v);a.max[i%width]=Math.max(a.max[i%width],v)}}accessors.push(a);return accessors.length-1}
   let primitives=[],triangles=0;geo.forEach((g,i)=>{if(!g.p.length)return;triangles+=g.p.length/9;let attributes={POSITION:acc(g.p,3,"VEC3",false,true),NORMAL:acc(g.n,3),TEXCOORD_0:acc(g.uv,2)};if(rigged){attributes.JOINTS_0=acc(g.j,4,"VEC4",true);attributes.WEIGHTS_0=acc(g.w,4)}primitives.push({material:i,mode:4,attributes})});
-  let doc={asset:{version:"2.0",generator:"BUKLOD original wildlife candidate"},scene:0,scenes:[{nodes:[]}],nodes:rigged?nodes:[],meshes:[{name:id,primitives}],materials,bufferViews:views,accessors,buffers:[{byteLength:0}],extras:{id,reviewOnly:true,source:"original procedural candidate",motionRevision:"species-motion-v2",gameplayCollider:false}};
+  let doc={asset:{version:"2.0",generator:"BUKLOD original wildlife candidate"},scene:0,scenes:[{nodes:[]}],nodes:rigged?nodes:[],meshes:[{name:id,primitives}],materials,bufferViews:views,accessors,buffers:[{byteLength:0}],extras:{id,reviewOnly:true,source:"original procedural candidate",motionRevision:"species-motion-v3",gameplayCollider:false}};
   if(rigged){let matrices=rests.flatMap(([x,y,z])=>[1,0,0,0,0,1,0,0,0,0,1,0,-x*scale,-y*scale,-z*scale,1]);doc.skins=[{joints:rests.map((_,i)=>i),skeleton:root,inverseBindMatrices:acc(matrices,16,"MAT4")}];doc.nodes.push({name:id,mesh:0,skin:0});doc.scenes[0].nodes=[0,doc.nodes.length-1];doc.animations=[];
-   for(const [name,duration] of [["Idle",2],["Walk",.8],["Attack",.9],["Hit",.35],["Death",1.2],["Roar",1.5]]){let times=acc(Array.from({length:13},(_,i)=>duration*i/12),1,"SCALAR",false,true),samplers=[],channels=[];for(let j=0;j<rests.length;j++){let values=[];for(let k=0;k<13;k++){let t=k/12,q=wildlifeRotation(type,name,j,t);values.push(...q)}let output=acc(values,4);samplers.push({input:times,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:j,path:"rotation"}})}doc.animations.push({name,samplers,channels})}
+   for(const name of ["Idle","Walk","Attack","Hit","Death","Roar"]){const duration=wildlifeDuration(type,name);let times=acc(Array.from({length:13},(_,i)=>duration*i/12),1,"SCALAR",false,true),samplers=[],channels=[];for(let j=0;j<rests.length;j++){let values=[];for(let k=0;k<13;k++){let t=k/12,q=wildlifeRotation(type,name,j,t);values.push(...q)}let output=acc(values,4);samplers.push({input:times,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:j,path:"rotation"}})}if(name==="Idle"&&(type==="falcon"||type==="spirit")){const values=[];for(let k=0;k<13;k++){const t=k/12;values.push(0,(type==="falcon"?.11:.075)*scale*Math.sin(Math.PI*t)**2,0);}const output=acc(values,3);samplers.push({input:times,output,interpolation:"LINEAR"});channels.push({sampler:samplers.length-1,target:{node:root,path:"translation"}});}doc.animations.push({name,samplers,channels})}
   }else{doc.nodes=[{name:id,mesh:0}];doc.scenes[0].nodes=[0]}
   doc.buffers[0].byteLength=offset;const js=JSON.stringify(doc),len=js.length+(4-js.length%4)%4,out=new Uint8Array(28+len+offset),d=new DataView(out.buffer);[0x46546c67,2,out.length,len,0x4e4f534a].forEach((x,i)=>d.setUint32(i*4,x,true));for(let i=0;i<len;i++)out[20+i]=i<js.length?js.charCodeAt(i):32;d.setUint32(20+len,offset,true);d.setUint32(24+len,0x004e4942,true);let at=28+len;for(const c of chunks){out.set(c,at);at+=c.length}return {id,kind:rigged?"creature":"resource",bytes:out,triangles,bones:rigged?rests.length:0,clips:rigged?6:0}
  }
  return [...creatures.map(([id,t,c,s])=>make(id,t,c,s,true)),...resources.map(([id,t])=>make(id,t,id==="gold"?[.72,.50,.14]:id==="crystal"?[.26,.58,.78]:[.37,.38,.32],1,false))];
 }
+if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url){
 const out=new URL('./ReviewOutput/wildlife/',import.meta.url);mkdirSync(out,{recursive:true});
 const rows=generateWildlife().map(({bytes,...r})=>{const file=r.id+'.glb';writeFileSync(new URL(file,out),bytes);return {...r,file,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}});
-writeFileSync(new URL('manifest.json',out),JSON.stringify({status:'REVIEW_ONLY',models:rows},null,2)+'\n');console.log('Generated',rows.length,'original wildlife/resource review GLBs');
+writeFileSync(new URL('manifest.json',out),JSON.stringify({status:'REVIEW_ONLY',sourceGeneratorSha256:createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex'),models:rows},null,2)+'\n');console.log('Generated',rows.length,'original wildlife/resource review GLBs');
+}

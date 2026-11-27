@@ -46,6 +46,7 @@ function audit(heroSize,sharedSize){
  const full=new Map(),pipeline=heroPipelineHash(project);
  const groups=specs.map(([dir,key,expected,status])=>{
   const folder=join(output,dir),data=readFileSync(join(folder,'manifest.json')),doc=JSON.parse(data);
+  if(dir==='wildlife'&&doc.sourceGeneratorSha256!==sha(readFileSync(join(tools,'wildlife-review.mjs'))))throw Error('Stale wildlife cache: run Tools/wildlife-review.mjs');
   if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize||row.geometryRevision!=='original-sculpted-geometry-v10'||row.sourcePipelineSha256!==pipeline||row.jointTriangles!==2048))throw Error('Hero geometry cache needs targeted refresh: use --refresh-heroes');
   if(dir.endsWith('-materials')&&doc.resolution!==sharedSize)throw Error('Unexpected shared resolution: '+dir);
   const rows=validateRows(doc,key,expected,status,file=>{

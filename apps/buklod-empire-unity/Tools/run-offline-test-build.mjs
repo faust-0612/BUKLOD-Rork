@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {resolve,join,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {heroPipelineHash} from './hero-pipeline-hash.mjs';
+import {createHash} from 'node:crypto';
 const project=fileURLToPath(new URL('../',import.meta.url));
 const args=process.argv.slice(2);
 const usage='Usage: node Tools/run-offline-test-build.mjs --prepare | --source-preflight | --validate|--build|--resume <absolute Unity executable> <absolute Android build-tools directory>';
@@ -48,6 +49,7 @@ try{
   }
  }
  run(process.execPath,['Tools/test-hero-skin.mjs']);
+ run(process.execPath,['Tools/test-wildlife-motion.mjs']);
  run(process.env.PYTHON||'python3',['Tools/test_joint_geometry.py']);
  run(process.env.PYTHON||'python3',['Tools/test_sculpt_geometry.py']);
  run(process.env.PYTHON||'python3',['Tools/smoke-hero-geometry.py']);
@@ -55,6 +57,9 @@ try{
   run(process.env.PYTHON||'python3',['Tools/test_premium_surfaces.py']);
   console.log('BUKLOD_SOURCE_PREFLIGHT_PASS — geometry/skill smoke and fixtures only; no Unity, assets generated in release cache, APK, or production approval.');
  }else{
+ if(resume){let cache=null;try{cache=JSON.parse(readFileSync(join(project,'Tools','ReviewOutput','wildlife','manifest.json'),'utf8'));}catch(error){if(error.code!=='ENOENT'&&!(error instanceof SyntaxError))throw error;}
+ const hash=createHash('sha256').update(readFileSync(join(project,'Tools','wildlife-review.mjs'))).digest('hex');
+ if(cache?.sourceGeneratorSha256!==hash)run(process.execPath,['Tools/wildlife-review.mjs']);}
  run(process.execPath,['Tools/prepare-offline-review.mjs',...prepareArgs]);
  if(build||validate){
   // Local-only larger asset acquisition; do not consume Unity Cloud allowance.
