@@ -338,7 +338,7 @@ export default function BuklodCommunityHelp(){
         <TextInput value={message} onChangeText={v=>setMessage(v.slice(0,500))} editable={!busy} multiline
           placeholder={kind==='EMERGENCY'?'Short detail if you can type safely…':'What kind of help do you need?'} placeholderTextColor={colors.muted} style={s.input}/>
         {kind==='EMERGENCY'?<>
-          <Text style={s.privacy}>Phone Location must be ON to send. Nearby users initially see approximate distance. A nearby responder who marks ON MY WAY may open your rescue location in Maps until the SOS ends.</Text>
+          <Text style={s.privacy}>Phone Location must be ON to send. Exact location is used only for proximity matching. Nearby users receive approximate distance, not raw coordinates.</Text>
           <Pressable disabled={busy} delayLongPress={1800} onLongPress={()=>void submit()} style={({pressed})=>[s.hold,pressed&&s.pressed,busy&&{opacity:.55}]}>
             {busy?<ActivityIndicator color="#FFF"/>:<MaterialCommunityIcons name="gesture-tap-hold" size={20} color="#FFF"/>}<Text style={s.holdText}>{busy?'SENDING…':'HOLD TO SEND SOS'}</Text>
           </Pressable><Text style={s.holdHint}>Hold for about 2 seconds to prevent accidental emergency alerts.</Text>
