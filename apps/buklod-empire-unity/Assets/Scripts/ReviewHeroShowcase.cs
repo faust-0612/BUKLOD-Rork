@@ -56,8 +56,8 @@ namespace Buklod.Empire {
         internal bool ShowMap()=>view&&view.visuals&&Show(view.visuals.genesisRift,"map",true,false);
         bool Show(GameObject prefab,string id,bool isMap,bool face){
             if(!prefab||!stageCamera||!target)return false;
-            bool changed=!actor||modelId!=id;
-            if(dummy){DisposeVisual(dummy);dummy=null;}demoWasActive=false;demoUntil=0;
+            bool changed=!actor||modelId!=id,wasVisible=visible;
+            ClearTrial();
             if(actor){actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;}
             if(changed){
                 wings=null;previewEquipment=null;if(effects)effects.Clear();
@@ -85,7 +85,7 @@ namespace Buklod.Empire {
                 if(platform)platform.transform.localScale=Vector3.one*Mathf.Max(.6f,bounds.size.y*.85f);
                 if(animator){animator.Rebind();animator.SetFloat("Speed",0);animator.Update(0);}
             }
-            map=isMap;close=face;visible=true;actor.SetActive(true);key.enabled=rim.enabled=true;stageCamera.enabled=focused&&!appPaused&&Application.isFocused;if(animator)animator.speed=stageCamera.enabled?1:0;
+            map=isMap;close=face;visible=true;actor.SetActive(true);if(!changed&&!wasVisible&&animator){animator.Rebind();animator.SetFloat("Speed",0);animator.Update(0);}key.enabled=rim.enabled=true;stageCamera.enabled=focused&&!appPaused&&Application.isFocused;if(animator)animator.speed=stageCamera.enabled?1:0;
             if(platform){platform.SetActive(!map);if(!map&&trimMat)trimMat.SetColor("_BaseColor",Color.Lerp(new Color(.50f,.34f,.13f),BattleEffects.Accent(modelId),.40f));}
             Frame();if(changed&&!map)PlayEntrance();return true;
         }
@@ -165,11 +165,13 @@ namespace Buklod.Empire {
             if(animator.parameters.Any(p=>p.name==entrance&&p.type==AnimatorControllerParameterType.Trigger))animator.SetTrigger(entrance);
             if(effects)effects.Emit(transform.position,BattleEffects.Accent(modelId),ReviewEntranceProfiles.Pulse(modelId));
         }
-        internal bool PlaySkill(SkillSlot slot,out string outcome){
-            outcome="";if(!visible||map||!animator||!ArenaDraftRules.Known(modelId))return false;
+        void ClearTrial(){if(dummy){DisposeVisual(dummy);dummy=null;}demoWasActive=false;demoUntil=0;if(effects)effects.Clear();if(view){var audio=view.GetComponent<SkillAudio>();if(audio)audio.ClearPreview();}}
+        internal bool PlaySkill(SkillSlot slot,out string outcome,out bool accepted){
+            outcome="";accepted=false;if(!visible||map||!animator||!ArenaDraftRules.Known(modelId))return false;
             string trigger=slot.ToString();if(!animator.parameters.Any(p=>p.name==trigger&&p.type==AnimatorControllerParameterType.Trigger))return false;
-            var trial=ReviewSkillTrial.Evaluate(modelId,slot);outcome=trial.Summary;
-            if(dummy){DisposeVisual(dummy);dummy=null;}
+            ClearTrial();
+            var trial=ReviewSkillTrial.Evaluate(modelId,slot);outcome=trial.Summary;accepted=trial.Accepted;
+            if(!accepted){actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;animator.Rebind();animator.SetFloat("Speed",0);animator.Update(0);Frame();return true;}
             var foe=view.visuals.heroes.FirstOrDefault(h=>h!=null&&h.id==trial.Enemy);
             float hgt=Mathf.Max(.5f,bounds.size.y);
             if(foe!=null&&foe.prefab){
@@ -181,9 +183,7 @@ namespace Buklod.Empire {
             }
             actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.LookRotation(Vector3.right);
             foreach(var p in new[]{"Primary","Secondary","Ultimate","Victory"})if(animator.parameters.Any(x=>x.name==p&&x.type==AnimatorControllerParameterType.Trigger))animator.ResetTrigger(p);
-            // A rejected trial must not present a successful cast.
             demoUntil=Time.unscaledTime+2.1f;demoWasActive=true;
-            if(!trial.Accepted)return true;
             animator.SetTrigger(trigger);
             if(effects&&SkillCueCatalog.TryGet(HeroKitCatalog.Get(modelId).Skill(slot).Id,out var cue)){
                 var scaled=ScaleCue(cue,hgt);
@@ -193,11 +193,11 @@ namespace Buklod.Empire {
             return true;
         }
         internal void Hide(){
-            visible=false;if(stageCamera)stageCamera.enabled=false;if(actor)actor.SetActive(false);if(dummy){DisposeVisual(dummy);dummy=null;}if(platform)platform.SetActive(false);if(view){var audio=view.GetComponent<SkillAudio>();if(audio)audio.ClearPreview();}
+            visible=false;ClearTrial();if(stageCamera)stageCamera.enabled=false;if(actor)actor.SetActive(false);if(platform)platform.SetActive(false);
             if(key)key.enabled=false;if(rim)rim.enabled=false;if(effects)effects.Clear();
         }
         void LateUpdate(){if(visible&&focused&&!appPaused){if(wings&&wings.gameObject.activeSelf)wings.Animate(Time.unscaledDeltaTime);Frame();}}
-        void RefreshFocus(){bool active=focused&&!appPaused&&visible;if(stageCamera)stageCamera.enabled=active;if(animator)animator.speed=active?1:0;if(!active){if(effects)effects.Clear();if(view){var audio=view.GetComponent<SkillAudio>();if(audio)audio.ClearPreview();}}}
+        void RefreshFocus(){bool active=focused&&!appPaused&&visible;if(stageCamera)stageCamera.enabled=active;if(animator)animator.speed=active?1:0;if(!active){ClearTrial();if(actor){actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;}if(animator&&actor&&actor.activeInHierarchy){animator.Rebind();animator.SetFloat("Speed",0);animator.Update(0);}}}
         void OnApplicationPause(bool value){appPaused=value;RefreshFocus();}
         void OnApplicationFocus(bool value){focused=value;RefreshFocus();}
         internal void DisposeStage(){Hide();gameObject.SetActive(false);foreach(var t in GetComponentsInChildren<Transform>(true))t.gameObject.layer=0;ReleaseMask();}

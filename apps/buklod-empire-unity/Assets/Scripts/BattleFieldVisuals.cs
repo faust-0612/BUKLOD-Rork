@@ -24,6 +24,7 @@ namespace Buklod.Empire {
         private const int PoolLimit=48;
         public int ActiveCount=>active.Count;
         public void Bind(BattleView owner){Clear();view=owner;bound=owner.Battle;review=owner.IsEditorReview;battleEffects=owner.GetComponent<BattleEffects>();presentationAudio=review?owner.GetComponent<ReviewPresentationAudio>():null;worldEffects=owner.GetComponent<WorldInteractionEffects>();}
+        internal void SetPaused(bool value){if(!review)return;foreach(var go in active.Values)if(go)foreach(var animator in go.GetComponentsInChildren<Animator>(true))animator.speed=value?0f:1f;}
         private GameObject Present(int type,int id,Vector2 position,GameObject prefab,out bool fresh){
             fresh=false;if(!prefab)return null;
             var key=(type,id);seen.Add(key);
@@ -44,7 +45,7 @@ namespace Buklod.Empire {
                     }
                 }
                 go.transform.position=view.FieldPosition(position);go.SetActive(true);active.Add(key,go);prefabs.Add(key,prefab);fresh=true;
-                if(review)foreach(var animator in go.GetComponentsInChildren<Animator>(true))animator.Rebind();
+                if(review)foreach(var animator in go.GetComponentsInChildren<Animator>(true)){animator.Rebind();animator.speed=view.Paused?0f:1f;}
             }
             return go;
         }

@@ -82,7 +82,7 @@ namespace Buklod.Empire {
             if(flow!=null)StartCoroutine(BootReview());
         }
         private void ApplySafeArea(){lastSafe=MobileBattleInput.SafeArea;safeRoot.anchorMin=new Vector2(lastSafe.xMin/Mathf.Max(1,Screen.width),lastSafe.yMin/Mathf.Max(1,Screen.height));safeRoot.anchorMax=new Vector2(lastSafe.xMax/Mathf.Max(1,Screen.width),lastSafe.yMax/Mathf.Max(1,Screen.height));}
-        private void Open(){if(starting)return;panelGroup.alpha=1;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
+        private void Open(){if(starting||booting)return;panelGroup.alpha=1;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
         private bool Active=>view.Battle!=null&&!view.Battle.Finished;
         private void Reply(bool ok,string success){feedback.text=ok?success:"Not available: check eligibility, funds, distance or cooldown.";Rebuild();}
         private void HeroCard(int i,HeroKit kit){
@@ -117,11 +117,13 @@ namespace Buklod.Empire {
             var left=Rect("Hero showcase",body,new Vector2(.015f,.04f),new Vector2(.44f,.98f));
             var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,.13f);bg.raycastTarget=false;AddArt(left,ReviewMenuArt.Kind.Card,accent,.8f);
             var portrait=reviewPortraits?reviewPortraits.Find(selected,fullBody):null;
-            if(!ShowModel(left,selected,!fullBody,new Vector2(.025f,.31f),new Vector2(.975f,.99f),fullBody?evolutionPreviewLevel:1)&&portrait){
+            bool modelReady=ShowModel(left,selected,!fullBody,new Vector2(.025f,.31f),new Vector2(.975f,.99f),fullBody?evolutionPreviewLevel:1);
+            if(!modelReady&&portrait){
                 var r=Rect("Actual model capture",left,new Vector2(.04f,.21f),new Vector2(.96f,.99f));
                 var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
                 var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
             }
+            if(!modelReady&&!portrait)Label("Missing preview",left,new Vector2(.04f,.32f),new Vector2(.96f,.96f),"Model preview unavailable • "+kit.Name,22);
             ButtonAt("Portrait angle",left,new Vector2(.03f,.03f),new Vector2(.48f,.19f),fullBody?"FACE / ARMOR":"FULL BODY",()=>{fullBody=!fullBody;evolutionPreviewLevel=1;Rebuild();});
             ButtonAt("Locked evolution",left,new Vector2(.50f,.03f),new Vector2(.97f,.19f),"NEXT STAGE",()=>{evolutionPreviewLevel=ArenaProgression.NextPreviewLevel(evolutionPreviewLevel);fullBody=true;Rebuild();});
             if(evolutionPreviewLevel>1)Label("Locked evolution disclaimer",left,new Vector2(.03f,.88f),new Vector2(.97f,.99f),"L"+evolutionPreviewLevel+" • "+ArenaProgression.Evolution(evolutionPreviewLevel)+" • LOCKED PREVIEW",16).color=accent;
@@ -137,7 +139,7 @@ namespace Buklod.Empire {
                     var glyph=Rect("Skill symbol",row,new Vector2(.02f,.08f),new Vector2(.16f,.92f)).gameObject.AddComponent<ReviewSkillGlyph>();glyph.raycastTarget=false;glyph.SetCue(cue,accent);
                 }
                 var slot=(SkillSlot)i;
-                ButtonAt("Preview skill",row,new Vector2(.18f,.03f),new Vector2(.76f,.97f),spec.Id.Replace('_',' ')+"  ▷",()=>{try{if(showcase&&showcase.PlaySkill(slot,out string outcome)){feedback.text=outcome;if(slot==SkillSlot.Ultimate){var voice=GetComponent<ReviewHeroDialogue>();if(voice)voice.PreviewUltimate(selected);}}else feedback.text="Preview asset unavailable";}catch(Exception error){Debug.LogWarning("Skill review unavailable: "+error.GetType().Name);feedback.text="Skill trial unavailable; current match unchanged.";}});
+                ButtonAt("Preview skill",row,new Vector2(.18f,.03f),new Vector2(.76f,.97f),spec.Id.Replace('_',' ')+"  ▷",()=>{try{if(showcase&&showcase.PlaySkill(slot,out string outcome,out bool accepted)){feedback.text=outcome;if(accepted&&slot==SkillSlot.Ultimate){var voice=GetComponent<ReviewHeroDialogue>();if(voice)voice.PreviewUltimate(selected);}}else feedback.text="Preview asset unavailable";}catch(Exception error){Debug.LogWarning("Skill review unavailable: "+error.GetType().Name);feedback.text="Skill trial unavailable; current match unchanged.";}});
                 var cd=Label("Base cooldown",row,new Vector2(.77f,0),new Vector2(.98f,1),spec.Cooldown.ToString("0")+"s",20);cd.color=accent;
             }
             Label("Evolution scope",right,new Vector2(0,.10f),new Vector2(1,.21f),"Offline practice: local mastery only. Permanent evolution requires MAIN-verified BP eligibility and items.",16);
@@ -392,17 +394,17 @@ namespace Buklod.Empire {
                 title.text="GENESIS RIFT";summary.text="All ten heroes initialized • battlefield ready";
                 feedback.text="Local assets ready";ShowVersus(true);
                 float hold=0;
-                while(hold<.8f){if(Application.isFocused)hold+=Time.unscaledDeltaTime;yield return null;}
+                while(hold<.8f){if(Foreground)hold+=Mathf.Min(.05f,Time.unscaledDeltaTime);yield return null;}
                 if(authored&&authored.entrance)authored.entrance.Open();
                 view.BeginReviewReveal();float elapsed=0,duration=authored&&authored.entrance?ArenaEntranceDoor.Duration:.85f;
                 while(elapsed<duration){
-                    if(Application.isFocused)elapsed+=Time.unscaledDeltaTime;
+                    if(Foreground)elapsed+=Mathf.Min(.05f,Time.unscaledDeltaTime);
                     view.SetReviewReveal(Mathf.Clamp01(elapsed/duration));panelGroup.alpha=1-Mathf.SmoothStep(0,1,elapsed/duration);
                     yield return null;
                 }
                 if(authored&&authored.entrance&&authored.entrance.IsOpening)authored.entrance.Complete();
                 view.EndReviewReveal();flow.CompleteLoading();page=-1;
-                if(Application.isFocused){Close();var voice=GetComponent<ReviewHeroDialogue>();if(voice)voice.AnnounceBattleStart();}
+                if(Foreground){Close();var voice=GetComponent<ReviewHeroDialogue>();if(voice)voice.AnnounceBattleStart();}
                 else{shown=true;view.SetPaused(true);Rebuild();}
             }
             panelGroup.alpha=1;starting=false;panelGroup.interactable=true;if(shown)ConfigureWizardControls();
@@ -411,7 +413,7 @@ namespace Buklod.Empire {
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
             view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed,!close,flow!=null?palette:ReviewPalette.Original);matchStarted=true;confirmRestart=false;heroDetail=false;evolutionPreviewLevel=1;selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
         }
-        private void Close(){if(showcase)showcase.Hide();if(flow!=null&&flow.Stage!=ReviewMatchStage.InBattle)flow.ResumeBattle();if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
+        private void Close(){if(flow!=null&&(!Foreground||!Active||!matchStarted))return;if(showcase)showcase.Hide();if(flow!=null&&flow.Stage!=ReviewMatchStage.InBattle)flow.ResumeBattle();if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void ApplyResultReveal(){
             float elapsed=resultRevealAt<0?2f:Time.unscaledTime-resultRevealAt;
             float headline=ReviewResultPresentation.Reveal(elapsed,0),stats=ReviewResultPresentation.Reveal(elapsed,.18f),actions=ReviewResultPresentation.Reveal(elapsed,.40f);
@@ -432,7 +434,9 @@ namespace Buklod.Empire {
                 ApplyResultReveal();if(Time.unscaledTime-resultRevealAt>=.9f)resultRevealAt=-1;
             }
         }
-        private void OnApplicationPause(bool paused){if(paused&&view&&view.IsEditorReview)ReviewAudioSettings.Save();}
+        private bool applicationPaused;
+        private bool Foreground=>Application.isFocused&&!applicationPaused;
+        private void OnApplicationPause(bool paused){applicationPaused=paused;if(paused&&view&&view.IsEditorReview)ReviewAudioSettings.Save();}
         private void OnDestroy(){if(view&&view.IsEditorReview)ReviewAudioSettings.Save();if(showcase)Destroy(showcase.gameObject);if(ownedEventSystem)Destroy(ownedEventSystem);}
     }
 }

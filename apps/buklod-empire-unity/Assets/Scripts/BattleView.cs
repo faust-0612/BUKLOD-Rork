@@ -45,9 +45,10 @@ namespace Buklod.Empire {
         public bool ControlFeedbackAccepted {get;private set;}
         public float ControlFeedbackUntil {get;private set;}
         public void SetPaused(bool value){
-            Paused=value;if(input)input.enabled=!value;if(value)ControlFeedbackUntil=0;
+            Paused=value;if(input)input.enabled=!value&&Battle!=null&&!Battle.Finished;if(value)ControlFeedbackUntil=0;
+            if(fieldVisuals)fieldVisuals.SetPaused(value);
             foreach(var visual in active.Values){if(visual.animator)visual.animator.speed=value?0f:1f;if(value&&visual.weaponTrail)visual.weaponTrail.Cancel();}
-            foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value?0f:1f;
+            foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value||row.visual.collapsing?0f:1f;
             if(value){collapseUntil=0;if(effects)effects.Clear();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
         public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
@@ -141,15 +142,15 @@ namespace Buklod.Empire {
             }
             if(!GetComponent<OfflineSessionMenu>())gameObject.AddComponent<OfflineSessionMenu>();
         }
-        private void OnApplicationPause(bool paused){if(paused&&Battle!=null&&!Battle.Finished)SetPaused(true);}
-        private void OnApplicationFocus(bool focused){if(!focused&&Battle!=null&&!Battle.Finished)SetPaused(true);}
+        private void OnApplicationPause(bool paused){if(paused&&Battle!=null&&(!Battle.Finished||collapseUntil>Time.unscaledTime))SetPaused(true);}
+        private void OnApplicationFocus(bool focused){if(!focused&&Battle!=null&&(!Battle.Finished||collapseUntil>Time.unscaledTime))SetPaused(true);}
         private Vector2 ToWorld(Vector2 screen){
             Vector3 right=battleCamera.transform.right,forward=battleCamera.transform.forward;
             var r=new Vector2(right.x,right.z).normalized;var f=new Vector2(forward.x,forward.z).normalized;
             return Vector2.ClampMagnitude(r*screen.x+f*screen.y,1);
         }
         public bool Cast(int button,Vector2 aim){
-            if(Battle==null||Paused||Battle.Finished||Battle.AutonomousTraining||button<1||button>8)return false;
+            if(Battle==null||Paused||Battle.Finished||Battle.AutonomousTraining||!Application.isFocused||button<1||button>8)return false;
             var direction=ToWorld(aim);
             bool ok;
             switch(button){case 1:ok=Battle.PlayerAttack(direction);break;case 5:ok=Battle.UsePlayerTactic(direction);break;case 6:ok=Battle.RecallPlayer();break;case 7:ok=Battle.PlayerAttackTarget(BattleTargetKind.Minion,direction);break;case 8:ok=Battle.PlayerAttackTarget(BattleTargetKind.Structure,direction);break;default:ok=Battle.CastPlayer((SkillSlot)(button-2),direction);break;}

@@ -5,7 +5,7 @@ namespace Buklod.Empire {
         private BattleView view; private MobileBattleInput input;
         private Canvas canvas;private Sprite circle,reviewControl;
         private ArenaAuthoredUi authored;
-        internal Sprite ControlPreviewSprite=>reviewControl?reviewControl:authored&&authored.action?authored.action:circle;
+        internal Sprite ControlPreviewSprite=>authored&&authored.action?authored.action:reviewControl?reviewControl:circle;
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
@@ -68,9 +68,9 @@ namespace Buklod.Empire {
             t.color=new Color(.95f,.98f,1);
         }
         private void BuildReview(){
-            reviewControl=MakeReviewControl();
-            foreach(var button in buttons){button.sprite=reviewControl;button.color=Color.white;}
-            if(authored){buttons[0].sprite=authored.stickPad;knob.sprite=authored.stickNub;knob.color=Color.white;}
+            if(!authored||!authored.action)reviewControl=MakeReviewControl();
+            foreach(var button in buttons){button.sprite=ControlPreviewSprite;button.color=Color.white;}
+            if(authored){if(authored.stickPad)buttons[0].sprite=authored.stickPad;if(authored.stickNub)knob.sprite=authored.stickNub;knob.color=Color.white;}
             foreach(var label in labels)if(label)ImproveText(label);
             ImproveText(status);
             healthTrack=ImageAt("Health track",canvas.transform,new Color(.08f,.13f,.13f,.85f));healthTrack.sprite=null;healthTrack.transform.SetAsFirstSibling();

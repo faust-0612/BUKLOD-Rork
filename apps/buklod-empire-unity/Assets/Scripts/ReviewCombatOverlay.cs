@@ -3,6 +3,7 @@ using UnityEngine.UI;
 namespace Buklod.Empire {
     // Fixed-size pool; consumes only already-visible hero samples from BattleView.
     // No hit calculation, hidden-unit queries, network, input or reward mutation.
+    [DefaultExecutionOrder(100)]
     public sealed class ReviewCombatOverlay:MonoBehaviour {
         public const int HeroLimit=10,FloatLimit=20;
         sealed class Row {public int id;public bool seen,ally,player;public Vector3 point;public float hp,shield;public int level;public RectTransform root;public Image health,guard;public Text levelText;}
@@ -71,8 +72,9 @@ namespace Buklod.Empire {
                 var c=n.text.color;c.a=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.5f,1,t));n.text.color=c;
             }
         }
-        void OnApplicationFocus(bool value){focus=value;if(!value&&canvas)canvas.enabled=false;}
-        void OnApplicationPause(bool value){appPaused=value;if(value&&canvas)canvas.enabled=false;}
+        void Suspend(){if(canvas)canvas.enabled=false;foreach(var n in numbers)if(n!=null){n.live=false;n.root.gameObject.SetActive(false);}}
+        void OnApplicationFocus(bool value){focus=value;if(!value)Suspend();}
+        void OnApplicationPause(bool value){appPaused=value;if(value)Suspend();}
         void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}
     }
 }

@@ -18,12 +18,14 @@ namespace Buklod.Empire {
         private Rect lastArea;
         private BattleView view;
         public void Bind(BattleView battle){view=battle;}
-        private void OnEnable(){EnhancedTouchSupport.Enable();Touch.onFingerDown+=Down;Touch.onFingerMove+=Move;Touch.onFingerUp+=Up;}
+        private void OnEnable(){Reset();lastArea=SafeArea;EnhancedTouchSupport.Enable();Touch.onFingerDown+=Down;Touch.onFingerMove+=Move;Touch.onFingerUp+=Up;}
         private void OnDisable(){Touch.onFingerDown-=Down;Touch.onFingerMove-=Move;Touch.onFingerUp-=Up;EnhancedTouchSupport.Disable();Reset();}
         private void OnApplicationFocus(bool focused){if(!focused)Reset();}
         private void OnApplicationPause(bool paused){if(paused)Reset();}
         private void Reset(){movement=null;skill=null;Joystick=Vector2.zero;Aim=Vector2.zero;ActiveSkill=-1;}
+        private bool CanAcceptInput=>view&&view.Battle!=null&&!view.Paused&&!view.Battle.Finished&&!view.Battle.AutonomousTraining&&Application.isFocused;
         private void Down(Finger finger){
+            if(!CanAcceptInput)return;
             var at=finger.currentTouch.screenPosition;
             if(!SafeArea.Contains(at))return;
             int button=ArenaControlSettings.Nearest(SafeArea,at);
@@ -34,6 +36,7 @@ namespace Buklod.Empire {
         }
         private void UpdateMove(Vector2 at){Joystick=ArenaTouchLayout.Stick(at-contactOrigin,Radius(0));}
         private void Move(Finger finger){
+            if(!CanAcceptInput){Reset();return;}
             var at=finger.currentTouch.screenPosition;
             if(finger==movement)UpdateMove(at);
             if(finger==skill)Aim=ResolveAim(at,PixelCenter(ActiveSkill),Radius(ActiveSkill));
@@ -47,10 +50,11 @@ namespace Buklod.Empire {
             bool cancel=finger.currentTouch.phase==UnityEngine.InputSystem.TouchPhase.Canceled||!SafeArea.Contains(finger.currentTouch.screenPosition)||Vector2.Distance(finger.currentTouch.screenPosition,PixelCenter(ActiveSkill))>Radius(ActiveSkill)*3.2f;
             int button=ActiveSkill;Vector2 direction=cancel?Vector2.zero:ResolveAim(finger.currentTouch.screenPosition,PixelCenter(button),Radius(button));
             skill=null;ActiveSkill=-1;Aim=Vector2.zero;
-            if(!cancel&&view)view.Cast(button,direction);
+            if(!cancel&&CanAcceptInput)view.Cast(button,direction);
         }
         private void Update(){
             if(lastArea!=SafeArea){lastArea=SafeArea;Reset();}
+            if(!CanAcceptInput){Reset();return;}
 #if UNITY_EDITOR
             var k=Keyboard.current;if(k==null||movement!=null||skill!=null)return;
             Joystick=Vector2.ClampMagnitude(new Vector2((k.dKey.isPressed?1:0)-(k.aKey.isPressed?1:0),(k.wKey.isPressed?1:0)-(k.sKey.isPressed?1:0)),1);

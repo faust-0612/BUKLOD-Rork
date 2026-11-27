@@ -18,7 +18,7 @@ namespace Buklod.Empire {
             if(startupError==null){
                 // Animate the branding after real asset validation, not a fake progress counter.
                 float elapsed=0;summary.text="Local assets ready";
-                while(elapsed<.65f){if(Application.isFocused)elapsed+=Time.unscaledDeltaTime;title.rectTransform.localScale=Vector3.one*Mathf.Lerp(.88f,1,Mathf.SmoothStep(0,1,elapsed/.65f));yield return null;}
+                while(elapsed<.65f){if(Foreground)elapsed+=Mathf.Min(.05f,Time.unscaledDeltaTime);title.rectTransform.localScale=Vector3.one*Mathf.Lerp(.88f,1,Mathf.SmoothStep(0,1,elapsed/.65f));yield return null;}
             }
             if(startupError==null)flow.BootReady();booting=false;Rebuild();
         }
@@ -57,7 +57,7 @@ namespace Buklod.Empire {
             if(ShowModel(frame,selected,false,Vector2.zero,Vector2.one))showcase.PlayEntrance();
             else Label("Locked hero name",frame,Vector2.zero,Vector2.one,HeroKitCatalog.Get(selected).Name,46);
             var dialogue=GetComponent<ReviewHeroDialogue>();feedback.text=dialogue?dialogue.Select(selected):"Offline practice";
-            float elapsed=0;while(elapsed<.9f){if(Application.isFocused)elapsed+=Time.unscaledDeltaTime;yield return null;}
+            float elapsed=0;while(elapsed<.9f){if(Foreground)elapsed+=Mathf.Min(.05f,Time.unscaledDeltaTime);yield return null;}
             if(flow.Advance())yield return PrepareReviewMatch();else{starting=false;panelGroup.interactable=true;Rebuild();}
         }
         void BackWizard(){if(!flow.Back())return;lockedRoster=null;SyncWizardPage();Rebuild();}
@@ -69,7 +69,7 @@ namespace Buklod.Empire {
             resumeButton.GetComponentInChildren<Text>().text=wizard?"BACK":"RESUME CURRENT MATCH";
             resumeButton.interactable=wizard||Active&&matchStarted&&!confirmRestart;
             startButton.gameObject.SetActive(!boot&&flow.Stage!=ReviewMatchStage.Loading);
-            startButton.GetComponentInChildren<Text>().text=flow.Stage==ReviewMatchStage.Mode?"CONTINUE":flow.Stage==ReviewMatchStage.Team?"CHOOSE HERO":flow.Stage==ReviewMatchStage.Hero?"CONFIRM HERO":flow.Stage==ReviewMatchStage.Loadout?"REVIEW TEAM":flow.Stage==ReviewMatchStage.LockIn?"LOCK IN & START":"PLAY";
+            startButton.GetComponentInChildren<Text>().text=flow.Stage==ReviewMatchStage.Mode?"CONTINUE":flow.Stage==ReviewMatchStage.Team?"CHOOSE HERO":flow.Stage==ReviewMatchStage.Hero?"CONFIRM "+HeroKitCatalog.Get(selected).Name.ToUpperInvariant():flow.Stage==ReviewMatchStage.Loadout?"REVIEW TEAM":flow.Stage==ReviewMatchStage.LockIn?"LOCK IN & START":"PLAY";
             startButton.interactable=!starting;
         }
         void RenderHeroRoster(){
@@ -84,8 +84,8 @@ namespace Buklod.Empire {
                     title.text="BUKLOD EMPIRE";title.color=NavigationAccent;summary.text="GENESIS • LET THERE BE LIGHT";
                     var seal=Rect("Genesis original emblem",body,new Vector2(.35f,.28f),new Vector2(.65f,.99f));var aspect=seal.gameObject.AddComponent<AspectRatioFitter>();aspect.aspectMode=AspectRatioFitter.AspectMode.FitInParent;aspect.aspectRatio=1;AddArt(seal,ReviewMenuArt.Kind.Seal,NavigationAccent,1);
                     var brand=Label("Startup brand",body,new Vector2(.05f,.12f),new Vector2(.95f,.31f),"E M P I R E",48);brand.fontStyle=FontStyle.Bold;
-                    Label("Boot status",body,new Vector2(.08f,.015f),new Vector2(.92f,.12f),startupError??"Checking local arena and hero assets…",21);
-                    if(startupError!=null)ButtonAt("Retry",body,new Vector2(.37f,-.12f),new Vector2(.63f,-.015f),"RETRY",()=>StartCoroutine(BootReview()));
+                    Label("Boot status",body,new Vector2(.08f,startupError==null?.015f:.12f),new Vector2(.92f,startupError==null?.12f:.26f),startupError??"Checking local arena and hero assets…",21);
+                    if(startupError!=null)ButtonAt("Retry",body,new Vector2(.37f,0),new Vector2(.63f,.11f),"RETRY",()=>StartCoroutine(BootReview()));
                     return true;
                 case ReviewMatchStage.Mode:
                     title.text="CHOOSE YOUR BATTLE";summary.text="Genesis Rift  •  Offline";
