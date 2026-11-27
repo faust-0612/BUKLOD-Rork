@@ -14,6 +14,10 @@ if(build){
  const version=readFileSync(join(project,'ProjectSettings/ProjectVersion.txt'),'utf8');
  if(!/^m_EditorVersion:\s*6000\.3\.29f1\s*$/m.test(version))throw Error('Unexpected Unity project version');
 }
+// Owner requested one consolidated offline+online verification. Prevent accidental
+// offline-only APK generation. Explicit diagnostic opt-in is not release approval.
+if(build&&process.env.BUKLOD_ALLOW_OFFLINE_DIAGNOSTIC!=='1')
+ throw Error('Offline-only APK paused by unified completion contract. No build started. Do not use as full online/offline release.');
 const root=join(project,'Builds','OfflineReview');
 mkdirSync(root,{recursive:true});
 const lock=join(root,'.local-build.lock');
