@@ -1,0 +1,38 @@
+{
+  "status": "PARTIALLY_COMPLETE_BLOCKED_BEFORE_RELEASE",
+  "date": "2026-11-27",
+  "databaseCandidate": "2b5d9d66ee3e9d35f42ad15a8be46b1e346f1189",
+  "ownerReportedChecks": {
+    "sqlPatchesPassed": 22,
+    "rls": "PASS",
+    "frontendContract": "PASS",
+    "edgeDenoCheck": "PASS",
+    "webExport": "PASS",
+    "expoPreviewUpload": "PASS"
+  },
+  "webSourceCommit": "1a6bff25c0f91a6d6a53380b7ba9072d08fc772d",
+  "expoProject": "cb7608c2-d967-44b0-9001-10b8d4c445a8",
+  "previewDeployment": "sxgw89iv0q",
+  "productionBaselineCommit": "da0f5da96cfb63629d8a4bfd0a7065ec1e949d71",
+  "main": "yhanxndaqbmuzbdqlblu",
+  "dedicated": "cjtehbfspgimyhifnjon",
+  "liveCatalogPreviousCheck": {
+    "matchedFunctions": 150,
+    "rlsEnabledTables": 26,
+    "activeAttempts": 0
+  },
+  "currentReadOnlyCheck": {
+    "previewOriginMatchingMainEdgeLogs": 0,
+    "interpretation": "No attributable authenticated smoke evidence; headers may be unavailable. Not proof of no traffic.",
+    "mainDefaultBranchLauncher": "Dedicated edge buklod-quiz-main-entry-v1",
+    "mainLauncherBlob": "29b1f0f11024c50459f9cc6a75e36d88382d25b4"
+  },
+  "remainingGates": [
+    "Authenticated student/faculty preview read smoke with existing MAIN identities",
+    "Preserve historical pending review workflow: 116 pending, zero frozen reference sets; 39 assigned, 77 unassigned; do not auto-regrade",
+    "Apply exact verified SQL and edge candidate only after release gates",
+    "Promote existing Expo deployment and reconcile MAIN launcher with legacy-client compatibility",
+    "Final recoverable Dedicated backup including storage and orphan/draft/session reconciliation; verify no consumers before deletion"
+  ],
+  "productionChangesThisTurn": false
+}
