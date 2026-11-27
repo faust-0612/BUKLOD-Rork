@@ -49,6 +49,8 @@ namespace Buklod.Empire.Editor {
             foley.steps=new[]{Audio("step-grass-a"),Audio("step-grass-b")};
             foley.metal=Audio("metal-hit");foley.wood=Audio("wood-hit");foley.coins=PresentationAudioReview.LibraryReward("coin-collect");foley.levelUp=PresentationAudioReview.LibraryReward("level-up-magic-harp");
             foley.pickup=PresentationAudioReview.LibraryReward("item-get");foley.relic=PresentationAudioReview.LibraryReward("rare-item-found");foley.purchase=PresentationAudioReview.LibraryReward("purchase-ka-ching");
+            // Shop/field menus pause the match, so use their existing accepted-action feedback path.
+            ui.purchase=foley.purchase;ui.pickup=foley.pickup;ui.relic=foley.relic;
             foley.fight=Audio("fight");foley.win=Audio("you_win");foley.lose=Audio("you_lose");foley.draw=Audio("tie");
         }
     }
