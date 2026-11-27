@@ -21,6 +21,10 @@ namespace Buklod.Empire.Tests {
             Assert.False(BattleRenderBudget.KeepShadow(false,false,20*20));
             Assert.False(BattleRenderBudget.KeepShadow(false,true,23*23));
         }
+        [Test] public void DeathVisualsHaveSeparateBoundedBudget(){
+            Assert.True(BattleRenderBudget.CanRetire(0));Assert.True(BattleRenderBudget.CanRetire(15));
+            Assert.False(BattleRenderBudget.CanRetire(16));Assert.False(BattleRenderBudget.CanRetire(-1));
+        }
         [Test] public void PoolLimitsAreBothEnforced(){
             Assert.True(BattleRenderBudget.CanPool(63,7));
             Assert.False(BattleRenderBudget.CanPool(64,0));

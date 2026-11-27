@@ -8,6 +8,7 @@ namespace Buklod.Empire {
         public void Click(){
             if(!click)return;
             if(!source){source=gameObject.AddComponent<AudioSource>();source.playOnAwake=false;source.spatialBlend=0;source.volume=.35f;}
+            source.volume=.35f*ReviewAudioSettings.Get(ReviewAudioChannel.Effects);
             source.PlayOneShot(click);
         }
     }

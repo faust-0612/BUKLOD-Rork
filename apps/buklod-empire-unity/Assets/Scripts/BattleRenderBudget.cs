@@ -3,7 +3,8 @@ namespace Buklod.Empire {
     // Presentation-only budgets. Combat simulation and targeting never depend on this.
     public static class BattleRenderBudget {
         public const float WarmRadius=32f, RetainRadius=38f, NearShadowRadius=18f, RetainShadowRadius=22f;
-        public const int PoolLimit=64, PerPrefabPoolLimit=8;
+        public const int PoolLimit=64, PerPrefabPoolLimit=8, DeathVisualLimit=16;
+        public static bool CanRetire(int count)=>count>=0&&count<DeathVisualLimit;
         public static bool RetainVisual(bool player,bool intersectsFrustum,bool alreadyActive,float distanceSquared){
             float radius=alreadyActive?RetainRadius:WarmRadius;
             return player||intersectsFrustum||distanceSquared<=radius*radius;

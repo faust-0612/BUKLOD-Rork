@@ -43,6 +43,7 @@ namespace Buklod.Empire {
         internal bool IsCombatStructure=>Kind==BattleTargetKind.Structure&&(!IsVillageBuilding||IsGuardPost);
         public VillageConstructionOrder Construction {get;internal set;}
         public int RepairSequence {get;internal set;}
+        public int ConstructionWorkSequence {get;internal set;}
         public readonly Vector2 Spawn; public Vector2 Position {get;internal set;}
         public float Power=1, AttackDamage=18, Expires=float.PositiveInfinity, RespawnAt, Xp;
         public int Gold=120, TowerLevel=1;
@@ -269,7 +270,10 @@ namespace Buklod.Empire {
                 }else if(!CanConstructAt(builder.Team,order.Kind,order.Position)){builder.Construction=null;continue;}
                 if(!builder.State.CanMove(Time)||!builder.State.CanCast(Time))continue;
                 if(Vector2.Distance(builder.Position,order.Position)>2.5f){Steer(builder,order.Position-builder.Position,4);continue;}
+                // A work pulse only after reaching the site and passing the work gate.
+                int before=Mathf.FloorToInt((order.Progress+.001f)/.8f);
                 order.Progress+=Step;
+                if(before!=Mathf.FloorToInt((order.Progress+.001f)/.8f)||before==0&&order.Progress<=Step+.001f)builder.ConstructionWorkSequence++;
                 float duration=order.Duration;
                 if(order.Progress+0.001f<duration)continue;
                 if(villages[(int)builder.Team].SpendConstruction(order.Kind)){

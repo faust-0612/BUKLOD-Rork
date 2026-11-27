@@ -6,7 +6,7 @@ namespace Buklod.Empire {
         public AudioClip[] steps;
         public AudioClip metal,wood,coins,fight,win,lose,draw;
         BattleView view;OfflineBattle match;
-        AudioSource feet,announcer,economy;
+        AudioSource feet,announcer,economy,work;
         AudioSource[] hits;
         int nextHit,nextStep,lastEarned;bool entered,finished,focused=true,appPaused;
         Vector2 previous;float stride,nextImpact,nextCoin;
@@ -18,17 +18,17 @@ namespace Buklod.Empire {
         void Awake(){
             view=GetComponent<BattleView>();
             if(!view||!view.IsEditorReview){enabled=false;return;}
-            feet=Source("Authored footsteps",false);announcer=Source("Match announcer",false);economy=Source("Economy feedback",false);
+            feet=Source("Authored footsteps",false);announcer=Source("Match announcer",false);economy=Source("Economy feedback",false);work=Source("Village work foley",true);
             hits=new AudioSource[4];for(int i=0;i<hits.Length;i++)hits[i]=Source("Impact voice "+i,true);
         }
         bool Active=>isActiveAndEnabled&&focused&&!appPaused&&view&&view.IsEditorReview&&view.Battle!=null;
         void Speak(AudioClip clip){if(clip&&announcer){announcer.Stop();announcer.PlayOneShot(clip,.62f);}}
-        void StopAll(){if(feet)feet.Stop();if(announcer)announcer.Stop();if(economy)economy.Stop();if(hits!=null)foreach(var s in hits)s.Stop();}
+        void StopAll(){if(feet)feet.Stop();if(announcer)announcer.Stop();if(economy)economy.Stop();if(work)work.Stop();if(hits!=null)foreach(var s in hits)s.Stop();}
         void Update(){
             if(!Active||!feet)return;
             var b=view.Battle;var player=b.Player;
             float effects=ReviewAudioSettings.Get(ReviewAudioChannel.Effects);
-            feet.volume=effects;economy.volume=effects;announcer.volume=ReviewAudioSettings.Get(ReviewAudioChannel.Voice);
+            feet.volume=effects;economy.volume=effects;work.volume=effects;announcer.volume=ReviewAudioSettings.Get(ReviewAudioChannel.Voice);
             foreach(var hit in hits)hit.volume=effects;
             if(match!=b){StopAll();match=b;entered=finished=false;previous=player.Position;stride=0;lastEarned=player.EarnedFeedbackSequence;nextCoin=nextImpact=0;}
             if(b.Finished){
@@ -44,6 +44,11 @@ namespace Buklod.Empire {
             lastEarned=player.EarnedFeedbackSequence;
         }
         public void SuspendBattleAudio(){StopAll();stride=0;if(view&&view.Battle!=null){previous=view.Battle.Player.Position;lastEarned=view.Battle.Player.EarnedFeedbackSequence;}}
+        public void Work(Vector3 point){
+            if(!Active||view.Paused||view.Battle.Finished||!work||!wood||work.isPlaying)return;
+            if(Vector3.Distance(view.FieldPosition(view.Battle.Player.Position),point)>20)return;
+            work.transform.position=point;work.PlayOneShot(wood,.15f);
+        }
         public void Impact(bool structure,Vector3 point){
             if(!Active||view.Paused||hits==null||Time.unscaledTime<nextImpact)return;
             if(Vector3.Distance(view.FieldPosition(view.Battle.Player.Position),point)>20)return;

@@ -5,7 +5,7 @@ namespace Buklod.Empire {
         public Material pulseMaterial;
         public Material skillParticleMaterial;
         public const int Capacity=24, Segments=32;
-        private sealed class Pulse {public LineRenderer line;public float start,duration,radius;public Color color;public int style;public bool skill;public SkillCueShape shape;public Vector3 forward;public SkillParticleBurst burst;}
+        private sealed class Pulse {public LineRenderer line;public float start,duration,radius;public Color color;public int style;public bool skill,basicSlash;public SkillCueShape shape;public Vector3 forward;public SkillParticleBurst burst;}
         private Pulse[] pool;private int next;private Camera battleCamera;
         public void Clear(){if(pool==null)return;foreach(var p in pool){p.line.enabled=false;p.burst?.Stop();}next=0;}
         private void Initialize(){
@@ -23,21 +23,41 @@ namespace Buklod.Empire {
         public void Emit(Vector3 at,Color color,int style){
             Initialize();if(pool==null)return;
             var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;
-            p.burst?.Stop();p.skill=false;p.style=Mathf.Clamp(style,0,4);p.duration=p.style==3?.65f:.32f;
+            p.burst?.Stop();p.skill=false;p.basicSlash=false;p.style=Mathf.Clamp(style,0,4);p.duration=p.style==3?.65f:.32f;
             p.radius=p.style==3?3.5f:p.style==2?2.1f:p.style==1?1.6f:.85f;
             p.color=color;p.line.transform.position=at+Vector3.up*.11f;p.line.enabled=true;Draw(p,0);
         }
         public void EmitSkill(Vector3 at,Color color,SkillCue cue,Vector3 direction){
             Initialize();if(pool==null)return;
-            var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;p.skill=true;p.shape=cue.Shape;p.duration=cue.Duration;p.radius=cue.Size;p.color=color;p.style=0;
+            var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;p.skill=true;p.basicSlash=false;p.shape=cue.Shape;p.duration=cue.Duration;p.radius=cue.Size;p.color=color;p.style=0;
             direction.y=0;p.forward=direction.sqrMagnitude>.001f?direction.normalized:Vector3.forward;
             p.line.transform.position=at+Vector3.up*.16f;p.line.enabled=true;Draw(p,0);
             p.burst?.Begin(at+Vector3.up*.14f,color,cue,p.forward);p.burst?.Draw(0,battleCamera);
+        }
+        public void EmitBasic(Vector3 at,Color color,Vector3 forward,bool ranged){
+            if(ranged){
+                EmitSkill(at+Vector3.up*.65f,color,new SkillCue("basic_ranged_review",SkillCueShape.Bolt,1.3f,.24f,-1),forward);return;
+            }
+            Initialize();if(pool==null)return;
+            var p=pool[next];next=(next+1)%Capacity;p.start=Time.unscaledTime;
+            p.skill=false;p.basicSlash=true;p.style=0;p.duration=.26f;p.radius=1.55f;p.color=color;
+            forward.y=0;p.forward=forward.sqrMagnitude>.001f?forward.normalized:Vector3.forward;
+            p.line.transform.position=at+Vector3.up*.72f;p.line.enabled=true;
+            p.burst?.Begin(at+Vector3.up*.5f,color,new SkillCue("basic_melee_review",SkillCueShape.Impact,1.1f,.26f,-1),p.forward);
+            Draw(p,0);
         }
         private static void Draw(Pulse p,float t){
             var c=p.color;c.a=(1-t)*.85f;p.line.startColor=c;p.line.endColor=c;
             p.line.widthMultiplier=(p.style==3?.15f:.075f)*(1-.65f*t);
             float radius=p.radius*Mathf.Lerp(.35f,1,t);
+            if(p.basicSlash){
+                var right=Vector3.Cross(Vector3.up,p.forward);
+                p.line.widthMultiplier=.13f*(1-.8f*t);
+                for(int i=0;i<=Segments;i++){
+                    float u=(float)i/Segments,angle=Mathf.Lerp(-1.3f,1.3f,u)+.5f*t;
+                    p.line.SetPosition(i,(right*Mathf.Sin(angle)+p.forward*Mathf.Cos(angle))*p.radius*Mathf.Lerp(.65f,1.1f,t)+Vector3.up*(.16f*Mathf.Sin(u*Mathf.PI)));
+                }return;
+            }
             if(p.skill){DrawSkill(p,t,radius);return;}
             for(int i=0;i<=Segments;i++){
                 float a=i*2*Mathf.PI/Segments;
@@ -67,7 +87,7 @@ namespace Buklod.Empire {
         private void Update(){if(pool==null)return;foreach(var p in pool)if(p.line.enabled){
             float t=(Time.unscaledTime-p.start)/p.duration;
             if(t>=1){p.line.enabled=false;p.burst?.Stop();}
-            else{Draw(p,Mathf.Clamp01(t));if(p.skill)p.burst?.Draw(Mathf.Clamp01(t),battleCamera);}
+            else{Draw(p,Mathf.Clamp01(t));if(p.skill||p.basicSlash)p.burst?.Draw(Mathf.Clamp01(t),battleCamera);}
         }}
         private void OnDisable(){Clear();}
         private void OnDestroy(){if(pool!=null)foreach(var p in pool)p.burst?.Dispose();}

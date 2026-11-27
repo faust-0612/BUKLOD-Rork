@@ -137,20 +137,18 @@ namespace Buklod.Empire.Editor {
                     var controller=AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
                     controller.AddParameter("Speed",AnimatorControllerParameterType.Float);
                     var sm=controller.layers[0].stateMachine;
-                    var idle=sm.AddState("Idle");idle.motion=clips["Idle"];sm.defaultState=idle;
-                    var walk=sm.AddState("Walk");walk.motion=clips["Walk"];
-                    var move=idle.AddTransition(walk);move.hasExitTime=false;move.duration=.12f;move.AddCondition(AnimatorConditionMode.Greater,.1f,"Speed");
-                    var stop=walk.AddTransition(idle);stop.hasExitTime=false;stop.duration=.12f;stop.AddCondition(AnimatorConditionMode.Less,.1f,"Speed");
-                    if(clips.TryGetValue("Run",out var runClip)){
-                        var run=sm.AddState("Run");run.motion=runClip;
-                        var fast=walk.AddTransition(run);fast.hasExitTime=false;fast.duration=.12f;fast.AddCondition(AnimatorConditionMode.Greater,4f,"Speed");
-                        var slow=run.AddTransition(walk);slow.hasExitTime=false;slow.duration=.12f;slow.AddCondition(AnimatorConditionMode.Less,3.8f,"Speed");
-                    }
+                    var idle=sm.AddState("Locomotion");sm.defaultState=idle;
+                    var blend=new BlendTree{name="Idle / walk / run",blendType=BlendTreeType.Simple1D,blendParameter="Speed",useAutomaticThresholds=false};
+                    AssetDatabase.AddObjectToAsset(blend,controller);
+                    blend.AddChild(clips["Idle"],0f);
+                    blend.AddChild(clips["Walk"],2.5f);
+                    if(clips.TryGetValue("Run",out var runClip))blend.AddChild(runClip,5.5f);
+                    idle.motion=blend;
                     foreach(var pair in clips.Where(c=>c.Key!="Idle"&&c.Key!="Walk"&&c.Key!="Run")){
                         controller.AddParameter(pair.Key,AnimatorControllerParameterType.Trigger);
                         var state=sm.AddState(pair.Key);state.motion=pair.Value;
                         var enter=sm.AddAnyStateTransition(state);enter.hasExitTime=false;enter.duration=.08f;enter.canTransitionToSelf=false;enter.AddCondition(AnimatorConditionMode.If,0,pair.Key);
-                        var exit=state.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;exit.duration=.1f;
+                        if(pair.Key!="Death"){var exit=state.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;exit.duration=.12f;}
                     }
                     foreach(var legacy in instance.GetComponentsInChildren<Animation>(true))UnityEngine.Object.DestroyImmediate(legacy);
                     var animator=instance.GetComponent<Animator>();if(!animator)animator=instance.AddComponent<Animator>();
