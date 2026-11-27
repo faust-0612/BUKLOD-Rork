@@ -43,17 +43,17 @@ namespace Buklod.Empire.Editor {
             close.CopyFrom(camera);close.enabled=false;close.fieldOfView=29;
             var upper=focus+Vector3.up*(height*.27f);
             close.transform.position=upper+new Vector3(.20f,.03f,1).normalized*height*.85f;close.transform.LookAt(upper);
-            var key=MakeLight("Warm soft key",new Color(1,.84f,.68f),2.1f,new Vector3(35,145,0),true);
+            var key=MakeLight("Warm soft key",new Color(1,.92f,.84f),1.35f,new Vector3(35,145,0),true);
             key.shadowBias=.04f;key.shadowNormalBias=.25f;
-            MakeLight("Cool fill",new Color(.49f,.69f,1),.75f,new Vector3(18,230,0),false);
-            MakeLight("Rim",new Color(.58f,.82f,1),1.35f,new Vector3(28,-15,0),false);
+            MakeLight("Cool fill",new Color(.63f,.79f,1),.45f,new Vector3(18,230,0),false);
+            MakeLight("Rim",new Color(.58f,.82f,1),.9f,new Vector3(28,-15,0),false);
             RenderSettings.sun=key;RenderSettings.fog=false;RenderSettings.ambientMode=AmbientMode.Trilight;
             RenderSettings.ambientSkyColor=new Color(.30f,.36f,.46f);
             RenderSettings.ambientEquatorColor=new Color(.20f,.23f,.29f);
             RenderSettings.ambientGroundColor=new Color(.09f,.10f,.13f);
             RenderSettings.defaultReflectionMode=DefaultReflectionMode.Custom;
             RenderSettings.customReflectionTexture=EnvironmentReviewLook.ReviewSkyReflection();
-            RenderSettings.reflectionIntensity=1.1f;
+            RenderSettings.reflectionIntensity=.65f;
             var shader=Shader.Find("Universal Render Pipeline/Lit");if(!shader)throw new InvalidOperationException("URP Lit missing.");
             var path=Out+"/PortraitStage.mat";var mat=AssetDatabase.LoadAssetAtPath<Material>(path);
             if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,path);}
@@ -71,7 +71,7 @@ namespace Buklod.Empire.Editor {
             }
             if(!profile.TryGet<Bloom>(out var bloom)||!profile.TryGet<Tonemapping>(out var tone)||!profile.TryGet<ColorAdjustments>(out var grade))throw new InvalidOperationException("Portrait profile incomplete.");
             bloom.threshold.Override(1.1f);bloom.intensity.Override(.18f);bloom.scatter.Override(.55f);
-            tone.mode.Override(TonemappingMode.Neutral);grade.contrast.Override(12);grade.saturation.Override(4);grade.postExposure.Override(.05f);
+            tone.mode.Override(TonemappingMode.Neutral);grade.contrast.Override(12);grade.saturation.Override(4);grade.postExposure.Override(-.35f);
             foreach(var c in new VolumeComponent[]{bloom,tone,grade})EditorUtility.SetDirty(c);EditorUtility.SetDirty(profile);
             var volume=new GameObject("Portrait grade",typeof(Volume)).GetComponent<Volume>();volume.isGlobal=true;volume.priority=10;volume.sharedProfile=profile;
             foreach(var cam in new[]{camera,close}){var data=cam.GetUniversalAdditionalCameraData();data.renderPostProcessing=true;data.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;data.antialiasingQuality=AntialiasingQuality.High;data.volumeLayerMask=data.volumeLayerMask.value|(1<<volume.gameObject.layer);}

@@ -13,8 +13,9 @@ namespace Buklod.Empire.Editor {
     public static class PortraitCaptureReview {
         const string Out=CandidateReviewComposer.Out+"/Portraits";
         const int Width=512,Height=640;
+        const string CaptureRecipe="balanced-studio-v2";
         [Serializable] sealed class Row {public string id,sourceHash,sha256,fullSha256;}
-        [Serializable] sealed class Receipt {public string status;public Row[] rows;}
+        [Serializable] sealed class Receipt {public string status,recipe;public Row[] rows;}
         static string Prefab(string id)=>CandidateReviewComposer.Out+"/Prefabs/"+id+".prefab";
         static string SourceHash(string id)=>AssetDatabase.GetAssetDependencyHash(Prefab(id)).ToString();
         static string Hash(byte[] bytes){using(var h=SHA256.Create())return BitConverter.ToString(h.ComputeHash(bytes)).Replace("-","").ToLowerInvariant();}
@@ -25,7 +26,7 @@ namespace Buklod.Empire.Editor {
                 try{
                     var doc=JsonUtility.FromJson<Receipt>(File.ReadAllText(manifest));
                     var ids=HeroKitCatalog.All.Select(h=>h.Id).ToArray();
-                    if(doc!=null&&doc.status=="REVIEW_ONLY"&&doc.rows!=null&&doc.rows.Length==ids.Length&&ids.All(id=>{
+                    if(doc!=null&&doc.status=="REVIEW_ONLY"&&doc.recipe==CaptureRecipe&&doc.rows!=null&&doc.rows.Length==ids.Length&&ids.All(id=>{
                         var row=doc.rows.SingleOrDefault(x=>x!=null&&x.id==id);
                         string path=Out+"/"+id+".tga";
                         var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
@@ -80,7 +81,7 @@ namespace Buklod.Empire.Editor {
                     var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                     if(!tex||tex.width!=Width||tex.height!=Height)throw new InvalidOperationException("Portrait texture dimensions changed: "+row.id);
                 }
-                File.WriteAllText(receipt,JsonUtility.ToJson(new Receipt{status="REVIEW_ONLY",rows=rows.ToArray()},true));
+                File.WriteAllText(receipt,JsonUtility.ToJson(new Receipt{status="REVIEW_ONLY",recipe=CaptureRecipe,rows=rows.ToArray()},true));
                 AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             }finally{EditorSceneManager.RestoreSceneManagerSetup(setup);}
         }
@@ -110,7 +111,7 @@ namespace Buklod.Empire.Editor {
             if(!File.Exists(manifest))return; // optional: retain existing vector hero cards
             var doc=JsonUtility.FromJson<Receipt>(File.ReadAllText(manifest));
             var ids=HeroKitCatalog.All.Select(h=>h.Id).ToArray();
-            if(doc==null||doc.status!="REVIEW_ONLY"||doc.rows==null||doc.rows.Length!=ids.Length)throw new InvalidOperationException("Incomplete portrait manifest.");
+            if(doc==null||doc.status!="REVIEW_ONLY"||doc.recipe!=CaptureRecipe||doc.rows==null||doc.rows.Length!=ids.Length)throw new InvalidOperationException("Incomplete portrait manifest.");
             var portraits=new Texture2D[ids.Length];var fullBodies=new Texture2D[ids.Length];
             for(int i=0;i<ids.Length;i++){
                 string id=ids[i],path=Out+"/"+id+".tga";
