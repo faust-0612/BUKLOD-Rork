@@ -27,6 +27,7 @@ namespace Buklod.Empire.Editor {
             ui.menuButton=Load("menu-button",12);ui.menuPanel=Load("menu-panel",20);
             ui.click=AssetDatabase.LoadAssetAtPath<AudioClip>(Ui+"click.ogg");
             if(!ui.click)throw new InvalidOperationException("Authored click audio missing.");
+            ui.purchase=PresentationAudioReview.LibraryReward("purchase-ka-ching");ui.pickup=PresentationAudioReview.LibraryReward("item-get");ui.relic=PresentationAudioReview.LibraryReward("rare-item-found");
             var model=AssetDatabase.LoadAssetAtPath<GameObject>(Models+"doorway.glb");
             if(!model)throw new InvalidOperationException("Authored doorway import failed.");
             var obj=(GameObject)PrefabUtility.InstantiatePrefab(model,root.transform);
