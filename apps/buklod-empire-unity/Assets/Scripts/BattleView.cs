@@ -123,7 +123,7 @@ namespace Buklod.Empire {
             Follow(true);Sync(true);fieldVisuals.Refresh();
         }
         private void Start(){
-            if(Battle==null)StartMatch(selectedHero);
+            if(Battle==null){if(ReviewOnly)SetPaused(true);else StartMatch(selectedHero);}
             if(!GetComponent<OfflineSessionMenu>())gameObject.AddComponent<OfflineSessionMenu>();
         }
         private void OnApplicationPause(bool paused){if(paused&&Battle!=null&&!Battle.Finished)SetPaused(true);}

@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;
+        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;private ReviewLiveHeroPreview livePreview;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -101,6 +101,14 @@ namespace Buklod.Empire {
             var stats=view.PracticeStats(kit.Id);
             Label("Combat range",r,new Vector2(left,.02f),new Vector2(.97f,.22f),stats==null?$"ATK {kit.BasicDamage:0}  •  RNG {kit.BasicRange:0.#}":$"ATK {kit.BasicDamage:0}  •  M{stats.Mastery} / {stats.completed} matches",16);
         }
+        private Texture ShowcaseTexture(bool full){
+            if(view.IsEditorReview){
+                if(!livePreview)livePreview=gameObject.AddComponent<ReviewLiveHeroPreview>();
+                var live=livePreview.Show(view,selected,full);if(live)return live;
+            }
+            return reviewPortraits?reviewPortraits.Find(selected,full):null;
+        }
+        private void HideShowcase(){if(livePreview)livePreview.Hide();}
         private void HeroDetails(){
             var kit=HeroKitCatalog.Get(selected);var accent=BattleEffects.Accent(selected);
             title.text=kit.Name.ToUpperInvariant()+"  •  HERO PROFILE";title.color=accent;
@@ -108,7 +116,7 @@ namespace Buklod.Empire {
             summary.text=stone==null?"Next match selection":stone.Name+"  •  "+stone.VirtueTl+"  •  Next match selection";
             var left=Rect("Hero showcase",body,new Vector2(.015f,.04f),new Vector2(.44f,.98f));
             var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,.13f);bg.raycastTarget=false;
-            var portrait=reviewPortraits?reviewPortraits.Find(selected,fullBody):null;
+            var portrait=ShowcaseTexture(fullBody);
             if(portrait){
                 var r=Rect("Actual model capture",left,new Vector2(.04f,.21f),new Vector2(.96f,.99f));
                 var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
@@ -124,7 +132,11 @@ namespace Buklod.Empire {
                 if(SkillCueCatalog.TryGet(spec.Id,out var cue)){
                     var glyph=Rect("Skill symbol",row,new Vector2(.02f,.08f),new Vector2(.16f,.92f)).gameObject.AddComponent<ReviewSkillGlyph>();glyph.raycastTarget=false;glyph.SetCue(cue,accent);
                 }
-                Label("Skill name",row,new Vector2(.19f,0),new Vector2(.76f,1),spec.Id.Replace('_',' '),21);
+                var slot=(SkillSlot)i;
+                var preview=ButtonAt("Preview "+spec.Id,row,new Vector2(.19f,.05f),new Vector2(.76f,.95f),spec.Id.Replace('_',' '),()=>{
+                    feedback.text=livePreview&&livePreview.PlaySkill(slot)?"Preview only • no match action or reward":"Live animation unavailable; showing captured portrait.";
+                });
+                preview.GetComponentInChildren<Text>().fontSize=20;
                 var cd=Label("Base cooldown",row,new Vector2(.77f,0),new Vector2(.98f,1),spec.Cooldown.ToString("0")+"s",20);cd.color=accent;
             }
             Label("Evolution scope",right,new Vector2(0,.10f),new Vector2(1,.21f),"Permanent evolution requires verified eligibility and items. Offline practice does not unlock it.",16);
@@ -188,7 +200,7 @@ namespace Buklod.Empire {
             var kit=HeroKitCatalog.Get(selected);
             var left=Rect("Selected hero feature",body,new Vector2(.01f,.03f),new Vector2(.47f,.97f));
             var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,BattleEffects.Accent(selected),.18f);bg.raycastTarget=false;
-            var portrait=reviewPortraits?reviewPortraits.Find(selected,true):null;
+            var portrait=ShowcaseTexture(true);
             if(portrait){
                 var r=Rect("Selected hero portrait",left,new Vector2(.04f,.25f),new Vector2(.96f,.98f));
                 var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
@@ -216,6 +228,8 @@ namespace Buklod.Empire {
             UpdateNavigation();
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
+            if(!view.IsEditorReview||showResult||confirmRestart||!(page==-1||page==0&&heroDetail))HideShowcase();
+            if(view.IsEditorReview&&navigationTabs!=null)for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=b!=null||i<3||i>=8;
             if(resumeButton)resumeButton.interactable=active&&(!view.IsEditorReview||matchStarted)&&!confirmRestart;
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
@@ -330,7 +344,7 @@ namespace Buklod.Empire {
             BeginMatch();
         }
         private IEnumerator PrepareReviewMatch(){
-            starting=true;view.SetPaused(true);panelGroup.interactable=false;
+            starting=true;HideShowcase();view.SetPaused(true);panelGroup.interactable=false;
             title.text="PREPARING GENESIS RIFT";summary.text="Initializing local training match";
             title.color=BattleEffects.Accent(selected);feedback.text="";
             // Yield a frame so the real initialization state can be displayed; no artificial progress.
@@ -356,7 +370,7 @@ namespace Buklod.Empire {
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
             view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);matchStarted=true;confirmRestart=false;heroDetail=false;selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
         }
-        private void Close(){if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
+        private void Close(){HideShowcase();if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void Update(){
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;
@@ -370,6 +384,6 @@ namespace Buklod.Empire {
             }
         }
         private void OnApplicationPause(bool paused){if(paused&&view&&view.IsEditorReview)ReviewAudioSettings.Save();}
-        private void OnDestroy(){if(view&&view.IsEditorReview)ReviewAudioSettings.Save();if(ownedEventSystem)Destroy(ownedEventSystem);}
+        private void OnDestroy(){HideShowcase();if(view&&view.IsEditorReview)ReviewAudioSettings.Save();if(ownedEventSystem)Destroy(ownedEventSystem);}
     }
 }

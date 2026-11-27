@@ -1,0 +1,88 @@
+using System;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.Rendering.Universal;
+namespace Buklod.Empire {
+    // A single isolated preview actor, not a simulation unit. Review package only.
+    public sealed class ReviewLiveHeroPreview:MonoBehaviour {
+        const int Layer=31, Width=512, Height=640;
+        BattleView view;GameObject stage,actor;Camera camera;RenderTexture target;
+        Animator animator;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
+        float angle;
+        public static float FrameSize(Vector3 size,float aspect,bool full){
+            if(aspect<=0||size.y<=0||size.x<=0||float.IsNaN(size.y)||float.IsInfinity(size.y))throw new ArgumentException("Invalid preview bounds");
+            return full?Mathf.Max(size.y*.61f,Mathf.Max(size.x,size.z)*.72f/aspect):Mathf.Max(size.y*.29f,size.x*.38f/aspect);
+        }
+        static void SetLayer(Transform node){node.gameObject.layer=Layer;foreach(Transform child in node)SetLayer(child);}
+        void CreateStage(){
+            if(stage)return;
+            if(!view||!view.IsEditorReview||!view.battleCamera)throw new InvalidOperationException("Review preview only.");
+            if(UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include,FindObjectsSortMode.None).Any(r=>r.gameObject.layer==Layer))
+                throw new InvalidOperationException("Preview layer already occupied.");
+            stage=new GameObject("Isolated hero showcase");stage.transform.position=new Vector3(0,-500,0);
+            oldMask=view.battleCamera.cullingMask;view.battleCamera.cullingMask=oldMask&~(1<<Layer);maskOwned=true;
+            target=new RenderTexture(Width,Height,24,RenderTextureFormat.ARGB32){name="Hero showcase target"};
+            if(!target.Create())throw new InvalidOperationException("Preview texture unavailable.");
+            var go=new GameObject("Showcase camera");go.transform.SetParent(stage.transform,false);camera=go.AddComponent<Camera>();
+            camera.enabled=false;camera.targetTexture=target;camera.cullingMask=1<<Layer;camera.clearFlags=CameraClearFlags.SolidColor;
+            camera.backgroundColor=new Color(.025f,.041f,.065f);camera.orthographic=true;camera.aspect=(float)Width/Height;
+            camera.nearClipPlane=.02f;camera.farClipPlane=40;camera.allowHDR=false;
+            var data=camera.GetUniversalAdditionalCameraData();data.renderPostProcessing=false;data.renderShadows=false;
+            MakeLight("Showcase key",new Vector3(1.4f,2.8f,2.7f),new Color(1,.86f,.73f),5);
+            MakeLight("Showcase fill",new Vector3(-1.8f,1.9f,2.1f),new Color(.55f,.77f,1),3);
+            MakeLight("Showcase rim",new Vector3(.3f,2.5f,-2f),new Color(.45f,.75f,1),4);
+        }
+        void MakeLight(string label,Vector3 at,Color color,float intensity){
+            var go=new GameObject(label);go.transform.SetParent(stage.transform,false);go.transform.localPosition=at;go.layer=Layer;
+            var l=go.AddComponent<Light>();l.type=LightType.Point;l.color=color;l.intensity=intensity;l.range=9;l.cullingMask=1<<Layer;l.shadows=LightShadows.None;
+        }
+        public Texture Show(BattleView owner,string id,bool full){
+            if(!owner||!owner.IsEditorReview||!owner.visuals)return null;view=owner;
+            try{
+                CreateStage();
+                if(!actor||hero!=id){
+                    if(actor){actor.SetActive(false);Destroy(actor);}
+                    var entry=view.visuals.heroes.Single(h=>h.id==id);
+                    actor=Instantiate(entry.prefab,stage.transform);actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;
+                    SetLayer(actor.transform);
+                    foreach(var c in actor.GetComponentsInChildren<Collider>(true))c.enabled=false;
+                    var equipment=actor.GetComponent<ReviewEquipmentVisual>();if(equipment)equipment.ResetVisual();
+                    foreach(var b in actor.GetComponentsInChildren<MonoBehaviour>(true))b.enabled=false;
+                    foreach(var lod in actor.GetComponentsInChildren<LODGroup>(true))lod.ForceLOD(0);
+                    animator=actor.GetComponentInChildren<Animator>(true);
+                    if(!animator||!animator.runtimeAnimatorController)throw new InvalidOperationException("Preview rig missing.");
+                    animator.applyRootMotion=false;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;animator.updateMode=AnimatorUpdateMode.UnscaledTime;
+                    var skins=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.name!="Mobile LOD1").ToArray();
+                    if(skins.Length==0)throw new InvalidOperationException("Preview mesh missing.");
+                    bounds=skins[0].bounds;foreach(var skin in skins.Skip(1))bounds.Encapsulate(skin.bounds);
+                    hero=id;angle=0;
+                }
+                float aspect=(float)Width/Height;camera.orthographicSize=FrameSize(bounds.size,aspect,full);
+                var focus=bounds.center+Vector3.up*(full?0:bounds.size.y*.26f);
+                camera.transform.position=focus+new Vector3(.12f,.035f,1f).normalized*Mathf.Max(3,bounds.size.magnitude*2);
+                camera.transform.LookAt(focus);
+                camera.enabled=focused&&!appPaused;animator.speed=camera.enabled?1:0;
+                return target;
+            }catch(Exception error){Debug.LogWarning("Live hero preview unavailable; using captured model portrait: "+error.Message);Hide();return null;}
+        }
+        public bool PlaySkill(SkillSlot slot){
+            if(!actor||!animator||!camera||!camera.enabled)return false;
+            string name=slot.ToString();
+            if(!animator.parameters.Any(p=>p.name==name&&p.type==AnimatorControllerParameterType.Trigger))return false;
+            foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit"})animator.ResetTrigger(trigger);
+            animator.SetTrigger(name);return true;
+        }
+        void Update(){if(!actor||!camera||!camera.enabled)return;angle+=Time.unscaledDeltaTime*.38f;actor.transform.localRotation=Quaternion.Euler(0,Mathf.Sin(angle)*18f,0);}
+        void RefreshFocus(){if(camera)camera.enabled=focused&&!appPaused;if(animator)animator.speed=focused&&!appPaused?1:0;}
+        void OnApplicationFocus(bool value){focused=value;RefreshFocus();}
+        void OnApplicationPause(bool value){appPaused=value;RefreshFocus();}
+        public void Hide(){
+            if(camera){camera.enabled=false;camera.targetTexture=null;}
+            if(stage){stage.SetActive(false);Destroy(stage);}
+            if(target){target.Release();Destroy(target);}
+            if(maskOwned&&view&&view.battleCamera)view.battleCamera.cullingMask=oldMask;
+            maskOwned=false;stage=null;actor=null;camera=null;target=null;animator=null;hero=null;
+        }
+        void OnDisable(){Hide();}
+    }
+}

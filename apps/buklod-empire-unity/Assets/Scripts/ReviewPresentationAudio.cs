@@ -36,10 +36,11 @@ namespace Buklod.Empire {
         }
         void StopSpatial(){if(voices!=null)foreach(var s in voices)s.Stop();}
         void Update(){
-            if(!view||view.Battle==null||!music||!focused||appPaused)return;
+            if(!view||!music||!focused||appPaused)return;
             var b=view.Battle;
             float musicGain=ReviewAudioSettings.Get(ReviewAudioChannel.Music),effectsGain=ReviewAudioSettings.Get(ReviewAudioChannel.Effects);
             stinger.volume=effectsGain;foreach(var voice in voices)voice.volume=effectsGain;
+            if(b==null){Score(0,musicGain);ambient.Stop();StopSpatial();return;}
             if(match!=b){match=b;entered=false;result=false;combatMix=0;nextAssessment=0;combatUntil=0;lastDamage=b.Player.DamageTaken;stinger.Stop();StopSpatial();}
             if(b.Finished){
                 music.Stop();combatScore.Stop();ambient.Stop();StopSpatial();
