@@ -21,6 +21,8 @@ import { repairMojibakeText } from '@/lib/repairMojibakeText';
 import { withBuklodTimeout } from '@/lib/buklodAsyncTimeout';
 import { createBuklodAvatarBatchLookup } from '@/lib/buklodAvatarBatch';
 import { getBuklodCircleRankArt } from '@/lib/buklodCircleRankArt';
+
+import BuklodRankProfileFrame from '@/components/points/BuklodRankProfileFrame';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import { isBuklodAvatarOnline, subscribeBuklodAvatarPresence } from '@/lib/buklodAvatarPresence';
 import {
@@ -127,6 +129,7 @@ type ProfileAvatarProps = {
   shape?: 'circle' | 'rounded';
   /** Optional already verified rank from Wall/Connect, display until batch catches up. */
   rankName?: string | null;
+  animateRankFrame?: boolean;
 
   fallbackSource?:
     | number
@@ -332,33 +335,37 @@ export function ProfileAvatar({
   shape = 'circle',
   fallbackSource,
   rankName,
+  animateRankFrame=false,
 }: ProfileAvatarProps) {
   const { user } = useAuth();
   const viewerId = user?.id ?? '';
+
   const rankPreviewEnabled = isGenesisPreviewBuild();
+  const rankFrameEnabled=rankPreviewEnabled&&size>=64&&shape==='circle';
+  const rankLookupEnabled=rankPreviewEnabled||rankFrameEnabled;
   // MAIN is the authorized live backend. Never track new preview-only
   // presence identities there until a separately reviewed backend gate.
   const onlinePreviewEnabled = rankPreviewEnabled &&
     process.env.EXPO_PUBLIC_BUKLOD_GENESIS_PRESENCE_APPROVED === 'true';
   const rankTargetId = userId || viewerId;
-  const [rankCache, setRankCache] = useState<{ targetId: string; rankName: string | null }>({targetId: '', rankName: null});
+  const [rankCache, setRankCache] = useState<{ viewerId:string; targetId: string; rankName: string | null }>({viewerId:'',targetId: '', rankName: null});
   const [onlineCache, setOnlineCache] = useState<{ targetId: string; online: boolean }>({targetId: '', online: false});
 
   useEffect(() => {
     let active = true;
-    if (!rankPreviewEnabled || !viewerId || !rankTargetId) {
-      setRankCache({ targetId: '', rankName: null });
+    if (!rankLookupEnabled || !viewerId || !rankTargetId) {
+      setRankCache({ viewerId, targetId: '', rankName: null });
       return () => { active = false; };
     }
     const warm = rankLookup.peek(viewerId, rankTargetId);
-    setRankCache({ targetId: rankTargetId, rankName: warm.found && getBuklodCircleRankArt(warm.value) ? warm.value : null });
+    setRankCache({ viewerId, targetId: rankTargetId, rankName: warm.found && getBuklodCircleRankArt(warm.value) ? warm.value : null });
     void rankLookup.resolve(viewerId, rankTargetId).then(value => {
       if (active && value !== undefined) {
-        setRankCache({ targetId: rankTargetId, rankName: getBuklodCircleRankArt(value) ? value : null });
+        setRankCache({ viewerId, targetId: rankTargetId, rankName: getBuklodCircleRankArt(value) ? value : null });
       }
     }).catch(() => undefined);
     return () => { active = false; };
-  }, [viewerId, rankTargetId, rankPreviewEnabled]);
+  }, [viewerId, rankTargetId, rankLookupEnabled]);
 
   useEffect(() => {
     if (!onlinePreviewEnabled || !viewerId || !rankTargetId) {
@@ -372,7 +379,8 @@ export function ProfileAvatar({
 
   // Stale async status from a recycled Wall/Connect cell must not decorate
   // another member's avatar even for a single render or an account switch.
-  const verifiedRankName = rankCache.targetId === rankTargetId ? rankCache.rankName : null;
+  const verifiedRankName = rankCache.viewerId===viewerId&&rankCache.targetId === rankTargetId ? rankCache.rankName : null;
+  const frameRank=rankFrameEnabled?getBuklodCircleRankArt(verifiedRankName):null;
   const online = onlinePreviewEnabled && onlineCache.targetId === rankTargetId && onlineCache.online;
   const rankArt = rankPreviewEnabled ? getBuklodCircleRankArt(verifiedRankName || rankName) : null;
   const rankBorder = rankArt?.borderColor ?? colors.line;
@@ -562,6 +570,7 @@ export function ProfileAvatar({
         />
       ) : null}
 
+      {frameRank&&frameRank.order>=9&&<BuklodRankProfileFrame rank={frameRank} size={size} active={animateRankFrame&&viewerId===rankTargetId}/>}
       <ProfileAvatarStatusIndicator
         userId={rankTargetId}
         size={size}
