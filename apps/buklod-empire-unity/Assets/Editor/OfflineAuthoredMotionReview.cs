@@ -135,6 +135,7 @@ namespace Buklod.Empire.Editor {
                             // The optional authored walk replaces the original Walk clip. Preserve secondary motion on that replacement too.
                             targetPose.Reset();
                             if(pair.slot=="Walk")ReviewSecondaryMotion.Bake(targetRoot,baked,"Walk");
+                            ReviewFaceMotion.Bake(targetRoot,baked,pair.slot,h.id);
                             baked.EnsureQuaternionContinuity();
                             var settings=AnimationUtility.GetAnimationClipSettings(baked);settings.loopTime=pair.slot=="Walk";AnimationUtility.SetAnimationClipSettings(baked,settings);
                             string asset=Root+"/"+h.id+"_"+pair.slot+".anim";
