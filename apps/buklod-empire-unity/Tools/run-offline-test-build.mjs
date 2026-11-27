@@ -49,9 +49,10 @@ try{
  run(process.execPath,['Tools/prepare-offline-review.mjs',...prepareArgs]);
  if(build||validate){
   // Local-only larger asset acquisition; do not consume Unity Cloud allowance.
+  // Run independent pure-Python checks before any network acquisition.
+  run(process.env.PYTHON||'python3',['Tools/test_premium_surfaces.py']);
   run(process.env.PYTHON||'python3',['Tools/acquire-authored-expansion.py']);
   process.env.BUKLOD_AUTHORED_EXPANSION='1';
-  run(process.env.PYTHON||'python3',['Tools/test_premium_surfaces.py']);
   run(process.env.PYTHON||'python3',['Tools/acquire-premium-surfaces.py']);
   process.env.BUKLOD_PREMIUM_SURFACES='1';
   run(process.env.PYTHON||'python3',['Tools/prepare-hero-voice.py']);

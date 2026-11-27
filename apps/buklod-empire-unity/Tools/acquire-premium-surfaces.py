@@ -60,11 +60,34 @@ def normal_png(data):
     with Image.open(io.BytesIO(data)) as im:
         if im.size!=(RES,RES):raise ValueError("Unexpected normal map dimensions")
         out=io.BytesIO();im.convert("RGB").save(out,format="PNG");return out.getvalue()
+def verify_cache(folder):
+    doc=json.loads((folder/"manifest.json").read_text(encoding="utf8"))
+    if doc.get("status")!="POLYHAVEN_CC0_REVIEW_ONLY" or doc.get("resolution")!=RES or doc.get("provider")!="Poly Haven" or doc.get("license")!="CC0" or doc.get("productionApproved") is not False:
+        raise ValueError("Invalid surface receipt")
+    rows=doc["textures"]
+    if len(rows)!=len(ASSETS):raise ValueError("Incomplete surface roster")
+    remaining=set(ASSETS)
+    for row in rows:
+        kind=row["kind"]
+        if kind not in remaining or row["asset"]!=ASSETS[kind]:raise ValueError("Invalid surface identity")
+        remaining.remove(kind)
+        for name,length,digest,suffix in (("file","bytes","sha256",".png"),("normalFile","normalBytes","normalSha256","-normal.png")):
+            if row[name]!=kind+suffix:raise ValueError("Invalid cache filename")
+            path=folder/row[name]
+            if not path.is_file() or not 0<row[length]<=LIMIT or path.stat().st_size!=row[length] or sha(path.read_bytes())!=row[digest]:
+                raise ValueError("Invalid cache content: "+kind)
+            with Image.open(path) as image:
+                if image.size!=(RES,RES):raise ValueError("Invalid cache dimensions")
+                image.verify()
+    return doc
 def main():
     print("Powered by Poly Haven — CC0 photographed surfaces; no account or paid API",flush=True)
     CACHE.mkdir(parents=True,exist_ok=True)
     marker=CACHE/"manifest.json"
-    marker.unlink(missing_ok=True)
+    try:
+        verify_cache(CACHE);print("Verified complete 4K surface cache; no network required.",flush=True);return
+    except (OSError,ValueError,KeyError,TypeError):
+        marker.unlink(missing_ok=True)
     rows=[]
     for kind,asset in ASSETS.items():
         pin=CACHE/"originals"/asset/"descriptor.json"
@@ -86,4 +109,5 @@ def main():
         rows.append({"kind":kind,"asset":asset,"file":file,"bytes":len(data),"sha256":sha(data),"diffSha256":sha(d),"roughSha256":sha(r),"normalFile":normal_file,"normalBytes":len(normal_data),"normalSha256":sha(normal_data),"normalSourceSha256":sha(normal)})
         print("Verified",kind,asset,flush=True)
     atomic(marker,json.dumps({"status":"POLYHAVEN_CC0_REVIEW_ONLY","resolution":RES,"provider":"Poly Haven","license":"CC0","productionApproved":False,"textures":rows},indent=2).encode())
+    verify_cache(CACHE)
 if __name__=="__main__":main()

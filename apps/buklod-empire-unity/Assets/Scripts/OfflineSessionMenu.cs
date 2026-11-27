@@ -241,7 +241,7 @@ namespace Buklod.Empire {
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
             if(!view.IsEditorReview||showResult||confirmRestart||!(page==-1||page==0&&heroDetail))HideShowcase();
-            if(view.IsEditorReview&&navigationTabs!=null)for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=b!=null||i<3||i>=8;
+            if(view.IsEditorReview&&navigationTabs!=null)for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=(active&&matchStarted)||i<3||i>=8;
             if(resumeButton)resumeButton.interactable=active&&(!view.IsEditorReview||matchStarted)&&!confirmRestart;
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
@@ -388,9 +388,9 @@ namespace Buklod.Empire {
             title.color=BattleEffects.Accent(selected);feedback.text="";
             // Yield a frame so the real initialization state can be displayed; no artificial progress.
             yield return null;
-            bool ready=false;
+            bool ready=false;var previousMatch=view.Battle;bool previouslyStarted=matchStarted;
             try{BeginMatch(false);ready=true;}
-            catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;matchStarted=false;Rebuild();feedback.text="Unable to initialize match. Start a new match after checking local review assets.";}
+            catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;matchStarted=previouslyStarted&&previousMatch!=null&&ReferenceEquals(previousMatch,view.Battle);Rebuild();feedback.text=matchStarted?"New match could not initialize. Previous match retained.":"Unable to initialize match. Start a new match after checking local review assets.";}
             if(ready){
                 if(authored&&authored.entrance)authored.entrance.Open();
                 title.text="GENESIS RIFT";summary.text="Enter the battlefield";feedback.text="";

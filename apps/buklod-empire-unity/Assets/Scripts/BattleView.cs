@@ -77,7 +77,7 @@ namespace Buklod.Empire {
         private readonly HashSet<int> seen=new HashSet<int>();
         private readonly Dictionary<int,VillageResourceNode> reviewFarmNodes=new Dictionary<int,VillageResourceNode>();
         private readonly List<int> removed=new List<int>();
-        private readonly List<(Visual visual,float until)> dying=new List<(Visual,float)>();
+        private readonly List<(Visual visual,float remaining)> dying=new List<(Visual,float)>();
         private readonly Plane[] frustum=new Plane[6];
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
@@ -185,7 +185,11 @@ namespace Buklod.Empire {
             return GeometryUtility.TestPlanesAABB(frustum,new Bounds(center,Vector3.one*(2*radius)));
         }
         private void Sync(bool immediate){
-            for(int i=dying.Count-1;i>=0;i--)if(immediate||Time.unscaledTime>=dying[i].until){Return(dying[i].visual);dying.RemoveAt(i);}
+            // Sync is suspended while paused: only visible, unpaused animation time retires a death pose.
+            for(int i=dying.Count-1;i>=0;i--){
+                var row=dying[i];row.remaining-=Mathf.Max(0,Time.deltaTime);
+                if(immediate||row.remaining<=0){Return(row.visual);dying.RemoveAt(i);}else dying[i]=row;
+            }
             seen.Clear();
             if(reviewShadows)reviewShadows.Begin();
             reviewFarmNodes.Clear();
@@ -309,7 +313,7 @@ namespace Buklod.Empire {
                     v.animator.SetTrigger("Death");
                     var duration=1.2f;
                     foreach(var clip in v.animator.runtimeAnimatorController.animationClips)if(clip&&clip.name=="Death")duration=Mathf.Clamp(clip.length+.1f,.4f,2.5f);
-                    dying.Add((v,Time.unscaledTime+duration));
+                    dying.Add((v,duration));
                 }else Return(v);
                 removed.Add(pair.Key);
             }

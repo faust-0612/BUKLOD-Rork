@@ -18,7 +18,7 @@ namespace Buklod.Empire.Editor {
         internal static void Validate(IEnumerable<string> dependencies){
             var present=new HashSet<string>(dependencies,StringComparer.Ordinal);
             foreach(var path in Required)if(!present.Contains(path))throw new BuildFailedException("Required authored review scene dependency missing: "+path);
-            foreach(var name in new[]{"ReviewRiftWater","ReviewLeafA","ReviewLeafB"}){
+            foreach(var name in new[]{"ReviewRiftWater","ReviewRiftCascade","ReviewLeafA","ReviewLeafB"}){
                 string path=CandidateReviewComposer.Out+"/"+name+".mat";
                 var material=AssetDatabase.LoadAssetAtPath<Material>(path);
                 if(!present.Contains(path)||!material||!material.shader||!material.shader.isSupported||ShaderUtil.ShaderHasError(material.shader))

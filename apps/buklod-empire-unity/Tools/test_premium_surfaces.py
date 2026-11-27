@@ -1,4 +1,4 @@
-import importlib.util, io, unittest
+import importlib.util, io, unittest, json, tempfile
 from pathlib import Path
 from PIL import Image
 spec=importlib.util.spec_from_file_location("surfaces",Path(__file__).with_name("acquire-premium-surfaces.py"))
@@ -23,6 +23,23 @@ class Tests(unittest.TestCase):
         row={"url":"https://dl.polyhaven.org/test","size":10,"md5":"a"*32}
         self.assertEqual(m.select({"diff":{"4k":{"jpg":row}}},"diff"),row)
         with self.assertRaises(ValueError):m.select({"diff":{"4k":{"jpg":dict(row,size=0)}}},"diff")
+    def test_cache_integrity_and_no_silent_downgrade(self):
+        old=m.RES;m.RES=2
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                folder=Path(tmp);rows=[]
+                for kind,asset in m.ASSETS.items():
+                    row={"kind":kind,"asset":asset}
+                    for name,length,digest,suffix in (("file","bytes","sha256",".png"),("normalFile","normalBytes","normalSha256","-normal.png")):
+                        path=folder/(kind+suffix);Image.new("RGB",(2,2),(128,128,255)).save(path)
+                        row.update({name:path.name,length:path.stat().st_size,digest:m.sha(path.read_bytes())})
+                    rows.append(row)
+                doc={"status":"POLYHAVEN_CC0_REVIEW_ONLY","resolution":2,"provider":"Poly Haven","license":"CC0","productionApproved":False,"textures":rows}
+                (folder/"manifest.json").write_text(json.dumps(doc))
+                self.assertEqual(m.verify_cache(folder),doc)
+                (folder/"soil-normal.png").write_bytes(b"bad")
+                with self.assertRaises(ValueError):m.verify_cache(folder)
+        finally:m.RES=old
     def test_host_rejected(self):
         with self.assertRaises(ValueError):m.request("https://example.com/",1,"dl.polyhaven.org")
 if __name__=="__main__":unittest.main()
