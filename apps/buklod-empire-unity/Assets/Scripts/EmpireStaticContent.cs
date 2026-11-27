@@ -74,11 +74,21 @@ namespace Buklod.Empire {
             return actual.min.x>=limit.min.x-tolerance&&actual.min.z>=limit.min.z-tolerance&&actual.max.x<=limit.max.x+tolerance&&actual.max.z<=limit.max.z+tolerance
                 &&actual.min.y>=limit.min.y-tolerance&&actual.max.y<=limit.max.y+tolerance;
         }
+        static void RebindLocalShaders(GameObject candidate,GameObject baseline){
+            var shaders=baseline.GetComponentsInChildren<Renderer>(true).SelectMany(r=>r.sharedMaterials)
+                .Where(m=>m&&m.shader).Select(m=>m.shader).GroupBy(s=>s.name,StringComparer.Ordinal)
+                .ToDictionary(g=>g.Key,g=>g.First(),StringComparer.Ordinal);
+            // Bind the actual trusted native shader object, never a same-name remote shader.
+            foreach(var renderer in candidate.GetComponentsInChildren<MeshRenderer>(true))
+                foreach(var mat in renderer.sharedMaterials)
+                    if(mat&&mat.shader&&shaders.TryGetValue(mat.shader.name,out var local))mat.shader=local;
+        }
         public static BattleVisualCatalog CloneWith(BattleVisualCatalog baseline,IReadOnlyDictionary<string,GameObject> replacements){
             if(replacements.Count==0)return baseline;
             var original=Slots(baseline);
             foreach(var row in replacements)
                 if(!original.TryGetValue(row.Key,out var reference)||!Compatible(row.Value,reference))throw new InvalidOperationException("Incompatible static content: "+row.Key);
+            foreach(var row in replacements)RebindLocalShaders(row.Value,original[row.Key]);
             var result=UnityEngine.Object.Instantiate(baseline);
             GameObject Pick(string slot,GameObject fallback)=>replacements.TryGetValue(slot,out var model)?model:fallback;
             try{
