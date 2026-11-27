@@ -51,6 +51,7 @@ namespace Buklod.Empire.Editor {
                 ReviewAuthoredAssetGate.Validate(deps);AuthoredExpansionReview.Validate(deps);
                 OfflineMotionGate.Validate(view.visuals);
                 OfflineAuthoredMotionReview.ValidateDependencies(deps);
+                PortraitCaptureReview.ValidateDependencies(deps);
                 Debug.Log("BUKLOD_OFFLINE_PREFLIGHT_PASS — no APK or device approval.");
             } finally {GraphicsSettings.defaultRenderPipeline=previous;QualitySettings.renderPipeline=quality;AssetDatabase.SaveAssets();}
         }

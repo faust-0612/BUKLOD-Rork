@@ -53,6 +53,7 @@ namespace Buklod.Empire.Editor {
             if(!bank)throw new InvalidOperationException("Missing committed 39-skill audio bank.");
             SkillAudio.ValidateBank(bank.bytes);
             CandidateReviewComposer.Prepare();
+            if(AuthoredExpansionReview.Requested)PortraitCaptureReview.EnsureCurrent();
             OfflineReviewComposer.Prepare();
             Debug.Log("Consolidated offline review assembled. Run EditMode/PlayMode and visual acceptance separately. No APK or production approval.");
         }

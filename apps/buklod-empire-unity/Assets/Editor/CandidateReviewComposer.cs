@@ -122,7 +122,10 @@ namespace Buklod.Empire.Editor {
                         var candidates=imported.Where(c=>c.name==name).ToArray();
                         if(candidates.Length!=1)throw new InvalidOperationException("Expected one imported clip: "+id+"/"+name);
                         string clipPath=$"{Out}/Clips/{id}_{name}.anim";
-                        var clone=UnityEngine.Object.Instantiate(candidates[0]);clone.name=name;clone.legacy=false;
+                        var clone= name=="Attack"&&HeroKitCatalog.All.Any(h=>h.Id==id)
+                            ?ReviewWeaponMotion.Bake(instance,id,candidates[0])
+                            :UnityEngine.Object.Instantiate(candidates[0]);
+                        clone.name=name;clone.legacy=false;
                         var settings=AnimationUtility.GetAnimationClipSettings(clone);settings.loopTime=name=="Idle"||name=="Walk"||name=="Run";AnimationUtility.SetAnimationClipSettings(clone,settings);
                         var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
                         if(clip){EditorUtility.CopySerialized(clone,clip);UnityEngine.Object.DestroyImmediate(clone);}

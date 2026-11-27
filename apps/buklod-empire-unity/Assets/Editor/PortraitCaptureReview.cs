@@ -18,6 +18,28 @@ namespace Buklod.Empire.Editor {
         static string Prefab(string id)=>CandidateReviewComposer.Out+"/Prefabs/"+id+".prefab";
         static string SourceHash(string id)=>AssetDatabase.GetAssetDependencyHash(Prefab(id)).ToString();
         static string Hash(byte[] bytes){using(var h=SHA256.Create())return BitConverter.ToString(h.ComputeHash(bytes)).Replace("-","").ToLowerInvariant();}
+        // Reuse only complete captures of the exact current prefab dependencies.
+        internal static void EnsureCurrent(){
+            string manifest=Out+"/manifest.json";
+            if(File.Exists(manifest)){
+                try{
+                    var doc=JsonUtility.FromJson<Receipt>(File.ReadAllText(manifest));
+                    var ids=HeroKitCatalog.All.Select(h=>h.Id).ToArray();
+                    if(doc!=null&&doc.status=="REVIEW_ONLY"&&doc.rows!=null&&doc.rows.Length==ids.Length&&ids.All(id=>{
+                        var row=doc.rows.SingleOrDefault(x=>x!=null&&x.id==id);
+                        string path=Out+"/"+id+".tga";
+                        var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                        return row!=null&&row.sourceHash==SourceHash(id)&&File.Exists(path)&&row.sha256==Hash(File.ReadAllBytes(path))&&tex&&tex.width==Width&&tex.height==Height;
+                    }))return;
+                }catch(ArgumentException){}catch(InvalidOperationException){}catch(IOException){}
+            }
+            Capture();
+        }
+        internal static void ValidateDependencies(string[] dependencies){
+            if(!AuthoredExpansionReview.Requested)return;
+            foreach(var h in HeroKitCatalog.All)
+                if(!dependencies.Contains(Out+"/"+h.Id+".tga"))throw new UnityEditor.Build.BuildFailedException("Missing actual rendered hero portrait: "+h.Id);
+        }
         [MenuItem("BUKLOD Empire/Capture all 13 review portraits")]
         public static void Capture(){
             if(SystemInfo.graphicsDeviceType==GraphicsDeviceType.Null)throw new InvalidOperationException("A local Unity graphics device is required.");
