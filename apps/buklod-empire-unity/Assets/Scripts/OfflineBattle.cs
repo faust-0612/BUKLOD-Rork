@@ -63,6 +63,8 @@ namespace Buklod.Empire {
         public bool RevivedMinion {get;internal set;}
         internal void ClearCargo(){CargoWood=CargoStone=CargoCrystal=CargoFood=CargoGold=0;ResourceNodeId=0;}
         internal void AddCargo(VillageResourceKind kind,double amount){switch(kind){case VillageResourceKind.Wood:CargoWood+=amount;break;case VillageResourceKind.Stone:CargoStone+=amount;break;case VillageResourceKind.Crystal:CargoCrystal+=amount;break;case VillageResourceKind.Food:CargoFood+=amount;break;case VillageResourceKind.Gold:CargoGold+=amount;break;}}
+        internal int VillageThreatId;
+        internal float VillageThreatUntil;
         public bool Retreat; public float LastAttack=float.NegativeInfinity;
         public ArenaTactic Tactic {get;internal set;}=ArenaTactic.Renew;
         public float TacticReadyAt {get;internal set;}
@@ -448,6 +450,12 @@ namespace Buklod.Empire {
             }
             else target.Health=Mathf.Max(0,target.Health-actual);
             float hpDamage=Mathf.Max(0,priorHp-target.Health);a.DamageDealt+=hpDamage;t.DamageTaken+=hpDamage;if(hpDamage>0)lastFactionDamage=Time;
+            // Offline villagers defend themselves only after actual hostile damage.
+            // A distant attacker never causes a worker to abandon its assigned job.
+            if(!IsAuthoritative&&hpDamage>0&&t.Villager!=null&&target.Alive&&
+                (a.Kind==BattleTargetKind.Hero||a.Kind==BattleTargetKind.Minion)){
+                t.VillageThreatId=a.Id;t.VillageThreatUntil=Time+5f;
+            }
             if(hpDamage>0&&a.Gear.Contains("withering_thorn")&&t.Kind==BattleTargetKind.Hero)target.Set("antiheal",.35f,Time+4,Time);
             if(basic&&t.Kind!=BattleTargetKind.Structure&&t.Kind!=BattleTargetKind.Villager)actor.Heal(hpDamage*((a.Gear.Contains("renewal")?.15f:0)+a.CovenantBonus.Lifesteal));
             if(actor.Kit?.Id=="mitch")target.Set("vulnerable",.1f,Time+3,Time);
@@ -728,14 +736,14 @@ namespace Buklod.Empire {
             AdvanceResourceNodes();AdvanceWorkers();AdvanceConstruction();AdvanceRecruitment();
             foreach(var village in villages){if(Finished)break;advancingVillage=village.Team;try{village.Advance(Step);}finally{advancingVillage=null;}}
             foreach(var u in units)if(u.Villager!=null){
-                if(!u.State.Alive&&u.Villager.Alive){u.Position=u.Spawn;u.ClearCargo();u.WorkerOrder=VillageWorkerOrder.Gather;}
+                if(!u.State.Alive&&u.Villager.Alive){u.Position=u.Spawn;u.ClearCargo();u.WorkerOrder=VillageWorkerOrder.Gather;u.VillageThreatId=0;u.VillageThreatUntil=0;u.LastAttack=float.NegativeInfinity;}
                 u.State.Health=u.Villager.Health;
             }
             if(tick%10==0)VillageAuras();
             HeroPassives();
             var copy=units.ToArray();
             foreach(var u in copy){
-                if(Finished)break;var a=u.State;if(u.Villager!=null)continue;
+                if(Finished)break;var a=u.State;if(u.Villager!=null){if(!IsAuthoritative)DefendVillageWorker(u);continue;}
                 if(u.Temporary&&u.Expires<=Time)a.Health=0;
                 if(!a.Alive){
                     if(u.Kind==BattleTargetKind.Hero&&CanRespawn(u.Team)&&Time>=u.RespawnAt){a.Respawn();u.Position=u.Spawn;u.Retreat=false;}
@@ -826,6 +834,16 @@ namespace Buklod.Empire {
             var dir=t.Position-u.Position;Basic(u,dir,null,0,t.Id);a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);
             if(Enemies(a,8,Vector2.zero).Count>=2)a.TryCast(this,SkillSlot.Secondary,dir,Time,!Finished);
             if(Enemies(a,8,Vector2.zero).Count>=3)a.TryCast(this,SkillSlot.Ultimate,dir,Time,!Finished);
+        }
+        // Bounded retaliation, no pursuit, resource minting or construction override.
+        private void DefendVillageWorker(BattleUnit worker){
+            if(!worker.State.CanAttack(Time)||worker.VillageThreatId==0)return;
+            if(Time>=worker.VillageThreatUntil){worker.VillageThreatId=0;return;}
+            var threat=units.FirstOrDefault(v=>v.Id==worker.VillageThreatId&&v.Team!=worker.Team&&v.State.Alive);
+            if(threat==null){worker.VillageThreatId=0;return;}
+            if(Time-worker.LastAttack<1.3f||Dist(worker,threat)>3f||
+                !IsVisibleTo(worker.Team,threat)||!ClearSight(worker.Position,threat.Position))return;
+            if(ResolveHit(worker.State,threat.State,8f,true))worker.LastAttack=Time;
         }
         private void Minion(BattleUnit u){
             if(!u.State.CanAttack(Time)&&!u.State.CanMove(Time))return;

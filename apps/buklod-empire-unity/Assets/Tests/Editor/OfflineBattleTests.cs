@@ -8,7 +8,7 @@ namespace Buklod.Empire.Tests {
             Assert.False(b.Turret(b.Player.State,Vector2.right,5,float.NaN,10,20));
             Assert.False(b.Turret(b.Player.State,Vector2.right,5,100,float.PositiveInfinity,20));
             Assert.False(b.Turret(b.Player.State,Vector2.right,5,100,10,-1));
-            Assert.AreEqual(before,b.RemainingUnits(ArenaTeam.Lux));Assert.IsNull(b.EndReason);
+            Assert.AreEqual(before,b.RemainingUnits(ArenaTeam.Lux));Assert.AreEqual("",b.EndReason);
         }
         [Test] public void HybridAssetContractNeverMistakesBaseTowerForFarm(){
             var catalog=ScriptableObject.CreateInstance<BattleVisualCatalog>();var tower=new GameObject("Test tower");var farm=new GameObject("Test farm");

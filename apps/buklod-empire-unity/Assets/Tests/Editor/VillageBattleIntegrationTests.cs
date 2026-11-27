@@ -9,6 +9,33 @@ namespace Buklod.Empire.Tests {
             var enemy=villagers.First(u=>u.Team==ArenaTeam.Tenebra);
             Assert.True(b.Hit(b.Player.State,enemy.State,50));Assert.AreEqual(150,enemy.State.Health);Assert.AreEqual(150,enemy.Villager.Health);
         }
+        // Set up a deterministic encounter without spending minutes walking across the map.
+        static void Place(BattleUnit unit,Vector2 point){
+            typeof(BattleUnit).GetProperty(nameof(BattleUnit.Position)).SetValue(unit,point);
+        }
+        [Test] public void WorkerRetaliatesOnlyAfterDamageAndRespectsCooldown(){
+            var b=new OfflineBattle("phan");
+            var worker=b.Units.First(u=>u.Villager?.Job.Id=="velin");
+            Place(b.Player,worker.Position+new Vector2(0,1.5f));
+            b.Advance(.1f,Vector2.zero);
+            Assert.AreEqual(float.NegativeInfinity,worker.LastAttack,"No unprovoked attacks.");
+            Assert.True(b.Hit(b.Player.State,worker.State,5));
+            b.Advance(.1f,Vector2.zero);
+            Assert.Greater(worker.LastAttack,0,"A threatened worker must fight back.");
+            var stamp=worker.LastAttack;
+            b.Advance(.1f,Vector2.zero);
+            Assert.AreEqual(stamp,worker.LastAttack,"Retaliation must honor cooldown.");
+        }
+        [Test] public void DistantAttackerDoesNotPullGathererAwayFromJob(){
+            var b=new OfflineBattle("phan");
+            var worker=b.Units.First(u=>u.Villager?.Job.Id=="velin");
+            Assert.True(b.Hit(b.Player.State,worker.State,5));
+            var start=worker.Position;
+            b.Advance(.1f,Vector2.zero);
+            Assert.AreEqual(float.NegativeInfinity,worker.LastAttack);
+            Assert.Less(Vector2.Distance(start,worker.Position),1f);
+            Assert.AreEqual(VillageWorkerOrder.Gather,worker.WorkerOrder);
+        }
         [Test] public void NaturalDepositsAreCapturableButFoodPlotsAreNot(){
             var b=new OfflineBattle("phan");
             Assert.AreEqual(8,b.ResourceNodes.Count(n=>n.Capturable));Assert.AreEqual(2,b.ResourceNodes.Count(n=>!n.Capturable));
