@@ -105,7 +105,7 @@ try{
   if(receipt.status!=='VERIFIED_ISOLATED_TEST_ARTIFACT'||receipt.productionApproved!==false||receipt.deviceVerified!==false)throw Error('Unexpected verification receipt');
   if(candidate){
    const metadata={status:'OFFLINE_BUILD_CANDIDATE_ONLY',sourceRevision,package:receipt.package,apk:apks[0],sha256:receipt.sha256,bytes:receipt.bytes,artifactSignatureVerified:true,editModeVerified:false,deviceVerified:false,visualQualityVerified:false,onlineEnabled:false,productionApproved:false};
-   const path=apk+'.candidate.json';writeFileSync(path+'.tmp',JSON.stringify(metadata,null,2)+'\\n');renameSync(path+'.tmp',path);
+   const path=apk+'.candidate.json';writeFileSync(path+'.tmp',JSON.stringify(metadata,null,2)+'\n');renameSync(path+'.tmp',path);
    console.log('BUKLOD_OFFLINE_CANDIDATE_APK_BUILT — signature/package verified; EditMode and device acceptance deferred.');
   }
   console.log('Isolated offline test artifact only: '+apk);
