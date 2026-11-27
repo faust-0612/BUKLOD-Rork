@@ -38,6 +38,7 @@ namespace Buklod.Empire.Editor {
             var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(Catalog);
             if(!catalog)throw new BuildFailedException("Offline review catalog missing.");
             catalog.ValidateOfflineReview();
+            EmpireContentPublisher.ValidateBase(catalog);
             if(!(GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset))throw new BuildFailedException("URP missing.");
             var bank=Resources.Load<TextAsset>("SkillAudioBank");
             if(!bank)throw new BuildFailedException("Skill audio missing.");SkillAudio.ValidateBank(bank.bytes);
@@ -55,6 +56,7 @@ namespace Buklod.Empire.Editor {
             var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
             if(!view||!view.IsConfiguredReview||!view.visuals||!view.GetComponent<EmpireContentUpdater>())throw new BuildFailedException("Review scene or native content updater missing.");
             view.visuals.ValidateOfflineReview();
+            EmpireContentPublisher.ValidateBase(view.visuals);
             OfflineMotionGate.Validate(view.visuals);
             HeroDialogueReview.ValidateDependencies(view.gameObject,AssetDatabase.GetDependencies(Scene,true));
             var root=Path.GetFullPath("Builds/OfflineReview");Directory.CreateDirectory(root);
