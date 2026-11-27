@@ -26,6 +26,10 @@ class Tests(unittest.TestCase):
     def test_v2_descriptor(self):
         row={"url":"https://dl.polyhaven.org/test","size":10,"md5":"a"*32}
         self.assertEqual(m.select({"message":"OK","data":{"diff":{"4k":{"jpg":row}}}},"diff"),row)
+    def test_provider_title_case_maps(self):
+        row={"url":"https://dl.polyhaven.org/test","size":10,"md5":"a"*32}
+        for key,alias in (("diff","Diffuse"),("rough","Rough")):
+            self.assertEqual(m.select({"data":{alias:{"4k":{"jpg":row}}}},key),row)
     def test_missing_maps_fail_with_context(self):
         for doc in ({},{"data":None},{"data":{"rough":{"4k":{}}}},{"diff":{"2k":{}}}):
             with self.assertRaises(ValueError):m.select(doc,"diff")

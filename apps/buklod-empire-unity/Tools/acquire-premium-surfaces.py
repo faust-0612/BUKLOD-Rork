@@ -41,7 +41,8 @@ def select(doc,key):
         doc=doc["data"]
     if not isinstance(doc,dict):
         raise ValueError("Provider file tree is not an object")
-    group=doc.get(key)
+    aliases={"diff":("diff","Diffuse"),"rough":("rough","Rough"),"nor_gl":("nor_gl",)}
+    group=next((doc[k] for k in aliases.get(key,(key,)) if k in doc),None)
     if not isinstance(group,dict) or not isinstance(group.get("4k"),dict):
         raise ValueError("Missing 4K map "+key+"; available maps: "+", ".join(sorted(doc.keys())[:30]))
     formats=group["4k"]

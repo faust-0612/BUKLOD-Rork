@@ -1,6 +1,7 @@
 // Original faction unit detail. Node 18+, no network or packages.
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {normalizeFactionGlb,FACTION_IMPORT_REVISION} from './normalize-faction-glb.mjs';
 function unpackStoredZip(bytes){
  const d=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),out=new Map();let p=0;
  while(p+30<=bytes.length&&d.getUint32(p,true)===0x04034b50){
@@ -124,5 +125,5 @@ function validate(source,output){
 const root=new URL('./AssetCandidates/Rigged/',import.meta.url),out=new URL('./ReviewOutput/premium-factions/',import.meta.url);
 const manifest=JSON.parse(readFileSync(new URL('manifest.json',root),'utf8'));const rows=[];const generated=[];
 const hash=b=>createHash('sha256').update(b).digest('hex');
-for(const pkg of manifest.packages){const source=readFileSync(new URL(pkg.team+'_rigged_review.zip',root));const blob=createHash('sha1').update('blob '+source.length+'\0').update(source).digest('hex');if(blob!==pkg.gitBlob)throw Error('Source archive hash');const entries=unpackStoredZip(source);if(entries.size!==pkg.models.length||pkg.models.some(m=>!entries.has(m.id+'.glb')))throw Error('Roster mismatch');for(const [name,data] of entries){const id=name.slice(0,-4),r=enhanceUnit(data,id);validate(data,r.bytes);generated.push([name,r.bytes]);rows.push({id,file:name,bytes:r.bytes.length,addedTriangles:r.addedTriangles,sourceSha256:hash(data),sha256:hash(r.bytes)});}}
-if(rows.length!==22||new Set(rows.map(r=>r.id)).size!==22)throw Error('Incomplete roster');mkdirSync(out,{recursive:true});for(const [name,data] of generated)writeFileSync(new URL(name,out),data);writeFileSync(new URL('manifest.json',out),JSON.stringify({status:'REVIEW_ONLY',models:rows},null,2)+'\n');console.log('Validated',rows.length,'faction units',rows.reduce((a,b)=>a+b.addedTriangles,0),'additional triangles');
+for(const pkg of manifest.packages){const source=readFileSync(new URL(pkg.team+'_rigged_review.zip',root));const blob=createHash('sha1').update('blob '+source.length+'\0').update(source).digest('hex');if(blob!==pkg.gitBlob)throw Error('Source archive hash');const entries=unpackStoredZip(source);if(entries.size!==pkg.models.length||pkg.models.some(m=>!entries.has(m.id+'.glb')))throw Error('Roster mismatch');for(const [name,data] of entries){const id=name.slice(0,-4),r=enhanceUnit(data,id);validate(data,r.bytes);const normalized=normalizeFactionGlb(r.bytes);generated.push([name,normalized.bytes]);rows.push({id,file:name,bytes:normalized.bytes.length,addedTriangles:r.addedTriangles,sourceSha256:hash(data),sha256:hash(normalized.bytes)});}}
+if(rows.length!==22||new Set(rows.map(r=>r.id)).size!==22)throw Error('Incomplete roster');mkdirSync(out,{recursive:true});for(const [name,data] of generated)writeFileSync(new URL(name,out),data);writeFileSync(new URL('manifest.json',out),JSON.stringify({status:'REVIEW_ONLY',importRevision:FACTION_IMPORT_REVISION,models:rows},null,2)+'\n');console.log('Validated',rows.length,'faction units',rows.reduce((a,b)=>a+b.addedTriangles,0),'additional triangles');

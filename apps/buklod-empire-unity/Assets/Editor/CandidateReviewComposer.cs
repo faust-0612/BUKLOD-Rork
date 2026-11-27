@@ -106,7 +106,17 @@ namespace Buklod.Empire.Editor {
         internal static GameObject MakePrefab(string id,string[] required,bool factionHd=false,bool wildlifeHd=false,bool environmentHd=false){
             string modelPath=$"{Out}/Models/{id}.glb";
             var model=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
-            if(!model)throw new InvalidOperationException("glTFast GameObject import failed: "+id);
+            if(!model){
+                // A missing cached main object is not evidence of malformed GLB. Retry once with a synchronous forced import.
+                Debug.LogWarning("Missing imported GameObject; forcing one reimport: "+modelPath);
+                AssetDatabase.ImportAsset(modelPath,ImportAssetOptions.ForceUpdate|ImportAssetOptions.ForceSynchronousImport);
+                model=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+            }
+            if(!model){
+                var importer=AssetImporter.GetAtPath(modelPath);
+                var loaded=AssetDatabase.LoadAllAssetsAtPath(modelPath).Where(a=>a).Select(a=>a.GetType().Name+":"+a.name);
+                throw new InvalidOperationException("glTFast GameObject import failed: "+id+"; path="+modelPath+"; importer="+(importer?importer.GetType().FullName:"missing")+"; imported objects="+string.Join(", ",loaded));
+            }
             // Unpack a temporary instance so Animator replacement cannot mutate imported model assets.
             var instance=(GameObject)PrefabUtility.InstantiatePrefab(model);
             if(!instance)throw new InvalidOperationException("Could not instantiate "+id);

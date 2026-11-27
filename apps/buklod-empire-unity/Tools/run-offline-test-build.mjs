@@ -5,6 +5,7 @@ import {resolve,join,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {heroPipelineHash} from './hero-pipeline-hash.mjs';
 import {runLogged} from './run-logged-unity.mjs';
+import {FACTION_IMPORT_REVISION} from './normalize-faction-glb.mjs';
 const project=fileURLToPath(new URL('../',import.meta.url));
 const args=process.argv.slice(2);
 const usage='Usage: node Tools/run-offline-test-build.mjs --prepare | --source-preflight | --validate|--build|--resume|--candidate <absolute Unity executable> <absolute Android build-tools directory>';
@@ -58,6 +59,14 @@ try{
      if(!Array.isArray(rows)||rows.length!==(folder==='hero-lod'?13:39)||rows.some(r=>!hashes.has(r[id])||r.sourceSha256!==hashes.get(r[id])))prepareArgs=['--refresh-heroes'];
     }catch{prepareArgs=['--refresh-heroes'];}
    }
+  }
+ }
+ if(resume){
+  const factionReceipt=join(project,'Tools','ReviewOutput','premium-factions','manifest.json');
+  let current=null;try{current=JSON.parse(readFileSync(factionReceipt,'utf8'));}catch{}
+  if(current?.importRevision!==FACTION_IMPORT_REVISION){
+   console.log('Refreshing only 22 faction models for Unity import compatibility. Hero assets unchanged.');
+   run(process.execPath,['Tools/premium-faction-review.mjs']);
   }
  }
  run(process.execPath,['Tools/test-hero-skin.mjs']);
