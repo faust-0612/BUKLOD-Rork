@@ -10,7 +10,7 @@ RETURNS boolean LANGUAGE sql STABLE SET search_path TO '' AS $fn$
  AND NOT EXISTS(SELECT 1 FROM public.buklod_quiz_attempt_questions aq WHERE aq.attempt_id=a.id AND NOT EXISTS(
  SELECT 1 FROM public.buklod_quiz_live_question_snapshots snap WHERE snap.session_id=a.live_session_id AND snap.question_id=aq.question_id))
  AND NOT EXISTS(SELECT 1 FROM public.buklod_quiz_responses r WHERE r.attempt_id=a.id AND r.needs_review IS TRUE AND r.manual_score IS NULL AND NOT EXISTS(
- SELECT 1 FROM private.buklod_quiz_review_reference_r19(a.id) q WHERE q.id=r.question_id AND q.immutable AND q.question_type IN ('SHORT_TEXT','ESSAY','ENUMERATION','MANUAL')))
+ SELECT 1 FROM private.buklod_quiz_review_reference_r19(a.id) q WHERE q.id=r.question_id AND q.immutable AND upper(q.question_type) IN ('SHORT_TEXT','ESSAY','ENUMERATION','MANUAL')))
  );
 $fn$;
 REVOKE ALL ON FUNCTION private.buklod_quiz_has_frozen_review_r25(uuid) FROM PUBLIC,anon,authenticated;
