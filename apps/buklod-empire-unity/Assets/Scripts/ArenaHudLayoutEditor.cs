@@ -18,7 +18,7 @@ namespace Buklod.Empire {
         public ArenaHudLayoutEditor(RectTransform parent,Font labelFont,Sprite controlSprite,Action close){
             font=labelFont;
             root=Rect("HUD layout editor",parent,Vector2.zero,Vector2.one);
-            var backdrop=root.gameObject.AddComponent<Image>();backdrop.color=new Color(.035f,.065f,.09f,.66f);
+            var backdrop=root.gameObject.AddComponent<Image>();backdrop.color=new Color(.025f,.045f,.075f,1f);
             var bar=Rect("Layout toolbar",root,new Vector2(0,.70f),Vector2.one);
             bar.gameObject.AddComponent<Image>().color=new Color(.035f,.065f,.09f,.98f);
             message=Text("Selected",bar,new Vector2(.02f,.49f),new Vector2(.98f,.98f),"",23);

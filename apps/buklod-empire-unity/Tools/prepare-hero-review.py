@@ -46,8 +46,13 @@ class Candidate(original.Hero):
             mat=self.stone_index
             self.stone_count+=1
         center,size=adjust_feature(self,mat,joint,center,size)
-        # Smooth only rounded surfaces, leaving deliberately faceted armor and gems intact.
-        if mat not in (0,1,7,self.stone_index) and not (self.nodes[joint]["name"]=="Head" and max(size)<.04):
+        # Replace the isolated egg-shaped neck with an overlapping anatomical
+        # neck volume connecting the upper torso and jaw across the full roster.
+        if mat==3 and self.nodes[joint]["name"]=="Neck":
+            center=(0,1.535*self.h,0);size=(.069,.159*self.h,.072)
+        # Smooth rounded armor shells as well as organic surfaces; plates and
+        # stones retain their bevels and hard edges.
+        if mat not in (7,self.stone_index) and not (self.nodes[joint]["name"]=="Head" and max(size)<.04) and (mat not in (0,1) or max(size)>.08):
             segments=max(segments,16);steps=max(steps,8)
         if not getattr(self,'mobile_lod',False) and self.nodes[joint]["name"]=="Head" and max(size)>.08 and mat not in (0,1,7,self.stone_index):
             segments=max(segments,28);steps=max(steps,14)
@@ -55,7 +60,7 @@ class Candidate(original.Hero):
             segments=max(6,min(segments,8));steps=max(3,min(steps,4))
         g=self.geo[mat];start=len(g['p'])
         super().ell(mat,joint,center,size,segments,steps)
-        if mat not in (0,1,7,self.stone_index):
+        if mat not in (7,self.stone_index) and (mat not in (0,1) or max(size)>.08):
             for i in range(start,len(g['p'])):
                 p=g['p'][i]
                 g['n'][i]=original.norm(tuple((p[k]-center[k])/(size[k]**2) for k in range(3)))

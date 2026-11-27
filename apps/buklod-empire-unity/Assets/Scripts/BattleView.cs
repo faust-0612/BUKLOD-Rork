@@ -82,7 +82,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public GameObject instance,prefab;public Animator animator;public ReviewClipPlayback fallback;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -168,12 +168,16 @@ namespace Buklod.Empire {
                     if(ReviewOnly&&unit.Kind==BattleTargetKind.Hero){
                         // A live, active Animator must initialize its graph before reading parameters.
                         v.animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;v.animator.Rebind();v.animator.Update(0f);
-                        BattleVisualCatalog.ValidateHeroParameters(v.animator.parameters,unit.State.Kit.Id);
+                        if(!BattleVisualCatalog.HasHeroParameters(v.animator.parameters))
+                            v.fallback=ReviewClipPlayback.TryCreate(v.animator,unit.State.Kit.Id);
                     }else v.animator.Rebind();
-                    v.animator.cullingMode=AnimatorCullingMode.CullUpdateTransforms;
-                    foreach(var p in v.animator.parameters)v.parameters.Add(p.name);
+                    if(v.fallback==null){
+                        v.animator.cullingMode=AnimatorCullingMode.CullUpdateTransforms;
+                        foreach(var p in v.animator.parameters)
+                            if((p.name=="Speed"&&p.type==AnimatorControllerParameterType.Float)||p.type==AnimatorControllerParameterType.Trigger)v.parameters.Add(p.name);
+                    }
                 }else if(ReviewOnly&&unit.Kind==BattleTargetKind.Hero)throw new System.InvalidOperationException("Missing live hero animator: "+unit.State.Kit.Id);
-            }catch{go.SetActive(false);Destroy(go);throw;}
+            }catch{v.fallback?.Dispose();go.SetActive(false);Destroy(go);throw;}
             return v;
         }
         private void SetShadows(Visual v,bool enabled){
@@ -183,11 +187,21 @@ namespace Buklod.Empire {
                 v.renderers[i].shadowCastingMode=enabled?v.originalShadows[i]:ShadowCastingMode.Off;
         }
         private void Return(Visual v){
+            v.fallback?.Dispose();v.fallback=null;
             v.instance.SetActive(false);
             SetShadows(v,true); // preserve original prefab shadow modes across rentals
             var stack=pool[v.prefab];
             if(BattleRenderBudget.CanPool(pooledCount,stack.Count)){stack.Push(v.instance);pooledCount++;}
             else Destroy(v.instance);
+        }
+        private static bool CanTrigger(Visual v,string name)=>v.fallback!=null||v.animator&&v.parameters.Contains(name);
+        private static void Trigger(Visual v,string name){
+            if(v.fallback!=null)v.fallback.Trigger(name);
+            else if(v.animator&&v.parameters.Contains(name))v.animator.SetTrigger(name);
+        }
+        private void OnDestroy(){
+            foreach(var v in active.Values)v.fallback?.Dispose();
+            foreach(var row in dying)row.visual.fallback?.Dispose();
         }
         private bool IsInView(BattleUnit u){
             // Conservative world-space envelope, including tall structures and pose margins.
@@ -200,7 +214,7 @@ namespace Buklod.Empire {
             // Sync is suspended while paused: only visible, unpaused animation time retires a death pose.
             for(int i=dying.Count-1;i>=0;i--){
                 var row=dying[i];row.remaining-=Mathf.Max(0,Time.deltaTime);
-                if(immediate||row.remaining<=0){Return(row.visual);dying.RemoveAt(i);}else dying[i]=row;
+                if(immediate||row.remaining<=0){Return(row.visual);dying.RemoveAt(i);}else{row.visual.fallback?.Tick(Time.deltaTime);dying[i]=row;}
             }
             seen.Clear();
             if(reviewShadows)reviewShadows.Begin();
@@ -242,7 +256,8 @@ namespace Buklod.Empire {
                 if(immediate)t.position=goal;else t.position=Vector3.Lerp(t.position,goal,1-Mathf.Exp(-18*Time.deltaTime));
                 if(reviewShadows&&inView)reviewShadows.Add(t.position,u.Kind,u.Core,worldScale);
                 if(flat.sqrMagnitude>.0001f)t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
-                if(v.animator&&v.parameters.Contains("Speed")){
+                if(v.fallback!=null)v.fallback.SetSpeed(immediate?0:StylizedArenaPresentation.Speed(previousPosition,t.position,Time.deltaTime));
+                else if(v.animator&&v.parameters.Contains("Speed")){
                     if(StylizedBenchmark){
                         float speed=immediate?0:StylizedArenaPresentation.Speed(previousPosition,t.position,Time.deltaTime);
                         if(immediate||speed==0&&flat.sqrMagnitude<.0001f)v.animator.SetFloat("Speed",0);
@@ -253,7 +268,7 @@ namespace Buklod.Empire {
                 if(attackedThisFrame){
                     v.attack=u.LastAttack;
                     if(u.Kind!=BattleTargetKind.Structure&&u.AttackFacing.sqrMagnitude>.001f)t.rotation=Quaternion.LookRotation(new Vector3(u.AttackFacing.x,0,u.AttackFacing.y));
-                    if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");
+                    Trigger(v,"Attack");
                     if(u.Kind==BattleTargetKind.Hero){
                         if(effects)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
                         if(reviewFoley&&inView&&!immediate)reviewFoley.WeaponAttack(u.State.Kit.Id,t.position,player);
@@ -277,7 +292,7 @@ namespace Buklod.Empire {
                     // retained cast cue, and prioritize the newest successful cast for the pose.
                     if(castThisFrame&&v.animator&&u.State.TryGetCast(latest,out var last)){
                         foreach(var trigger in new[]{"Primary","Secondary","Ultimate","Attack","Hit"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
-                        var name=last.Slot.ToString();if(v.parameters.Contains(name))v.animator.SetTrigger(name);
+                        var name=last.Slot.ToString();Trigger(v,name);
                     }
                 }
                 if(u.RepairSequence>v.repairSequence){
@@ -291,21 +306,21 @@ namespace Buklod.Empire {
                 bool tookHit=u.DamageTaken>v.damageTaken+.001f;
                 bool built=u.ConstructionWorkSequence>v.constructionWork;v.constructionWork=u.ConstructionWorkSequence;
                 if(built&&!tookHit&&!attackedThisFrame){
-                    if(v.animator&&v.parameters.Contains("Work"))v.animator.SetTrigger("Work");
+                    Trigger(v,"Work");
                     if(inView&&worldEffects)worldEffects.Emit(t.position,WorldImpactKind.Work,unchecked(u.Id*397+v.constructionWork),new Color(.68f,.54f,.28f));
                     if(inView&&reviewFoley)reviewFoley.Work(t.position);
                 }
                 if(u.Villager!=null&&u.Villager.Actions>v.villageActions){
                     v.villageActions=u.Villager.Actions;
                     if(!built&&!tookHit&&!attackedThisFrame){
-                        if(v.animator&&v.parameters.Contains("Work"))v.animator.SetTrigger("Work");
+                        Trigger(v,"Work");
                         if(worldEffects&&inView)worldEffects.Emit(t.position,WorldImpactKind.Work,unchecked(u.Id*397+v.villageActions),new Color(.68f,.54f,.28f));
                         if(inView&&reviewFoley)reviewFoley.Work(t.position);
                     }
                 }
-                if(!castThisFrame&&!attackedThisFrame&&tookHit&&v.animator&&v.parameters.Contains("Hit"))v.animator.SetTrigger("Hit");
+                if(!castThisFrame&&!attackedThisFrame&&tookHit)Trigger(v,"Hit");
                 if(tookHit&&!immediate&&inView&&reviewFoley)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,t.position);
-                v.damageTaken=u.DamageTaken;
+                v.damageTaken=u.DamageTaken;v.fallback?.Tick(immediate?0:Time.deltaTime);
             }
             removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){
                 var v=pair.Value;var u=v.unit;
@@ -319,10 +334,10 @@ namespace Buklod.Empire {
                     if(reviewFoley&&u.DamageTaken>v.damageTaken+.001f)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,v.instance.transform.position);
                     if(effects)effects.Emit(v.instance.transform.position,tint,u.Core?3:u.Kind==BattleTargetKind.Structure?2:1);
                 }
-                if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&v.parameters.Contains("Death")){
+                if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&CanTrigger(v,"Death")){
                     foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit","Work","Skill"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
                     if(v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",0);
-                    v.animator.SetTrigger("Death");
+                    Trigger(v,"Death");
                     var duration=1.2f;
                     foreach(var clip in v.animator.runtimeAnimatorController.animationClips)if(clip&&clip.name=="Death")duration=Mathf.Clamp(clip.length+.1f,.4f,2.5f);
                     dying.Add((v,duration));

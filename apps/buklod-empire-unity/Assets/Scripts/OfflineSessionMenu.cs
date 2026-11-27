@@ -223,7 +223,7 @@ namespace Buklod.Empire {
                 var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
                 var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
             }
-            var name=Label("Selected hero name",left,new Vector2(.04f,.09f),new Vector2(.96f,.25f),kit.Name,32);name.color=BattleEffects.Accent(selected);
+            var name=Label("Selected hero name",left,new Vector2(.04f,.09f),new Vector2(.96f,.25f),kit.Name,32);name.color=Color.Lerp(BattleEffects.Accent(selected),Color.white,.40f);name.fontStyle=FontStyle.Bold;
             Label("Roster label",left,new Vector2(.04f,0),new Vector2(.96f,.09f),"13 HEROES  •  39 SKILLS",16);
             var right=Rect("Play and settings",body,new Vector2(.49f,.03f),new Vector2(.99f,.97f));
             var practice=ButtonAt("Practice",right,new Vector2(0,.70f),Vector2.one,"PLAY OFFLINE  •  "+difficulty,StartNew);

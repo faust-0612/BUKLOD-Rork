@@ -65,6 +65,15 @@ namespace Buklod.Empire {
             ValidateStructure(true);ValidateHybridAssets();
         }
 #endif
+        internal static bool HasHeroParameters(AnimatorControllerParameter[] source){
+            if(source==null)return false;
+            var parameters=new Dictionary<string,AnimatorControllerParameterType>();
+            foreach(var parameter in source)parameters[parameter.name]=parameter.type;
+            if(!parameters.TryGetValue("Speed",out var speed)||speed!=AnimatorControllerParameterType.Float)return false;
+            foreach(var action in new[]{"Attack","Primary","Secondary","Ultimate"})
+                if(!parameters.TryGetValue(action,out var type)||type!=AnimatorControllerParameterType.Trigger)return false;
+            return true;
+        }
         internal static void ValidateHeroParameters(AnimatorControllerParameter[] source,string id){
             var parameters=new Dictionary<string,AnimatorControllerParameterType>();
             foreach(var parameter in source)parameters[parameter.name]=parameter.type;

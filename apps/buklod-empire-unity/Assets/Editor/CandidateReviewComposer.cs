@@ -162,8 +162,14 @@ namespace Buklod.Empire.Editor {
                         if(pair.Key!="Death"){var exit=state.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;exit.duration=.12f;}
                     }
                     foreach(var legacy in instance.GetComponentsInChildren<Animation>(true))UnityEngine.Object.DestroyImmediate(legacy);
+                    // The generated root-relative curves must have exactly one animation owner.
+                    foreach(var nested in instance.GetComponentsInChildren<Animator>(true))
+                        if(nested.gameObject!=instance)UnityEngine.Object.DestroyImmediate(nested);
                     var animator=instance.GetComponent<Animator>();if(!animator)animator=instance.AddComponent<Animator>();
-                    animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
+                    animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;animator.enabled=true;
+                    EditorUtility.SetDirty(controller);EditorUtility.SetDirty(sm);EditorUtility.SetDirty(blend);
+                    if(HeroKitCatalog.All.Any(h=>h.Id==id)&&(!controller.parameters.Any(p=>p.name=="Speed"&&p.type==AnimatorControllerParameterType.Float)||new[]{"Attack","Primary","Secondary","Ultimate"}.Any(name=>!controller.parameters.Any(p=>p.name==name&&p.type==AnimatorControllerParameterType.Trigger))))throw new InvalidOperationException("Incomplete authored hero controller: "+id);
+                    AssetDatabase.SaveAssets();
                 }
                 if(factionHd)FactionMaterialReview.Apply(instance,id);
                 if(wildlifeHd)WildlifeMaterialReview.Apply(instance,id);

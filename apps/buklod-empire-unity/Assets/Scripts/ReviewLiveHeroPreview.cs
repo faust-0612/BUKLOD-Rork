@@ -7,7 +7,7 @@ namespace Buklod.Empire {
     public sealed class ReviewLiveHeroPreview:MonoBehaviour {
         const int Layer=31, Width=512, Height=640;
         BattleView view;GameObject stage,actor;Camera camera;RenderTexture target;
-        Animator animator;ReviewEvolutionWings wings;ReviewEquipmentVisual previewEquipment;Vector3 fullWingScale;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
+        Animator animator;ReviewClipPlayback fallback;ReviewEvolutionWings wings;ReviewEquipmentVisual previewEquipment;Vector3 fullWingScale;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
         float angle,castAt=-1,castEnd;SkillCue pendingCue;bool pendingEffect;BattleEffects previewEffects;SkillAudio previewAudio;
         public static SkillCue ScaleCue(SkillCue cue,float height){
             float size=Mathf.Clamp(cue.Size/4f,.35f,1f)*Mathf.Clamp(height,.1f,20f)*.38f;
@@ -33,9 +33,9 @@ namespace Buklod.Empire {
             camera.backgroundColor=new Color(.025f,.041f,.065f);camera.orthographic=true;camera.aspect=(float)Width/Height;
             camera.nearClipPlane=.02f;camera.farClipPlane=40;camera.allowHDR=false;
             var data=camera.GetUniversalAdditionalCameraData();data.renderPostProcessing=false;data.renderShadows=false;
-            MakeLight("Showcase key",new Vector3(1.4f,2.8f,2.7f),new Color(1,.86f,.73f),5);
-            MakeLight("Showcase fill",new Vector3(-1.8f,1.9f,2.1f),new Color(.55f,.77f,1),3);
-            MakeLight("Showcase rim",new Vector3(.3f,2.5f,-2f),new Color(.45f,.75f,1),4);
+            MakeLight("Showcase key",new Vector3(1.4f,2.8f,2.7f),new Color(1,.92f,.83f),1.8f);
+            MakeLight("Showcase fill",new Vector3(-1.8f,1.9f,2.1f),new Color(.63f,.79f,1),.85f);
+            MakeLight("Showcase rim",new Vector3(.3f,2.5f,-2f),new Color(.48f,.74f,1),1.4f);
             var source=view.GetComponent<BattleEffects>();
             if(source&&source.pulseMaterial){var fx=new GameObject("Showcase skill effects");fx.transform.SetParent(stage.transform,false);fx.layer=Layer;
                 previewEffects=fx.AddComponent<BattleEffects>();previewEffects.pulseMaterial=source.pulseMaterial;previewEffects.skillParticleMaterial=source.skillParticleMaterial;previewEffects.ConfigurePreview(camera);}
@@ -51,7 +51,7 @@ namespace Buklod.Empire {
                 int previewStage=ArenaProgression.PreviewStage(previewLevel);
                 CreateStage();
                 if(!actor||hero!=id){
-                    ClearCast();wings=null;previewEquipment=null;if(actor){actor.SetActive(false);SetLayerForDisposal(actor.transform);Destroy(actor);}
+                    ClearCast();fallback?.Dispose();fallback=null;wings=null;previewEquipment=null;if(actor){actor.SetActive(false);SetLayerForDisposal(actor.transform);Destroy(actor);}
                     var entry=view.visuals.heroes.Single(h=>h.id==id);
                     actor=Instantiate(entry.prefab,stage.transform);actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;
                     SetLayer(actor.transform);
@@ -62,7 +62,8 @@ namespace Buklod.Empire {
                     animator=actor.GetComponentInChildren<Animator>(true);
                     if(!animator||!animator.runtimeAnimatorController)throw new InvalidOperationException("Preview rig missing.");
                     animator.applyRootMotion=false;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;animator.updateMode=AnimatorUpdateMode.UnscaledTime;
-                    animator.Rebind();animator.Update(0f);BattleVisualCatalog.ValidateHeroParameters(animator.parameters,id);
+                    animator.enabled=true;animator.Rebind();animator.Update(0f);
+                    if(!BattleVisualCatalog.HasHeroParameters(animator.parameters))fallback=ReviewClipPlayback.TryCreate(animator,id);
                     var skins=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.name!="Mobile LOD1").ToArray();
                     if(skins.Length==0)throw new InvalidOperationException("Preview mesh missing.");
                     bounds=skins[0].bounds;foreach(var skin in skins.Skip(1))bounds.Encapsulate(skin.bounds);
@@ -110,10 +111,14 @@ namespace Buklod.Empire {
         public bool PlaySkill(SkillSlot slot){
             if(!actor||!animator||!camera||!camera.enabled)return false;
             string name=slot.ToString();
-            if(!animator.parameters.Any(p=>p.name==name&&p.type==AnimatorControllerParameterType.Trigger))return false;
-            foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit"})animator.ResetTrigger(trigger);
             if(!SkillCueCatalog.TryGet(HeroKitCatalog.Get(hero).Skill(slot).Id,out var cue))return false;
-            ClearCast();animator.SetTrigger(name);
+            if(fallback==null){
+                var triggers=animator.parameters.Where(p=>p.type==AnimatorControllerParameterType.Trigger).Select(p=>p.name).ToArray();
+                if(!triggers.Contains(name))return false;
+                foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit"})if(triggers.Contains(trigger))animator.ResetTrigger(trigger);
+            }
+            ClearCast();
+            if(fallback!=null){if(!fallback.Trigger(name))return false;}else animator.SetTrigger(name);
             pendingCue=ScaleCue(cue,bounds.size.y);pendingEffect=true;castAt=Time.unscaledTime+.12f;
             var clip=animator.runtimeAnimatorController.animationClips.FirstOrDefault(c=>c.name==name);
             castEnd=Time.unscaledTime+Mathf.Max(.65f,clip?clip.length:cue.Duration);
@@ -122,6 +127,7 @@ namespace Buklod.Empire {
         void ClearCast(){pendingEffect=false;castAt=-1;castEnd=0;if(previewEffects)previewEffects.Clear();if(previewAudio)previewAudio.ClearPreview();}
         void Update(){
             if(!actor||!camera||!camera.enabled)return;
+            fallback?.Tick(Time.unscaledDeltaTime);
             if(pendingEffect&&Time.unscaledTime>=castAt){
                 pendingEffect=false;
                 if(previewEffects)previewEffects.EmitSkill(bounds.center-Vector3.up*bounds.size.y*.16f,BattleEffects.Accent(hero),pendingCue,actor.transform.forward);
@@ -135,7 +141,7 @@ namespace Buklod.Empire {
         void OnApplicationFocus(bool value){focused=value;RefreshFocus();}
         void OnApplicationPause(bool value){appPaused=value;RefreshFocus();}
         public void Hide(){
-            ClearCast();previewEffects=null;previewAudio=null;
+            ClearCast();fallback?.Dispose();fallback=null;previewEffects=null;previewAudio=null;
             if(camera){camera.enabled=false;camera.targetTexture=null;}
             if(stage){stage.SetActive(false);SetLayerForDisposal(stage.transform);Destroy(stage);}
             if(target){target.Release();Destroy(target);}
