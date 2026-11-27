@@ -72,7 +72,10 @@ namespace Buklod.Empire.Editor {
             if(File.Exists(controllerPath))AssetDatabase.DeleteAsset(controllerPath);
             var controller=AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
             controller.AddParameter("Speed",AnimatorControllerParameterType.Float);
-            var machine=controller.layers[0].stateMachine;var idle=machine.AddState("Idle");idle.motion=motions["Idle"];machine.defaultState=idle;
+            var machine=controller.layers[0].stateMachine;var idle=machine.AddState("Idle");machine.defaultState=idle;
+            var locomotion=new BlendTree{name="Library locomotion",blendType=BlendTreeType.Simple1D,blendParameter="Speed",useAutomaticThresholds=false};
+            AssetDatabase.AddObjectToAsset(locomotion,controller);
+            locomotion.AddChild(motions["Idle"],0f);locomotion.AddChild(motions["Walk"],1f);idle.motion=locomotion;
             foreach(string slot in new[]{"Attack","Hit","Death"}){
                 controller.AddParameter(slot,AnimatorControllerParameterType.Trigger);
                 var state=machine.AddState(slot);state.motion=motions[slot];
@@ -127,7 +130,7 @@ namespace Buklod.Empire.Editor {
                     throw new BuildFailedException("Creature source/prefab dependency missing: "+s.kind);
                 var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(s));
                 var animator=prefab?prefab.GetComponentInChildren<Animator>(true):null;
-                if(!animator||!animator.runtimeAnimatorController||new[]{"Idle","Attack","Hit","Death"}.Any(n=>!animator.runtimeAnimatorController.animationClips.Any(c=>c&&c.name==n&&c.length>0)))
+                if(!animator||!animator.runtimeAnimatorController||new[]{"Idle","Walk","Attack","Hit","Death"}.Any(n=>!animator.runtimeAnimatorController.animationClips.Any(c=>c&&c.name==n&&c.length>0)))
                     throw new BuildFailedException("Missing original creature action clips: "+s.kind);
             }
         }
