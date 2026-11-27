@@ -19,5 +19,7 @@ def attach_hair(h,head):
     joint=h.bone('ReviewHair',head,offset)
     for i,w in enumerate(weights):
         if w>0:
-            g['j'][i]=(head,joint,0,0)
-            g['w'][i]=(1-w,w,0.,0.)
+            # glTF allows unordered weights, but keep the dominant joint first
+            # for consistent Unity skin import and influence trimming.
+            if w>.5:g['j'][i]=(joint,head,0,0);g['w'][i]=(w,1-w,0.,0.)
+            else:g['j'][i]=(head,joint,0,0);g['w'][i]=(1-w,w,0.,0.)

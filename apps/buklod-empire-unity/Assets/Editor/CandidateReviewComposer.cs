@@ -163,7 +163,7 @@ namespace Buklod.Empire.Editor {
                     if(crop.Length!=1)throw new InvalidOperationException("Regenerate economy models: farm crop canopy missing or duplicated.");
                     instance.AddComponent<ReviewFarmGrowth>().Configure(crop[0]);
                 }
-                if(HeroKitCatalog.All.Any(h=>h.Id==id)){HeroLodReviewImporter.Attach(instance,id);ReviewEquipmentComposer.Attach(instance);}
+                if(HeroKitCatalog.All.Any(h=>h.Id==id)){ReviewWeaponTrailComposer.Attach(instance,id);HeroLodReviewImporter.Attach(instance,id);ReviewEquipmentComposer.Attach(instance);}
                 var saved=PrefabUtility.SaveAsPrefabAsset(instance,$"{Out}/Prefabs/{id}.prefab");
                 if(!saved)throw new InvalidOperationException("Could not save "+id);
                 return saved;

@@ -4,6 +4,7 @@ import {readFileSync,writeFileSync,existsSync,unlinkSync,mkdirSync,renameSync} f
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
+import {heroPipelineHash} from './hero-pipeline-hash.mjs';
 export function validateRows(doc,key,expected,status,read,hash){
  if(!doc||doc.status!==status||!Array.isArray(doc[key])||doc[key].length!==expected.length)throw Error("Invalid manifest: "+key);
  const missing=new Set(expected),rows=[];
@@ -41,10 +42,10 @@ function run(command,args,env=process.env){
  if(result.error)throw result.error;if(result.status!==0)throw Error('Failed stage: '+args.join(' '));
 }
 function audit(heroSize,sharedSize){
- const full=new Map();
+ const full=new Map(),pipeline=heroPipelineHash(project);
  const groups=specs.map(([dir,key,expected,status])=>{
   const folder=join(output,dir),data=readFileSync(join(folder,'manifest.json')),doc=JSON.parse(data);
-  if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize||row.geometryRevision!=='original-sculpted-geometry-v10'||row.jointTriangles!==2048))throw Error('Hero geometry cache needs targeted refresh: use --refresh-heroes');
+  if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize||row.geometryRevision!=='original-sculpted-geometry-v10'||row.sourcePipelineSha256!==pipeline||row.jointTriangles!==2048))throw Error('Hero geometry cache needs targeted refresh: use --refresh-heroes');
   if(dir.endsWith('-materials')&&doc.resolution!==sharedSize)throw Error('Unexpected shared resolution: '+dir);
   const rows=validateRows(doc,key,expected,status,file=>readFileSync(join(folder,file)),sha);
   if(dir==='heroes')for(const row of doc.heroes){if(row.id+'.glb'!==row.file||!heroIds.includes(row.id))throw Error('Hero identity drift');full.set(row.id,row.sha256);}

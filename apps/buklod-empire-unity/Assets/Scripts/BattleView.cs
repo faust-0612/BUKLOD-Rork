@@ -46,7 +46,7 @@ namespace Buklod.Empire {
         public float ControlFeedbackUntil {get;private set;}
         public void SetPaused(bool value){
             Paused=value;if(input)input.enabled=!value;if(value)ControlFeedbackUntil=0;
-            foreach(var visual in active.Values)if(visual.animator)visual.animator.speed=value?0f:1f;
+            foreach(var visual in active.Values){if(visual.animator)visual.animator.speed=value?0f:1f;if(value&&visual.weaponTrail)visual.weaponTrail.Cancel();}
             foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value?0f:1f;
             if(value){collapseUntil=0;if(effects)effects.Clear();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
@@ -84,7 +84,7 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public ReviewWeaponTrail weaponTrail;public float facingHold;public GameObject instance,prefab;public Animator animator;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -110,7 +110,7 @@ namespace Buklod.Empire {
             if(!nextBattle.SelectPlayerTactic(tactic)||covenant.HasValue&&!nextBattle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
             // Commit only after candidate simulation and loadout validation. Any later presentation failure is aborted by review menu.
-            Battle=nextBattle;collapseUntil=0;
+            Paused=true;Battle=nextBattle;collapseUntil=0;
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
@@ -221,7 +221,7 @@ namespace Buklod.Empire {
                 seen.Add(u.Id);
                 if(!existing){
                     v=Rent(visuals.Resolve(u,ReviewOnly));v.unit=u;active.Add(u.Id,v);
-                    if(ReviewOnly&&u.Kind==BattleTargetKind.Hero)ReviewHeroPalette.Apply(v.instance,player?matchPalette:ReviewPalette.Original);
+                    if(ReviewOnly&&u.Kind==BattleTargetKind.Hero){ReviewHeroPalette.Apply(v.instance,player?matchPalette:ReviewPalette.Original);v.weaponTrail=v.instance.GetComponent<ReviewWeaponTrail>();if(v.weaponTrail)v.weaponTrail.Bind(v.animator,effects?effects.pulseMaterial:null,BattleEffects.Accent(u.State.Kit.Id));}
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     // A reused visual must not inherit the previous unit's rotation.
                     if(u.Kind!=BattleTargetKind.Structure)v.instance.transform.rotation=Quaternion.LookRotation(u.Team==ArenaTeam.Lux?Vector3.right:Vector3.left);
@@ -230,6 +230,7 @@ namespace Buklod.Empire {
                 if(ReviewOnly&&u.IsFarm&&v.farmGrowth&&reviewFarmNodes.TryGetValue(u.Id,out var farmNode))
                     v.farmGrowth.Apply(farmNode.Stock,farmNode.Capacity,immediate||!existing,Time.deltaTime);
                 bool hero=u.Kind==BattleTargetKind.Hero;
+                if(v.weaponTrail)v.weaponTrail.SetVisible(inView&&!Paused&&!Battle.Finished);
                 if(hero&&v.equipment)v.equipment.Apply(u);
                 int requestedLod=premiumVisuals?0:-1;
                 if(hero&&v.lodGroups!=null&&v.forcedLod!=requestedLod){
@@ -246,13 +247,15 @@ namespace Buklod.Empire {
                 var delta=goal-t.position;var flat=new Vector3(delta.x,0,delta.z);
                 if(immediate)t.position=goal;else t.position=Vector3.Lerp(t.position,goal,1-Mathf.Exp(-18*Time.deltaTime));
                 if(reviewShadows&&inView)reviewShadows.Add(t.position,u.Kind,u.Core,worldScale);
-                if(flat.sqrMagnitude>.0001f)t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
+                v.facingHold=Mathf.Max(0,v.facingHold-Time.deltaTime);
+                if(flat.sqrMagnitude>.0001f&&(!ReviewOnly||!hero||v.facingHold<=0))t.rotation=Quaternion.Slerp(t.rotation,Quaternion.LookRotation(flat),1-Mathf.Exp(-15*Time.deltaTime));
                 if(v.animator&&v.parameters.Contains("Speed")){
                     if(StylizedBenchmark){
                         float speed=immediate?0:StylizedArenaPresentation.Speed(previousPosition,t.position,Time.deltaTime);
                         if(immediate||speed==0&&flat.sqrMagnitude<.0001f)v.animator.SetFloat("Speed",0);
                         else v.animator.SetFloat("Speed",speed,.10f,Time.deltaTime);
-                    }else v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
+                    }else if(ReviewOnly&&hero){float speed=immediate?0:Vector3.Distance(previousPosition,t.position)/Mathf.Max(.0001f,Time.deltaTime);if(immediate)v.animator.SetFloat("Speed",0);else v.animator.SetFloat("Speed",Mathf.Min(speed,8),.09f,Time.deltaTime);}
+                    else v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
                 }
                 bool attackedThisFrame=u.LastAttack>v.attack;
                 if(attackedThisFrame){
@@ -260,6 +263,7 @@ namespace Buklod.Empire {
                     if(u.Kind!=BattleTargetKind.Structure&&u.AttackFacing.sqrMagnitude>.001f)t.rotation=Quaternion.LookRotation(new Vector3(u.AttackFacing.x,0,u.AttackFacing.y));
                     if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");
                     if(u.Kind==BattleTargetKind.Hero){
+                        if(ReviewOnly){v.facingHold=.12f;if(v.weaponTrail&&inView&&!immediate&&!Battle.Finished)v.weaponTrail.Begin();}
                         if(effects&&(!ReviewOnly||inView))effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f,ReviewOnly?u.State.Kit.Id:null);
                         if(reviewFoley&&inView&&!immediate)reviewFoley.WeaponAttack(u.State.Kit.Id,t.position,player);
                     }
@@ -275,7 +279,7 @@ namespace Buklod.Empire {
                         if(effects&&(!ReviewOnly||inView))effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward,ReviewOnly&&cast.Slot==SkillSlot.Ultimate);
                         if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
                         if(reviewDialogue&&u==Battle.Player&&cast.Slot==SkillSlot.Ultimate)reviewDialogue.Ultimate(u.State.Kit.Id);
-                        castThisFrame=true;
+                        castThisFrame=true;if(ReviewOnly&&hero){v.facingHold=.14f;if(v.weaponTrail)v.weaponTrail.Cancel();}
                     }
                     v.castSequence=latest;
                     // One skeleton cannot play multiple full-body skills concurrently. Present every
@@ -329,6 +333,7 @@ namespace Buklod.Empire {
                     if(reviewFoley&&u.DamageTaken>v.damageTaken+.001f)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,v.instance.transform.position);
                     if(effects){if(ReviewOnly&&u.Core){effects.EmitCoreCollapse(v.instance.transform.position,tint);collapseUntil=Time.unscaledTime+1.25f;}else effects.Emit(v.instance.transform.position,tint,u.Core?3:u.Kind==BattleTargetKind.Structure?2:1);}
                 }
+                if(v.weaponTrail)v.weaponTrail.Cancel();
                 if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&v.parameters.Contains("Death")){
                     foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit","Work","Skill"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
                     if(v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",0);

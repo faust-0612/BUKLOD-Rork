@@ -83,6 +83,9 @@ class Candidate(original.Hero):
         self.joint_triangles=add_joint_geometry(self,result)
         attach_hair(self,head)
         return result
+def pipeline_hash():
+    paths=json.loads((root/'Tools/hero-pipeline-inputs.json').read_text())
+    return hashlib.sha256(b''.join(hashlib.sha256((root/p).read_bytes()).digest() for p in paths)).hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hero",choices=tuple(original.HEROES),help="Isolated single-hero material/portrait review; does not overwrite roster.")
@@ -91,6 +94,7 @@ def main():
     out=(root/"Tools/ReviewOutput/hd-portraits"/str(resolution)/args.hero) if args.hero else root/"Tools/ReviewOutput/heroes"
     out.mkdir(parents=True,exist_ok=True)
     rows=[]
+    pipeline=pipeline_hash()
     profiles=[(args.hero,original.HEROES[args.hero])] if args.hero else original.HEROES.items()
     for hero_id,profile in profiles:
         h=Candidate(hero_id,profile)
@@ -107,6 +111,7 @@ def main():
         assert h.stone_count==1 and len(row["clips"])==12 and row["bones"]>0
         row["stone"]=stone_by[hero_id]["stone"]
         row["sourceGeneratorSha256"]=hashlib.sha256(source.read_bytes()).hexdigest()
+        row["sourcePipelineSha256"]=pipeline
         rows.append(row)
     expected=1 if args.hero else 13
     assert len(rows)==expected and len({r["meshHash"] for r in rows})==expected

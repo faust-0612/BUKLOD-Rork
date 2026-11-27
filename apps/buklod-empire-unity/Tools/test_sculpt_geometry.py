@@ -42,6 +42,25 @@ class SculptGeometryTests(unittest.TestCase):
         self.assertGreater(tip_weight(1.57,-.1,1.,'long'),.95)
         self.assertLess(tip_weight(1.99,-.1,1.,'short'),.5)
         self.assertGreater(tip_weight(1.99,-.1,1.,'short'),0.)
+    def test_weighted_hair_joint_preserves_original_indices_and_hood(self):
+        from types import SimpleNamespace
+        from hair_motion import attach_hair
+        def fixture(style):
+            h=SimpleNamespace(id='fixture',hair=style,h=1.,nodes=[{'name':'Head'}],rest=[(0,1.61,0)],
+                geo={4:{'p':[(0,1.57,-.1),(0,1.9,-.1),(0,1.57,.1)],
+                        'j':[(0,0,0,0)]*3,'w':[(1.,0.,0.,0.)]*3}})
+            def bone(name,parent,offset):
+                h.nodes.append({'name':name,'parent':parent,'offset':offset});return 1
+            h.bone=bone
+            return h
+        h=fixture('long');attach_hair(h,0)
+        self.assertEqual(h.nodes[1]['name'],'ReviewHair')
+        self.assertEqual(h.geo[4]['j'][0],(1,0,0,0))
+        self.assertAlmostEqual(sum(h.geo[4]['w'][0]),1.)
+        self.assertGreater(h.geo[4]['w'][0][0],.95)
+        self.assertEqual(h.geo[4]['w'][1:],[(1.,0.,0.,0.)]*2)
+        hood=fixture('hood');attach_hair(hood,0)
+        self.assertEqual(len(hood.nodes),1)
     def test_relief_gradient_and_normals(self):
         x,y,z=.045,-.012,.09;h,w=.16,.13
         d,dx,dy,dz=facial_relief(x,y,z,h,w)

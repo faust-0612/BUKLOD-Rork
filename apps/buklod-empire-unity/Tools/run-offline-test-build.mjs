@@ -3,6 +3,7 @@ import {existsSync, mkdirSync, openSync, closeSync, unlinkSync, readdirSync, sta
 import {spawnSync} from 'node:child_process';
 import {resolve,join,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {heroPipelineHash} from './hero-pipeline-hash.mjs';
 const project=fileURLToPath(new URL('../',import.meta.url));
 const args=process.argv.slice(2);
 const usage='Usage: node Tools/run-offline-test-build.mjs --prepare | --validate|--build|--resume <absolute Unity executable> <absolute Android build-tools directory>';
@@ -29,10 +30,12 @@ try{
  // independently verified; never regenerate unrelated environment/audio assets.
  let prepareArgs=resume?['--verify']:[];
  if(resume){
-  const manifest=JSON.parse(readFileSync(join(project,'Tools','ReviewOutput','heroes','manifest.json'),'utf8'));
-  if(!Array.isArray(manifest.heroes)||manifest.heroes.length!==13)throw Error('Invalid existing hero cache');
   const output=join(project,'Tools','ReviewOutput');
-  if(manifest.heroes.some(h=>h.geometryRevision!=='original-sculpted-geometry-v10')||existsSync(join(output,'.hero-refresh-incomplete')))prepareArgs=['--refresh-heroes'];
+  const path=join(output,'heroes','manifest.json');
+  let manifest=null;
+  if(existsSync(path)){try{manifest=JSON.parse(readFileSync(path,'utf8'));}catch(error){if(!(error instanceof SyntaxError))throw error;}}
+  const pipeline=heroPipelineHash(project);
+  if(!Array.isArray(manifest?.heroes)||manifest.heroes.length!==13||manifest.heroes.some(h=>!h||h.geometryRevision!=='original-sculpted-geometry-v10'||h.sourcePipelineSha256!==pipeline)||existsSync(join(output,'.hero-refresh-incomplete')))prepareArgs=['--refresh-heroes'];
   else{
    // A crash or stale derivative cannot mix geometry generations.
    const hashes=new Map(manifest.heroes.map(h=>[h.id,h.sha256]));

@@ -400,6 +400,7 @@ namespace Buklod.Empire {
                     view.SetReviewReveal(Mathf.Clamp01(elapsed/duration));panelGroup.alpha=1-Mathf.SmoothStep(0,1,elapsed/duration);
                     yield return null;
                 }
+                if(authored&&authored.entrance&&authored.entrance.IsOpening)authored.entrance.Complete();
                 view.EndReviewReveal();flow.CompleteLoading();page=-1;
                 if(Application.isFocused){Close();var voice=GetComponent<ReviewHeroDialogue>();if(voice)voice.AnnounceBattleStart();}
                 else{shown=true;view.SetPaused(true);Rebuild();}
