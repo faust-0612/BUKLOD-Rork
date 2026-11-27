@@ -27,6 +27,13 @@ class SculptGeometryTests(unittest.TestCase):
         h.id='vhen';h.face='round';h.hair='hood'
         self.assertEqual(face_depth(h,.2,1.755*h.h),0)
         self.assertGreater(face_depth(h,0,1.755*h.h),.14)
+    def test_small_eye_details_are_not_repositioned(self):
+        from types import SimpleNamespace
+        from identity_detail import adjust_feature
+        h=SimpleNamespace(id='phan',face='square',hair='crest',h=1.04,nodes=[{'name':'Head'}])
+        center=(.045,1.85,.12);size=(.0022,.0022,.0015)
+        self.assertEqual(adjust_feature(h,5,0,center,size),(center,size))
+        self.assertNotEqual(adjust_feature(h,5,0,center,(.027,.011,.011)),(center,(.027,.011,.011)))
     def test_relief_gradient_and_normals(self):
         x,y,z=.045,-.012,.09;h,w=.16,.13
         d,dx,dy,dz=facial_relief(x,y,z,h,w)

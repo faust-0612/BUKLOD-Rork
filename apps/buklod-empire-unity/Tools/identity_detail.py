@@ -1,6 +1,7 @@
 """Original procedural facial and signature-equipment refinement; review only."""
 import math
 from sculpt_geometry import facial_relief, sculpt_point
+from fidelity_geometry import _grid
 
 # Jaw taper, brow tilt, eye width, nose width, mouth width. Art candidates,
 # not measurements of people or assertions of portrait likeness.
@@ -35,7 +36,7 @@ def face_depth(h,x,y):
 def adjust_feature(h,mat,joint,center,size):
     if not head_joint(h,joint):return center,size
     x,y,z=center;_,_,eye,nose,_=PROFILES[h.id]
-    if mat in (5,6):
+    if (mat==5 and tuple(size)==(.027,.011,.011)) or (mat==6 and tuple(size)==(.009,.009,.006)):
         x*=1.01 if h.face=='round' else .97
         z=face_depth(h,x,y)+(.0015 if mat==5 else .007)
         size=(size[0]*eye,size[1]*(.78 if mat==5 else .88),size[2]*.48)
@@ -88,11 +89,15 @@ def add_details(h,result):
     for side in (-1,1):
         cx=side*.050*(1.01 if h.face=='round' else .97);cy=1.775*h.h
         for upper in (True,False):
-            for k in range(5 if getattr(h,'mobile_lod',False) else 9):
-                t=k/(4 if getattr(h,'mobile_lod',False) else 8)*2-1
+            def rim(u,v):
+                t=2*u-1
                 xx=cx+t*.027*eye
-                yy=cy+side*tilt*t*.008+(1 if upper else -1)*.009*math.sqrt(max(0,1-t*t))
-                h.ell(3,head,(xx,yy,face_depth(h,xx,yy)+.005),(.0048,.0025 if upper else .0018,.0035),6,3)
+                yy=cy+side*tilt*t*.008+(1 if upper else -1)*.009*math.sin(math.pi*u)
+                zz=face_depth(h,xx,yy)+.0035
+                radius=(.0024 if upper else .0017)*(.55+.45*math.sin(math.pi*u))
+                angle=2*math.pi*v;ny,nz=math.cos(angle),math.sin(angle)
+                return (xx,yy+radius*ny,zz+radius*nz),(0,ny,nz),(head,head,1.)
+            _grid(h,3,rim,8 if getattr(h,'mobile_lod',False) else 16,6)
         h.ell(5,head,(cx-.0028,cy+.003,face_depth(h,cx,cy)+.010),(.0022,.0022,.0015),6,3)
     # Distinct raised detail on the existing canonical hand-held equipment.
     hand=arms[1][2];x,y,z=h.rest[hand];c=(x+.025,y-.025,z+.05)
