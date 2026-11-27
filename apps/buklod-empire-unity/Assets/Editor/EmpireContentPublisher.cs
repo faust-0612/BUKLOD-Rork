@@ -36,8 +36,9 @@ namespace Buklod.Empire.Editor {
                 paths.Add(row.Key,assetPath);
             }
             EmpireContentSources.Apply(paths,catalog);
+            if(paths.Values.Distinct(StringComparer.Ordinal).Count()!=paths.Count)throw new BuildFailedException("Each content slot requires a distinct asset path.");
             Directory.CreateDirectory(output);
-            var groups=paths.GroupBy(x=>EmpireContentProtocol.IsStatic(x.Key)?"static":Array.IndexOf(EmpireContentProtocol.Slots,x.Key)<21?"magic":"reward").OrderBy(g=>g.Key).ToArray();
+            var groups=paths.GroupBy(x=>EmpireContentProtocol.IsStatic(x.Key)?(x.Key.StartsWith("lux_",StringComparison.Ordinal)?"static-lux":x.Key.StartsWith("tenebra_",StringComparison.Ordinal)?"static-tenebra":"static-resources"):Array.IndexOf(EmpireContentProtocol.Slots,x.Key)<21?"magic":"reward").OrderBy(g=>g.Key).ToArray();
             var builds=groups.Select(g=>new AssetBundleBuild{assetBundleName=g.Key,assetNames=g.Select(x=>x.Value).ToArray(),addressableNames=g.Select(x=>EmpireContentProtocol.AssetName(x.Key)).ToArray()}).ToArray();
             var manifest=BuildPipeline.BuildAssetBundles(output,builds,BuildAssetBundleOptions.ChunkBasedCompression|BuildAssetBundleOptions.StrictMode,BuildTarget.Android);
             if(!manifest)throw new BuildFailedException("Unsigned content bundle build failed.");
