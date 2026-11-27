@@ -3,3 +3,5 @@ Assets/ThirdParty/** -text
 Tools/AssetCandidates/** -text
 Tools/*.sh text eol=lf
 ProjectSettings/ProjectVersion.txt text eol=lf
+/empire-prebuild.sh text eol=lf
+/empire-postbuild.sh text eol=lf

@@ -1,0 +1,3 @@
+# Keep only the isolated Empire cloud entrypoints LF on Windows.
+/empire-prebuild.sh text eol=lf
+/empire-postbuild.sh text eol=lf
