@@ -3,6 +3,57 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        static BattleUnit MidTower(OfflineBattle b,ArenaTeam team)=>b.Units.Single(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&u.Lane==ArenaLane.Mid);
+        [Test] public void EveryHeroCanDamageAnEnemyAndAnEnemyTowerWithTouchIntent(){
+            foreach(var kit in HeroKitCatalog.All){
+                var b=new OfflineBattle(kit.Id);var p=b.Player;
+                var enemy=b.Units.First(u=>u.Team!=p.Team&&u.Kind==BattleTargetKind.Hero);
+                PlaceUnit(p,new Vector2(150,110));PlaceUnit(enemy,p.Position+Vector2.right*(kit.BasicRange*.5f));
+                float hp=enemy.State.Health;
+                Assert.True(b.RequestPlayerBasic(Vector2.zero),kit.Id);
+                Assert.Less(enemy.State.Health,hp,kit.Id);
+                Assert.False(b.HasPendingPlayerAttack,kit.Id);
+                b=new OfflineBattle(kit.Id);p=b.Player;var tower=MidTower(b,ArenaTeam.Tenebra);
+                PlaceUnit(p,tower.Position+Vector2.left*(kit.BasicRange*.5f));hp=tower.State.Health;
+                Assert.True(b.RequestPlayerBasic(Vector2.zero,BattleTargetKind.Structure),kit.Id);
+                Assert.Less(tower.State.Health,hp,kit.Id);
+                Assert.AreEqual(tower.Position,p.LastAttackTargetPosition,kit.Id);
+            }
+        }
+        [Test] public void TapApproachesOnceThenStopsAndManualMovementCancels(){
+            var b=new OfflineBattle("phan");var p=b.Player;var tower=MidTower(b,ArenaTeam.Tenebra);
+            PlaceUnit(p,tower.Position+Vector2.left*5);float hp=tower.State.Health;
+            Assert.True(b.RequestPlayerBasic(Vector2.zero,BattleTargetKind.Structure));
+            Assert.True(b.HasPendingPlayerAttack);Assert.AreEqual(hp,tower.State.Health);
+            for(int i=0;i<30&&b.HasPendingPlayerAttack;i++)b.Advance(.1f,Vector2.zero);
+            Assert.False(b.HasPendingPlayerAttack);Assert.Less(tower.State.Health,hp);
+            float last=p.LastAttack;b.Advance(.1f,Vector2.zero);Assert.AreEqual(last,p.LastAttack);
+            b=new OfflineBattle("phan");p=b.Player;tower=MidTower(b,ArenaTeam.Tenebra);
+            PlaceUnit(p,tower.Position+Vector2.left*5);
+            Assert.True(b.RequestPlayerBasic(Vector2.zero,BattleTargetKind.Structure));
+            b.Advance(.1f,Vector2.left);Assert.False(b.HasPendingPlayerAttack);
+            Assert.AreEqual(float.NegativeInfinity,p.LastAttack);
+        }
+        [Test] public void ProtectedCoreAndNoNearbyTargetDoNotSpendCooldown(){
+            var b=new OfflineBattle("phan");var p=b.Player;
+            Assert.False(b.RequestPlayerBasic(Vector2.zero,BattleTargetKind.Structure));Assert.AreEqual(0,b.BasicAttackRemaining(p));
+            var core=b.Units.Single(u=>u.Team!=p.Team&&u.Core);PlaceUnit(p,core.Position+Vector2.up*2);
+            float hp=core.State.Health;Assert.False(b.PlayerAttackUnit(core.Id));
+            Assert.AreEqual(hp,core.State.Health);Assert.AreEqual(0,b.BasicAttackRemaining(p));
+        }
+        [Test] public void EnemyTowerActuallyDamagesNearbyHeroAndRecordsTarget(){
+            var b=new OfflineBattle("phan");var p=b.Player;var tower=MidTower(b,ArenaTeam.Tenebra);
+            PlaceUnit(p,tower.Position+Vector2.left*7);float hp=p.State.Health;
+            b.Advance(.1f,Vector2.zero);
+            Assert.Less(p.State.Health,hp);
+            Assert.AreEqual(p.Position,tower.LastAttackTargetPosition);
+            Assert.Greater(tower.LastAttack,float.NegativeInfinity);
+        }
+        [Test] public void OffCenterTouchWithoutDragHasNoDirectionalAim(){
+            var contact=new Vector2(145,100);
+            Assert.AreEqual(Vector2.zero,MobileBattleInput.ResolveAim(contact,contact,50));
+            Assert.AreEqual(Vector2.left,MobileBattleInput.ResolveAim(contact+Vector2.left*60,contact,50));
+        }
         [Test] public void EquipmentPresentationTracksActualPurchaseAndSale(){
             var b=new OfflineBattle("phan");var p=b.Player;
             Assert.AreEqual(0,ReviewEquipmentVisual.Tier(p,"weapon"));
