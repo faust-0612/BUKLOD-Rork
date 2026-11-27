@@ -44,7 +44,7 @@ namespace Buklod.Empire {
             if(match!=b){match=b;entered=false;result=false;combatMix=0;nextAssessment=0;combatUntil=0;lastDamage=b.Player.DamageTaken;stinger.Stop();StopSpatial();}
             if(b.Finished){
                 ambient.Stop();StopSpatial();
-                if(!result){result=true;music.Stop();combatScore.Stop();combatMix=0;var cue=!b.Winner.HasValue?draw:b.Winner.Value==b.Player.Team?victory:defeat;stinger.Stop();if(cue)stinger.PlayOneShot(cue,.35f);}
+                if(!result){result=true;music.Stop();combatScore.Stop();combatMix=0;var cue=!b.Winner.HasValue?draw:b.Winner.Value==b.Player.Team?victory:defeat;stinger.Stop();if(cue)stinger.PlayOneShot(EmpireContentUpdater.Resolve(cue),.35f);}
                 // A finished match remains the current object when returning to the lobby.
                 // Resume the calm score after the one-shot result cue instead of staying silent.
                 if(!stinger.isPlaying)Score(0,musicGain);
