@@ -6,9 +6,9 @@ import {fileURLToPath} from 'node:url';
 import {heroPipelineHash} from './hero-pipeline-hash.mjs';
 const project=fileURLToPath(new URL('../',import.meta.url));
 const args=process.argv.slice(2);
-const usage='Usage: node Tools/run-offline-test-build.mjs --prepare | --validate|--build|--resume <absolute Unity executable> <absolute Android build-tools directory>';
-if(!((args.length===1&&args[0]==='--prepare')||(args.length===3&&['--build','--resume','--validate'].includes(args[0]))))throw Error(usage);
-const validate=args[0]==='--validate', resume=validate||args[0]==='--resume', build=args[0]==='--resume'||args[0]==='--build', unity=args[1], sdk=args[2];
+const usage='Usage: node Tools/run-offline-test-build.mjs --prepare | --source-preflight | --validate|--build|--resume <absolute Unity executable> <absolute Android build-tools directory>';
+if(!((args.length===1&&['--prepare','--source-preflight'].includes(args[0]))||(args.length===3&&['--build','--resume','--validate'].includes(args[0]))))throw Error(usage);
+const sourcePreflight=args[0]==='--source-preflight',validate=args[0]==='--validate', resume=validate||args[0]==='--resume', build=args[0]==='--resume'||args[0]==='--build', unity=args[1], sdk=args[2];
 if(build||validate){
  if(!isAbsolute(unity)||!isAbsolute(sdk)||!existsSync(unity)||!statSync(unity).isFile()||!existsSync(sdk)||!statSync(sdk).isDirectory())throw Error(usage);
  for(const path of [join(sdk,process.platform==='win32'?'aapt.exe':'aapt'),join(sdk,'lib','apksigner.jar')])if(!existsSync(path))throw Error('Missing Android build tool: '+path);
@@ -25,7 +25,7 @@ const lock=join(root,'.local-build.lock');
 const fd=openSync(lock,'wx');
 const run=(cmd,argv)=>{const r=spawnSync(cmd,argv,{cwd:project,stdio:'inherit',shell:false,env:{...process.env,PYTHONOPTIMIZE:''}});if(r.error)throw r.error;if(r.status!==0)throw Error('Stage failed: '+cmd+' ('+r.status+')');};
 try{
- run(process.execPath,['Tools/verify-authored-review-assets.mjs']);
+ if(!sourcePreflight)run(process.execPath,['Tools/verify-authored-review-assets.mjs']);
  // Refresh only outdated hero groups. Existing 11-group asset receipt is still
  // independently verified; never regenerate unrelated environment/audio assets.
  let prepareArgs=resume?['--verify']:[];
@@ -50,6 +50,11 @@ try{
  run(process.execPath,['Tools/test-hero-skin.mjs']);
  run(process.env.PYTHON||'python3',['Tools/test_joint_geometry.py']);
  run(process.env.PYTHON||'python3',['Tools/test_sculpt_geometry.py']);
+ run(process.env.PYTHON||'python3',['Tools/smoke-hero-geometry.py']);
+ if(sourcePreflight){
+  run(process.env.PYTHON||'python3',['Tools/test_premium_surfaces.py']);
+  console.log('BUKLOD_SOURCE_PREFLIGHT_PASS — geometry/skill smoke and fixtures only; no Unity, assets generated in release cache, APK, or production approval.');
+ }else{
  run(process.execPath,['Tools/prepare-offline-review.mjs',...prepareArgs]);
  if(build||validate){
   // Local-only larger asset acquisition; do not consume Unity Cloud allowance.
@@ -86,4 +91,5 @@ try{
   console.log('Isolated offline test artifact only: '+apk);
   }
  }else console.log('Review assets prepared only; no APK or Unity acceptance.');
+ }
 }finally{closeSync(fd);unlinkSync(lock);}
