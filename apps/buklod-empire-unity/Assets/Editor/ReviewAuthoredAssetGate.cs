@@ -12,7 +12,7 @@ namespace Buklod.Empire.Editor {
             Ui+"action.png",Ui+"stick-pad.png",Ui+"stick-nub.png",Ui+"menu-button.png",Ui+"menu-panel.png",Ui+"click.ogg",
             "Assets/ThirdParty/KayKitReview/doorway.glb",
             Ui+"Combat/step-grass-a.ogg",Ui+"Combat/step-grass-b.ogg",Ui+"Combat/metal-hit.ogg",Ui+"Combat/wood-hit.ogg",
-            Ui+"Combat/door-open.ogg","Assets/Resources/LibraryAudio/Reward/coin-collect.ogg","Assets/Resources/LibraryAudio/Reward/level-up-magic-harp.ogg","Assets/Resources/LibraryAudio/Reward/purchase-ka-ching.ogg","Assets/Resources/LibraryAudio/Reward/item-get.ogg","Assets/Resources/LibraryAudio/Reward/rare-item-found.ogg",Ui+"Combat/fight.ogg",Ui+"Combat/you_win.ogg",Ui+"Combat/you_lose.ogg",Ui+"Combat/tie.ogg",
+            Ui+"Combat/door-open.ogg","Assets/Resources/LibraryAudio/Reward/coin-collect.ogg","Assets/Resources/LibraryAudio/Reward/level-up-magic-harp.ogg","Assets/Resources/LibraryAudio/Reward/item-get.ogg","Assets/Resources/LibraryAudio/Reward/rare-item-found.ogg","Assets/Resources/LibraryAudio/Reward/purchase-ka-ching.ogg","Assets/Resources/LibraryAudio/Reward/purchase-ka-ching.ogg","Assets/Resources/LibraryAudio/Reward/item-get.ogg","Assets/Resources/LibraryAudio/Reward/rare-item-found.ogg",Ui+"Combat/fight.ogg",Ui+"Combat/you_win.ogg",Ui+"Combat/you_lose.ogg",Ui+"Combat/tie.ogg",
             Nature+"Bush_Common.gltf",Nature+"Grass_Common_Short.gltf",Nature+"Grass_Common_Tall.gltf"
         };
         static readonly Dictionary<string,string> LibraryAudioHashes=new Dictionary<string,string>(StringComparer.Ordinal){
