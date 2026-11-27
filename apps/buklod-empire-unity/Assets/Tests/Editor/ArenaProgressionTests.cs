@@ -43,6 +43,15 @@ namespace Buklod.Empire.Tests {
                 }finally{UnityEngine.Object.DestroyImmediate(mesh);}
             }
         }
+        [Test] public void AllHeroWeaponCuesHaveDistinctBoundedPlayback(){
+            var seen=new System.Collections.Generic.HashSet<(bool,float)>();
+            foreach(var hero in HeroKitCatalog.All){
+                var cue=ReviewWeaponProfiles.Audio(hero.Id);
+                Assert.That(cue.Pitch,Is.InRange(.7f,1.5f));
+                Assert.True(seen.Add(cue),hero.Id);
+            }
+            Assert.AreEqual(13,seen.Count);
+        }
         [Test] public void PracticeNeverPromisesReward(){Assert.AreEqual("",ArenaProgression.TrainingResult(false));StringAssert.Contains("0 BP / 0 permanent XP",ArenaProgression.TrainingResult(true));}
         [Test] public void InvalidLevelsRejected(){Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(0));Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(21));}
     }

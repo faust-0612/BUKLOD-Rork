@@ -18,6 +18,7 @@ namespace Buklod.Empire {
             return full?Mathf.Max(size.y*.61f,Mathf.Max(size.x,size.z)*.72f/aspect):Mathf.Max(size.y*.29f,size.x*.38f/aspect);
         }
         static void SetLayer(Transform node){node.gameObject.layer=Layer;foreach(Transform child in node)SetLayer(child);}
+        static void SetLayerForDisposal(Transform node){node.gameObject.layer=0;foreach(Transform child in node)SetLayerForDisposal(child);}
         void CreateStage(){
             if(stage)return;
             if(!view||!view.IsEditorReview||!view.battleCamera)throw new InvalidOperationException("Review preview only.");
@@ -49,7 +50,7 @@ namespace Buklod.Empire {
             try{
                 CreateStage();
                 if(!actor||hero!=id){
-                    ClearCast();wings=null;if(actor){actor.SetActive(false);Destroy(actor);}
+                    ClearCast();wings=null;if(actor){actor.SetActive(false);SetLayerForDisposal(actor.transform);Destroy(actor);}
                     var entry=view.visuals.heroes.Single(h=>h.id==id);
                     actor=Instantiate(entry.prefab,stage.transform);actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;
                     SetLayer(actor.transform);
@@ -116,7 +117,7 @@ namespace Buklod.Empire {
         public void Hide(){
             ClearCast();previewEffects=null;previewAudio=null;
             if(camera){camera.enabled=false;camera.targetTexture=null;}
-            if(stage){stage.SetActive(false);foreach(var renderer in stage.GetComponentsInChildren<Renderer>(true))renderer.gameObject.layer=0;Destroy(stage);}
+            if(stage){stage.SetActive(false);SetLayerForDisposal(stage.transform);Destroy(stage);}
             if(target){target.Release();Destroy(target);}
             if(maskOwned&&view&&view.battleCamera)view.battleCamera.cullingMask=oldMask;
             maskOwned=false;stage=null;actor=null;camera=null;target=null;animator=null;wings=null;hero=null;
