@@ -1,0 +1,38 @@
+{
+  "candidate": "99bd054efb6f7b6215a05710c64c2e1c32b5b2ce",
+  "status": "LOCAL_DATABASE_FIXTURE_QA_PASSED_NOT_RC",
+  "evidence": {
+    "terminal_marker": "QUIZ_R23_RLS_QA_PASS (not production approval)",
+    "source": "owner supplied terminal transcript",
+    "patches": 21,
+    "role_tests": [
+      "student",
+      "outsider",
+      "faculty",
+      "anon"
+    ]
+  },
+  "read_only_attempt_counts": {
+    "main": {
+      "GRADED": 252,
+      "NEEDS_REVIEW": 116,
+      "RELEASED": 460,
+      "VOID": 123
+    },
+    "dedicated": {
+      "GRADED": 252,
+      "NEEDS_REVIEW": 116,
+      "RELEASED": 461,
+      "VOID": 123
+    }
+  },
+  "release_gates": {
+    "standalone_source": "BLOCKED: authoritative currently deployed source unavailable; do not substitute September export",
+    "frontend": "Not verified; MAIN session token exchange, faculty/class approval, all RPC contracts, historical workflow, offline cache/lease compatibility",
+    "historical": "116 pending; 39 with persisted assigned points, 77 without; no fabricated answer references; explicit historical approval not client-enabled",
+    "security": "Actual gateway/RLS, triggers, storage and pre-release score visibility not fully tested by fixture",
+    "staging": "Not deployed; no paid database branch authorized",
+    "production": "Not deployed; no automatic migration or dedicated retirement",
+    "data": "Repeat reconciliation immediately before cutover; retain dedicated and quarantined legacy record until reconciled"
+  }
+}
