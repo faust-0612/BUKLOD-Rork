@@ -106,7 +106,8 @@ namespace Buklod.Empire {
                     ValidateHeroParameters(authored.parameters,h.id);
                 else ValidateHeroParameters(rig.parameters,h.id);
 #else
-                if(!offlineReview)ValidateHeroParameters(rig.parameters,h.id);
+                // Runtime prefab Animator graphs are not initialized until an instance exists.
+                // The editor/build guard validates the authored controller asset for every hero.
 #endif
             }
             if(ids.Count!=HeroKitCatalog.All.Count)throw new InvalidOperationException("All 13 original heroes are required.");
