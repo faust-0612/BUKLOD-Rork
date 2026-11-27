@@ -253,6 +253,7 @@ namespace Buklod.Empire {
                 var right=Rect("Result details",body,new Vector2(.40f,.04f),new Vector2(.98f,.98f));
                 resultEmblem=Label("Outcome emblem",right,new Vector2(0,.78f),Vector2.one,ReviewResultPresentation.Faction(b.Winner),36).rectTransform;
                 resultEmblem.GetComponent<Text>().color=accent;
+                var crest=Rect("Outcome crest",left,new Vector2(.37f,.01f),new Vector2(.63f,.24f));crest.SetAsFirstSibling();AddArt(crest,ReviewMenuArt.Kind.Seal,accent,.7f);
                 var statsPanel=Rect("Actual match statistics",right,new Vector2(0,.33f),new Vector2(1,.77f));
                 resultStats=statsPanel.gameObject.AddComponent<CanvasGroup>();
                 string[] names={"KILLS","DEATHS","ASSISTS","DAMAGE DEALT","DAMAGE TAKEN","MATCH GOLD"};
@@ -423,6 +424,7 @@ namespace Buklod.Empire {
             if(bodyReveal&&shown){float t=Mathf.Clamp01((Time.unscaledTime-bodyOpened)/.22f);bodyReveal.alpha=Mathf.Lerp(.48f,1,Mathf.SmoothStep(0,1,t));}
             if(starting||layoutEditor!=null)return;
             bool finished=view.Battle!=null&&view.Battle.Finished;
+            if(finished&&!lastFinished&&!shown&&view.ShowingCoreCollapse)return;
             if(finished&&!lastFinished&&view.IsEditorReview){showResult=true;resultRevealAt=Time.unscaledTime;}
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();lastFinished=finished;
             if(shown&&finished&&showResult&&resultRevealAt>=0){

@@ -39,7 +39,7 @@ namespace Buklod.Empire {
                 return;
             }
             if(view.Paused){previous=player.Position;lastEarned=player.EarnedFeedbackSequence;stride=0;StopAll();return;}
-            if(!entered){entered=true;Speak(fight);}
+            if(!entered){entered=true;var dialogue=GetComponent<ReviewHeroDialogue>();if(!dialogue||!dialogue.battleStartClip)Speak(fight);}
             float delta=Vector2.Distance(previous,player.Position);previous=player.Position;
             if(player.State.Alive&&delta<2f){stride+=delta;if(stride>=1.3f){stride%=1.3f;if(steps!=null&&steps.Length>0&&!feet.isPlaying){var clip=steps[nextStep++%steps.Length];if(clip)feet.PlayOneShot(clip,.22f);}}}
             else stride=0;

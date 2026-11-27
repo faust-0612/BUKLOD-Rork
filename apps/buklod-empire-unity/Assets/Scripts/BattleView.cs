@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         public bool premiumVisuals=true;
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
-        ReviewCombatOverlay combatOverlay;ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
+        ReviewCombatOverlay combatOverlay;float collapseUntil;ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
         private ArenaReviewFoley reviewFoley;
         private ReviewHeroDialogue reviewDialogue;
         ReviewMotionLibrary reviewMotion;bool authoredWalk;
@@ -40,6 +40,7 @@ namespace Buklod.Empire {
             catch(System.Exception e){PracticeResultStatus="Local practice save failed";Debug.LogWarning("Practice record save failed: "+e.GetType().Name);}
         }
         public bool Paused {get;private set;}
+        internal bool ShowingCoreCollapse=>ReviewOnly&&Battle!=null&&Battle.Finished&&!Paused&&Application.isFocused&&Time.unscaledTime<collapseUntil;
         public int ControlFeedbackButton {get;private set;}
         public bool ControlFeedbackAccepted {get;private set;}
         public float ControlFeedbackUntil {get;private set;}
@@ -47,7 +48,7 @@ namespace Buklod.Empire {
             Paused=value;if(input)input.enabled=!value;if(value)ControlFeedbackUntil=0;
             foreach(var visual in active.Values)if(visual.animator)visual.animator.speed=value?0f:1f;
             foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value?0f:1f;
-            if(value){if(effects)effects.Clear();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
+            if(value){collapseUntil=0;if(effects)effects.Clear();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
         public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
         [SerializeField, HideInInspector] private bool editorReviewOnly;
@@ -109,7 +110,7 @@ namespace Buklod.Empire {
             if(!nextBattle.SelectPlayerTactic(tactic)||covenant.HasValue&&!nextBattle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
             // Commit only after candidate simulation and loadout validation. Any later presentation failure is aborted by review menu.
-            Battle=nextBattle;
+            Battle=nextBattle;collapseUntil=0;
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
@@ -155,7 +156,7 @@ namespace Buklod.Empire {
             ControlFeedbackButton=button;ControlFeedbackAccepted=ok;ControlFeedbackUntil=Time.unscaledTime+.28f;
             return ok;
         }
-        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
+        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));if(ReviewOnly&&Battle.Finished&&input)input.enabled=false;SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
         private void LateUpdate(){if(Battle!=null&&!revealActive)Follow(false);}
         internal void BeginReviewReveal(){
             if(!ReviewOnly||Battle==null||!Paused||!battleCamera)return;
@@ -320,13 +321,13 @@ namespace Buklod.Empire {
                 var v=pair.Value;var u=v.unit;
                 // Retain the unit reference even if the simulation removed a dead minion this tick.
                 // Culling an alive unit or expiring a temporary structure never emits a death effect.
-                bool visibleDeath=!immediate&&u!=null&&!u.State.Alive&&!u.Temporary&&GeometryUtility.TestPlanesAABB(frustum,new Bounds(v.instance.transform.position,Vector3.one*Mathf.Max(2,worldScale*8)));
+                bool visibleDeath=!immediate&&u!=null&&!u.State.Alive&&!u.Temporary&&(!ReviewOnly||u.Team==Battle.Player.Team||Battle.IsPositionVisibleTo(Battle.Player.Team,u.Position))&&GeometryUtility.TestPlanesAABB(frustum,new Bounds(v.instance.transform.position,Vector3.one*Mathf.Max(2,worldScale*8)));
                 if(visibleDeath){
                     var kind=u.Core?WorldImpactKind.Core:u.Kind==BattleTargetKind.Structure?WorldImpactKind.Structure:WorldImpactKind.Unit;
                     var tint=u.Team==ArenaTeam.Lux?new Color(.55f,.69f,.82f):new Color(.48f,.25f,.28f);
                     if(worldEffects)worldEffects.Emit(v.instance.transform.position,kind,unchecked(u.Id*397+(int)(Battle.Time*10)),tint);
                     if(reviewFoley&&u.DamageTaken>v.damageTaken+.001f)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,v.instance.transform.position);
-                    if(effects){if(ReviewOnly&&u.Core)effects.EmitCoreCollapse(v.instance.transform.position,tint);else effects.Emit(v.instance.transform.position,tint,u.Core?3:u.Kind==BattleTargetKind.Structure?2:1);}
+                    if(effects){if(ReviewOnly&&u.Core){effects.EmitCoreCollapse(v.instance.transform.position,tint);collapseUntil=Time.unscaledTime+1.25f;}else effects.Emit(v.instance.transform.position,tint,u.Core?3:u.Kind==BattleTargetKind.Structure?2:1);}
                 }
                 if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&v.parameters.Contains("Death")){
                     foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit","Work","Skill"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
