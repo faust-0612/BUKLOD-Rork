@@ -43,7 +43,7 @@ function run(command,args,env=process.env){
 function audit(heroSize,sharedSize){
  const groups=specs.map(([dir,key,expected,status])=>{
   const folder=join(output,dir),data=readFileSync(join(folder,'manifest.json')),doc=JSON.parse(data);
-  if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize))throw Error('Unexpected hero resolution');
+  if(dir==='heroes'&&doc.heroes?.some(row=>row.textureResolution!==heroSize||row.geometryRevision!=='original-joint-geometry-v7'||row.jointTriangles!==2048))throw Error('Hero geometry cache needs targeted refresh: use --refresh-heroes');
   if(dir.endsWith('-materials')&&doc.resolution!==sharedSize)throw Error('Unexpected shared resolution: '+dir);
   const rows=validateRows(doc,key,expected,status,file=>readFileSync(join(folder,file)),sha);
   return {directory:dir,manifestSha256:sha(data),rows};
@@ -54,13 +54,17 @@ function audit(heroSize,sharedSize){
  groups.push({directory:'environment',manifestSha256:sha(data),rows:[{file:'genesis_rift_premium_review.glb',bytes:model.length,sha256:sha(model)}]});
  return groups;
 }
-const args=process.argv.slice(2),verify=args[0]==='--verify',offset=verify?1:0;
-if(args.length>offset+2)throw Error('Usage: node Tools/prepare-offline-review.mjs [--verify] [hero-size] [shared-size]');
+const args=process.argv.slice(2),verify=args[0]==='--verify',refresh=args[0]==='--refresh-heroes',offset=verify||refresh?1:0;
+if(args.length>offset+2)throw Error('Usage: node Tools/prepare-offline-review.mjs [--verify|--refresh-heroes] [hero-size] [shared-size]');
 const heroSize=Number(args[offset]||1024),sharedSize=Number(args[offset+1]||2048);
 if(![256,1024,2048,4096].includes(heroSize)||![1024,2048,4096].includes(sharedSize))throw Error('Unsupported texture resolution');
 mkdirSync(output,{recursive:true});
 if(existsSync(receipt))unlinkSync(receipt); // failed/incomplete runs must not leave a successful aggregate receipt
-if(!verify){
+if(refresh){
+ const python=process.env.PYTHON||'python3',env={...process.env,BUKLOD_REVIEW_TEXTURE_SIZE:String(heroSize),PYTHONOPTIMIZE:''};
+ run(python,['-c','import numpy, PIL'],env);
+ for(const script of ['prepare-hero-review.py','variant_review.py','prepare_hero_lod.py'])run(python,['Tools/'+script],env);
+}else if(!verify){
  const python=process.env.PYTHON||'python3',env={...process.env,BUKLOD_REVIEW_TEXTURE_SIZE:String(heroSize),PYTHONOPTIMIZE:''};
  run(python,['-c','import numpy, PIL'],env);
  run(python,['Tools/prepare-review-assets.py'],env);

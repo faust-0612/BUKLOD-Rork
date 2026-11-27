@@ -25,7 +25,15 @@ const fd=openSync(lock,'wx');
 const run=(cmd,argv)=>{const r=spawnSync(cmd,argv,{cwd:project,stdio:'inherit',shell:false,env:{...process.env,PYTHONOPTIMIZE:''}});if(r.error)throw r.error;if(r.status!==0)throw Error('Stage failed: '+cmd+' ('+r.status+')');};
 try{
  run(process.execPath,['Tools/verify-authored-review-assets.mjs']);
- run(process.execPath,['Tools/prepare-offline-review.mjs',...(resume?['--verify']:[])]);
+ // Refresh only outdated hero groups. Existing 11-group asset receipt is still
+ // independently verified; never regenerate unrelated environment/audio assets.
+ let prepareArgs=resume?['--verify']:[];
+ if(resume){
+  const manifest=JSON.parse(readFileSync(join(project,'Tools','ReviewOutput','heroes','manifest.json'),'utf8'));
+  if(!Array.isArray(manifest.heroes)||manifest.heroes.length!==13)throw Error('Invalid existing hero cache');
+  if(manifest.heroes.some(h=>h.geometryRevision!=='original-joint-geometry-v7'))prepareArgs=['--refresh-heroes'];
+ }
+ run(process.execPath,['Tools/prepare-offline-review.mjs',...prepareArgs]);
  if(build||validate){
   // Local-only larger asset acquisition; do not consume Unity Cloud allowance.
   run(process.env.PYTHON||'python3',['Tools/acquire-authored-expansion.py']);
