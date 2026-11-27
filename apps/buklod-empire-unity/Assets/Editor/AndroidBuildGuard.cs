@@ -18,12 +18,15 @@ namespace Buklod.Empire.Editor
             if (report.summary.platform != BuildTarget.Android)
                 return;
 
+            // Review only: use the new Personal-compatible LTS pin. Production checks stay unchanged.
+            if(OfflineReviewAndroidBuild.IsActive||CloudReviewBuild.IsPrepared){
+                if(Application.unityVersion!="6000.3.29f1")throw new BuildFailedException("Use the pinned Unity 6.3 LTS review editor.");
+                if(OfflineReviewAndroidBuild.IsActive)OfflineReviewAndroidBuild.ValidateBuild(report);
+                else CloudReviewBuild.Validate(report);
+                return;
+            }
             if(Application.unityVersion!="6000.0.86f1")
-                throw new BuildFailedException("Use the pinned, security-patched Unity 6000.0.86f1 Editor.");
-            // Only the explicit local development entrypoint can authorize an isolated test build.
-            // All normal Android builds continue through the existing production checks.
-            if(OfflineReviewAndroidBuild.IsActive){OfflineReviewAndroidBuild.ValidateBuild(report);return;}
-            if(CloudReviewBuild.IsPrepared){CloudReviewBuild.Validate(report);return;}
+                throw new BuildFailedException("Production editor migration and approval are separate from this isolated test.");
             var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(ArenaSceneComposer.CatalogPath);
             if(!catalog)throw new BuildFailedException("Production asset catalog is missing.");
             try{catalog.Validate();}catch(System.Exception ex){throw new BuildFailedException(ex.Message);}

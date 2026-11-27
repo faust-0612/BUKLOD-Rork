@@ -45,7 +45,7 @@ namespace Buklod.Empire.Editor {
         [MenuItem("BUKLOD Empire/Assemble consolidated offline review")]
         public static void Prepare(){
             if(Application.isPlaying||EditorSceneManager.GetActiveScene().isDirty)throw new InvalidOperationException("Exit play mode and save the scene first.");
-            if(Application.unityVersion!="6000.0.86f1"&&Application.unityVersion!="6000.6.10f1")throw new InvalidOperationException("Use pinned Unity 6000.0.86f1 or the isolated Unity 6000.6.10f1 review candidate.");
+            if(Application.unityVersion!="6000.3.29f1"&&Application.unityVersion!="6000.6.10f1")throw new InvalidOperationException("Use pinned Unity 6000.3.29f1 or the isolated Unity 6000.6.10f1 review candidate.");
             if(!(UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline is UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset))
                 throw new InvalidOperationException("Configure the local URP asset before review.");
             ValidateReceipt();

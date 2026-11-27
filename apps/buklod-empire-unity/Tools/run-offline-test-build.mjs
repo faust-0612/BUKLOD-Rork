@@ -12,7 +12,7 @@ if(build){
  if(!isAbsolute(unity)||!isAbsolute(sdk)||!existsSync(unity)||!statSync(unity).isFile()||!existsSync(sdk)||!statSync(sdk).isDirectory())throw Error(usage);
  for(const path of [join(sdk,process.platform==='win32'?'aapt.exe':'aapt'),join(sdk,'lib','apksigner.jar')])if(!existsSync(path))throw Error('Missing Android build tool: '+path);
  const version=readFileSync(join(project,'ProjectSettings/ProjectVersion.txt'),'utf8');
- if(!/^m_EditorVersion:\s*6000\.0\.86f1\s*$/m.test(version))throw Error('Unexpected Unity project version');
+ if(!/^m_EditorVersion:\s*6000\.3\.29f1\s*$/m.test(version))throw Error('Unexpected Unity project version');
 }
 const root=join(project,'Builds','OfflineReview');
 mkdirSync(root,{recursive:true});

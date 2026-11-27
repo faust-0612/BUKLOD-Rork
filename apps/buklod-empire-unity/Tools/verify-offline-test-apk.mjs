@@ -10,7 +10,7 @@ export function validateArtifact(receipt,badging,signature,entries,bytes,sha){
  const fields=new Map();
  for(const line of lines){const at=line.indexOf("=");if(at<=0||fields.has(line.slice(0,at)))throw Error("Invalid build receipt");fields.set(line.slice(0,at),line.slice(at+1));}
  const id="org.mzbministry.buklod.empire.review";
- if(fields.get("package")!==id||fields.get("unity")!=="6000.0.86f1"||fields.get("bytes")!==String(bytes)||fields.get("sha256")!==sha||!(/^[a-f0-9]{64}$/).test(sha))
+ if(fields.get("package")!==id||fields.get("unity")!=="6000.3.29f1"||fields.get("bytes")!==String(bytes)||fields.get("sha256")!==sha||!(/^[a-f0-9]{64}$/).test(sha))
   throw Error("APK does not match build receipt");
  const packages=[...badging.matchAll(/^package: name='([^']+)'/gm)];
  if(packages.length!==1||packages[0][1]!==id)throw Error("Wrong Android package identity");

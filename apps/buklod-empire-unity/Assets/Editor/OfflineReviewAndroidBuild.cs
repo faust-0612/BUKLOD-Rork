@@ -41,7 +41,7 @@ namespace Buklod.Empire.Editor {
         public static void Build(){
             if(IsActive||Application.isPlaying||EditorSceneManager.GetActiveScene().isDirty)
                 throw new BuildFailedException("Exit play mode and save the scene first.");
-            if(Application.unityVersion!="6000.0.86f1"||EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android||!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android,BuildTarget.Android))
+            if(Application.unityVersion!="6000.3.29f1"||EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android||!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android,BuildTarget.Android))
                 throw new BuildFailedException("Use pinned Unity with Android Build Support and switch platform to Android first.");
             // Assembly validates the aggregate asset receipt and all imported catalog references.
             ConsolidatedOfflineReview.Prepare();

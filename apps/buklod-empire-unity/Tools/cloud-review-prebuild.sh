@@ -4,7 +4,7 @@ set -euo pipefail
 # The target is isolated; no publishing, no store credentials.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 test -f ProjectSettings/ProjectVersion.txt
-tr -d '\r' < ProjectSettings/ProjectVersion.txt | grep -Fx 'm_EditorVersion: 6000.0.86f1'
+tr -d '\r' < ProjectSettings/ProjectVersion.txt | grep -Fx 'm_EditorVersion: 6000.3.29f1'
 test -n "${DEVOPS_ENV:-}"
 node -e 'if(Number(process.versions.node.split(".")[0])<18)throw Error("Node 18+ required")'
 py=""

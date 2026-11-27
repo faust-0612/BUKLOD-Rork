@@ -14,7 +14,7 @@ namespace Buklod.Empire.Editor {
         const string RendererPath = Folder + "/ReviewRenderer.asset";
         const string PackagePath = "Packages/com.unity.render-pipelines.universal";
         internal static void EnsureReviewPipeline() {
-            if (Application.unityVersion != "6000.0.86f1" || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+            if (Application.unityVersion != "6000.3.29f1" || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
                 throw new BuildFailedException("Pinned graphics-capable Unity editor required; disable headless mode.");
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset) return;
             if (GraphicsSettings.defaultRenderPipeline != null || QualitySettings.renderPipeline != null)
@@ -41,7 +41,7 @@ namespace Buklod.Empire.Editor {
                     throw new BuildFailedException("Review URP activation failed.");
         }
         public static void Build() {
-            if (Application.unityVersion != "6000.0.86f1")
+            if (Application.unityVersion != "6000.3.29f1")
                 throw new BuildFailedException("Use the pinned Unity editor.");
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
                 throw new BuildFailedException("A graphics-capable editor is required.");

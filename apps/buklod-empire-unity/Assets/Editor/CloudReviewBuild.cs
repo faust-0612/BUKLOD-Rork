@@ -12,7 +12,7 @@ namespace Buklod.Empire.Editor {
         internal static bool IsPrepared {get;private set;}
         static bool Authorized=>Environment.GetEnvironmentVariable(Marker)=="1"&&Application.isBatchMode;
         public static void Prepare(){
-            if(!Authorized||Application.isPlaying||EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android)
+            if(Application.unityVersion!="6000.3.29f1"||!Authorized||Application.isPlaying||EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android)
                 throw new BuildFailedException("Use the isolated Android cloud target and successful pre-build hook.");
 #if !BUKLOD_OFFLINE_REVIEW
             if(!PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android).Split(';').Contains("BUKLOD_OFFLINE_REVIEW"))

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
+# Failed attempts have no APK to verify. Preserve the runner's existing failure.
+case "${BUILD_RESULT:-}" in
+  FAILURE|FAILED|failure|failed|ABORTED|aborted|CANCELLED|cancelled) echo "No artifact verification: upstream build failed"; exit 0;;
+esac
 test "${BUKLOD_EMPIRE_CLOUD_REVIEW:-}" = 1
 test -n "${UNITY_PLAYER_PATH:-}"
 test -n "${ANDROID_HOME:-}"
