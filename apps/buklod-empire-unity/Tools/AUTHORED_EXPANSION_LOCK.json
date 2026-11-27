@@ -1,0 +1,326 @@
+{
+  "schema": 1,
+  "status": "AUTHORED_REVIEW_CANDIDATES_ONLY",
+  "packs": [
+    {
+      "id": "village",
+      "source": "agentkaerf/FreeModels",
+      "commit": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "prefix": "Medieval Village MegaKit[Standard]/",
+      "license": "License_Standard.txt",
+      "models": [
+        "glTF/Prop_Wagon.gltf",
+        "glTF/Prop_Crate.gltf",
+        "glTF/Prop_MetalFence_Ornament.gltf",
+        "glTF/Prop_Chimney.gltf"
+      ],
+      "rows": [
+        {
+          "path": "License_Standard.txt",
+          "sha": "442f8f4af6c1fc6bc21bee6387c14bad0945bf3b",
+          "bytes": 840
+        },
+        {
+          "path": "glTF/Prop_Chimney.bin",
+          "sha": "72081ac404aa3a50336e6557655032113d8cc05f",
+          "bytes": 20476
+        },
+        {
+          "path": "glTF/Prop_Chimney.gltf",
+          "sha": "1345e8607817e0ebca7b46ba05752d8c0dc929b0",
+          "bytes": 3843
+        },
+        {
+          "path": "glTF/Prop_Crate.bin",
+          "sha": "80b658d26b0011313d729d6f27d6d78812790b64",
+          "bytes": 16100
+        },
+        {
+          "path": "glTF/Prop_Crate.gltf",
+          "sha": "62855328b5c753874effd8e2296765a5f70a49c0",
+          "bytes": 2211
+        },
+        {
+          "path": "glTF/Prop_MetalFence_Ornament.bin",
+          "sha": "8ac2f921401c0aa5c33953c32ac29e0cef6fc748",
+          "bytes": 150840
+        },
+        {
+          "path": "glTF/Prop_MetalFence_Ornament.gltf",
+          "sha": "1a88822f81c523eda4a45d20d57ae267bcc701b5",
+          "bytes": 2083
+        },
+        {
+          "path": "glTF/Prop_Wagon.bin",
+          "sha": "010e96f129397ad137fedbee1b51d5b7620ff677",
+          "bytes": 103272
+        },
+        {
+          "path": "glTF/Prop_Wagon.gltf",
+          "sha": "734d37c344f2467bba41c736426faf5f75ea8587",
+          "bytes": 2422
+        },
+        {
+          "path": "glTF/T_Brick_BaseColor.png",
+          "sha": "fdef46f78d9ccaeaf3b1efee6ca7cbca5b0769d1",
+          "bytes": 2447169
+        },
+        {
+          "path": "glTF/T_Brick_Normal.png",
+          "sha": "d0fcc06ba338b06e726c271441a286a59ba84e73",
+          "bytes": 4474267
+        },
+        {
+          "path": "glTF/T_Brick_Roughness.png",
+          "sha": "61b328e826b7cf052920e3e6164caa0c973575d9",
+          "bytes": 689204
+        },
+        {
+          "path": "glTF/T_MetalOrnaments_BaseColor.png",
+          "sha": "29ce82da068e84db82319f65caea5dea1fbe95e9",
+          "bytes": 725116
+        },
+        {
+          "path": "glTF/T_MetalOrnaments_Roughness.png",
+          "sha": "4a529832fb70979c34feb66fee6f75ad44c5d188",
+          "bytes": 89547
+        },
+        {
+          "path": "glTF/T_RockTrim_BaseColor.png",
+          "sha": "66d38c3389b53c261dca7253a8898a5fa92cecfe",
+          "bytes": 1908835
+        },
+        {
+          "path": "glTF/T_RockTrim_Normal.png",
+          "sha": "83d9f1a32a5595e1c6b7312aa930bc7d33d46255",
+          "bytes": 3925938
+        },
+        {
+          "path": "glTF/T_RockTrim_ORM.png",
+          "sha": "b50e49d643fde2140fc33465ed2fc887727fc86b",
+          "bytes": 1625807
+        },
+        {
+          "path": "glTF/T_WoodTrim_BaseColor.png",
+          "sha": "3547da835b7b1aa89e27e98c68b1582bd203ef93",
+          "bytes": 2082310
+        },
+        {
+          "path": "glTF/T_WoodTrim_Normal.png",
+          "sha": "f959c6344604f28800497bb276f70043aee0fea2",
+          "bytes": 3596501
+        },
+        {
+          "path": "glTF/T_WoodTrim_Roughness.png",
+          "sha": "ce396e8c01df5bb1d7a584e46e696a9904223f41",
+          "bytes": 1697111
+        }
+      ]
+    },
+    {
+      "id": "props",
+      "source": "agentkaerf/FreeModels",
+      "commit": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "prefix": "Fantasy Props MegaKit[Standard]/",
+      "license": "License_Standard.txt",
+      "models": [
+        "Exports/glTF/Anvil.gltf",
+        "Exports/glTF/Barrel.gltf",
+        "Exports/glTF/Banner_1.gltf",
+        "Exports/glTF/Chest_Wood.gltf",
+        "Exports/glTF/FarmCrate_Apple.gltf"
+      ],
+      "rows": [
+        {
+          "path": "Exports/glTF/Anvil.bin",
+          "sha": "14a0e96661e910e33997fc8eac38378658311347",
+          "bytes": 24020
+        },
+        {
+          "path": "Exports/glTF/Anvil.gltf",
+          "sha": "167be1b05f0961f0ce749ffc24b692dd861ac1ac",
+          "bytes": 3189
+        },
+        {
+          "path": "Exports/glTF/Banner_1.bin",
+          "sha": "a5c78b1da2ca88ef12e1d77ab71e17eba1879cb8",
+          "bytes": 20976
+        },
+        {
+          "path": "Exports/glTF/Banner_1.gltf",
+          "sha": "34a6d45dab4854af47775e6b458c43555fd8910d",
+          "bytes": 6789
+        },
+        {
+          "path": "Exports/glTF/Barrel.bin",
+          "sha": "b7774e9cfb77fb9178d7e0e7408a6ba7760f0539",
+          "bytes": 57144
+        },
+        {
+          "path": "Exports/glTF/Barrel.gltf",
+          "sha": "48ae36ab39e83817007ecfdb10f5527b313a853c",
+          "bytes": 4311
+        },
+        {
+          "path": "Exports/glTF/Chest_Wood.bin",
+          "sha": "77347b62f85c1de8fabf37e6d5276fe009205e4a",
+          "bytes": 184356
+        },
+        {
+          "path": "Exports/glTF/Chest_Wood.gltf",
+          "sha": "393df7882aa09cfcd44463f3488b09da83dbb1bf",
+          "bytes": 21402
+        },
+        {
+          "path": "Exports/glTF/FarmCrate_Apple.bin",
+          "sha": "dd5e27740a721edf3fd98f7c1a56394d382c8be5",
+          "bytes": 134488
+        },
+        {
+          "path": "Exports/glTF/FarmCrate_Apple.gltf",
+          "sha": "0af25e304db7c44274b89878984506bc4bad8255",
+          "bytes": 6263
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Cloth_BaseColor.png",
+          "sha": "d26f6a26ef5315f1edb9cff6c00bdbaa76710abd",
+          "bytes": 1936754
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Cloth_Normal.png",
+          "sha": "fdde08fe9c725521d7fa97c5f5c2bda243394bb1",
+          "bytes": 3920858
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Cloth_ORM.png",
+          "sha": "a5d124d4b0eede4b8f9fc0e7be0fe192c1580f6e",
+          "bytes": 623426
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Furniture_BaseColor.png",
+          "sha": "901aadc26d9d64021273a2821298213c4f8b58ca",
+          "bytes": 2232961
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Furniture_Normal.png",
+          "sha": "761d783ce7d3879e513ab675ce92fe2ac3024c24",
+          "bytes": 3485710
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Furniture_ORM.png",
+          "sha": "3ec55f6070b6a913ed73bc6b92f8c9531eb1eb27",
+          "bytes": 2064585
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Metal_BaseColor.png",
+          "sha": "dd100392b4c8293a963d4aff7487c7392e0e9380",
+          "bytes": 1361221
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Metal_Normal.png",
+          "sha": "71dfe66c2d97b820f1dc5758c71d03cfd6708ce2",
+          "bytes": 3625541
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Metal_ORM.png",
+          "sha": "d70307103def153509359badd0cb231a11e7fc45",
+          "bytes": 1871475
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Props_BaseColor.png",
+          "sha": "6af88aec85a9173cf3590fa82eceb210a9af0ded",
+          "bytes": 2263132
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Props_Normal.png",
+          "sha": "07f9ccef4b20bc9f6797c7b6e10211306a22cfe0",
+          "bytes": 4441458
+        },
+        {
+          "path": "Exports/glTF/T_Trim_Props_ORM.png",
+          "sha": "ec5f3a5a973117fc214763797099857464a3f496",
+          "bytes": 3017151
+        },
+        {
+          "path": "License_Standard.txt",
+          "sha": "5c1112075a8122ad5a1e4e51e0a6725657c23ee6",
+          "bytes": 837
+        }
+      ]
+    },
+    {
+      "id": "heroes",
+      "source": "KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0",
+      "commit": "672074b73ba276876a19e8816ecdc5241817ab47",
+      "prefix": "",
+      "license": "LICENSE.txt",
+      "models": [
+        "addons/kaykit_character_pack_adventures/Characters/gltf/Barbarian.glb",
+        "addons/kaykit_character_pack_adventures/Characters/gltf/Knight.glb",
+        "addons/kaykit_character_pack_adventures/Characters/gltf/Mage.glb",
+        "addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb",
+        "addons/kaykit_character_pack_adventures/Characters/gltf/Rogue_Hooded.glb"
+      ],
+      "rows": [
+        {
+          "path": "LICENSE.txt",
+          "sha": "877e44735b5869c10e17a59e3b757905aa390626",
+          "bytes": 891
+        },
+        {
+          "path": "addons/kaykit_character_pack_adventures/Characters/gltf/Barbarian.glb",
+          "sha": "66d312ab6dc02b35fb648e7585bfdddb4e02eeef",
+          "bytes": 3613268
+        },
+        {
+          "path": "addons/kaykit_character_pack_adventures/Characters/gltf/Knight.glb",
+          "sha": "717b56ca2b5ff5392679774725201ba03a3eefab",
+          "bytes": 3659532
+        },
+        {
+          "path": "addons/kaykit_character_pack_adventures/Characters/gltf/Mage.glb",
+          "sha": "c89f19f6e707f6e07e4632a08876bd6d0172b082",
+          "bytes": 3589240
+        },
+        {
+          "path": "addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb",
+          "sha": "c8827661105eef7b2bfbef3bc676d41a47625733",
+          "bytes": 3616284
+        },
+        {
+          "path": "addons/kaykit_character_pack_adventures/Characters/gltf/Rogue_Hooded.glb",
+          "sha": "5d2b1403240d5f9ffff12e02c007572038eca2a8",
+          "bytes": 3597652
+        }
+      ]
+    },
+    {
+      "id": "animation",
+      "source": "agentkaerf/FreeModels",
+      "commit": "db3df04d1e4714298a09510b26fb6de6645138a2",
+      "prefix": "Universal Animation Library 2[Standard]/",
+      "license": "License.txt",
+      "models": [
+        "Female Mannequin/Unreal-Godot/Mannequin_F.glb",
+        "Unreal-Godot/UAL2_Standard.glb"
+      ],
+      "rows": [
+        {
+          "path": "Female Mannequin/Unreal-Godot/Mannequin_F.glb",
+          "sha": "28ce0f6d3343739ac679b4a243179322cb751791",
+          "bytes": 1442824
+        },
+        {
+          "path": "License.txt",
+          "sha": "233f759611a4467aefaa5b4e21d68b389fea33f7",
+          "bytes": 541
+        },
+        {
+          "path": "Unreal-Godot/UAL2_Standard.glb",
+          "sha": "dc684c2a664927964307e8eb7b27b0000ebf6a18",
+          "bytes": 8061600
+        }
+      ]
+    }
+  ]
+}

@@ -23,6 +23,9 @@ try{
  run(process.execPath,['Tools/verify-authored-review-assets.mjs']);
  run(process.execPath,['Tools/prepare-offline-review.mjs']);
  if(build){
+  // Local-only larger asset acquisition; do not consume Unity Cloud allowance.
+  run(process.env.PYTHON||'python3',['Tools/acquire-authored-expansion.py']);
+  process.env.BUKLOD_AUTHORED_EXPANSION='1';
   const before=new Set(readdirSync(root));
   const log=join(root,'unity-'+Date.now()+'.log');
   run(unity,['-batchmode','-quit','-projectPath',project,'-buildTarget','Android','-executeMethod','Buklod.Empire.Editor.OfflineReviewBuildBootstrap.Build','-logFile',log]);
