@@ -36,13 +36,16 @@ namespace Buklod.Empire {
         private void Move(Finger finger){
             var at=finger.currentTouch.screenPosition;
             if(finger==movement)UpdateMove(at);
-            if(finger==skill){var d=at-PixelCenter(ActiveSkill);Aim=d.magnitude>Radius(ActiveSkill)*.25f?Vector2.ClampMagnitude(d/Mathf.Max(1,Radius(ActiveSkill)),1):Vector2.zero;}
+            if(finger==skill)Aim=ResolveAim(at,PixelCenter(ActiveSkill),Radius(ActiveSkill));
+        }
+        public static Vector2 ResolveAim(Vector2 at,Vector2 center,float radius){
+            var d=at-center;return d.magnitude>radius*.25f?Vector2.ClampMagnitude(d/Mathf.Max(1,radius),1):Vector2.zero;
         }
         private void Up(Finger finger){
             if(finger==movement){movement=null;Joystick=Vector2.zero;}
             if(finger!=skill)return;
             bool cancel=finger.currentTouch.phase==UnityEngine.InputSystem.TouchPhase.Canceled||!SafeArea.Contains(finger.currentTouch.screenPosition)||Vector2.Distance(finger.currentTouch.screenPosition,PixelCenter(ActiveSkill))>Radius(ActiveSkill)*3.2f;
-            int button=ActiveSkill;Vector2 direction=Aim;
+            int button=ActiveSkill;Vector2 direction=cancel?Vector2.zero:ResolveAim(finger.currentTouch.screenPosition,PixelCenter(button),Radius(button));
             skill=null;ActiveSkill=-1;Aim=Vector2.zero;
             if(!cancel&&view)view.Cast(button,direction);
         }

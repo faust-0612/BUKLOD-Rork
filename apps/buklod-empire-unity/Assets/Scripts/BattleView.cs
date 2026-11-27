@@ -186,6 +186,8 @@ namespace Buklod.Empire {
                 if(!existing){
                     v=Rent(visuals.Resolve(u,ReviewOnly));v.unit=u;active.Add(u.Id,v);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
+                    // A reused visual must not inherit the previous unit's rotation.
+                    if(u.Kind!=BattleTargetKind.Structure)v.instance.transform.rotation=Quaternion.LookRotation(u.Team==ArenaTeam.Lux?Vector3.right:Vector3.left);
                     v.sampledAt=u.Position;v.groundY=ground.y;v.attack=u.LastAttack;v.castSequence=u.State.CastSequence;v.health=u.State.Health;v.villageActions=u.Villager?.Actions??0;v.repairSequence=u.RepairSequence;
                 }
                 if(ReviewOnly&&u.IsFarm&&v.farmGrowth&&reviewFarmNodes.TryGetValue(u.Id,out var farmNode))
@@ -214,7 +216,13 @@ namespace Buklod.Empire {
                         else v.animator.SetFloat("Speed",speed,.10f,Time.deltaTime);
                     }else v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
                 }
-                if(u.LastAttack>v.attack){v.attack=u.LastAttack;if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");if(effects&&u.Kind==BattleTargetKind.Hero)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),0);}
+                bool attackedThisFrame=u.LastAttack>v.attack;
+                if(attackedThisFrame){
+                    v.attack=u.LastAttack;
+                    if(u.Kind!=BattleTargetKind.Structure&&u.AttackFacing.sqrMagnitude>.001f)t.rotation=Quaternion.LookRotation(new Vector3(u.AttackFacing.x,0,u.AttackFacing.y));
+                    if(v.animator&&v.parameters.Contains("Attack"))v.animator.SetTrigger("Attack");
+                    if(effects&&u.Kind==BattleTargetKind.Hero)effects.Emit(t.position,BattleEffects.Accent(u.State.Kit.Id),0);
+                }
                 bool castThisFrame=false;
                 int latest=u.State.CastSequence;
                 if(latest>v.castSequence){
@@ -222,6 +230,7 @@ namespace Buklod.Empire {
                     for(int seq=first;seq<=latest;seq++){
                         if(!u.State.TryGetCast(seq,out var cast)||u.State.Kit==null||!SkillCueCatalog.TryGet(u.State.Kit.Skill(cast.Slot).Id,out var cue))continue;
                         var aim=cast.Aim;var forward=aim.sqrMagnitude>.0025f?new Vector3(aim.x,0,aim.y):t.forward;
+                        if(aim.sqrMagnitude>.0025f)t.rotation=Quaternion.LookRotation(forward);
                         if(effects)effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward);
                         if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
                         if(reviewDialogue&&u==Battle.Player&&cast.Slot==SkillSlot.Ultimate)reviewDialogue.Ultimate(u.State.Kit.Id);
@@ -246,7 +255,7 @@ namespace Buklod.Empire {
                 bool tookHit=v.health>u.State.Health+.01f;
                 if(u.Villager!=null&&u.Villager.Actions>v.villageActions){
                     v.villageActions=u.Villager.Actions;
-                    if(!tookHit){
+                    if(!tookHit&&!attackedThisFrame){
                         if(v.animator&&v.parameters.Contains("Work"))v.animator.SetTrigger("Work");
                         if(worldEffects&&inView)worldEffects.Emit(t.position,WorldImpactKind.Work,unchecked(u.Id*397+v.villageActions),new Color(.68f,.54f,.28f));
                     }

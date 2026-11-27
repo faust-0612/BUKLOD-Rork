@@ -22,6 +22,7 @@ namespace Buklod.Empire.Tests {
             Assert.True(b.Hit(b.Player.State,worker.State,5));
             b.Advance(.1f,Vector2.zero);
             Assert.Greater(worker.LastAttack,0,"A threatened worker must fight back.");
+            Assert.Greater(Vector2.Dot(worker.AttackFacing,(b.Player.Position-worker.Position).normalized),.99f);
             var stamp=worker.LastAttack;
             b.Advance(.1f,Vector2.zero);
             Assert.AreEqual(stamp,worker.LastAttack,"Retaliation must honor cooldown.");

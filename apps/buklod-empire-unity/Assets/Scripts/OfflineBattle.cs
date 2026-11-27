@@ -65,6 +65,7 @@ namespace Buklod.Empire {
         internal void AddCargo(VillageResourceKind kind,double amount){switch(kind){case VillageResourceKind.Wood:CargoWood+=amount;break;case VillageResourceKind.Stone:CargoStone+=amount;break;case VillageResourceKind.Crystal:CargoCrystal+=amount;break;case VillageResourceKind.Food:CargoFood+=amount;break;case VillageResourceKind.Gold:CargoGold+=amount;break;}}
         internal int VillageThreatId;
         internal float VillageThreatUntil;
+        public Vector2 AttackFacing {get;internal set;}
         public bool Retreat; public float LastAttack=float.NegativeInfinity;
         public ArenaTactic Tactic {get;internal set;}=ArenaTactic.Renew;
         public float TacticReadyAt {get;internal set;}
@@ -504,6 +505,7 @@ namespace Buklod.Empire {
         private WildernessCamp FindCamp(BattleUnit hero,Vector2 aim,float range)=>wilderness.Camps.Where(c=>c.Alive&&Vector2.Distance(hero.Position,c.Position)<=range&&ClearSight(hero.Position,c.Position)&&OfflineMatchRules.InAimCone(c.Position-hero.Position,aim)).OrderBy(c=>Vector2.Distance(hero.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
         private bool HitCamp(BattleUnit hero,WildernessCamp camp,float range,float damage){
             if(Finished||hero==null||!hero.State.Alive||hero.State.Kit==null||camp==null||IsAuthoritative&&!IsPositionVisibleTo(hero.Team,camp.Position)||!ClearSight(hero.Position,camp.Position)||!wilderness.TryHit(camp.Id,hero.Id,hero.Position,range,damage,out bool defeated))return false;
+            hero.AttackFacing=(camp.Position-hero.Position).normalized;
             hero.RecallEnds=0;hero.State.Set("revealed",1,Time+2,Time);
             if(defeated){
                 var a=hero.State;hero.Gold=Mathf.Min(9999,hero.Gold+Mathf.RoundToInt((camp.Boss?90:30)*(1+hero.CovenantBonus.NeutralReward)));GainXp(hero,(camp.Boss?90:35)*(1+hero.CovenantBonus.NeutralReward));
@@ -660,7 +662,8 @@ namespace Buklod.Empire {
             if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
             var target=Enemies(a,k.BasicRange,aim).FirstOrDefault(e=>(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
             if(target==null){if(unitId!=0||kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;}
-            else if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.LastAttack=Time;return true;
+            else {if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.AttackFacing=(Find(target).Position-u.Position).normalized;}
+            u.LastAttack=Time;return true;
         }
         public static float ExperienceThreshold(int level)=>65f*level+18f*level*level;
         private static void GainXp(BattleUnit u,float n){
@@ -843,7 +846,7 @@ namespace Buklod.Empire {
             if(threat==null){worker.VillageThreatId=0;return;}
             if(Time-worker.LastAttack<1.3f||Dist(worker,threat)>3f||
                 !IsVisibleTo(worker.Team,threat)||!ClearSight(worker.Position,threat.Position))return;
-            if(ResolveHit(worker.State,threat.State,8f,true))worker.LastAttack=Time;
+            if(ResolveHit(worker.State,threat.State,8f,true)){worker.AttackFacing=(threat.Position-worker.Position).normalized;worker.LastAttack=Time;}
         }
         private void Minion(BattleUnit u){
             if(!u.State.CanAttack(Time)&&!u.State.CanMove(Time))return;
@@ -858,7 +861,7 @@ namespace Buklod.Empire {
                     Hit(u.State,t.State,MinionCombatRules.HitDamage(u.Role,u.Power,t.Kind,0));
                     if(s.SplashRadiusSourceUnits>0)foreach(var v in units.ToArray())if(v!=t&&v.Kind!=BattleTargetKind.Villager&&v.Team!=u.Team&&Attackable(v)&&Dist(t,v)*40<=s.SplashRadiusSourceUnits)Hit(u.State,v.State,MinionCombatRules.HitDamage(u.Role,u.Power,v.Kind,0));
                 }
-                u.LastAttack=Time;return;
+                u.AttackFacing=(t.Position-u.Position).normalized;u.LastAttack=Time;return;
             }
             var goal=LaneGoal(u);
             if(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit){var enemy=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();if(enemy!=null)goal=enemy.Position;}

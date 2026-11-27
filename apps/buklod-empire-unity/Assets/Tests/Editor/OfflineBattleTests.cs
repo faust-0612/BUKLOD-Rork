@@ -3,6 +3,12 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
+        [Test] public void ReleaseAimUsesFinalPositionAndPreservesTapDeadzone(){
+            var center=new Vector2(100,100);
+            Assert.AreEqual(Vector2.zero,MobileBattleInput.ResolveAim(center+Vector2.right*5,center,40));
+            Assert.AreEqual(Vector2.left,MobileBattleInput.ResolveAim(center+Vector2.left*80,center,40));
+            Assert.AreEqual(new Vector2(0,.5f),MobileBattleInput.ResolveAim(center+Vector2.up*20,center,40));
+        }
         [Test] public void InvalidSummonsDoNotChangeFactionCount(){
             var b=new OfflineBattle("phan");int before=b.RemainingUnits(ArenaTeam.Lux);
             Assert.False(b.Turret(b.Player.State,Vector2.right,5,float.NaN,10,20));
