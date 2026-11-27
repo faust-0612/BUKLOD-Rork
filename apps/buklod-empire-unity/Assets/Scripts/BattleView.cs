@@ -12,6 +12,7 @@ namespace Buklod.Empire {
         public bool premiumVisuals=true;
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
+        ReviewPalette matchPalette;bool revealActive;Vector3 revealEnd,revealStart;Quaternion revealEndRotation,revealStartRotation;float revealEndSize;
         private ArenaReviewFoley reviewFoley;
         private ReviewHeroDialogue reviewDialogue;
         ReviewMotionLibrary reviewMotion;bool authoredWalk;
@@ -98,7 +99,7 @@ namespace Buklod.Empire {
                 var c=path.corners[1];waypoint=new Vector2(c.x,c.z)/scale;return true;
             }
         }
-        public void StartMatch(string hero,ArenaDifficulty difficulty=ArenaDifficulty.Normal,ArenaTactic tactic=ArenaTactic.Renew,CovenantLoadout? covenant=null,bool autonomous=false,int seed=1,bool startPaused=false){
+        public void StartMatch(string hero,ArenaDifficulty difficulty=ArenaDifficulty.Normal,ArenaTactic tactic=ArenaTactic.Renew,CovenantLoadout? covenant=null,bool autonomous=false,int seed=1,bool startPaused=false,ReviewPalette palette=ReviewPalette.Original){
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
 #if UNITY_EDITOR || BUKLOD_OFFLINE_REVIEW
             if(ReviewOnly)visuals.ValidateOfflineReview();else
@@ -116,7 +117,7 @@ namespace Buklod.Empire {
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
             if(!Battle.SelectPlayerTactic(tactic)||covenant.HasValue&&!Battle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
-            selectedHero=hero;Paused=startPaused;ControlFeedbackUntil=0;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
+            selectedHero=hero;matchPalette=ReviewOnly?palette:ReviewPalette.Original;Paused=startPaused;ControlFeedbackUntil=0;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=!startPaused;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
             fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
@@ -124,7 +125,11 @@ namespace Buklod.Empire {
         }
         private void Start(){
             if(Battle==null&&!ReviewOnly)StartMatch(selectedHero);
-            else if(Battle==null)SetPaused(true);
+            else if(Battle==null){
+                SetPaused(true);input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=false;
+                if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
+                skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();
+            }
             if(!GetComponent<OfflineSessionMenu>())gameObject.AddComponent<OfflineSessionMenu>();
         }
         private void OnApplicationPause(bool paused){if(paused&&Battle!=null&&!Battle.Finished)SetPaused(true);}
@@ -143,7 +148,14 @@ namespace Buklod.Empire {
             return ok;
         }
         private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
-        private void LateUpdate(){if(Battle!=null)Follow(false);}
+        private void LateUpdate(){if(Battle!=null&&!revealActive)Follow(false);}
+        internal void BeginReviewReveal(){
+            if(!ReviewOnly||Battle==null||!Paused||!battleCamera)return;
+            Follow(true);var t=battleCamera.transform;revealEnd=t.position;revealEndRotation=t.rotation;revealEndSize=battleCamera.orthographicSize;
+            var at=Ground(Battle.Player.Position);revealStart=at+(revealEnd-at)*1.22f+Vector3.up*2f;revealStartRotation=Quaternion.LookRotation(at-revealStart,Vector3.up);revealActive=true;SetReviewReveal(0);
+        }
+        internal void SetReviewReveal(float value){if(!revealActive)return;float t=Mathf.SmoothStep(0,1,Mathf.Clamp01(value));battleCamera.transform.SetPositionAndRotation(Vector3.Lerp(revealStart,revealEnd,t),Quaternion.Slerp(revealStartRotation,revealEndRotation,t));if(battleCamera.orthographic)battleCamera.orthographicSize=revealEndSize*Mathf.Lerp(1.24f,1,t);}
+        internal void EndReviewReveal(){if(!revealActive)return;SetReviewReveal(1);revealActive=false;}
         public Vector3 FieldPosition(Vector2 p)=>Ground(p);
         private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}
         private Visual Rent(GameObject prefab){
@@ -200,6 +212,7 @@ namespace Buklod.Empire {
                 seen.Add(u.Id);
                 if(!existing){
                     v=Rent(visuals.Resolve(u,ReviewOnly));v.unit=u;active.Add(u.Id,v);
+                    if(ReviewOnly&&u.Kind==BattleTargetKind.Hero)ReviewHeroPalette.Apply(v.instance,player?matchPalette:ReviewPalette.Original);
                     var ground=Ground(u.Position);v.instance.transform.position=ground;
                     // A reused visual must not inherit the previous unit's rotation.
                     if(u.Kind!=BattleTargetKind.Structure)v.instance.transform.rotation=Quaternion.LookRotation(u.Team==ArenaTeam.Lux?Vector3.right:Vector3.left);

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace Buklod.Empire {
     public sealed partial class OfflineSessionMenu {
         ReviewMatchFlow flow;ReviewHeroShowcase showcase;string startupError;bool booting;
-        string[] lockedRoster;
+        string[] lockedRoster;ReviewPalette palette;int roleFilter;
         IEnumerator BootReview(){
             if(booting)yield break;booting=true;startupError=null;Rebuild();yield return null;
             try{
@@ -13,15 +13,20 @@ namespace Buklod.Empire {
 #if UNITY_EDITOR || BUKLOD_OFFLINE_REVIEW
                 view.visuals.ValidateOfflineReview();
 #endif
-                flow.BootReady();
+                // Transition to lobby only after the readiness reveal.
             }catch(Exception error){startupError="Local assets unavailable. Retry after preparing the review assets.";Debug.LogException(error);}
-            booting=false;Rebuild();
+            if(startupError==null){
+                // Animate the branding after real asset validation, not a fake progress counter.
+                float elapsed=0;summary.text="Local assets ready";
+                while(elapsed<.65f){if(Application.isFocused)elapsed+=Time.unscaledDeltaTime;title.rectTransform.localScale=Vector3.one*Mathf.Lerp(.88f,1,Mathf.SmoothStep(0,1,elapsed/.65f));yield return null;}
+            }
+            if(startupError==null)flow.BootReady();booting=false;Rebuild();
         }
         bool ShowModel(RectTransform parent,string hero,bool face,Vector2 min,Vector2 max){
             if(flow==null)return false;
             try{
                 if(!showcase){var go=new GameObject("Live pre-match showcase");go.transform.SetParent(transform,false);showcase=go.AddComponent<ReviewHeroShowcase>();showcase.Initialize(view);}
-                bool ok=hero==null?showcase.ShowMap():showcase.ShowHero(hero,face);
+                bool ok=hero==null?showcase.ShowMap():showcase.ShowHero(hero,face,palette);
                 if(!ok){showcase.Hide();return false;}
                 var r=Rect("Live model render",parent,min,max);
                 var raw=r.gameObject.AddComponent<RawImage>();raw.texture=showcase.Texture;raw.raycastTarget=false;
@@ -39,10 +44,21 @@ namespace Buklod.Empire {
             if(flow.Stage==ReviewMatchStage.LockIn){
                 if(!ArenaDraftRules.Known(selected))return;
                 lockedRoster=ArenaDraftRules.PracticeRoster(selected,seed);
-                if(flow.Advance())StartCoroutine(PrepareReviewMatch());return;
+                StartCoroutine(LockAndPrepare());return;
             }
             if(!flow.Advance())return;
             SyncWizardPage();Rebuild();
+        }
+        IEnumerator LockAndPrepare(){
+            starting=true;panelGroup.interactable=false;view.SetPaused(true);
+            foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
+            title.text=HeroKitCatalog.Get(selected).Name.ToUpperInvariant()+" • LOCKED IN";title.color=BattleEffects.Accent(selected);summary.text="Lux formation confirmed";
+            var frame=Rect("Locked hero showcase",body,new Vector2(.15f,.01f),new Vector2(.85f,.99f));
+            if(ShowModel(frame,selected,false,Vector2.zero,Vector2.one))showcase.PlayEntrance();
+            else Label("Locked hero name",frame,Vector2.zero,Vector2.one,HeroKitCatalog.Get(selected).Name,46);
+            var dialogue=GetComponent<ReviewHeroDialogue>();feedback.text=dialogue?dialogue.Select(selected):"Offline practice";
+            float elapsed=0;while(elapsed<.9f){if(Application.isFocused)elapsed+=Time.unscaledDeltaTime;yield return null;}
+            if(flow.Advance())yield return PrepareReviewMatch();else{starting=false;panelGroup.interactable=true;Rebuild();}
         }
         void BackWizard(){if(!flow.Back())return;lockedRoster=null;SyncWizardPage();Rebuild();}
         void SyncWizardPage(){heroDetail=false;page=flow.Stage==ReviewMatchStage.Hero?0:flow.Stage==ReviewMatchStage.Loadout?1:-1;feedback.text="";}
@@ -55,6 +71,12 @@ namespace Buklod.Empire {
             startButton.gameObject.SetActive(!boot&&flow.Stage!=ReviewMatchStage.Loading);
             startButton.GetComponentInChildren<Text>().text=flow.Stage==ReviewMatchStage.Mode?"CONTINUE":flow.Stage==ReviewMatchStage.Team?"CHOOSE HERO":flow.Stage==ReviewMatchStage.Hero?"CONFIRM HERO":flow.Stage==ReviewMatchStage.Loadout?"REVIEW TEAM":flow.Stage==ReviewMatchStage.LockIn?"LOCK IN & START":"PLAY";
             startButton.interactable=!starting;
+        }
+        void RenderHeroRoster(){
+            title.text="CHOOSE YOUR HERO";summary.text=(flow.Stage==ReviewMatchStage.Hero?"03 / 04  •  ":"")+"13 original heroes • Preview motion, skills & practice palettes";
+            var names=new[]{"ALL HEROES","CLOSE RANGE","RANGED"};
+            for(int i=0;i<3;i++){int filter=i;var button=ButtonAt(names[i],body,new Vector2(.01f+i*.33f,.84f),new Vector2(.32f+i*.33f,.99f),(roleFilter==i?"✓ ":"")+names[i],()=>{roleFilter=filter;Rebuild();});if(roleFilter==i)button.GetComponentInChildren<Text>().color=NavigationAccent;}
+            int index=0;foreach(var kit in HeroKitCatalog.All){if(roleFilter==1&&kit.BasicRange>=8f||roleFilter==2&&kit.BasicRange<8f)continue;HeroCard(index++,kit);}
         }
         bool RenderWizard(){
             switch(flow.Stage){
@@ -87,7 +109,7 @@ namespace Buklod.Empire {
                 case ReviewMatchStage.Hero: return false;
                 case ReviewMatchStage.Loadout: return false;
                 case ReviewMatchStage.LockIn:
-                    title.text="CONFIRM YOUR HERO";summary.text="04 / 04  •  "+HeroKitCatalog.Get(selected).Name+"  •  "+difficulty+"  •  "+tactic;
+                    title.text="CONFIRM YOUR HERO";summary.text="04 / 04  •  "+HeroKitCatalog.Get(selected).Name+"  •  "+palette+"  •  "+difficulty+"  •  "+tactic;
                     lockedRoster=ArenaDraftRules.PracticeRoster(selected,seed);
                     ShowVersus(false);
                     feedback.text="Offline practice • no Sacred Stone spent • no account reward";return true;

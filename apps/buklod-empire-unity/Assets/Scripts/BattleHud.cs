@@ -150,7 +150,7 @@ namespace Buklod.Empire {
             if(minimap)minimap.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
             var stick=buttons[0].rectTransform;stick.anchorMin=stick.anchorMax=Normalized(input.MovementCenter);
             for(int i=1;i<buttons.Length;i++)buttons[i].rectTransform.localScale=Vector3.one*(input.ActiveSkill==i?.92f:1f);
-            var b=view.Battle;if(b==null)return;var s=b.Player.State;
+            var b=view.Battle;if(review)canvas.enabled=b!=null&&!view.Paused;if(b==null)return;var s=b.Player.State;
             knob.rectTransform.anchoredPosition=input.Joystick*MobileBattleInput.Radius(0)*.6f;
             float attackLeft=b.BasicAttackRemaining(b.Player);
             float attackFill=Mathf.Clamp01(attackLeft/Mathf.Max(.01f,b.BasicAttackCooldown(b.Player)));
