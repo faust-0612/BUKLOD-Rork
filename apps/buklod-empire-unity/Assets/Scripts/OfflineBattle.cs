@@ -508,9 +508,13 @@ namespace Buklod.Empire {
             if(drops.Count>=ArenaPickupCatalog.Limit||drops.Count+relicDrops.Count>=36)return;
             drops.Add(new ArenaFieldDrop(++nextDropId,item,position,killer.Team,Time));
         }
-        private WildernessCamp FindCamp(BattleUnit hero,Vector2 aim,float range)=>wilderness.Camps.Where(c=>c.Alive&&Vector2.Distance(hero.Position,c.Position)<=range&&ClearSight(hero.Position,c.Position)&&OfflineMatchRules.InAimCone(c.Position-hero.Position,aim)).OrderBy(c=>Vector2.Distance(hero.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
+        private bool CampVisibleForAttack(BattleUnit hero,WildernessCamp camp)=>(!HumanControlled(hero)&&!IsAuthoritative)||IsPositionVisibleTo(hero.Team,camp.Position);
+        private WildernessCamp FindCamp(BattleUnit hero,Vector2 aim,float range){
+            var candidates=wilderness.Camps.Where(c=>c.Alive&&CampVisibleForAttack(hero,c)&&Vector2.Distance(hero.Position,c.Position)<=range&&ClearSight(hero.Position,c.Position)&&OfflineMatchRules.InAimCone(c.Position-hero.Position,aim));
+            return (aim.sqrMagnitude<.01f?candidates.OrderBy(c=>Vector2.Distance(hero.Position,c.Position)):candidates.OrderByDescending(c=>OfflineMatchRules.AimScore(c.Position-hero.Position,aim))).ThenBy(c=>c.Id).FirstOrDefault();
+        }
         private bool HitCamp(BattleUnit hero,WildernessCamp camp,float range,float damage){
-            if(Finished||hero==null||!hero.State.Alive||hero.State.Kit==null||camp==null||IsAuthoritative&&!IsPositionVisibleTo(hero.Team,camp.Position)||!ClearSight(hero.Position,camp.Position)||!wilderness.TryHit(camp.Id,hero.Id,hero.Position,range,damage,out bool defeated))return false;
+            if(Finished||hero==null||!hero.State.Alive||hero.State.Kit==null||camp==null||!CampVisibleForAttack(hero,camp)||!ClearSight(hero.Position,camp.Position)||!wilderness.TryHit(camp.Id,hero.Id,hero.Position,range,damage,out bool defeated))return false;
             hero.AttackFacing=(camp.Position-hero.Position).normalized;
             hero.RecallEnds=0;hero.State.Set("revealed",1,Time+2,Time);
             if(defeated){
@@ -671,12 +675,19 @@ namespace Buklod.Empire {
         public float BasicAttackRemaining(BattleUnit u)=>u==null?0:Mathf.Max(0,BasicAttackCooldown(u)-(Time-u.LastAttack));
         private bool Basic(BattleUnit u,Vector2 aim,BattleTargetKind? kind=null,int campId=0,int unitId=0){
             var a=u.State;var k=a.Kit;
-            if(Finished||!a.CanAttack(Time)||k==null||!Finite(aim)||BasicAttackRemaining(u)>0)return false;
+            if(Finished||!a.CanAttack(Time)||a.Buff("blind",Time)>0||k==null||!Finite(aim)||BasicAttackRemaining(u)>0)return false;
             if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
-            var target=Enemies(a,k.BasicRange,aim).FirstOrDefault(e=>(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
+            var target=BasicTarget(u,aim,kind,unitId);
             if(target==null){if(unitId!=0||kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;}
             else {var facing=(Find(target).Position-u.Position).normalized;if(!ResolveHit(a,target,k.BasicDamage,true))return false;u.AttackFacing=facing;}
             u.LastAttack=Time;return true;
+        }
+        private SkillActor BasicTarget(BattleUnit u,Vector2 aim,BattleTargetKind? kind,int unitId=0)=>Enemies(u.State,u.State.Kit.BasicRange,aim).FirstOrDefault(e=>e.Buff("invulnerable",Time)<=0&&(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
+        // Read-only preview of the same eligible target as the next basic attack.
+        public string PreviewBasicTarget(Vector2 aim,BattleTargetKind? kind=null){
+            if(IsAuthoritative||Finished||AutonomousTraining||!Player.State.Alive||!Finite(aim))return "";
+            var target=BasicTarget(Player,aim,kind);if(target!=null){var unit=Find(target);return target.Kit!=null?target.Kit.Name:unit.Core?"Fortress core":unit.Kind.ToString();}
+            if(kind.HasValue)return "";var camp=FindCamp(Player,aim,Player.State.Kit.BasicRange);return camp==null?"":camp.Kind.ToString();
         }
         public static float ExperienceThreshold(int level)=>65f*level+18f*level*level;
         private static void GainXp(BattleUnit u,float n){

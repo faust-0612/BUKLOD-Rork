@@ -9,7 +9,7 @@ namespace Buklod.Empire {
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
-        private Image healthTrack,manaTrack,xpTrack,xp;private Text objective,dialogueCaption,guideCaption;
+        private Image healthTrack,manaTrack,xpTrack,xp;private Text objective,dialogueCaption,guideCaption,targetCaption;private float nextTargetAt;private int lastTargetButton=-1;
         private OfflineBattle guideMatch;private ReviewPracticeGuide guide;private float guideFinishedAt=-1;
         private ReviewHeroDialogue dialogue;
         private ReviewMinimap minimap;private readonly ReviewSkillGlyph[] glyphs=new ReviewSkillGlyph[3];
@@ -42,7 +42,7 @@ namespace Buklod.Empire {
             mana=ImageAt("Mana",canvas.transform,new Color(.2f,.55f,.95f));mana.sprite=null;
             if(review)BuildReview();
             infoRoot=new GameObject("Safe HUD information",typeof(RectTransform)).GetComponent<RectTransform>();infoRoot.SetParent(canvas.transform,false);infoRoot.SetAsFirstSibling();
-            foreach(var item in new Component[]{healthTrack,manaTrack,xpTrack,health,mana,xp,minimap,status,objective,dialogueCaption,guideCaption})if(item)item.transform.SetParent(infoRoot,false);
+            foreach(var item in new Component[]{healthTrack,manaTrack,xpTrack,health,mana,xp,minimap,status,objective,dialogueCaption,guideCaption,targetCaption})if(item)item.transform.SetParent(infoRoot,false);
             Layout();
         }
         private static Sprite MakeReviewControl(){
@@ -81,6 +81,7 @@ namespace Buklod.Empire {
             mapGo.transform.SetParent(canvas.transform,false);minimap=mapGo.GetComponent<ReviewMinimap>();minimap.Bind(view);
             objective=TextAt("Objective status",canvas.transform);objective.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(objective);
             guideCaption=TextAt("Practice guide",canvas.transform);guideCaption.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(guideCaption);guideCaption.gameObject.SetActive(false);
+            targetCaption=TextAt("Basic target preview",canvas.transform);targetCaption.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(targetCaption);targetCaption.gameObject.SetActive(false);
             dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue){dialogueCaption=TextAt("Hero subtitle",canvas.transform);dialogueCaption.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(dialogueCaption);}
             for(int i=0;i<3;i++){
                 var go=new GameObject("Skill glyph",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewSkillGlyph));
@@ -100,6 +101,7 @@ namespace Buklod.Empire {
             objective.fontSize=Mathf.Max(12,(int)(height*.027f));
             var tutorial=guideCaption.rectTransform;tutorial.anchorMin=new Vector2(.24f,.72f);tutorial.anchorMax=new Vector2(.76f,.83f);tutorial.offsetMin=tutorial.offsetMax=Vector2.zero;
             guideCaption.fontSize=Mathf.Max(12,(int)(height*.028f));guideCaption.color=new Color(.92f,.94f,.61f);
+            var target=targetCaption.rectTransform;target.anchorMin=new Vector2(.67f,.51f);target.anchorMax=new Vector2(.98f,.58f);target.offsetMin=target.offsetMax=Vector2.zero;targetCaption.fontSize=Mathf.Max(12,(int)(height*.025f));
             if(dialogueCaption){var r=dialogueCaption.rectTransform;r.anchorMin=new Vector2(.23f,.16f);r.anchorMax=new Vector2(.77f,.24f);r.offsetMin=r.offsetMax=Vector2.zero;dialogueCaption.fontSize=Mathf.Max(12,(int)(height*.027f));}
             foreach(var bar in new[]{healthTrack,manaTrack,xpTrack,xp}){
                 var t=bar.rectTransform;t.anchorMin=t.anchorMax=new Vector2(.025f,bar==healthTrack?.94f:bar==manaTrack?.905f:.875f);
@@ -137,7 +139,7 @@ namespace Buklod.Empire {
             health.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*healthShown,safeArea.height*.018f);
             mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*manaShown,safeArea.height*.013f);
             xp.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*xpShown,safeArea.height*.009f);
-            for(int i=0;i<3;i++)if(cooldown[i+2].fillAmount<=.001f)labels[i+2].text=i==2?"ULT":i==0?"S1":"S2";
+            for(int i=0;i<3;i++)if(s.CanAttemptCast((SkillSlot)i,b.Time))labels[i+2].text=i==2?"ULT":i==0?"S1":"S2";
             if(b.Time<nextObjectiveAt&&!fresh)return;
             nextObjectiveAt=b.Time+.15f;
             if(b.Time<announcementUntil){objective.text=announcement;objective.color=new Color(1,.82f,.40f);return;}
@@ -173,7 +175,7 @@ namespace Buklod.Empire {
             float attackLeft=b.BasicAttackRemaining(b.Player);
             float attackFill=Mathf.Clamp01(attackLeft/Mathf.Max(.01f,b.BasicAttackCooldown(b.Player)));
             labels[1].text="ATTACK";cooldown[1].fillAmount=attackFill;
-            for(int i=2;i<5;i++){var slot=(SkillSlot)(i-2);float remaining=s.Remaining(slot,b.Time);cooldown[i].fillAmount=slot==SkillSlot.Ultimate&&s.Level<6?1:Mathf.Clamp01(remaining/Mathf.Max(.01f,s.Cooldown(slot,b.Time)));labels[i].text=slot==SkillSlot.Ultimate&&s.Level<6?"LV 6":remaining>0?Mathf.CeilToInt(remaining).ToString():i==4?"ULT":"SKILL "+(i-1);}
+            for(int i=2;i<5;i++){var slot=(SkillSlot)(i-2);float remaining=s.Remaining(slot,b.Time);cooldown[i].fillAmount=slot==SkillSlot.Ultimate&&s.Level<6?1:Mathf.Clamp01(remaining/Mathf.Max(.01f,s.Cooldown(slot,b.Time)));labels[i].text=slot==SkillSlot.Ultimate&&s.Level<6?"LV 6":slot==SkillSlot.Secondary&&s.Level<3?"LV 3":remaining>0?Mathf.CeilToInt(remaining).ToString():s.Mana<SkillActor.ManaCost(slot)?"MANA":i==4?"ULT":"SKILL "+(i-1);}
             float tacticLeft=Mathf.Max(0,b.Player.TacticReadyAt-b.Time);cooldown[5].fillAmount=tacticLeft/Mathf.Max(1,ArenaTacticalRules.Cooldown(b.Player.Tactic));labels[5].text=tacticLeft>0?Mathf.CeilToInt(tacticLeft).ToString():"TACTIC";
             labels[6].text=b.Player.IsRecalling?Mathf.CeilToInt(b.Player.RecallEnds-b.Time).ToString():"RECALL";cooldown[6].fillAmount=0;
             labels[7].text="MINION";labels[8].text="TOWER";cooldown[7].fillAmount=cooldown[8].fillAmount=attackFill;
@@ -181,8 +183,9 @@ namespace Buklod.Empire {
             for(int i=1;i<buttons.Length;i++){
                 Color baseTint=review?Color.white:new Color(.11f,.17f,.23f,.76f);
                 bool available=!view.Paused&&!b.Finished&&!b.AutonomousTraining&&s.Alive;
-                if(i==1||i==7||i==8)available&=s.CanAttack(b.Time);
-                else if(i>=2&&i<=5)available&=s.CanCast(b.Time);
+                if(i==1||i==7||i==8)available&=s.CanAttack(b.Time)&&s.Buff("blind",b.Time)<=0;
+                else if(i>=2&&i<=4)available&=s.CanAttemptCast((SkillSlot)(i-2),b.Time);
+                else if(i==5)available&=s.CanCast(b.Time);
                 if(i>=1&&i<=5||i==7||i==8)available&=cooldown[i].fillAmount<=.001f;
                 if(review&&available&&i>=2&&i<=4)baseTint=Color.Lerp(Color.white,BattleEffects.Accent(s.Kit.Id),.20f);
                 if(!available)baseTint=Color.Lerp(baseTint,new Color(.35f,.39f,.43f,.7f),.65f);
@@ -193,7 +196,8 @@ namespace Buklod.Empire {
             int seconds=Mathf.FloorToInt(b.Time);status.text=b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):$"{seconds/60:00}:{seconds%60:00}  Lv {s.Level}  Gold {b.Player.Gold}  K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists}  Units {b.RemainingUnits(ArenaTeam.Lux)}:{b.RemainingUnits(ArenaTeam.Tenebra)}";
             health.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),safeArea.height*.018f);
             mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),safeArea.height*.013f);
-            if(review){ReviewUpdate(b);UpdateGuide(b);}
+            if(review){ReviewUpdate(b);UpdateGuide(b);int button=input.ActiveSkill;bool aiming=!view.Paused&&!b.Finished&&!b.AutonomousTraining&&MobileBattleInput.BasicButton(button);
+                targetCaption.gameObject.SetActive(aiming);if(aiming&&(button!=lastTargetButton||Time.unscaledTime>=nextTargetAt)){nextTargetAt=Time.unscaledTime+.10f;var target=view.PreviewAttack(button,input.Aim);targetCaption.text=string.IsNullOrEmpty(target)?"NO TARGET IN RANGE":"TARGET: "+target;}lastTargetButton=button;}
         }
         private void OnDestroy(){if(circle){Destroy(circle.texture);Destroy(circle);}if(reviewControl){Destroy(reviewControl.texture);Destroy(reviewControl);}}
     }

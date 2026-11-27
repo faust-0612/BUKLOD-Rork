@@ -149,6 +149,7 @@ namespace Buklod.Empire {
             var r=new Vector2(right.x,right.z).normalized;var f=new Vector2(forward.x,forward.z).normalized;
             return Vector2.ClampMagnitude(r*screen.x+f*screen.y,1);
         }
+        internal string PreviewAttack(int button,Vector2 aim){if(!ReviewOnly||Battle==null||Paused||!Application.isFocused)return "";return Battle.PreviewBasicTarget(ToWorld(aim),button==7?BattleTargetKind.Minion:button==8?BattleTargetKind.Structure:(BattleTargetKind?)null);}
         public bool Cast(int button,Vector2 aim){
             if(Battle==null||Paused||Battle.Finished||Battle.AutonomousTraining||!Application.isFocused||button<1||button>8)return false;
             var direction=ToWorld(aim);
