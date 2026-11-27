@@ -50,6 +50,10 @@ namespace Buklod.Empire {
         public int Kills {get;internal set;} public int Deaths {get;internal set;} public int Assists {get;internal set;}
         // Presentation receipt for successful active rewards, never passive gold or settlement.
         public int EarnedFeedbackSequence {get;internal set;}
+        // Presentation-only receipts; increment only after an accepted action.
+        public int PickupFeedbackSequence {get;internal set;}
+        public int RelicFeedbackSequence {get;internal set;}
+        public int PurchaseFeedbackSequence {get;internal set;}
         internal int AggressorId, LastTowerTarget, ConsecutiveTowerHits,KillStreak,ConsecutiveDeaths;
         public float DamageDealt {get;internal set;} public float DamageTaken {get;internal set;}
         internal float AggroUntil;
@@ -567,7 +571,7 @@ namespace Buklod.Empire {
                 a.ShieldCapacity=105+current.ShieldMax;a.PickupShield(Mathf.Max(0,current.ShieldMax-old.ShieldMax),Time);
                 a.EquipmentCooldown=(u.Gear.Contains("wisdom")?.12f:0)+current.Cooldown;
             }
-            relicDrops.Remove(d);u.EarnedFeedbackSequence++;return true;
+            relicDrops.Remove(d);u.EarnedFeedbackSequence++;u.RelicFeedbackSequence++;return true;
         }
         public bool CollectPlayerPickup(int id)=>CollectPickup(Player,id);
         private bool CollectPickup(BattleUnit u,int id){
@@ -584,7 +588,7 @@ namespace Buklod.Empire {
                 case "cooldown":amount=s.ReduceActiveCooldowns(v/1000,Time);break;
                 case "haste":case "fury":case "guard":case "regen":if(s.ExtendPickupBuff(item.Effect,v,item.Duration,Time))amount=v;break;
             }
-            if(amount<=0)return false;drops.Remove(d);u.EarnedFeedbackSequence++;return true;
+            if(amount<=0)return false;drops.Remove(d);u.EarnedFeedbackSequence++;u.PickupFeedbackSequence++;return true;
         }
         private void CollectNearby(BattleUnit u){for(int i=drops.Count-1;i>=0;i--)if(CollectPickup(u,drops[i].Id))break;for(int i=relicDrops.Count-1;i>=0;i--)if(CollectRelic(u,relicDrops[i].Id))break;}
         public bool Dash(SkillActor actor,Vector2 direction,float distance)=>Move(Find(actor),direction,distance);
@@ -731,7 +735,7 @@ namespace Buklod.Empire {
             u.State.EquipmentCooldown=(u.Gear.Contains("wisdom")?.12f:0)+u.RelicStats.Cooldown;
             if(item=="vitality"){u.State.MaxHealth+=purchased?45:-45;u.State.Health=Mathf.Min(u.State.MaxHealth,u.State.Health);}
         }
-        private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,true);return ok;}
+        private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok){GearChanged(u,item,true);u.PurchaseFeedbackSequence++;}return ok;}
         private bool Sell(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TrySell(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,false);return ok;}
         public float BasicAttackCooldown(BattleUnit u){
             if(u==null||u.State.Kit==null)return 0;
