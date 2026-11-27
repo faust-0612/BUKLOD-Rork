@@ -139,8 +139,9 @@ namespace Buklod.Empire {
             mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*manaShown,safeArea.height*.013f);
             xp.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*xpShown,safeArea.height*.009f);
             for(int i=0;i<3;i++)if(cooldown[i+2].fillAmount<=.001f)labels[i+2].text=i==2?"ULT":i==0?"S1":"S2";
-            if(b.Time<nextObjectiveAt&&!fresh)return;
+            if(b.Time<nextObjectiveAt&&!fresh&&string.IsNullOrEmpty(b.PlayerAttackFeedback))return;
             nextObjectiveAt=b.Time+.15f;
+            if(!string.IsNullOrEmpty(b.PlayerAttackFeedback)){objective.text=b.PlayerAttackFeedback;objective.color=new Color(1,.92f,.62f);return;}
             if(b.Time<announcementUntil){objective.text=announcement;objective.color=new Color(1,.82f,.40f);return;}
             objective.color=new Color(.85f,.94f,.91f);
             WildernessCamp nearest=null;float dist=float.PositiveInfinity;
@@ -170,7 +171,7 @@ namespace Buklod.Empire {
             if(!canvas.enabled||!input)return;
             if(width!=Screen.width||height!=Screen.height||safeArea!=MobileBattleInput.SafeArea||layoutRevision!=ArenaControlSettings.Revision)Layout();
             if(dialogueCaption)dialogueCaption.text=dialogue?dialogue.Caption:"";
-            if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
+            if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo||view.Battle!=null&&!string.IsNullOrEmpty(view.Battle.PlayerAttackFeedback));
             if(minimap)minimap.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
             var stick=buttons[0].rectTransform;stick.anchorMin=stick.anchorMax=Normalized(input.MovementCenter);
             for(int i=1;i<buttons.Length;i++)buttons[i].rectTransform.localScale=Vector3.one*(input.ActiveSkill==i?.92f:1f);
@@ -182,7 +183,7 @@ namespace Buklod.Empire {
             for(int i=2;i<5;i++){var slot=(SkillSlot)(i-2);float remaining=s.Remaining(slot,b.Time);cooldown[i].fillAmount=slot==SkillSlot.Ultimate&&s.Level<6?1:Mathf.Clamp01(remaining/Mathf.Max(.01f,s.Cooldown(slot,b.Time)));labels[i].text=slot==SkillSlot.Ultimate&&s.Level<6?"LV 6":remaining>0?Mathf.CeilToInt(remaining).ToString():i==4?"ULT":"SKILL "+(i-1);}
             float tacticLeft=Mathf.Max(0,b.Player.TacticReadyAt-b.Time);cooldown[5].fillAmount=tacticLeft/Mathf.Max(1,ArenaTacticalRules.Cooldown(b.Player.Tactic));labels[5].text=tacticLeft>0?Mathf.CeilToInt(tacticLeft).ToString():"TACTIC";
             labels[6].text=b.Player.IsRecalling?Mathf.CeilToInt(b.Player.RecallEnds-b.Time).ToString():"RECALL";cooldown[6].fillAmount=0;
-            labels[7].text="MINION";labels[8].text="TOWER";cooldown[7].fillAmount=cooldown[8].fillAmount=attackFill;
+            labels[7].text="MINION";labels[8].text="STRUCTURE";cooldown[7].fillAmount=cooldown[8].fillAmount=attackFill;
             // Feedback is driven by the actual simulation result, not merely a pressed button.
             for(int i=1;i<buttons.Length;i++){
                 Color baseTint=review?Color.white:new Color(.11f,.17f,.23f,.76f);
