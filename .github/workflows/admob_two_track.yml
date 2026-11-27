@@ -1,0 +1,54 @@
+name: BUKLOD AdMob Two Track Audit and Static RC
+on:
+  push:
+    branches: [fix/admob-app-ads-txt-20261021]
+    paths:
+      - '.github/workflows/admob_two_track.yml'
+      - 'admob-developer-site/**'
+      - 'scripts/admob-cloud-provenance.py'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read historical cloud metadata and public developer sites
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: python scripts/admob-cloud-provenance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admob-cloud-provenance
+          path: admob-evidence/
+          retention-days: 30
+  static-rc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify candidate with official Hosting emulator; no credentials or cloud deploy
+        env:
+          CI: 'true'
+          FIREBASE_CLI_DISABLE_USAGE_REPORTING: 'true'
+        run: npx --yes firebase-tools@14.22.0 emulators:exec --project demo-buklod-admob --config admob-developer-site/firebase.json --only hosting "python admob-developer-site/verify.py"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admob-static-developer-site-rc
+          path: |
+            admob-developer-site/
+            admob-evidence/rc-contract.json
+          retention-days: 30
