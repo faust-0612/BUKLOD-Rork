@@ -49,7 +49,8 @@ namespace Buklod.Empire {
                 if(!component||!(component is Transform||component is MeshFilter||component is MeshRenderer))return false;
             var allowedShaders=new HashSet<string>(baseline.GetComponentsInChildren<Renderer>(true)
                 .SelectMany(r=>r.sharedMaterials).Where(m=>m&&m.shader).Select(m=>m.shader.name),StringComparer.Ordinal);
-            long vertices=0,indices=0;
+            long vertices=0,indices=0,pixels=0;
+            var textures=new HashSet<Texture>();
             var filters=candidate.GetComponentsInChildren<MeshFilter>(true);
             if(filters.Length<1||filters.Length>64)return false;
             foreach(var filter in filters){
@@ -64,11 +65,14 @@ namespace Buklod.Empire {
                     if(!mat||!mat.shader||!mat.shader.isSupported||!allowedShaders.Contains(mat.shader.name))return false;
                     foreach(var property in mat.GetTexturePropertyNames()){
                         var texture=mat.GetTexture(property);
-                        if(texture&&(!(texture is Texture2D)||texture.width>2048||texture.height>2048))return false;
+                        if(texture){
+                            if(!(texture is Texture2D)||texture.width>2048||texture.height>2048)return false;
+                            if(textures.Add(texture))pixels+=(long)texture.width*texture.height;
+                        }
                     }
                 }
             }
-            if(vertices>100000||indices>300000||candidate.GetComponentsInChildren<MeshRenderer>(true).Length!=filters.Length)return false;
+            if(vertices>100000||indices>300000||textures.Count>16||pixels>8L*1024*1024||candidate.GetComponentsInChildren<MeshRenderer>(true).Length!=filters.Length)return false;
             if(!BoundsOf(candidate,out var actual)||!BoundsOf(baseline,out var limit))return false;
             const float tolerance=.04f;
             return actual.min.x>=limit.min.x-tolerance&&actual.min.z>=limit.min.z-tolerance&&actual.max.x<=limit.max.x+tolerance&&actual.max.z<=limit.max.z+tolerance
