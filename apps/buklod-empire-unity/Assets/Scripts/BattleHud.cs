@@ -152,11 +152,24 @@ namespace Buklod.Empire {
             for(int i=1;i<buttons.Length;i++)buttons[i].rectTransform.localScale=Vector3.one*(input.ActiveSkill==i?.92f:1f);
             var b=view.Battle;if(b==null)return;var s=b.Player.State;
             knob.rectTransform.anchoredPosition=input.Joystick*MobileBattleInput.Radius(0)*.6f;
-            labels[1].text="ATTACK";cooldown[1].fillAmount=0;
+            float attackLeft=b.BasicAttackRemaining(b.Player);
+            float attackFill=Mathf.Clamp01(attackLeft/Mathf.Max(.01f,b.BasicAttackCooldown(b.Player)));
+            labels[1].text="ATTACK";cooldown[1].fillAmount=attackFill;
             for(int i=2;i<5;i++){var slot=(SkillSlot)(i-2);float remaining=s.Remaining(slot,b.Time);cooldown[i].fillAmount=slot==SkillSlot.Ultimate&&s.Level<6?1:Mathf.Clamp01(remaining/Mathf.Max(.01f,s.Cooldown(slot,b.Time)));labels[i].text=slot==SkillSlot.Ultimate&&s.Level<6?"LV 6":remaining>0?Mathf.CeilToInt(remaining).ToString():i==4?"ULT":"SKILL "+(i-1);}
             float tacticLeft=Mathf.Max(0,b.Player.TacticReadyAt-b.Time);cooldown[5].fillAmount=tacticLeft/Mathf.Max(1,ArenaTacticalRules.Cooldown(b.Player.Tactic));labels[5].text=tacticLeft>0?Mathf.CeilToInt(tacticLeft).ToString():"TACTIC";
             labels[6].text=b.Player.IsRecalling?Mathf.CeilToInt(b.Player.RecallEnds-b.Time).ToString():"RECALL";cooldown[6].fillAmount=0;
-            labels[7].text="MINION";labels[8].text="TOWER";cooldown[7].fillAmount=cooldown[8].fillAmount=0;
+            labels[7].text="MINION";labels[8].text="TOWER";cooldown[7].fillAmount=cooldown[8].fillAmount=attackFill;
+            // Feedback is driven by the actual simulation result, not merely a pressed button.
+            for(int i=1;i<buttons.Length;i++){
+                Color baseTint=review?Color.white:new Color(.11f,.17f,.23f,.76f);
+                bool available=!view.Paused&&!b.Finished&&!b.AutonomousTraining&&s.Alive;
+                if(i==1||i==7||i==8)available&=s.CanAttack(b.Time);
+                else if(i>=2&&i<=5)available&=s.CanCast(b.Time);
+                if(!available)baseTint=Color.Lerp(baseTint,new Color(.35f,.39f,.43f,.7f),.65f);
+                if(i==view.ControlFeedbackButton&&Time.unscaledTime<view.ControlFeedbackUntil)
+                    baseTint=Color.Lerp(baseTint,view.ControlFeedbackAccepted?new Color(.65f,1,.55f,1):new Color(1,.35f,.25f,1),.8f);
+                buttons[i].color=baseTint;
+            }
             int seconds=Mathf.FloorToInt(b.Time);status.text=b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):$"{seconds/60:00}:{seconds%60:00}  Lv {s.Level}  Gold {b.Player.Gold}  K/D/A {b.Player.Kills}/{b.Player.Deaths}/{b.Player.Assists}  Units {b.RemainingUnits(ArenaTeam.Lux)}:{b.RemainingUnits(ArenaTeam.Tenebra)}";
             health.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*Mathf.Clamp01(s.Health/s.MaxHealth),safeArea.height*.018f);
             mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*Mathf.Clamp01(s.Mana/Mathf.Max(1,s.MaxMana)),safeArea.height*.013f);

@@ -39,8 +39,11 @@ namespace Buklod.Empire {
             catch(System.Exception e){PracticeResultStatus="Local practice save failed";Debug.LogWarning("Practice record save failed: "+e.GetType().Name);}
         }
         public bool Paused {get;private set;}
+        public int ControlFeedbackButton {get;private set;}
+        public bool ControlFeedbackAccepted {get;private set;}
+        public float ControlFeedbackUntil {get;private set;}
         public void SetPaused(bool value){
-            Paused=value;if(input)input.enabled=!value;
+            Paused=value;if(input)input.enabled=!value;if(value)ControlFeedbackUntil=0;
             foreach(var visual in active.Values)if(visual.animator)visual.animator.speed=value?0f:1f;
             if(value){if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
@@ -110,7 +113,7 @@ namespace Buklod.Empire {
             skillAudio=GetComponent<SkillAudio>();if(!skillAudio)skillAudio=gameObject.AddComponent<SkillAudio>();skillAudio.Clear();
             Battle=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
             if(!Battle.SelectPlayerTactic(tactic)||covenant.HasValue&&!Battle.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
-            selectedHero=hero;Paused=false;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
+            selectedHero=hero;Paused=false;ControlFeedbackUntil=0;practiceMatch=System.Guid.NewGuid();practiceAttempted=false;PracticeResultStatus="";
             input=GetComponent<MobileBattleInput>();if(!input)input=gameObject.AddComponent<MobileBattleInput>();input.Bind(this);input.enabled=true;
             if(!GetComponent<BattleHud>())gameObject.AddComponent<BattleHud>();
             fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
@@ -130,7 +133,10 @@ namespace Buklod.Empire {
         public bool Cast(int button,Vector2 aim){
             if(Battle==null||Paused||Battle.Finished||Battle.AutonomousTraining||button<1||button>8)return false;
             var direction=ToWorld(aim);
-            switch(button){case 1:return Battle.PlayerAttack(direction);case 5:return Battle.UsePlayerTactic(direction);case 6:return Battle.RecallPlayer();case 7:return Battle.PlayerAttackTarget(BattleTargetKind.Minion,direction);case 8:return Battle.PlayerAttackTarget(BattleTargetKind.Structure,direction);default:return Battle.CastPlayer((SkillSlot)(button-2),direction);}
+            bool ok;
+            switch(button){case 1:ok=Battle.PlayerAttack(direction);break;case 5:ok=Battle.UsePlayerTactic(direction);break;case 6:ok=Battle.RecallPlayer();break;case 7:ok=Battle.PlayerAttackTarget(BattleTargetKind.Minion,direction);break;case 8:ok=Battle.PlayerAttackTarget(BattleTargetKind.Structure,direction);break;default:ok=Battle.CastPlayer((SkillSlot)(button-2),direction);break;}
+            ControlFeedbackButton=button;ControlFeedbackAccepted=ok;ControlFeedbackUntil=Time.unscaledTime+.28f;
+            return ok;
         }
         private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
         private void LateUpdate(){if(Battle!=null)Follow(false);}

@@ -18,6 +18,15 @@ namespace Buklod.Empire.Tests {
             Assert.AreEqual(1,p.EarnedFeedbackSequence);
             Assert.False(b.Hit(p.State,enemy.State,300));Assert.AreEqual(1,p.EarnedFeedbackSequence);
         }
+        [Test] public void BasicAttackHudUsesSameCooldownAsCombat(){
+            var b=new OfflineBattle("phan");var p=b.Player;
+            Assert.AreEqual(0,b.BasicAttackRemaining(p));float baseCooldown=b.BasicAttackCooldown(p);
+            p.LastAttack=b.Time;Assert.AreEqual(baseCooldown,b.BasicAttackRemaining(p),.0001f);
+            p.Gear.Add("fervor");Assert.Less(b.BasicAttackCooldown(p),baseCooldown);
+            Assert.False(b.PlayerAttack(Vector2.zero));
+            for(int i=0;i<100;i++)b.Advance(.1f,Vector2.zero);
+            Assert.AreEqual(0,b.BasicAttackRemaining(p));
+        }
         [Test] public void InvalidSummonsDoNotChangeFactionCount(){
             var b=new OfflineBattle("phan");int before=b.RemainingUnits(ArenaTeam.Lux);
             Assert.False(b.Turret(b.Player.State,Vector2.right,5,float.NaN,10,20));

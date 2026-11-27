@@ -659,9 +659,15 @@ namespace Buklod.Empire {
         }
         private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,true);return ok;}
         private bool Sell(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TrySell(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,false);return ok;}
+        public float BasicAttackCooldown(BattleUnit u){
+            if(u==null||u.State.Kit==null)return 0;
+            float speed=1+(u.Gear.Contains("fervor")?.2f:0)+u.CovenantBonus.AttackSpeed+Mathf.Clamp(u.State.Buff("attack_speed",Time),0,.25f);
+            return u.State.Kit.BasicCooldown/Mathf.Max(.01f,speed);
+        }
+        public float BasicAttackRemaining(BattleUnit u)=>u==null?0:Mathf.Max(0,BasicAttackCooldown(u)-(Time-u.LastAttack));
         private bool Basic(BattleUnit u,Vector2 aim,BattleTargetKind? kind=null,int campId=0,int unitId=0){
-            var a=u.State;var k=a.Kit;float speed=1+(u.Gear.Contains("fervor")?.2f:0)+u.CovenantBonus.AttackSpeed+Mathf.Clamp(a.Buff("attack_speed",Time),0,.25f);
-            if(Finished||!a.CanAttack(Time)||k==null||!Finite(aim)||Time-u.LastAttack<k.BasicCooldown/speed)return false;
+            var a=u.State;var k=a.Kit;
+            if(Finished||!a.CanAttack(Time)||k==null||!Finite(aim)||BasicAttackRemaining(u)>0)return false;
             if(campId!=0){if(campId<0||!HitCamp(u,wilderness.Find(campId),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;u.LastAttack=Time;return true;}
             var target=Enemies(a,k.BasicRange,aim).FirstOrDefault(e=>(!kind.HasValue||Find(e).Kind==kind.Value)&&(unitId==0||Find(e).Id==unitId));
             if(target==null){if(unitId!=0||kind.HasValue||!HitCamp(u,FindCamp(u,aim,k.BasicRange),k.BasicRange,k.BasicDamage+u.RelicStats.Attack+(u.Gear.Contains("blade")?7:0)))return false;}
