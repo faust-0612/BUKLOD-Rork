@@ -615,7 +615,20 @@ namespace Buklod.Empire {
             enemy.State.Set(ArenaStoneRules.CounterBuff,1,Time+ArenaStoneRules.CounterDuration,Time);
             counterTarget=enemy;counterUntil=Time+ArenaStoneRules.CounterDuration;practiceCounterUsed=true;return true;
         }
-        public bool CastPlayer(SkillSlot slot,Vector2 aim){bool ok=Player.State.TryCast(this,slot,aim,Time,!Finished);if(ok)Player.RecallEnds=0;return ok;}
+        public bool CastPlayer(SkillSlot slot,Vector2 aim){
+            bool ok=Player.State.TryCast(this,slot,aim,Time,!Finished);if(ok)Player.RecallEnds=0;
+            if(!IsAuthoritative&&!AutonomousTraining&&Enum.IsDefined(typeof(SkillSlot),slot)){
+                var s=Player.State;
+                if(ok)AttackFeedback("Cast: "+s.Kit.Skill(slot).Id.Replace('_',' '));
+                else if(!s.CanCast(Time)||Finished)AttackFeedback("Skill unavailable");
+                else if(slot==SkillSlot.Ultimate&&s.Level<6)AttackFeedback("Ultimate unlocks at level 6");
+                else if(slot==SkillSlot.Secondary&&s.Level<3)AttackFeedback("Skill 2 unlocks at level 3");
+                else if(s.Remaining(slot,Time)>0)AttackFeedback("Skill on cooldown");
+                else if(s.Mana<SkillActor.ManaCost(slot))AttackFeedback("Not enough mana");
+                else AttackFeedback("Skill needs a valid target or clear path");
+            }
+            return ok;
+        }
         // Offline touch intent: one bounded approach/attack, never an infinite auto-chase.
         // The authoritative network action and direct simulation APIs retain their original contract.
         private int pendingAttackUnit,pendingAttackCamp;
@@ -643,7 +656,10 @@ namespace Buklod.Empire {
                 if(camp!=null&&target!=null&&Vector2.Distance(p.Position,camp.Position)>range)camp=null;
             }
             if(camp!=null)target=null;
-            if(target==null&&camp==null){AttackFeedback(kind==BattleTargetKind.Structure?"No exposed enemy structure nearby":kind==BattleTargetKind.Minion?"No enemy minion nearby":"No enemy or creature nearby");return false;}
+            if(target==null&&camp==null){
+                bool protectedCore=kind==BattleTargetKind.Structure&&units.Any(u=>u.Team!=p.Team&&u.Core&&u.State.Alive&&!CoreOpen(u.Team)&&Dist(p,u)<=searchRange&&IsVisibleTo(p.Team,u)&&ClearSight(p.Position,u.Position));
+                AttackFeedback(protectedCore?"Core protected: destroy a lane tower first":kind==BattleTargetKind.Structure?"No exposed enemy structure nearby":kind==BattleTargetKind.Minion?"No enemy minion nearby":"No enemy or creature nearby");return false;
+            }
             pendingAttackUnit=target?.Id??0;pendingAttackCamp=camp?.Id??0;
             pendingAttackUntil=Time+3.5f;
             p.RecallEnds=0;
@@ -835,7 +851,7 @@ namespace Buklod.Empire {
                     float speed=OfflineMatchRules.MoveSpeed(a.Kit.Speed,u.Gear.Contains("boots"))*(1+u.RelicStats.Speed+u.CovenantBonus.Speed)*(1+a.Buff("haste",Time))*(1-Mathf.Clamp(a.Buff("slow",Time),0,.45f));
                     if(a.Kit.Id=="jawo"&&Time-u.RhythmAt<=4)speed*=1+.02f*u.RhythmStacks;
                     if(units.Any(v=>v.Team==u.Team&&v.State.Alive&&v.State.Kit?.Id=="ellusur"&&Dist(u,v)<=8.75f))speed*=1.1f;
-                    if(human){if(!IsAuthoritative&&heroMove.sqrMagnitude>=.0025f)CancelPlayerAttack();if(!IsAuthoritative&&HasPendingPlayerAttack)AdvancePlayerAttack(speed);else Move(u,heroMove,speed*heroMove.magnitude*Step);CollectNearby(u);continue;}
+                    if(human){if(!IsAuthoritative&&heroMove.sqrMagnitude>=.0025f&&HasPendingPlayerAttack)CancelPlayerAttack();if(!IsAuthoritative&&HasPendingPlayerAttack)AdvancePlayerAttack(speed);else Move(u,heroMove,speed*heroMove.magnitude*Step);CollectNearby(u);continue;}
                     Bot(u,speed);if(!Finished)CollectNearby(u);
                 }else if(u.Kind==BattleTargetKind.Minion)Minion(u);
                 else Structure(u);
