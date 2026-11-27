@@ -1,5 +1,6 @@
 """Original procedural facial and signature-equipment refinement; review only."""
 import math
+from sculpt_geometry import facial_relief, sculpt_point
 
 # Jaw taper, brow tilt, eye width, nose width, mouth width. Art candidates,
 # not measurements of people or assertions of portrait likeness.
@@ -23,6 +24,7 @@ def face_depth(h,x,y):
     z=.119*math.sqrt(max(0,1-(x/w)**2-((y-1.76*h.h)/r)**2))
     if h.hair=='hood':
         z=max(z,.075+.075*math.sqrt(max(0,1-(x/.105)**2-((y-1.755*h.h)/.131)**2)))
+    else:z+=facial_relief(x,y-1.76*h.h,z,r,w)[0]
     return z
 
 def adjust_feature(h,mat,joint,center,size):
@@ -46,6 +48,7 @@ def sculpt_surface(h,mat,joint,center,size,start):
         g['p'][i]=(x*a,y,z)
         n=(nx/a,ny-nx*x*derivative/a,nz);length=math.sqrt(sum(q*q for q in n))
         g['n'][i]=tuple(q/max(length,1e-9) for q in n)
+        if h.hair!='hood':g['p'][i],g['n'][i]=sculpt_point(g['p'][i],g['n'][i],center,size[1],size[0])
 
 def replace_face_box(h,mat,joint,c,s):
     if not head_joint(h,joint):return False

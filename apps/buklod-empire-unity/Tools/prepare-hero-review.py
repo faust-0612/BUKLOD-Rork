@@ -6,7 +6,8 @@ from identity_detail import adjust_feature, sculpt_surface, replace_face_box, ad
 from refine_surfaces import texture_glb
 from hd_surface import review_size
 from fidelity_geometry import add_fidelity_geometry
-from joint_geometry import add_joint_geometry, REVISION
+from joint_geometry import add_joint_geometry
+from sculpt_geometry import bevel_plate, REVISION
 root=pathlib.Path(__file__).resolve().parents[1]
 repo=root.parents[1]
 source=repo/"scripts/generate-buklod-empire-hero-glbs.py"
@@ -58,6 +59,9 @@ class Candidate(original.Hero):
                 p=g['p'][i]
                 g['n'][i]=original.norm(tuple((p[k]-center[k])/(size[k]**2) for k in range(3)))
         sculpt_surface(self,mat,joint,center,size,start)
+    def plate(self,mat,joint,center,outline,depth=.035):
+        if mat in (0,1) and not getattr(self,'mobile_lod',False) and bevel_plate(self,mat,joint,center,outline,depth):return
+        super().plate(mat,joint,center,outline,depth)
     def box(self,mat,joint,c,s):
         if not replace_face_box(self,mat,joint,c,s):super().box(mat,joint,c,s)
     def make(self):
