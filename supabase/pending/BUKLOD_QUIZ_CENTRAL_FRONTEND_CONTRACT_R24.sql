@@ -92,3 +92,28 @@ REVOKE ALL ON FUNCTION public.buklod_quiz_approve_class_review_v1(uuid,uuid,json
 GRANT EXECUTE ON FUNCTION public.buklod_quiz_approve_class_review_v1(uuid,uuid,jsonb) TO authenticated;
 REVOKE ALL ON FUNCTION public.buklod_quiz_review_response_v1(uuid,numeric,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.buklod_quiz_review_response_v1(uuid,numeric,text) TO authenticated;
+
+-- Reject historical or incomplete reference sets rather than silently returning partial AI payload.
+CREATE OR REPLACE FUNCTION public.buklod_quiz_review_ai_payload_v2(p_attempt_id uuid)
+RETURNS TABLE(response_id uuid,question_type text,question text,max_points numeric,student_answer text,correct_answer text,explanation text,rubric text,capture_digest text)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO ''
+AS $fn$
+BEGIN
+ IF auth.uid() IS NULL OR public.buklod_quiz_is_examiner(auth.uid()) IS DISTINCT FROM true OR NOT EXISTS(
+ SELECT 1 FROM public.buklod_quiz_attempts a JOIN public.buklod_quiz_exams e ON e.id=a.exam_id WHERE a.id=p_attempt_id AND e.owner_user_id=auth.uid())
+ THEN RAISE EXCEPTION 'Exam owner and examiner required' USING ERRCODE='42501'; END IF;
+ IF EXISTS(SELECT 1 FROM public.buklod_quiz_responses r JOIN public.buklod_quiz_attempts a ON a.id=r.attempt_id
+ WHERE a.id=p_attempt_id AND a.status='NEEDS_REVIEW' AND r.needs_review IS TRUE AND r.manual_score IS NULL
+ AND NOT EXISTS(SELECT 1 FROM private.buklod_quiz_review_reference_r19(a.id) q WHERE q.id=r.question_id AND q.immutable AND upper(q.question_type) IN ('SHORT_TEXT','ESSAY','ENUMERATION','MANUAL')))
+ THEN RAISE EXCEPTION 'Original grading reference unavailable; explicit faculty historical review required'; END IF;
+ RETURN QUERY SELECT r.id,q.question_type,q.prompt,q.points,
+ CASE WHEN jsonb_typeof(r.answer)='string' THEN r.answer#>>'{}' ELSE coalesce(r.answer::text,'') END,
+ CASE WHEN jsonb_typeof(q.correct_answer)='string' THEN q.correct_answer#>>'{}' ELSE q.correct_answer::text END,
+ q.explanation,q.rubric::text,private.buklod_quiz_review_capture_r19(r.id)
+ FROM public.buklod_quiz_responses r JOIN public.buklod_quiz_attempts a ON a.id=r.attempt_id
+ CROSS JOIN LATERAL private.buklod_quiz_review_reference_r19(a.id) q
+ WHERE r.attempt_id=p_attempt_id AND a.status='NEEDS_REVIEW' AND q.id=r.question_id AND r.needs_review IS TRUE AND r.manual_score IS NULL
+ AND q.immutable AND upper(q.question_type) IN ('SHORT_TEXT','ESSAY','ENUMERATION','MANUAL')
+ ORDER BY q.sort_order,q.id;
+END;
+$fn$;
