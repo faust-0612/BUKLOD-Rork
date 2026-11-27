@@ -145,11 +145,12 @@ namespace Buklod.Empire {
             }finally{Busy=false;Progress=0;}
         }
         // Keep the two newest signed receipts plus the actually active recovery revision.
-        void Prune(){
+        void Prune(EmpireContentProtocol.Manifest incoming){
             Directory.CreateDirectory(root);
             var receipts=ReadReceipts(root,trust,Application.unityVersion);
             var keep=receipts.Take(2).Concat(receipts.Where(x=>x.manifest.revision==activeRevision)).ToArray();
             var names=new HashSet<string>(keep.SelectMany(x=>x.manifest.bundles).Select(EmpireContentProtocol.BundleFile),StringComparer.Ordinal);
+            foreach(var b in incoming.bundles)names.Add(EmpireContentProtocol.BundleFile(b));
             var revisions=new HashSet<int>(keep.Select(x=>x.manifest.revision));
             foreach(var row in receipts)if(!revisions.Contains(row.manifest.revision))File.Delete(Receipt(row.manifest.revision));
             foreach(var path in Directory.EnumerateFiles(root,"*.bundle")){
@@ -157,16 +158,22 @@ namespace Buklod.Empire {
             }
             foreach(var path in Directory.EnumerateFiles(root,"*.partial"))File.Delete(path);
         }
+        static long AvailableSpace(string path){
+#if UNITY_ANDROID && !UNITY_EDITOR
+            using(var stat=new AndroidJavaObject("android.os.StatFs",path))return stat.Call<long>("getAvailableBytes");
+#else
+            return new DriveInfo(Path.GetPathRoot(path)).AvailableFreeSpace;
+#endif
+        }
         IEnumerator DownloadRoutine(){
             Busy=true;Progress=0;var m=offered;var envelope=offerEnvelope;Status="Preparing content download...";
             try{
                 bool ready=true;
                 try{
-                    Prune();
+                    Prune(m);
                     long used=Directory.EnumerateFiles(root).Sum(p=>new FileInfo(p).Length);
                     long missing=m.bundles.Where(b=>!EmpireContentProtocol.Matches(Blob(b),b)).Sum(b=>(long)b.bytes);
-                    var drive=new DriveInfo(Path.GetPathRoot(root));
-                    if(used+missing+EmpireContentProtocol.MaxManifestBytes>CacheBudget||drive.AvailableFreeSpace<missing+Reserve)ready=false;
+                    if(used+missing+EmpireContentProtocol.MaxManifestBytes>CacheBudget||AvailableSpace(root)<missing+Reserve)ready=false;
                 }catch(Exception){ready=false;}
                 if(!ready){Status="Insufficient or unavailable content storage; existing content retained";yield break;}
                 foreach(var b in m.bundles){
@@ -182,8 +189,10 @@ namespace Buklod.Empire {
                         try{
                             using(var stream=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None)){stream.Write(data,0,data.Length);stream.Flush(true);}
                             if(File.Exists(destination)){
-                                if(!EmpireContentProtocol.Matches(destination,b))throw new InvalidDataException("Existing cache object differs");
-                                File.Delete(temp);
+                                if(!EmpireContentProtocol.Matches(destination,b)){
+                                    // Never replace a file currently loaded by a known-good revision.
+                                    File.Delete(destination);File.Move(temp,destination);
+                                }else File.Delete(temp);
                             }else File.Move(temp,destination);
                         }finally{if(File.Exists(temp))File.Delete(temp);}
                     });
