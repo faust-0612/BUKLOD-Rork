@@ -37,13 +37,13 @@ namespace Buklod.Empire.Editor {
             var sun=UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(l=>l.type==LightType.Directional);
             if(!sun)throw new InvalidOperationException("Review directional light missing.");
             sun.color=new Color(1f,.88f,.69f);sun.intensity=1.25f;
-            sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(52,-38,0);
+            sun.shadows=LightShadows.Soft;sun.shadowStrength=.88f;sun.transform.rotation=Quaternion.Euler(52,-38,0);
             RenderSettings.ambientMode=AmbientMode.Trilight;
             RenderSettings.ambientSkyColor=new Color(.50f,.60f,.73f);
             RenderSettings.ambientEquatorColor=new Color(.36f,.43f,.47f);
             RenderSettings.ambientGroundColor=new Color(.24f,.27f,.29f);
             RenderSettings.fog=false; // do not wash out the orthographic playfield
-            RenderSettings.reflectionIntensity=.65f;
+            RenderSettings.reflectionIntensity=.95f;
             foreach(var volume in UnityEngine.Object.FindObjectsByType<Volume>(FindObjectsSortMode.None))
                 if(volume.isGlobal)volume.enabled=false;
             var grade=AssetDatabase.LoadAssetAtPath<VolumeProfile>(GradePath);

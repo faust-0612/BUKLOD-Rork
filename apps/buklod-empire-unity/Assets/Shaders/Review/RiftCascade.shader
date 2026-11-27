@@ -35,15 +35,17 @@ Shader "BUKLOD/Review/RiftCascade" {
                 float x=i.positionWS.x,y=i.positionWS.y,t=_Time.y*_FlowSpeed;
                 // Constant phase travels downward as time advances. No scene/depth texture dependency.
                 float flow=y*5.5+t*5.5;
-                half streak=smoothstep(.52,.90,.5+.5*sin(x*8.2+.40*sin(flow)));
+                half streak=smoothstep(.55,.94,.5+.5*sin(x*8.2+.40*sin(flow)));
+                half fine=smoothstep(.78,.96,.5+.5*sin(x*19.7+sin(flow*1.4)*.55));
                 half splash=smoothstep(.4,.95,.5+.5*sin(flow+x*2.6));
-                half foam=saturate(streak*.64+splash*.23+(1-smoothstep(.10,.95,y))*.55);
+                half foam=saturate(streak*.48+fine*.24+splash*.20+(1-smoothstep(.10,.95,y))*.55);
                 half3 n=normalize(i.normalWS);
                 half3 view=GetWorldSpaceNormalizeViewDir(i.positionWS);
                 half fresnel=pow(1-saturate(abs(dot(n,view))),3);
                 Light sun=GetMainLight();
                 half3 tint=lerp(_WaterTint.rgb,_FoamTint.rgb,saturate(foam+fresnel*.15));
-                tint*=lerp(.8,1.12,saturate(abs(dot(n,sun.direction))));
+                tint*=lerp(.78,1.12,saturate(abs(dot(n,sun.direction))));
+                tint+=sun.color*pow(saturate(abs(dot(n,SafeNormalize(view+sun.direction)))),24)*.18;
                 return half4(MixFog(tint,i.fog),1);
             }
             ENDHLSL

@@ -62,7 +62,9 @@ namespace Buklod.Empire.Editor {
             data.volumeLayerMask=data.volumeLayerMask.value|(1<<volume.gameObject.layer);
             camera.allowHDR=true;
             var cube=ReviewSkyReflection();
-            river.SetTexture("_ReviewSkyCube",cube);river.SetFloat("_ReflectionStrength",.38f);EditorUtility.SetDirty(river);
+            river.SetTexture("_ReviewSkyCube",cube);river.SetFloat("_ReflectionStrength",.68f);
+            river.SetFloat("_RiverCenter",OfflineBattle.Width*.5f);river.SetFloat("_RiverHalfWidth",5.3f);
+            river.SetFloat("_WaveStrength",.095f);river.SetFloat("_ShoreFoam",.62f);EditorUtility.SetDirty(river);
             RenderSettings.defaultReflectionMode=DefaultReflectionMode.Custom;
             RenderSettings.customReflectionTexture=cube;
             RenderSettings.reflectionIntensity=1.05f;

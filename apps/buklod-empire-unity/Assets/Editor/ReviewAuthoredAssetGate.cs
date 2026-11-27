@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEditor.Build;
+using UnityEngine;
 namespace Buklod.Empire.Editor {
     // Verify real serialized scene dependencies, not merely presence in the checkout.
     internal static class ReviewAuthoredAssetGate {
@@ -16,7 +18,15 @@ namespace Buklod.Empire.Editor {
         internal static void Validate(IEnumerable<string> dependencies){
             var present=new HashSet<string>(dependencies,StringComparer.Ordinal);
             foreach(var path in Required)if(!present.Contains(path))throw new BuildFailedException("Required authored review scene dependency missing: "+path);
-            UnityEngine.Debug.Log("BUKLOD REVIEW AUTHORED SCENE DEPENDENCIES VERIFIED: "+Required.Length);
+            foreach(var name in new[]{"ReviewRiftWater","ReviewLeafA","ReviewLeafB"}){
+                string path=CandidateReviewComposer.Out+"/"+name+".mat";
+                var material=AssetDatabase.LoadAssetAtPath<Material>(path);
+                if(!present.Contains(path)||!material||!material.shader||!material.shader.isSupported||ShaderUtil.ShaderHasError(material.shader))
+                    throw new BuildFailedException("Review environment shader/material not ready: "+name);
+            }
+            string reflection=CandidateReviewComposer.Out+"/ReviewSkyReflection.asset";
+            if(!present.Contains(reflection))throw new BuildFailedException("Review water reflection dependency missing.");
+            UnityEngine.Debug.Log("BUKLOD REVIEW AUTHORED SCENE DEPENDENCIES VERIFIED: "+Required.Length+" plus environment look.");
         }
     }
 }
