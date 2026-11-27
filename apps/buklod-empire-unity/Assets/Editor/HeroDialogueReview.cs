@@ -41,6 +41,15 @@ namespace Buklod.Empire.Editor {
             }
             Debug.Log("26 synthetic local voice clips bound to original heroes; not actor recordings.");
         }
+        internal static void ValidateDependencies(GameObject root,string[] deps){
+            if(!AuthoredExpansionReview.Requested)return;
+            var component=root.GetComponent<ReviewHeroDialogue>();
+            if(!component||component.entries==null||component.entries.Length!=13)throw new BuildFailedException("Missing hero dialogue roster.");
+            if(!File.Exists(Cache+"/manifest.json"))return;
+            foreach(var h in component.entries)
+                if(!h.selectionClip||!h.ultimateClip||!deps.Contains(Out+"/"+h.id+"_selection.wav")||!deps.Contains(Out+"/"+h.id+"_ultimate.wav"))
+                    throw new BuildFailedException("Missing local voice preview dependency "+h.id);
+        }
         static AudioClip Load(string name,Receipt receipt){
             var clip=AssetDatabase.LoadAssetAtPath<AudioClip>(Out+"/"+name);
             var row=receipt.clips.Single(r=>r.file==name);

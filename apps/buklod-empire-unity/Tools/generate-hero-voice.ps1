@@ -6,7 +6,7 @@ $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
 try {
     $voices = @($synth.GetInstalledVoices() | Where-Object { $_.Enabled -and $_.VoiceInfo.Culture.TwoLetterISOLanguageName -eq 'en' })
     if ($voices.Count -eq 0) { throw 'No installed English speech voice' }
-    $format = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(22050, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, [System.Speech.AudioFormat.AudioChannel]::Mono)
+    $format = [System.Speech.AudioFormat.SpeechAudioFormatInfo]::new(22050, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, [System.Speech.AudioFormat.AudioChannel]::Mono)
     foreach ($hero in $doc.heroes) {
         $matching = @($voices | Where-Object { $_.VoiceInfo.Gender.ToString() -eq $hero.gender })
         $voice = if ($matching.Count -gt 0) { $matching[0] } else { $voices[0] }

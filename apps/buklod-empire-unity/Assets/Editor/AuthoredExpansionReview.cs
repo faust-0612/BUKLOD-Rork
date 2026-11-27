@@ -18,24 +18,41 @@ namespace Buklod.Empire.Editor {
             for(int i=0;i<ModelPaths.Length;i++){
                 var model=AssetDatabase.LoadAssetAtPath<GameObject>(ModelPaths[i]);
                 if(!model)throw new InvalidOperationException("Missing imported authored model: "+ModelPaths[i]);
-                for(int team=0;team<2;team++){
-                    var obj=(GameObject)PrefabUtility.InstantiatePrefab(model,holder.transform);
-                    if(!obj)throw new InvalidOperationException("Cannot instantiate authored model: "+ModelPaths[i]);
-                    // Keep objects outside the canonical playable x bounds; do not obscure lanes.
-                    obj.transform.localPosition=new Vector3(team==0?-3.2f:OfflineBattle.Width+3.2f,0,5+i*(OfflineBattle.Height-10)/8f);
-                    obj.transform.localRotation=Quaternion.Euler(0,team==0?35:-145,0);
-                    var renderers=obj.GetComponentsInChildren<Renderer>(true);
-                    if(renderers.Length==0)throw new InvalidOperationException("Authored model has no renderer.");
-                    var bounds=renderers[0].bounds;foreach(var r in renderers)bounds.Encapsulate(r.bounds);
-                    float span=Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z));
-                    if(span<=.001f||float.IsNaN(span)||float.IsInfinity(span))throw new InvalidOperationException("Invalid authored model bounds.");
-                    obj.transform.localScale*=1.8f/span;
-                    float minY=float.PositiveInfinity;foreach(var r in renderers)minY=Mathf.Min(minY,r.bounds.min.y);
-                    obj.transform.position+=Vector3.up*(-minY);
-                    foreach(var c in obj.GetComponentsInChildren<Collider>(true))c.enabled=false;
-                }
+                for(int team=0;team<2;team++)
+                    Place(model,holder.transform,team,3.2f,5+i*(OfflineBattle.Height-10)/8f,1.8f);
             }
-            Debug.Log("BUKLOD authored environment expansion: 9 models, 18 decorative instances.");
+            // Six additional lane-aligned banners, framing the two bases from
+            // outside the simulation rectangle. No colliders, navmesh or unit data.
+            var banner=AssetDatabase.LoadAssetAtPath<GameObject>(ModelPaths[6]);
+            if(!banner)throw new InvalidOperationException("Missing authored lane banner.");
+            for(int team=0;team<2;team++)foreach(float fraction in new[]{.19f,.5f,.81f})
+                Place(banner,holder.transform,team,1.45f,OfflineBattle.Height*fraction,2.2f);
+            Debug.Log("BUKLOD authored environment expansion: 9 models, 24 exterior decorative instances.");
+        }
+        static Bounds BoundsFor(Renderer[] renderers){
+            if(renderers.Length==0)throw new InvalidOperationException("Authored model has no renderer.");
+            var bounds=renderers[0].bounds;
+            foreach(var renderer in renderers)bounds.Encapsulate(renderer.bounds);
+            return bounds;
+        }
+        static void Place(GameObject model,Transform parent,int team,float margin,float z,float spanLimit){
+            var obj=(GameObject)PrefabUtility.InstantiatePrefab(model,parent);
+            if(!obj)throw new InvalidOperationException("Cannot instantiate authored model.");
+            obj.transform.localRotation=Quaternion.Euler(0,team==0?35:-145,0);
+            var renderers=obj.GetComponentsInChildren<Renderer>(true);
+            var bounds=BoundsFor(renderers);
+            float span=Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z));
+            if(span<=.001f||float.IsNaN(span)||float.IsInfinity(span))throw new InvalidOperationException("Invalid authored model bounds.");
+            obj.transform.localScale*=spanLimit/span;
+            bounds=BoundsFor(renderers);
+            // Recenter imported pivot; guarantee the visible bounds never cover
+            // canonical playable x coordinates even if original pivot is offset.
+            float x=team==0?-margin:OfflineBattle.Width+margin;
+            obj.transform.position+=new Vector3(x-bounds.center.x,-bounds.min.y,z-bounds.center.z);
+            bounds=BoundsFor(renderers);
+            if(team==0?bounds.max.x>=0:bounds.min.x<=OfflineBattle.Width)
+                throw new InvalidOperationException("Exterior decoration intrudes on canonical battlefield.");
+            foreach(var c in obj.GetComponentsInChildren<Collider>(true))c.enabled=false;
         }
         internal static void Validate(string[] dependencies){
             if(!Requested)return;

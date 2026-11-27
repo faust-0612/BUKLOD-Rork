@@ -36,7 +36,8 @@ def prepare():
     digest,heroes=source()
     try:
         doc=verify(OUT);print('Synthetic voice preview cache verified:',len(doc['clips']));return
-    except (OSError,ValueError,KeyError,TypeError,wave.Error,EOFError):pass
+    except (OSError,ValueError,KeyError,TypeError,wave.Error,EOFError):
+        (OUT/'manifest.json').unlink(missing_ok=True)
     OUT.parent.mkdir(parents=True,exist_ok=True)
     engine=shutil.which('espeak-ng') or shutil.which('espeak')
     sapi=os.name=='nt' and shutil.which('powershell.exe')

@@ -54,6 +54,7 @@ namespace Buklod.Empire.Editor {
             if(!view||!view.IsConfiguredReview||!view.visuals)throw new BuildFailedException("Review scene configuration missing.");
             view.visuals.ValidateOfflineReview();
             OfflineMotionGate.Validate(view.visuals);
+            HeroDialogueReview.ValidateDependencies(view.gameObject,AssetDatabase.GetDependencies(Scene,true));
             var root=Path.GetFullPath("Builds/OfflineReview");Directory.CreateDirectory(root);
             var output=Path.Combine(root,"buklod-empire-offline-test-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss")+".apk");
             if(File.Exists(output))throw new BuildFailedException("Output already exists.");

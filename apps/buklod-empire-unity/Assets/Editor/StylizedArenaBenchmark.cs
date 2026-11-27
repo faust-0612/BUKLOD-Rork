@@ -51,6 +51,9 @@ namespace Buklod.Empire.Editor {
             var tone=Get<Tonemapping>(grade);tone.mode.Override(TonemappingMode.Neutral);
             var color=Get<ColorAdjustments>(grade);color.postExposure.Override(.10f);color.contrast.Override(8f);color.saturation.Override(2f);
             var bloom=Get<Bloom>(grade);bloom.threshold.Override(1.4f);bloom.intensity.Override(.12f);bloom.scatter.Override(.55f);
+            var balance=Get<WhiteBalance>(grade);balance.temperature.Override(-3);balance.tint.Override(1);
+            var vignette=Get<Vignette>(grade);vignette.intensity.Override(.065f);vignette.smoothness.Override(.72f);vignette.color.Override(new Color(.08f,.12f,.17f));
+            EditorUtility.SetDirty(balance);EditorUtility.SetDirty(vignette);
             EditorUtility.SetDirty(tone);EditorUtility.SetDirty(color);EditorUtility.SetDirty(bloom);EditorUtility.SetDirty(grade);
             var look=new GameObject("Stylized benchmark grade",typeof(Volume)).GetComponent<Volume>();
             look.isGlobal=true;look.priority=20;look.sharedProfile=grade;
