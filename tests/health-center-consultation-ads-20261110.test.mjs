@@ -22,7 +22,7 @@ test('Ads use existing BUKLOD AdMob / web consent infrastructure, no new unit ID
 
 test('Only nonurgent screened flow has banner; neither emergency nor unanswered has an ad opportunity',()=>{
   assert.match(portal,/const urgent = urgency === 'urgent'/);
-  assert.match(portal, /{urgency === 'none' \? \(\s*<View style={styles\.adPlacement}/);
+  assert.match(portal, /{urgency === 'none' && !imciUrgent && !ajaUrgent \? \(\s*<View style={styles\.adPlacement}/);
   assert.match(portal, /requireViewport/);
   assert.equal((portal.match(/<BuklodAdMobBanner/g)||[]).length,1);
   assert.doesNotMatch(strip,/^\s*'\/profile\/buklod-health',/m);

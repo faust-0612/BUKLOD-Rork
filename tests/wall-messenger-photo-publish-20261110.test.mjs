@@ -24,13 +24,13 @@ test('feed refresh cannot reverse a committed publish', () => {
 test('iPhone web JPEG MIME is recognized even without a filename', () => {
   assert.match(upload, /const webSelectedBlob = Platform\.OS === 'web'/);
   assert.match(upload, /webSelectedBlob\?\.type/);
-  assert.match(upload, /isJpeg && existingBytes > 0 && existingBytes <= 12 \* 1024 \* 1024/);
+  assert.match(upload, /isJpeg && existingBytes > 0 && existingBytes <= \(storyOptimized \? passthroughMaxBytes : 12 \* 1024 \* 1024\)/);
   assert.match(upload, /if \(isJpeg && existingBytes > 0 && existingBytes <= 45 \* 1024 \* 1024\)/);
   assert.match(upload, /throw error;/);
 });
 
 test('non-JPEG images cannot be uploaded while falsely labelled JPEG', () => {
-  assert.match(upload, /if \(isJpeg && existingBytes > 0 && existingBytes <= 12 \* 1024 \* 1024\)/);
+  assert.match(upload, /if \(Platform\.OS === 'web' && isJpeg && existingBytes > 0 && existingBytes <= \(storyOptimized \? passthroughMaxBytes : 12 \* 1024 \* 1024\)\)/);
   assert.match(upload, /This photo could not be converted in your browser/);
   assert.match(upload, /contentType: 'image\/jpeg'/);
 });
@@ -71,14 +71,14 @@ test('browser-selected image File stays alive from picker through Storage PUT', 
   assert.match(wall, /webFile\?:Blob/);
   assert.match(wall, /\.\.\.picked\.photos,/);
   assert.match(wall, /webFile:photo\.webFile/);
-  assert.match(upload, /prepareCommunityJpegUri\(uri, webFile\)/);
+  assert.match(upload, /prepareCommunityJpegUri\(uri, webFile, \{mimeType,width,height,profile\}\)/);
   assert.match(upload, /webBlob: prepared\.webBlob/);
   assert.match(upload, /webBlob,\s*contentType/);
   assert.match(upload, /const blob = webBlob \?\? await readWebBlob\(uri\)/);
 });
 
 test('JPEG uploads do not require conversion; non-JPEG must become an actual JPEG', () => {
-  assert.match(upload, /isJpeg && existingBytes > 0 && existingBytes <= 12 \* 1024 \* 1024/);
+  assert.match(upload, /isJpeg && existingBytes > 0 && existingBytes <= \(storyOptimized \? passthroughMaxBytes : 12 \* 1024 \* 1024\)/);
   assert.match(upload, /const actualMime = String\(webSelectedBlob\?\.type/);
   assert.match(upload, /\^image\\\/jpe\?g\$/);
   assert.match(upload, /webBlob = Platform\.OS === 'web'/);

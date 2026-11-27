@@ -16,7 +16,7 @@ test('feed actually loads the latest comment body, name, avatar and timestamp', 
   assert.match(visiblePreview, /preview\.body/);
   assert.match(visiblePreview, /BuklodTappableAvatar/);
   assert.match(visiblePreview, /formatSpecificDateTime\(preview\.created_at\)/);
-  assert.match(engagement, /showCommentPreview && commentPreview/);
+  assert.match(engagement, /showCommentPreview && \(commentPreview \|\| totalComments > 0\)[\s\S]*?\{commentPreview \? \([\s\S]*?preview=\{commentPreview\}/);
   assert.match(webEngagement, /\{commentPreview \? \(/);
   assert.doesNotMatch(engagement, /Recent comment|tap to view/);
   assert.doesNotMatch(webEngagement, /Recent comment|tap to view/);
