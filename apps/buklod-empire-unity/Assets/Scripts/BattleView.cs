@@ -101,17 +101,17 @@ namespace Buklod.Empire {
         public void StartMatch(string hero,ArenaDifficulty difficulty=ArenaDifficulty.Normal,ArenaTactic tactic=ArenaTactic.Renew,CovenantLoadout? covenant=null,bool autonomous=false,int seed=1){
             if(!visuals||!battleCamera||worldScale<=0)throw new System.InvalidOperationException("Battle scene is incomplete.");
             var updater=ReviewOnly?GetComponent<EmpireContentUpdater>():null;
-            if(updater)visuals=updater.CatalogForNextMatch(visuals);
+            var nextCatalog=updater?updater.CatalogForNextMatch(visuals):visuals;
 #if UNITY_EDITOR || BUKLOD_OFFLINE_REVIEW
-            if(ReviewOnly)visuals.ValidateOfflineReview();else
+            if(ReviewOnly)nextCatalog.ValidateOfflineReview();else
 #endif
-            visuals.Validate();
+            nextCatalog.Validate();
             // Validate the requested simulation and loadout before retiring any existing match visuals.
             var candidate=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
             if(!candidate.SelectPlayerTactic(tactic)||covenant.HasValue&&!candidate.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
             // Commit the candidate before any destructive visual operation. A later exception must not advertise the retired match as resumable.
-            SetPaused(true);Battle=candidate;
+            SetPaused(true);visuals=nextCatalog;Battle=candidate;
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
