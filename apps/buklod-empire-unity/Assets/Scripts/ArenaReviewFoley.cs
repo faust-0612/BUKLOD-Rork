@@ -49,9 +49,9 @@ namespace Buklod.Empire {
             else stride=0;
             // One bounded economy voice; a specific accepted action takes precedence over generic earnings.
             var cue=player.RelicFeedbackSequence>lastRelic?relic:player.PurchaseFeedbackSequence>lastPurchase?purchase:player.PickupFeedbackSequence>lastPickup?pickup:player.EarnedFeedbackSequence>lastEarned?coins:null;
-            if(cue&&Time.unscaledTime>=nextCoin){economy.Stop();economy.PlayOneShot(cue,cue==coins?.16f:.25f);nextCoin=Time.unscaledTime+1.2f;}
+            if(cue&&Time.unscaledTime>=nextCoin){economy.Stop();economy.PlayOneShot(EmpireContentUpdater.Resolve(cue),cue==coins?.16f:.25f);nextCoin=Time.unscaledTime+1.2f;}
             // Actual accepted match-state transition, never an XP/BP grant.
-            if(player.State.Level>lastLevel&&levelUp){progression.Stop();progression.PlayOneShot(levelUp,.28f);}
+            if(player.State.Level>lastLevel&&levelUp){progression.Stop();progression.PlayOneShot(EmpireContentUpdater.Resolve(levelUp),.28f);}
             SyncFeedback(player);
         }
         public void SuspendBattleAudio(){StopAll(finished&&view&&view.Battle==match&&match!=null&&match.Finished);stride=0;if(view&&view.Battle!=null){previous=view.Battle.Player.Position;SyncFeedback(view.Battle.Player);}}
