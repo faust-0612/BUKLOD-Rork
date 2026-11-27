@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Buklod.Empire.Editor {
     // Generates unsigned Android bundle inputs only. Signing and hosting are separate, local operations.
     public static class EmpireContentPublisher {
-        [MenuItem("BUKLOD Empire/Content updates/Export unsigned audio bundles")]
+        [MenuItem("BUKLOD Empire/Content updates/Export unsigned content bundles")]
         public static void Export(){
             if(EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android||Application.unityVersion!="6000.3.29f1")
                 throw new BuildFailedException("Use the pinned Android editor before exporting content.");
@@ -28,11 +28,22 @@ namespace Buklod.Empire.Editor {
                 if(choices.Length!=1||!AssetDatabase.LoadAssetAtPath<AudioClip>(choices[0]))throw new BuildFailedException("Missing licensed audio: "+slot);
                 paths.Add(slot,choices[0]);
             }
+            var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(CandidateReviewComposer.Out+"/OfflineReviewCatalog.asset");
+            if(!catalog)throw new BuildFailedException("Assemble the Library-first offline review before exporting content.");
+            LibraryStructureReview.ValidateDependencies(AssetDatabase.GetDependencies(OfflineReviewComposer.ScenePath,true));
+            foreach(var row in EmpireStaticContent.Slots(catalog)){
+                var prefab=row.Value;
+                var assetPath=AssetDatabase.GetAssetPath(prefab);
+                if(string.IsNullOrEmpty(assetPath)||!assetPath.StartsWith(CandidateReviewComposer.Out+"/LibraryFirst/Prefabs/",StringComparison.Ordinal)||
+                   !EmpireStaticContent.Compatible(prefab,prefab))
+                    throw new BuildFailedException("Static art not compatible: "+row.Key);
+                paths.Add(row.Key,assetPath);
+            }
             Directory.CreateDirectory(output);
-            var groups=paths.GroupBy(x=>x.Value.Contains("/Magic/")?"magic":"reward").OrderBy(g=>g.Key).ToArray();
+            var groups=paths.GroupBy(x=>EmpireContentProtocol.IsStatic(x.Key)?"static":x.Value.Contains("/Magic/")?"magic":"reward").OrderBy(g=>g.Key).ToArray();
             var builds=groups.Select(g=>new AssetBundleBuild{assetBundleName=g.Key,assetNames=g.Select(x=>x.Value).ToArray(),addressableNames=g.Select(x=>EmpireContentProtocol.AssetName(x.Key)).ToArray()}).ToArray();
             var manifest=BuildPipeline.BuildAssetBundles(output,builds,BuildAssetBundleOptions.ChunkBasedCompression|BuildAssetBundleOptions.StrictMode,BuildTarget.Android);
-            if(!manifest)throw new BuildFailedException("Unsigned audio bundle build failed.");
+            if(!manifest)throw new BuildFailedException("Unsigned content bundle build failed.");
             var rows=new List<EmpireContentProtocol.Bundle>();
             foreach(var g in groups){
                 if(manifest.GetAllDependencies(g.Key).Length!=0)throw new BuildFailedException("Unexpected bundle dependency.");
@@ -44,7 +55,7 @@ namespace Buklod.Empire.Editor {
                 File.Move(file,Path.Combine(output,EmpireContentProtocol.BundleFile(row)));rows.Add(row);
             }
             if(rows.Sum(x=>(long)x.bytes)>EmpireContentProtocol.MaxRevisionBytes)throw new BuildFailedException("Revision exceeds content budget.");
-            var doc=new EmpireContentProtocol.Manifest{abi=EmpireContentProtocol.Abi,platform="Android",unity=Application.unityVersion,schema=1,
+            var doc=new EmpireContentProtocol.Manifest{abi=EmpireContentProtocol.Abi,platform="Android",unity=Application.unityVersion,schema=2,
                 minApk=trust.apkVersionCode,maxApk=trust.apkVersionCode,revision=0,bundles=rows.ToArray()};
             File.WriteAllText(Path.Combine(output,"unsigned-content.json"),JsonUtility.ToJson(doc,true));
             Debug.Log("Unsigned content exported: "+output+"; sign locally before hosting. Nothing deployed.");
