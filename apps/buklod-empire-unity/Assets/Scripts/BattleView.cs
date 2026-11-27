@@ -13,6 +13,7 @@ namespace Buklod.Empire {
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
         private ArenaReviewFoley reviewFoley;
+        private ReviewHeroDialogue reviewDialogue;
         ReviewMotionLibrary reviewMotion;bool authoredWalk;
         internal ReviewMotionLibrary MotionPreview=>ReviewOnly?GetComponent<ReviewMotionLibrary>():null;
 #if UNITY_EDITOR
@@ -98,6 +99,7 @@ namespace Buklod.Empire {
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
             reviewShadows=ReviewOnly?GetComponent<ReviewContactShadows>():null;if(reviewShadows)reviewShadows.Clear();
             reviewFoley=ReviewOnly?GetComponent<ArenaReviewFoley>():null;
+            reviewDialogue=ReviewOnly?GetComponent<ReviewHeroDialogue>():null;if(reviewDialogue)reviewDialogue.Stop();
             reviewMotion=MotionPreview;authoredWalk=reviewMotion&&reviewMotion.Requested;
             if(reviewMotion)reviewMotion.Validate();
             worldEffects=GetComponent<WorldInteractionEffects>();if(worldEffects)worldEffects.Clear();
@@ -222,6 +224,7 @@ namespace Buklod.Empire {
                         var aim=cast.Aim;var forward=aim.sqrMagnitude>.0025f?new Vector3(aim.x,0,aim.y):t.forward;
                         if(effects)effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward);
                         if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
+                        if(reviewDialogue&&u==Battle.Player&&cast.Slot==SkillSlot.Ultimate)reviewDialogue.Ultimate(u.State.Kit.Id);
                         castThisFrame=true;
                     }
                     v.castSequence=latest;

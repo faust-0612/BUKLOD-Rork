@@ -107,6 +107,7 @@ namespace Buklod.Empire.Editor {
             else if(shadowMaterial.shader!=shadowShader){shadowMaterial.shader=shadowShader;EditorUtility.SetDirty(shadowMaterial);}
             root.GetComponent<ReviewContactShadows>().material=shadowMaterial;
             PresentationAudioReview.Bind(root);
+            if(AuthoredExpansionReview.Requested)HeroDialogueReview.Bind(root);
             PortraitCaptureReview.Bind(root);
             ArenaAuthoredReview.Bind(root);
             if(!EditorSceneManager.SaveScene(scene,ScenePath))throw new InvalidOperationException("Failed to save offline review scene.");

@@ -81,7 +81,7 @@ namespace Buklod.Empire {
             var r=Rect(kit.Id,body,new Vector2(x+.008f,y+.015f),new Vector2(x+.192f,y+1f/3-.015f));
             var accent=BattleEffects.Accent(kit.Id);bool chosen=kit.Id==selected;
             var bg=r.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,chosen?.31f:.12f);
-            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;btn.onClick.AddListener(()=>{selected=kit.Id;Rebuild();});
+            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;btn.onClick.AddListener(()=>{selected=kit.Id;var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)feedback.text=dialogue.Select(kit.Id);Rebuild();});
             var stripe=Rect("Sacred stone accent",r,new Vector2(0,.94f),Vector2.one).gameObject.AddComponent<Image>();stripe.color=accent;stripe.raycastTarget=false;
             var portrait=reviewPortraits?reviewPortraits.Find(kit.Id):null;
             float left=portrait ? .37f : .05f;
@@ -317,7 +317,7 @@ namespace Buklod.Empire {
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
             view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
         }
-        private void Close(){if(view.IsEditorReview)ReviewAudioSettings.Save();shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
+        private void Close(){if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void Update(){
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;

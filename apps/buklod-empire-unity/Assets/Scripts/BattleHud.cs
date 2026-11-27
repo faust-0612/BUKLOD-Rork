@@ -9,7 +9,8 @@ namespace Buklod.Empire {
         private readonly Image[] buttons=new Image[9],cooldown=new Image[9];
         private readonly Text[] labels=new Text[9];
         private Image knob,health,mana;private Text status;
-        private Image healthTrack,manaTrack,xpTrack,xp;private Text objective;
+        private Image healthTrack,manaTrack,xpTrack,xp;private Text objective,dialogueCaption;
+        private ReviewHeroDialogue dialogue;
         private ReviewMinimap minimap;private readonly ReviewSkillGlyph[] glyphs=new ReviewSkillGlyph[3];
         private OfflineBattle hudMatch;private int lastLevel;private float healthShown,manaShown,xpShown,announcementUntil,nextObjectiveAt;
         private string announcement="";private bool review;
@@ -40,7 +41,7 @@ namespace Buklod.Empire {
             mana=ImageAt("Mana",canvas.transform,new Color(.2f,.55f,.95f));mana.sprite=null;
             if(review)BuildReview();
             infoRoot=new GameObject("Safe HUD information",typeof(RectTransform)).GetComponent<RectTransform>();infoRoot.SetParent(canvas.transform,false);infoRoot.SetAsFirstSibling();
-            foreach(var item in new Component[]{healthTrack,manaTrack,xpTrack,health,mana,xp,minimap,status,objective})if(item)item.transform.SetParent(infoRoot,false);
+            foreach(var item in new Component[]{healthTrack,manaTrack,xpTrack,health,mana,xp,minimap,status,objective,dialogueCaption})if(item)item.transform.SetParent(infoRoot,false);
             Layout();
         }
         private static Sprite MakeReviewControl(){
@@ -78,6 +79,7 @@ namespace Buklod.Empire {
             var mapGo=new GameObject("Fog-safe minimap",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewMinimap));
             mapGo.transform.SetParent(canvas.transform,false);minimap=mapGo.GetComponent<ReviewMinimap>();minimap.Bind(view);
             objective=TextAt("Objective status",canvas.transform);objective.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(objective);
+            dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue){dialogueCaption=TextAt("Hero subtitle",canvas.transform);dialogueCaption.horizontalOverflow=HorizontalWrapMode.Wrap;ImproveText(dialogueCaption);}
             for(int i=0;i<3;i++){
                 var go=new GameObject("Skill glyph",typeof(RectTransform),typeof(CanvasRenderer),typeof(ReviewSkillGlyph));
                 go.transform.SetParent(buttons[i+2].transform,false);go.transform.SetSiblingIndex(0);
@@ -94,6 +96,7 @@ namespace Buklod.Empire {
             map.sizeDelta=new Vector2(mapWidth,mapWidth*OfflineBattle.Height/OfflineBattle.Width);
             var o=objective.rectTransform;o.anchorMin=new Vector2(.22f,.84f);o.anchorMax=new Vector2(.78f,.91f);o.offsetMin=o.offsetMax=Vector2.zero;
             objective.fontSize=Mathf.Max(12,(int)(height*.027f));
+            if(dialogueCaption){var r=dialogueCaption.rectTransform;r.anchorMin=new Vector2(.23f,.16f);r.anchorMax=new Vector2(.77f,.24f);r.offsetMin=r.offsetMax=Vector2.zero;dialogueCaption.fontSize=Mathf.Max(12,(int)(height*.027f));}
             foreach(var bar in new[]{healthTrack,manaTrack,xpTrack,xp}){
                 var t=bar.rectTransform;t.anchorMin=t.anchorMax=new Vector2(.025f,bar==healthTrack?.94f:bar==manaTrack?.905f:.875f);
                 t.pivot=new Vector2(0,.5f);t.anchoredPosition=Vector2.zero;t.sizeDelta=new Vector2(width*.18f,height*(bar==healthTrack?.018f:bar==manaTrack?.013f:.009f));
@@ -142,6 +145,7 @@ namespace Buklod.Empire {
         private Vector2 Normalized(Vector2 pixel)=>new Vector2(pixel.x/Mathf.Max(1,width),pixel.y/Mathf.Max(1,height));
         private void Update(){
             if(width!=Screen.width||height!=Screen.height||safeArea!=MobileBattleInput.SafeArea||layoutRevision!=ArenaControlSettings.Revision)Layout();
+            if(dialogueCaption)dialogueCaption.text=dialogue?dialogue.Caption:"";
             if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
             if(minimap)minimap.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
             var stick=buttons[0].rectTransform;stick.anchorMin=stick.anchorMax=Normalized(input.MovementCenter);
