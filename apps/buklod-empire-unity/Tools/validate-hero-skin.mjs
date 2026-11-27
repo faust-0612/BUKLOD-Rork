@@ -61,8 +61,12 @@ export function validateHeroSkin(doc,binary,id){
  }
  return {vertices,triangles,bones:joints.length,hairWeights};
 }
+export function parseHeroGlb(data){
+ if(data.length<28||data.readUInt32LE(0)!==0x46546c67||data.readUInt32LE(4)!==2||data.readUInt32LE(8)!==data.length)throw Error("Invalid GLB header");
+ const n=data.readUInt32LE(12);
+ if(n%4||n+28>data.length||data.readUInt32LE(16)!==0x4e4f534a||data.readUInt32LE(24+n)!==0x004e4942||data.readUInt32LE(20+n)!==data.length-28-n)throw Error("Invalid GLB chunks");
+ return {doc:JSON.parse(data.toString("utf8",20,20+n)),binary:data.subarray(28+n)};
+}
 export function validateHeroGlb(data,id){
- if(data.length<28||data.toString('ascii',0,4)!=='glTF'||data.readUInt32LE(4)!==2||data.readUInt32LE(8)!==data.length)throw Error(id+': invalid GLB header');
- const n=data.readUInt32LE(12);if(n%4||n+28>data.length||data.toString('ascii',16,20)!=='JSON'||data.toString('ascii',24+n,28+n)!=='BIN\\0'||data.readUInt32LE(20+n)!==data.length-28-n)throw Error(id+': invalid GLB chunks');
- return validateHeroSkin(JSON.parse(data.toString('utf8',20,20+n)),data.subarray(28+n),id);
+ const {doc,binary}=parseHeroGlb(data);return validateHeroSkin(doc,binary,id);
 }

@@ -1,4 +1,4 @@
-import {validateHeroSkin} from './validate-hero-skin.mjs';
+import {validateHeroSkin,validateHeroGlb,parseHeroGlb} from './validate-hero-skin.mjs';
 function fixture(){
  const bytes=new Uint8Array(4096),v=new DataView(bytes.buffer);let offset=0;
  const boneNames=["Root","Head","Chest","Mantle","Hand_L","Hand_R","Forearm_L","Forearm_R","UpperArm_L","UpperArm_R","Shin_L","Shin_R","ReviewHair"];
@@ -36,3 +36,15 @@ function runFixtures(){
  return checks;
 }
 console.log('Hero GLB skin fixtures passed:',runFixtures().join(', '));
+
+// End-to-end envelope + skin fixture using actual Node Buffer.
+const x=fixture(),json=Buffer.from(JSON.stringify(x.doc)),padded=Buffer.concat([json,Buffer.alloc((4-json.length%4)%4,32)]);
+const header=Buffer.alloc(20),binHeader=Buffer.alloc(8);
+header.writeUInt32LE(0x46546c67,0);header.writeUInt32LE(2,4);header.writeUInt32LE(28+padded.length+x.bytes.length,8);header.writeUInt32LE(padded.length,12);header.writeUInt32LE(0x4e4f534a,16);
+binHeader.writeUInt32LE(x.bytes.length,0);binHeader.writeUInt32LE(0x004e4942,4);
+const glb=Buffer.concat([header,padded,binHeader,Buffer.from(x.bytes)]);
+if(validateHeroGlb(glb,"phan").triangles!==1)throw Error("Valid GLB wrapper rejected");
+for(const [offset,bad] of [[0,0],[8,glb.length+1],[12,3],[16,0],[20+padded.length,99],[24+padded.length,0x304e4942]]){
+ const broken=Buffer.from(glb);broken.writeUInt32LE(bad,offset);let rejected=false;try{parseHeroGlb(broken)}catch{rejected=true;}if(!rejected)throw Error("Accepted invalid GLB envelope at "+offset);
+}
+console.log("Hero GLB envelope fixtures passed: 7");
