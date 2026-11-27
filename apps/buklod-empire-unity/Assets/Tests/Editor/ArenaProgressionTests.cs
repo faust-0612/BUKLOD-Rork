@@ -33,6 +33,16 @@ namespace Buklod.Empire.Tests {
                 Assert.Greater(scaled.Size,0);Assert.LessOrEqual(scaled.Size,.76f);
             }
         }
+        [Test] public void EvolutionWingMeshHasTwoLayeredSurfaces(){
+            foreach(int side in new[]{-1,1}){
+                var mesh=ReviewEvolutionWings.CreateMesh(side);
+                try{
+                    Assert.AreEqual(2,mesh.subMeshCount);Assert.AreEqual(17*9*9,mesh.vertexCount);
+                    Assert.Greater(mesh.bounds.size.x,.5f);Assert.Greater(mesh.bounds.size.y,.5f);
+                    Assert.Greater(mesh.GetIndexCount(0),0u);Assert.Greater(mesh.GetIndexCount(1),0u);
+                }finally{UnityEngine.Object.DestroyImmediate(mesh);}
+            }
+        }
         [Test] public void PracticeNeverPromisesReward(){Assert.AreEqual("",ArenaProgression.TrainingResult(false));StringAssert.Contains("0 BP / 0 permanent XP",ArenaProgression.TrainingResult(true));}
         [Test] public void InvalidLevelsRejected(){Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(0));Assert.Throws<System.ArgumentOutOfRangeException>(()=>ArenaProgression.Evolution(21));}
     }

@@ -7,7 +7,7 @@ namespace Buklod.Empire {
     public sealed class ReviewLiveHeroPreview:MonoBehaviour {
         const int Layer=31, Width=512, Height=640;
         BattleView view;GameObject stage,actor;Camera camera;RenderTexture target;
-        Animator animator;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
+        Animator animator;ReviewEvolutionWings wings;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
         float angle,castAt=-1,castEnd;SkillCue pendingCue;bool pendingEffect;BattleEffects previewEffects;SkillAudio previewAudio;
         public static SkillCue ScaleCue(SkillCue cue,float height){
             float size=Mathf.Clamp(cue.Size/4f,.35f,1f)*Mathf.Clamp(height,.1f,20f)*.38f;
@@ -44,12 +44,12 @@ namespace Buklod.Empire {
             var go=new GameObject(label);go.transform.SetParent(stage.transform,false);go.transform.localPosition=at;go.layer=Layer;
             var l=go.AddComponent<Light>();l.type=LightType.Point;l.color=color;l.intensity=intensity;l.range=9;l.cullingMask=1<<Layer;l.shadows=LightShadows.None;
         }
-        public Texture Show(BattleView owner,string id,bool full){
+        public Texture Show(BattleView owner,string id,bool full,bool evolutionPreview=false){
             if(!owner||!owner.IsEditorReview||!owner.visuals)return null;view=owner;
             try{
                 CreateStage();
                 if(!actor||hero!=id){
-                    ClearCast();if(actor){actor.SetActive(false);Destroy(actor);}
+                    ClearCast();wings=null;if(actor){actor.SetActive(false);Destroy(actor);}
                     var entry=view.visuals.heroes.Single(h=>h.id==id);
                     actor=Instantiate(entry.prefab,stage.transform);actor.transform.localPosition=Vector3.zero;actor.transform.localRotation=Quaternion.identity;
                     SetLayer(actor.transform);
@@ -65,7 +65,20 @@ namespace Buklod.Empire {
                     bounds=skins[0].bounds;foreach(var skin in skins.Skip(1))bounds.Encapsulate(skin.bounds);
                     hero=id;angle=0;
                 }
+                bool showWings=evolutionPreview&&full;
+                if(showWings&&!wings){
+                    var materials=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(r=>r.sharedMaterials).Where(m=>m).Distinct().ToArray();
+                    var armor=materials.FirstOrDefault(m=>m.name=="armor");var trim=materials.FirstOrDefault(m=>m.name=="trim");
+                    if(!armor||!trim)throw new InvalidOperationException("Evolution preview materials missing.");
+                    var mount=new GameObject("LOCKED EVOLUTION PREVIEW ONLY");mount.layer=Layer;mount.transform.SetParent(actor.transform,false);
+                    mount.transform.position=bounds.center+Vector3.up*bounds.size.y*.24f-actor.transform.forward*bounds.size.y*.13f;
+                    var scale=actor.transform.lossyScale;float size=bounds.size.y*.66f;
+                    mount.transform.localScale=new Vector3(size/Mathf.Max(.001f,Mathf.Abs(scale.x)),size/Mathf.Max(.001f,Mathf.Abs(scale.y)),size/Mathf.Max(.001f,Mathf.Abs(scale.z)));
+                    wings=mount.AddComponent<ReviewEvolutionWings>();wings.Initialize(armor,trim);
+                }
+                if(wings)wings.gameObject.SetActive(showWings);
                 float aspect=(float)Width/Height;camera.orthographicSize=FrameSize(bounds.size,aspect,full);
+                if(showWings)camera.orthographicSize=Mathf.Max(camera.orthographicSize,bounds.size.y*1.12f/aspect);
                 var focus=bounds.center+Vector3.up*(full?0:bounds.size.y*.26f);
                 camera.transform.position=focus+new Vector3(.12f,.035f,1f).normalized*Mathf.Max(3,bounds.size.magnitude*2);
                 camera.transform.LookAt(focus);
@@ -93,6 +106,7 @@ namespace Buklod.Empire {
                 if(previewEffects)previewEffects.EmitSkill(bounds.center-Vector3.up*bounds.size.y*.16f,BattleEffects.Accent(hero),pendingCue,actor.transform.forward);
                 if(previewAudio)previewAudio.Play(pendingCue,actor.transform.position,true,true);
             }
+            if(wings&&wings.gameObject.activeSelf)wings.Animate(Time.unscaledDeltaTime);
             if(Time.unscaledTime<castEnd)return;
             angle+=Time.unscaledDeltaTime*.38f;actor.transform.localRotation=Quaternion.Euler(0,Mathf.Sin(angle)*18f,0);
         }
@@ -105,7 +119,7 @@ namespace Buklod.Empire {
             if(stage){stage.SetActive(false);foreach(var renderer in stage.GetComponentsInChildren<Renderer>(true))renderer.gameObject.layer=0;Destroy(stage);}
             if(target){target.Release();Destroy(target);}
             if(maskOwned&&view&&view.battleCamera)view.battleCamera.cullingMask=oldMask;
-            maskOwned=false;stage=null;actor=null;camera=null;target=null;animator=null;hero=null;
+            maskOwned=false;stage=null;actor=null;camera=null;target=null;animator=null;wings=null;hero=null;
         }
         void OnDisable(){Hide();}
     }

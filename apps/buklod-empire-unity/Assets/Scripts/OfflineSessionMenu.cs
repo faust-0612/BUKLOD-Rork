@@ -12,7 +12,7 @@ namespace Buklod.Empire {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Font font;private GameObject ownedEventSystem;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
-        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;private ReviewLiveHeroPreview livePreview;
+        private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,evolutionPreview,confirmRestart,matchStarted;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;private ReviewLiveHeroPreview livePreview;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
         private ArenaTactic tactic=ArenaTactic.Renew;
         private CovenantPath path=CovenantPath.Valor;
@@ -82,7 +82,7 @@ namespace Buklod.Empire {
             var r=Rect(kit.Id,body,new Vector2(x+.008f,y+.015f),new Vector2(x+.192f,y+1f/3-.015f));
             var accent=BattleEffects.Accent(kit.Id);bool chosen=kit.Id==selected;
             var bg=r.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,chosen?.31f:.12f);
-            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;btn.onClick.AddListener(()=>{if(authored)authored.Click();selected=kit.Id;heroDetail=true;fullBody=true;var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)feedback.text=dialogue.Select(kit.Id);Rebuild();});
+            var btn=r.gameObject.AddComponent<Button>();btn.targetGraphic=bg;btn.onClick.AddListener(()=>{if(authored)authored.Click();selected=kit.Id;heroDetail=true;fullBody=true;evolutionPreview=false;var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)feedback.text=dialogue.Select(kit.Id);Rebuild();});
             var stripe=Rect("Sacred stone accent",r,new Vector2(0,.94f),Vector2.one).gameObject.AddComponent<Image>();stripe.color=accent;stripe.raycastTarget=false;
             var portrait=reviewPortraits?reviewPortraits.Find(kit.Id):null;
             float left=portrait ? .37f : .05f;
@@ -104,7 +104,7 @@ namespace Buklod.Empire {
         private Texture ShowcaseTexture(bool full){
             if(view.IsEditorReview){
                 if(!livePreview)livePreview=gameObject.AddComponent<ReviewLiveHeroPreview>();
-                var live=livePreview.Show(view,selected,full);if(live)return live;
+                var live=livePreview.Show(view,selected,full,heroDetail&&evolutionPreview);if(live)return live;
             }
             return reviewPortraits?reviewPortraits.Find(selected,full):null;
         }
@@ -122,7 +122,10 @@ namespace Buklod.Empire {
                 var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
                 var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
             }
-            ButtonAt("Portrait angle",left,new Vector2(.06f,.03f),new Vector2(.94f,.19f),fullBody?"FACE & ARMOR":"FULL CHARACTER",()=>{fullBody=!fullBody;Rebuild();});
+            ButtonAt("Portrait angle",left,new Vector2(.03f,.03f),new Vector2(.48f,.19f),fullBody?"FACE / ARMOR":"FULL BODY",()=>{fullBody=!fullBody;evolutionPreview=false;Rebuild();});
+            var wingButton=ButtonAt("Locked evolution preview",left,new Vector2(.50f,.03f),new Vector2(.97f,.19f),evolutionPreview?"BASE LOOK":"WING PREVIEW",()=>{evolutionPreview=!evolutionPreview;fullBody=true;Rebuild();});
+            wingButton.interactable=portrait is RenderTexture;
+            if(evolutionPreview)Label("Preview disclaimer",left,new Vector2(.04f,.89f),new Vector2(.96f,.99f),"LOCKED • PREVIEW ONLY",16).color=accent;
             var right=Rect("Hero profile",body,new Vector2(.46f,.04f),new Vector2(.99f,.98f));
             Label("Hero stats",right,new Vector2(0,.78f),Vector2.one,$"ATK {kit.BasicDamage:0}   RANGE {kit.BasicRange:0.#}   SPEED {kit.Speed:0.##}\nPassive: "+kit.Passive.Replace('_',' '),22);
             for(int i=0;i<3;i++){
