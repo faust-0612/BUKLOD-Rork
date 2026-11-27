@@ -17,7 +17,7 @@ namespace Buklod.Empire.Tests {
                 modulus=Convert.ToBase64String(p.Modulus),exponent=Convert.ToBase64String(p.Exponent)};
         }
         [TearDown] public void Teardown(){key.Dispose();}
-        EmpireContentProtocol.Manifest Valid()=>new EmpireContentProtocol.Manifest{schema=1,abi=EmpireContentProtocol.Abi,platform="Android",unity=UnityVersion,minApk=1,maxApk=1,revision=1,
+        EmpireContentProtocol.Manifest Valid()=>new EmpireContentProtocol.Manifest{schema=2,abi=EmpireContentProtocol.Abi,platform="Android",unity=UnityVersion,minApk=1,maxApk=1,revision=1,
             bundles=new[]{new EmpireContentProtocol.Bundle{sha256=new string('a',64),bytes=120,slots=new[]{"coin-collect","item-get"}}}};
         byte[] Sign(EmpireContentProtocol.Manifest manifest,bool tampered=false){
             var payload=Encoding.UTF8.GetBytes(JsonUtility.ToJson(manifest));
@@ -35,6 +35,25 @@ namespace Buklod.Empire.Tests {
         [Test] public void OversizeBundleRejected(){var m=Valid();m.bundles[0].bytes=EmpireContentProtocol.MaxBundleBytes+1;Assert.Throws<InvalidDataException>(()=>EmpireContentProtocol.Verify(Sign(m),trust,UnityVersion));}
         [Test] public void InsecureOriginRejected(){trust.baseUrl="http://example.invalid/";Assert.Throws<InvalidDataException>(()=>EmpireContentProtocol.Verify(Sign(Valid()),trust,UnityVersion));}
         [Test] public void OversizeManifestRejected(){Assert.Throws<InvalidDataException>(()=>EmpireContentProtocol.Verify(new byte[EmpireContentProtocol.MaxManifestBytes+1],trust,UnityVersion));}
+        [Test] public void StaticSlotHasTypedAssetAddress(){
+            var m=Valid();m.bundles[0].slots=new[]{"lux_tower","wood","coin-collect"};
+            Assert.AreEqual(3,EmpireContentProtocol.Verify(Sign(m),trust,UnityVersion).bundles[0].slots.Length);
+            Assert.AreEqual("assets/empirecontent/static/lux_tower.prefab",EmpireContentProtocol.AssetName("lux_tower"));
+            Assert.AreEqual("assets/empirecontent/audio/coin-collect.ogg",EmpireContentProtocol.AssetName("coin-collect"));
+        }
+        [Test] public void DynamicVisualSlotRejected(){
+            var m=Valid();m.bundles[0].slots=new[]{"phan"};
+            Assert.Throws<InvalidDataException>(()=>EmpireContentProtocol.Verify(Sign(m),trust,UnityVersion));
+        }
+        [Test] public void PreviousAbiRejected(){
+            var m=Valid();m.schema=1;m.abi="empire-audio-v1";
+            Assert.Throws<InvalidDataException>(()=>EmpireContentProtocol.Verify(Sign(m),trust,UnityVersion));
+        }
+        [Test] public void StaticSlotDuplicatesAcrossBundlesRejected(){
+            var m=Valid();m.bundles[0].slots=new[]{"wood"};
+            m.bundles=new[]{m.bundles[0],new EmpireContentProtocol.Bundle{sha256=new string('b',64),bytes=120,slots=new[]{"wood"}}};
+            Assert.Throws<InvalidDataException>(()=>EmpireContentProtocol.Verify(Sign(m),trust,UnityVersion));
+        }
         [Test] public void ChangedCacheFileRejected(){
             var temp=Path.GetTempFileName();
             try{var data=new byte[]{1,2,3};File.WriteAllBytes(temp,data);var b=new EmpireContentProtocol.Bundle{sha256=EmpireContentProtocol.Hash(data),bytes=data.Length};
