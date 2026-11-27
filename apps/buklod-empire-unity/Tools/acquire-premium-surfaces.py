@@ -36,7 +36,15 @@ def request(url,limit,host):
             if attempt==2:raise
             time.sleep(2**attempt)
 def select(doc,key):
-    formats=doc[key]["4k"]
+    # The documented v2 endpoint wraps the file tree in {"message","data"}.
+    if isinstance(doc,dict) and "data" in doc:
+        doc=doc["data"]
+    if not isinstance(doc,dict):
+        raise ValueError("Provider file tree is not an object")
+    group=doc.get(key)
+    if not isinstance(group,dict) or not isinstance(group.get("4k"),dict):
+        raise ValueError("Missing 4K map "+key+"; available maps: "+", ".join(sorted(doc.keys())[:30]))
+    formats=group["4k"]
     order=("png","jpg") if key=="nor_gl" else ("jpg","png")
     row=next((formats[x] for x in order if x in formats),None)
     if not isinstance(row,dict) or not isinstance(row.get("size"),int) or not 0<row["size"]<=LIMIT or not re.fullmatch("[0-9a-f]{32}",row.get("md5","")):
@@ -93,8 +101,13 @@ def main():
         pin=CACHE/"originals"/asset/"descriptor.json"
         desc=json.loads(pin.read_text(encoding="utf8")) if pin.is_file() else {}
         if not all(k in desc for k in ("diff","rough","nor_gl")):
-            raw=request("https://api.polyhaven.com/files/"+asset,2*1024*1024,"api.polyhaven.com")
-            doc=json.loads(raw);desc={k:desc[k] if k in desc else select(doc,k) for k in ("diff","rough","nor_gl")}
+            print("Requesting Poly Haven 4K maps:",asset,flush=True)
+            raw=request("https://api.polyhaven.com/v2/files/"+asset,2*1024*1024,"api.polyhaven.com")
+            doc=json.loads(raw)
+            try:
+                desc={k:desc[k] if k in desc else select(doc,k) for k in ("diff","rough","nor_gl")}
+            except ValueError as error:
+                raise ValueError("Poly Haven "+asset+": "+str(error)) from error
             atomic(pin,json.dumps(desc,sort_keys=True).encode())
         # Recheck descriptors even on cached runs.
         for k in ("diff","rough","nor_gl"):

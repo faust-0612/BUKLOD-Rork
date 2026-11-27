@@ -23,6 +23,12 @@ class Tests(unittest.TestCase):
         row={"url":"https://dl.polyhaven.org/test","size":10,"md5":"a"*32}
         self.assertEqual(m.select({"diff":{"4k":{"jpg":row}}},"diff"),row)
         with self.assertRaises(ValueError):m.select({"diff":{"4k":{"jpg":dict(row,size=0)}}},"diff")
+    def test_v2_descriptor(self):
+        row={"url":"https://dl.polyhaven.org/test","size":10,"md5":"a"*32}
+        self.assertEqual(m.select({"message":"OK","data":{"diff":{"4k":{"jpg":row}}}},"diff"),row)
+    def test_missing_maps_fail_with_context(self):
+        for doc in ({},{"data":None},{"data":{"rough":{"4k":{}}}},{"diff":{"2k":{}}}):
+            with self.assertRaises(ValueError):m.select(doc,"diff")
     def test_cache_integrity_and_no_silent_downgrade(self):
         old=m.RES;m.RES=2
         try:

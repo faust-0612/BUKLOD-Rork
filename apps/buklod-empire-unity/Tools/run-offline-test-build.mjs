@@ -10,7 +10,7 @@ const args=process.argv.slice(2);
 const usage='Usage: node Tools/run-offline-test-build.mjs --prepare | --source-preflight | --validate|--build|--resume|--candidate <absolute Unity executable> <absolute Android build-tools directory>';
 if(!((args.length===1&&['--prepare','--source-preflight'].includes(args[0]))||(args.length===3&&['--build','--resume','--validate','--candidate'].includes(args[0]))))throw Error(usage);
 const sourcePreflight=args[0]==='--source-preflight',validate=args[0]==='--validate',candidate=args[0]==='--candidate',resume=validate||candidate||args[0]==='--resume',build=candidate||args[0]==='--resume'||args[0]==='--build',unity=args[1],sdk=args[2];
-let sourceRevision=null;
+let sourceRevision=null,surfaceMode=null;
 if(build||validate){
  if(!isAbsolute(unity)||!isAbsolute(sdk)||!existsSync(unity)||!statSync(unity).isFile()||!existsSync(sdk)||!statSync(sdk).isDirectory())throw Error(usage);
  for(const path of [join(sdk,process.platform==='win32'?'aapt.exe':'aapt'),join(sdk,'lib','apksigner.jar')])if(!existsSync(path))throw Error('Missing Android build tool: '+path);
@@ -75,8 +75,21 @@ try{
   run(process.env.PYTHON||'python3',['Tools/test_premium_surfaces.py']);
   run(process.env.PYTHON||'python3',['Tools/acquire-authored-expansion.py']);
   process.env.BUKLOD_AUTHORED_EXPANSION='1';
-  run(process.env.PYTHON||'python3',['Tools/acquire-premium-surfaces.py']);
-  process.env.BUKLOD_PREMIUM_SURFACES='1';
+  // Optional network-sourced review enhancement must not block the isolated
+  // candidate. Strict validation/build retains the mandatory 4K receipt gate.
+  // Candidate fallback uses only the already verified 2048px environment group.
+  process.env.BUKLOD_PREMIUM_SURFACES='0';
+  if(candidate){
+   const surface=spawnSync(process.env.PYTHON||'python3',['Tools/acquire-premium-surfaces.py'],{cwd:project,stdio:'inherit',shell:false,timeout:12*60*1000,env:{...process.env,PYTHONOPTIMIZE:''}});
+   if(surface.status===0&&!surface.error){process.env.BUKLOD_PREMIUM_SURFACES='1';surfaceMode='POLYHAVEN_4K_VERIFIED_CACHE';}
+   else{
+    surfaceMode='LOCAL_VERIFIED_2K_ENVIRONMENT_FALLBACK';
+    console.warn('OPTIONAL 4K SURFACES UNAVAILABLE — using verified local 2048px environment materials; no premium-surface approval. '+(surface.error?.message||'exit '+surface.status));
+   }
+  }else{
+   run(process.env.PYTHON||'python3',['Tools/acquire-premium-surfaces.py']);
+   process.env.BUKLOD_PREMIUM_SURFACES='1';surfaceMode='POLYHAVEN_4K_VERIFIED_CACHE';
+  }
   run(process.env.PYTHON||'python3',['Tools/prepare-hero-voice.py']);
   // Only the explicit, isolated candidate command defers the separate EditMode pass.
   // Normal validation and ordinary diagnostic build routes retain the full test gate.
@@ -104,7 +117,7 @@ try{
   const receipt=JSON.parse(readFileSync(apk+'.verified.json','utf8'));
   if(receipt.status!=='VERIFIED_ISOLATED_TEST_ARTIFACT'||receipt.productionApproved!==false||receipt.deviceVerified!==false)throw Error('Unexpected verification receipt');
   if(candidate){
-   const metadata={status:'OFFLINE_BUILD_CANDIDATE_ONLY',sourceRevision,package:receipt.package,apk:apks[0],sha256:receipt.sha256,bytes:receipt.bytes,artifactSignatureVerified:true,editModeVerified:false,deviceVerified:false,visualQualityVerified:false,onlineEnabled:false,productionApproved:false};
+   const metadata={status:'OFFLINE_BUILD_CANDIDATE_ONLY',sourceRevision,surfaceMode,package:receipt.package,apk:apks[0],sha256:receipt.sha256,bytes:receipt.bytes,artifactSignatureVerified:true,editModeVerified:false,deviceVerified:false,visualQualityVerified:false,onlineEnabled:false,productionApproved:false};
    const path=apk+'.candidate.json';writeFileSync(path+'.tmp',JSON.stringify(metadata,null,2)+'\n');renameSync(path+'.tmp',path);
    console.log('BUKLOD_OFFLINE_CANDIDATE_APK_BUILT — signature/package verified; EditMode and device acceptance deferred.');
   }
