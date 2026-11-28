@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-28",
+  "status": "R27_PREVIEW_VERIFIED_USER_TERMINAL",
+  "webCommit": "1e43a7ca363680edc3c3f6f76f2cbe10ea4f2ef9",
+  "previewDeploymentId": "m6m1w5hpx3",
+  "previewUrl": "https://buklod-quiz--m6m1w5hpx3.expo.app/",
+  "expoProjectId": "cb7608c2-d967-44b0-9001-10b8d4c445a8",
+  "proofPath": "dist-quiz-main-r27.Td8Afk/quiz-r27-preview-proof.json",
+  "userOutput": [
+    "QUIZ_WEB_PARITY_SELF_TEST_PASS (9 assertions)",
+    "QUIZ_R27_WEB_EXPORT_PASS",
+    "QUIZ_R27_PREVIEW_VERIFIED"
+  ],
+  "mainLive": {
+    "r27": true,
+    "attempts": 951,
+    "responses": 61909,
+    "released": 460,
+    "active": 0
+  },
+  "legacyBridge": {
+    "currentlyDedicatedVersion": 11,
+    "verifyJwt": false,
+    "shimPrepared": true,
+    "shimDeployed": false,
+    "source": "supabase/pending/quiz-legacy-main-entry-r27/index.ts",
+    "rollback": "supabase/pending/release/quiz-legacy-entry-v11-rollback/file2.ts"
+  },
+  "remaining": [
+    "Authenticated R27 restored AI controls smoke (no mass approval of real grades solely for testing)",
+    "Exact production alias promotion and asset parity",
+    "Legacy launcher compatibility deployment after production alias",
+    "MAIN OTA and verification",
+    "Recoverable Dedicated backup and independent operation before retirement"
+  ],
+  "productionAliasChanged": false,
+  "dedicatedDeleted": false
+}
