@@ -30,6 +30,11 @@ namespace Buklod.Empire {
             lastEarned=player.EarnedFeedbackSequence;lastLevel=player.State.Level;
             lastPickup=player.PickupFeedbackSequence;lastRelic=player.RelicFeedbackSequence;lastPurchase=player.PurchaseFeedbackSequence;
         }
+        public static string LevelUpVariant(int level){
+            if(level<=2)return "level-up-magic-harp";
+            if(level%5==0)return "level-up-epic-brass";
+            return level%2==0?"level-up-synth":"level-up-bells";
+        }
         void Update(){
             if(!Active||!feet)return;
             var b=view.Battle;var player=b.Player;
@@ -51,7 +56,11 @@ namespace Buklod.Empire {
             var cue=player.RelicFeedbackSequence>lastRelic?relic:player.PurchaseFeedbackSequence>lastPurchase?purchase:player.PickupFeedbackSequence>lastPickup?pickup:player.EarnedFeedbackSequence>lastEarned?coins:null;
             if(cue&&Time.unscaledTime>=nextCoin){economy.Stop();economy.PlayOneShot(EmpireContentUpdater.Resolve(cue),cue==coins?.16f:.25f);nextCoin=Time.unscaledTime+1.2f;}
             // Actual accepted match-state transition, never an XP/BP grant.
-            if(player.State.Level>lastLevel&&levelUp){progression.Stop();progression.PlayOneShot(EmpireContentUpdater.Resolve(levelUp),.28f);}
+            if(player.State.Level>lastLevel&&levelUp){
+                var variant=LevelUpVariant(player.State.Level);
+                var clip=variant=="level-up-magic-harp"?levelUp:Resources.Load<AudioClip>("LibraryAudio/Reward/"+variant);
+                progression.Stop();progression.PlayOneShot(EmpireContentUpdater.Resolve(clip?clip:levelUp),.28f);
+            }
             SyncFeedback(player);
         }
         public void SuspendBattleAudio(){StopAll(finished&&view&&view.Battle==match&&match!=null&&match.Finished);stride=0;if(view&&view.Battle!=null){previous=view.Battle.Player.Position;SyncFeedback(view.Battle.Player);}}

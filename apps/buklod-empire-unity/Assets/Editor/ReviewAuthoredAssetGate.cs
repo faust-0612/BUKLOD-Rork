@@ -74,6 +74,9 @@ namespace Buklod.Empire.Editor {
                     var actual=BitConverter.ToString(hash.ComputeHash(stream)).Replace("-","").ToLowerInvariant();
                     if(actual!=row.Value)throw new BuildFailedException("Changed Library audio: "+row.Key);
                 }
+                var clip=AssetDatabase.LoadAssetAtPath<AudioClip>(row.Key);
+                if(!clip||clip.samples<=0||clip.channels<=0||clip.frequency<=0||clip.length<=0||float.IsNaN(clip.length)||float.IsInfinity(clip.length))
+                    throw new BuildFailedException("Invalid imported Library audio: "+row.Key);
             }
         }
         internal static void Validate(IEnumerable<string> dependencies){
