@@ -47,10 +47,14 @@ def select(doc,key):
         raise ValueError("Missing 4K map "+key+"; available maps: "+", ".join(sorted(doc.keys())[:30]))
     formats=group["4k"]
     order=("png","jpg") if key=="nor_gl" else ("jpg","png")
-    row=next((formats[x] for x in order if x in formats),None)
-    if not isinstance(row,dict) or not isinstance(row.get("size"),int) or not 0<row["size"]<=LIMIT or not re.fullmatch("[0-9a-f]{32}",row.get("md5","")):
-        raise ValueError("Invalid provider descriptor: "+key)
-    return {k:row[k] for k in ("url","size","md5")}
+    for extension in order:
+        row=formats.get(extension)
+        if (isinstance(row,dict) and type(row.get("size")) is int
+            and 0<row["size"]<=LIMIT and isinstance(row.get("md5"),str)
+            and re.fullmatch("[0-9a-f]{32}",row["md5"])
+            and isinstance(row.get("url"),str) and row["url"]):
+            return {k:row[k] for k in ("url","size","md5")}
+    raise ValueError("No valid 4K provider descriptor within the byte limit: "+key)
 def source(asset,key,row):
     path=CACHE/"originals"/asset/(key+"-"+row["md5"])
     def valid(data):return len(data)==row["size"] and hashlib.md5(data).hexdigest()==row["md5"]

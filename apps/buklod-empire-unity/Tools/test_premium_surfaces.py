@@ -23,6 +23,15 @@ class Tests(unittest.TestCase):
         row={"url":"https://dl.polyhaven.org/test","size":10,"md5":"a"*32}
         self.assertEqual(m.select({"diff":{"4k":{"jpg":row}}},"diff"),row)
         with self.assertRaises(ValueError):m.select({"diff":{"4k":{"jpg":dict(row,size=0)}}},"diff")
+    def test_oversized_normal_png_uses_bounded_4k_jpg(self):
+        png={"url":"https://dl.polyhaven.org/normal.png","size":92592376,"md5":"a"*32}
+        jpg={"url":"https://dl.polyhaven.org/normal.jpg","size":18436512,"md5":"b"*32}
+        doc={"nor_gl":{"4k":{"png":png,"jpg":jpg},"2k":{"jpg":jpg}}}
+        self.assertEqual(m.select(doc,"nor_gl"),jpg)
+        doc["nor_gl"]["4k"]["png"]=dict(png,size=m.LIMIT)
+        self.assertEqual(m.select(doc,"nor_gl"),doc["nor_gl"]["4k"]["png"])
+        doc["nor_gl"]["4k"]={"png":png}
+        with self.assertRaises(ValueError):m.select(doc,"nor_gl")
     def test_v2_descriptor(self):
         row={"url":"https://dl.polyhaven.org/test","size":10,"md5":"a"*32}
         self.assertEqual(m.select({"message":"OK","data":{"diff":{"4k":{"jpg":row}}}},"diff"),row)
