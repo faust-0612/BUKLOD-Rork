@@ -147,6 +147,14 @@ namespace Buklod.Empire {
             fieldVisuals=GetComponent<BattleFieldVisuals>();if(!fieldVisuals)fieldVisuals=gameObject.AddComponent<BattleFieldVisuals>();fieldVisuals.Bind(this);
             Follow(true);Sync(true);fieldVisuals.Refresh();
         }
+#if BUKLOD_OFFLINE_REVIEW && DEVELOPMENT_BUILD && !UNITY_EDITOR
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void DisablePlayerRenderingDebugger(){
+            var debugger=DebugManager.instance;
+            debugger.displayRuntimeUI=false;
+            debugger.enableRuntimeUI=false;
+        }
+#endif
         private void Start(){
             if(Battle==null){if(ReviewOnly)SetPaused(true);else StartMatch(selectedHero);}
             if(!GetComponent<OfflineSessionMenu>())gameObject.AddComponent<OfflineSessionMenu>();

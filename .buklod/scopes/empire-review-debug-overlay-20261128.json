@@ -1,0 +1,27 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-review-debug-overlay-20261128.json",
+  "baseRef": "50bf784d53c82c7aca3e5894257fb47399cfd052",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Disable the render debugger panel in isolated player diagnostics.",
+  "chosenApproach": "Disable Unity's runtime debugger UI before scene load.",
+  "selectionRationale": "Preserves scene and editor debugging settings.",
+  "alternativeApproaches": [
+    "Enable stripped runtime debug variants."
+  ],
+  "riskAreas": [
+    "Player startup"
+  ],
+  "preserveBehaviors": [
+    "Editor debugger, build scope and game input preserved."
+  ],
+  "acceptanceChecks": [
+    "Review build does not allow runtime Rendering Debugger overlay."
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    ".buklod/scopes/empire-review-debug-overlay-20261128.json"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": []
+}
