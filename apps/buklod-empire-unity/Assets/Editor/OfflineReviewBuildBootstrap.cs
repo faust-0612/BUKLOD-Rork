@@ -45,11 +45,14 @@ namespace Buklod.Empire.Editor {
             using(AuthoredRosterBuildGate.Begin())ValidateAuthoredOnly();
         }
         static void ValidateAuthoredOnly() {
+            if(EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android||!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android,BuildTarget.Android))throw new BuildFailedException("Pinned Unity Android Build Support required before native preflight.");
+            EmpireContentPublisher.ValidateBuildConfiguration();
             var previous=GraphicsSettings.defaultRenderPipeline;var quality=QualitySettings.renderPipeline;
             try {
                 EnsureReviewPipeline();ConsolidatedOfflineReview.Prepare();StylizedArenaBenchmark.Prepare();
                 var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
-                if(!view||!view.IsConfiguredReview||!view.visuals)throw new BuildFailedException("Review scene missing.");
+                if(!view||!view.IsConfiguredReview||!view.visuals||!view.GetComponent<EmpireContentUpdater>())throw new BuildFailedException("Review scene or native content updater missing.");
+                view.visuals.ValidateOfflineReview();EmpireContentPublisher.ValidateBase(view.visuals);
                 var deps=AssetDatabase.GetDependencies(StylizedArenaBenchmark.ScenePath,true);
                 ReviewAuthoredAssetGate.Validate(deps);AuthoredExpansionReview.Validate(deps);
                 OfflineMotionGate.Validate(view.visuals);

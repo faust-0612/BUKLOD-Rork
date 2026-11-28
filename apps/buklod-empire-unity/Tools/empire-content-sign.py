@@ -68,7 +68,7 @@ def expected_slots():
 
 def accepted_base(args):
     trust = json.loads(TRUST.read_text(encoding="utf-8"))
-    return verify_base(PROJECT, args.base_apk, args.base_receipt, trust)
+    return verify_base(PROJECT, args.base_apk, args.base_receipt, trust, bootstrap_review=args.bootstrap_review)
 
 def preflight(args):
     print(json.dumps(accepted_base(args), indent=2))
@@ -137,12 +137,14 @@ def sign(args):
             dst=temp/"bundles"/(h+".bundle");shutil.copyfile(source/(h+".bundle"),dst)
             if digest(dst.read_bytes())!=h:raise ValueError("Output copy failed")
         (temp/"manifest.json").write_bytes(envelope)
+        (temp/"local-release-proof.json").write_text(json.dumps(dict(base, revision=args.revision, signedManifestSha256=digest(envelope)), indent=2), encoding="utf-8")
         if output.exists():raise FileExistsError(output)
         temp.rename(output)
     finally:
         if temp.exists():shutil.rmtree(temp)
     print("Signed local publish directory:",output,"revision",args.revision,"bytes",total)
-    print("Upload immutable bundles first; switch manifest last. Nothing uploaded.")
+    print("Target scope:", base["mode"], "pinned origin:", base["origin"])
+    print("Upload only bundles and manifest to the pinned review origin, not local-release-proof.json. Nothing uploaded.")
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest="action",required=True)
@@ -150,6 +152,7 @@ def main():
     def add_base(parser):
         parser.add_argument("--base-apk", required=True)
         parser.add_argument("--base-receipt", required=True)
+        parser.add_argument("--bootstrap-review", action="store_true", help="First isolated updater acceptance only; requires explicit review receipt and origin")
     pflight=sub.add_parser("preflight");add_base(pflight);pflight.set_defaults(fn=preflight)
     exp=sub.add_parser("export");add_base(exp);exp.add_argument("--unity",required=True);exp.set_defaults(fn=export)
     s=sub.add_parser("sign");add_base(s);s.add_argument("--key",required=True);s.add_argument("--unsigned-dir",required=True);s.add_argument("--output",required=True);s.add_argument("--revision",type=int,required=True);s.set_defaults(fn=sign)

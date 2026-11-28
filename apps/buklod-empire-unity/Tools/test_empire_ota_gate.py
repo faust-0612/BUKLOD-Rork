@@ -12,7 +12,7 @@ class GateTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.project = self.root / 'apps/empire'
         self.project.mkdir(parents=True)
-        self.trust = {'apkVersionCode': 42}
+        self.trust = {'apkVersionCode': 42, 'baseUrl': 'https://example.invalid/empire-review/'}
         self.write('Assets/Resources/EmpireContentTrust.json', json.dumps(self.trust))
         self.write('Assets/Scripts/Battle.cs', 'base')
         self.git('init', '-q')
@@ -57,6 +57,24 @@ class GateTests(unittest.TestCase):
         self.data['updaterVerified'] = False
         self.receipt.write_text(json.dumps(self.data))
         with self.assertRaisesRegex(ValueError, 'acceptance'): self.verify()
+    def test_bootstrap_review_requires_explicit_isolated_receipt(self):
+        self.data.update(updaterVerified=False, reviewBootstrap=True, reviewOrigin=self.trust['baseUrl'])
+        self.receipt.write_text(json.dumps(self.data))
+        with self.assertRaisesRegex(ValueError, 'acceptance'): self.verify()
+        base = verify_base(self.project, self.apk, self.receipt, self.trust, bootstrap_review=True)
+        self.assertEqual(base['mode'], 'BOOTSTRAP_REVIEW_ONLY')
+        self.data['reviewOrigin'] = 'https://example.invalid/other/'
+        self.receipt.write_text(json.dumps(self.data))
+        with self.assertRaisesRegex(ValueError, 'isolated'): verify_base(self.project, self.apk, self.receipt, self.trust, bootstrap_review=True)
+    def test_bootstrap_cannot_skip_native_acceptance(self):
+        self.data.update(deviceVerified=False, updaterVerified=False, reviewBootstrap=True, reviewOrigin=self.trust['baseUrl'])
+        self.receipt.write_text(json.dumps(self.data))
+        with self.assertRaisesRegex(ValueError, 'acceptance'): verify_base(self.project, self.apk, self.receipt, self.trust, bootstrap_review=True)
+    def test_bootstrap_rejects_nonreview_origin(self):
+        trust = dict(self.trust, baseUrl='https://example.invalid/production/')
+        self.data.update(updaterVerified=False, reviewBootstrap=True, reviewOrigin=trust['baseUrl'])
+        self.receipt.write_text(json.dumps(self.data))
+        with self.assertRaisesRegex(ValueError, 'isolated'): verify_base(self.project, self.apk, self.receipt, trust, bootstrap_review=True)
     def test_other_package_rejected(self):
         self.data['package'] = 'org.mzbministry.buklod'
         self.receipt.write_text(json.dumps(self.data))

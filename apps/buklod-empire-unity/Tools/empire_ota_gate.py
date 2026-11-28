@@ -3,6 +3,7 @@ import hashlib
 import json
 import re
 import subprocess
+from urllib.parse import urlsplit
 from pathlib import Path
 
 
@@ -34,7 +35,7 @@ def classify(paths):
     return sorted(p for p in paths if p not in allowed_docs and not content(p))
 
 
-def verify_base(project, apk, receipt_path, trust):
+def verify_base(project, apk, receipt_path, trust, *, bootstrap_review=False):
     project = Path(project).resolve()
     root = Path(git(project, 'rev-parse', '--show-toplevel').decode().strip()).resolve()
     prefix = project.relative_to(root).as_posix()
@@ -43,8 +44,17 @@ def verify_base(project, apk, receipt_path, trust):
     commit = receipt.get('sourceCommit', '')
     if not isinstance(commit, str) or not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise ValueError('Verified base source commit required')
-    if receipt.get('deviceVerified') is not True or receipt.get('signatureVerified') is not True or receipt.get('updaterVerified') is not True:
-        raise ValueError('Native signature, device and updater acceptance receipts required')
+    if receipt.get('deviceVerified') is not True or receipt.get('signatureVerified') is not True:
+        raise ValueError('Native signature and device acceptance receipts required')
+    if bootstrap_review:
+        origin = trust.get('baseUrl', '')
+        uri = urlsplit(origin)
+        if (receipt.get('reviewBootstrap') is not True or receipt.get('reviewOrigin') != origin
+                or uri.scheme != 'https' or not uri.hostname or uri.username or uri.password
+                or uri.query or uri.fragment or not uri.path.endswith('/empire-review/')):
+            raise ValueError('Bootstrap requires an explicitly accepted isolated HTTPS empire-review origin')
+    elif receipt.get('updaterVerified') is not True:
+        raise ValueError('Updater acceptance receipt required')
     if receipt.get('package') != 'org.mzbministry.buklod.empire.review':
         raise ValueError('Isolated Empire review package required')
     if receipt.get('unity') != '6000.3.29f1' or receipt.get('abi') != 'empire-content-v2' or receipt.get('apkCode') != trust['apkVersionCode']:
@@ -62,7 +72,7 @@ def verify_base(project, apk, receipt_path, trust):
     native = classify([p[len(prefix):] for p in changed if p and p.startswith(prefix)])
     if native:
         raise ValueError('Native APK required; changed source paths: ' + ', '.join(native[:12]))
-    return {'sourceCommit': head, 'baseCommit': commit, 'apkSha256': receipt['apkSha256'], 'trustSha256': receipt['trustSha256']}
+    return {'sourceCommit': head, 'baseCommit': commit, 'apkSha256': receipt['apkSha256'], 'trustSha256': receipt['trustSha256'], 'mode': 'BOOTSTRAP_REVIEW_ONLY' if bootstrap_review else 'ACCEPTED_REVIEW', 'origin': trust.get('baseUrl', '')}
 
 
 def verify_export(directory, base):
