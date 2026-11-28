@@ -1,0 +1,27 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-android-jni-20261128.json",
+  "baseRef": "a9785a5df0be28d42edde98e88d2a7702933e451",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Resolve Android player CS1069 for AndroidJavaObject.",
+  "chosenApproach": "Declare the built-in Unity Android JNI module.",
+  "selectionRationale": "Keeps the existing Android storage check.",
+  "alternativeApproaches": [
+    "Replace platform storage detection."
+  ],
+  "riskAreas": [
+    "Android package resolution"
+  ],
+  "preserveBehaviors": [
+    "Existing offline updater cache and storage checks"
+  ],
+  "acceptanceChecks": [
+    "Android catalog manifest declares the built-in Android JNI module."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-android-jni-20261128.json",
+    "apps/buklod-empire-unity/Packages/manifest.json"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": []
+}
