@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-authored-roster-actual-build-binding-20261128.json",
+  "baseRef": "d43854597bf99c08dc524647ec3779da8289bf7f",
+  "productionBaselineEvidence": "Standalone Empire DEV; prior offline APK did not use owner GLBs.",
+  "objective": "Prevent another APK with legacy procedural roster and bind authored full/LOD assets to actual battle catalog and portraits.",
+  "chosenApproach": "Fail closed before build, scoped manifest-driven selection through existing candidate composer, LOD importer and build dependencies.",
+  "selectionRationale": "No more expensive APK builds with unchanged assets; preserve existing animation, equipment, production provenance and simulation gates.",
+  "alternativeApproaches": [
+    "Continue editor-only previews or change portrait overlays; rejected."
+  ],
+  "riskAreas": [
+    "Missing authored roster inputs",
+    "Unity imported mesh path/rig compatibility",
+    "Cloud batch lifetime"
+  ],
+  "preserveBehaviors": [
+    "Existing editor diagnostic assembly",
+    "All 13 canonical hero identities and animation gates",
+    "No MAIN or production changes"
+  ],
+  "acceptanceChecks": [
+    "All three build paths require new roster inputs",
+    "Full/LOD hashes distinct from previous inputs",
+    "Actual catalog skins and scene portrait/effect dependencies verified",
+    "Missing inputs fail before build"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Editor/CandidateReviewComposer.cs",
+    "apps/buklod-empire-unity/Assets/Editor/HeroLodReviewImporter.cs",
+    "apps/buklod-empire-unity/Assets/Editor/ConsolidatedOfflineReview.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OfflineReviewAndroidBuild.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OfflineReviewBuildBootstrap.cs",
+    "apps/buklod-empire-unity/Assets/Editor/CloudReviewBuild.cs",
+    "apps/buklod-empire-unity/Assets/Editor/ReviewAuthoredAssetGate.cs",
+    "apps/buklod-empire-unity/Assets/Editor/AuthoredRosterBuildGate.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/AuthoredRosterBuildGateTests.cs",
+    "apps/buklod-empire-unity/Tools/AUTHORED_ROSTER_BUILD_CONTRACT.md",
+    ".buklod/scopes/empire-authored-roster-actual-build-binding-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/AuthoredRosterBuildGateTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

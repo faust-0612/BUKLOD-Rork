@@ -27,7 +27,7 @@ namespace Buklod.Empire.Editor {
                 throw new InvalidOperationException("Save the open scene before assembling review.");
             var specs=new List<(string id,string path,string[] clips)>();
             foreach(var h in HeroKitCatalog.All)
-                specs.Add((h.Id,$"{Source}/heroes/{h.Id}.glb",HeroClips));
+                specs.Add((h.Id,AuthoredRosterBuildGate.FullPath(h.Id)??$"{Source}/heroes/{h.Id}.glb",HeroClips));
             var factionPaths=FactionSources();
             foreach(var team in new[]{"lux","tenebra"}){
                 foreach(var id in Roles.Concat(team=="lux"?LuxVillagers:TenebraVillagers))

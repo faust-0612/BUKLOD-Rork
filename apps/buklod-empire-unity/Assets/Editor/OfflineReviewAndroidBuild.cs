@@ -46,6 +46,9 @@ namespace Buklod.Empire.Editor {
         }
         [MenuItem("BUKLOD Empire/Build isolated offline test APK (local)")]
         public static void Build(){
+            using(AuthoredRosterBuildGate.Begin())BuildWithAuthoredRoster();
+        }
+        static void BuildWithAuthoredRoster(){
             if(IsActive||Application.isPlaying||EditorSceneManager.GetActiveScene().isDirty)
                 throw new BuildFailedException("Exit play mode and save the scene first.");
             if(Application.unityVersion!="6000.3.29f1"||EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android||!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android,BuildTarget.Android))

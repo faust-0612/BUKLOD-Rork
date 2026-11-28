@@ -19,6 +19,8 @@ namespace Buklod.Empire.Editor {
                 throw new BuildFailedException("Set BUKLOD_OFFLINE_REVIEW in the cloud scripting define symbols.");
 #endif
             IsPrepared=false;
+            // Cloud review is batch-mode only; retain this verified selection until the build callback.
+            AuthoredRosterBuildGate.Begin();
             OfflineReviewBuildBootstrap.EnsureReviewPipeline();
             ConsolidatedOfflineReview.Prepare();
             StylizedArenaBenchmark.Prepare();

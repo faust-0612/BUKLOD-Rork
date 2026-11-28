@@ -42,6 +42,9 @@ namespace Buklod.Empire.Editor {
         }
         // Import, scene and deformation validation only; does not call BuildPlayer.
         public static void ValidateOnly() {
+            using(AuthoredRosterBuildGate.Begin())ValidateAuthoredOnly();
+        }
+        static void ValidateAuthoredOnly() {
             var previous=GraphicsSettings.defaultRenderPipeline;var quality=QualitySettings.renderPipeline;
             try {
                 EnsureReviewPipeline();ConsolidatedOfflineReview.Prepare();StylizedArenaBenchmark.Prepare();

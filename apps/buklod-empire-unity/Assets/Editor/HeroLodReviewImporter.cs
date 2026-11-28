@@ -17,6 +17,7 @@ namespace Buklod.Empire.Editor {
             using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-","").ToLowerInvariant();
         }
         public static void CopyModels(){
+            if(AuthoredRosterBuildGate.Active){AuthoredRosterBuildGate.CopyLods(Models);return;}
             if(!File.Exists(Source+"/manifest.json"))throw new InvalidOperationException("Run Tools/prepare-review-assets.py first (LOD manifest missing).");
             var m=JsonUtility.FromJson<Manifest>(File.ReadAllText(Source+"/manifest.json"));
             if(m==null||m.status!="LOD_REVIEW_ONLY"||m.heroes==null||m.heroes.Length!=HeroKitCatalog.All.Count)throw new InvalidOperationException("Incomplete LOD manifest.");

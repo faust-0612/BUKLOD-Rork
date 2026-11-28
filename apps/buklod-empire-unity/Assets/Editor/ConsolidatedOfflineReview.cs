@@ -57,7 +57,7 @@ namespace Buklod.Empire.Editor {
             // A Library-first review must not silently use the old generated skill audio.
             SkillAudio.LoadLibraryClips();
             CandidateReviewComposer.Prepare();
-            if(AuthoredExpansionReview.Requested)PortraitCaptureReview.EnsureCurrent();
+            if(AuthoredExpansionReview.Requested||AuthoredRosterBuildGate.Active)PortraitCaptureReview.EnsureCurrent();
             OfflineReviewComposer.Prepare();
             Debug.Log("Consolidated offline review assembled. Run EditMode/PlayMode and visual acceptance separately. No APK or production approval.");
         }

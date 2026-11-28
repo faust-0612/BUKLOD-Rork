@@ -82,6 +82,7 @@ namespace Buklod.Empire.Editor {
         internal static void Validate(IEnumerable<string> dependencies){
             ValidateLibraryAudioInputs();
             var present=new HashSet<string>(dependencies,StringComparer.Ordinal);
+            AuthoredRosterBuildGate.ValidateDependencies(present);
             LibraryVillageReview.ValidateDependencies(present);
             LibraryStructureReview.ValidateDependencies(present);
             LibraryWildlifeReview.ValidateDependencies(present);
