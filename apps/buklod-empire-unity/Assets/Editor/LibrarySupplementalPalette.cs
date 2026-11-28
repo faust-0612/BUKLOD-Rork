@@ -125,14 +125,34 @@ namespace Buklod.Empire.Editor {
                 string clipPath=folder+id+"_"+names[i]+".anim";var old=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
                 if(old){EditorUtility.CopySerialized(clone,old);UnityEngine.Object.DestroyImmediate(clone);clips[i]=old;}else{AssetDatabase.CreateAsset(clone,clipPath);clips[i]=clone;}
             }
+            AnimationClip SaveOriginal(string action){
+                var clip=ReviewHazardMotion.Create(source,demon,action);
+                string clipPath=folder+id+"_Original_"+action+".anim";
+                var old=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
+                if(!old){AssetDatabase.CreateAsset(clip,clipPath);return clip;}
+                EditorUtility.CopySerialized(clip,old);
+                UnityEngine.Object.DestroyImmediate(clip);
+                EditorUtility.SetDirty(old);
+                return old;
+            }
             var idle=machine.AddState("Patrol");machine.defaultState=idle;
-            if(demon)idle.motion=clips[0];
-            else{
-                controller.AddParameter("Speed",AnimatorControllerParameterType.Float);
-                var blend=new BlendTree{name="Snake movement",blendType=BlendTreeType.Simple1D,blendParameter="Speed",useAutomaticThresholds=false};
-                AssetDatabase.AddObjectToAsset(blend,controller);blend.AddChild(clips[0],0);blend.AddChild(clips[1],1);idle.motion=blend;
-                controller.AddParameter("Attack",AnimatorControllerParameterType.Trigger);
-                var attack=machine.AddState("Attack");attack.motion=clips[2];var enter=machine.AddAnyStateTransition(attack);enter.hasExitTime=false;enter.AddCondition(AnimatorConditionMode.If,0,"Attack");var exit=attack.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;
+            controller.AddParameter("Speed",AnimatorControllerParameterType.Float);
+            var blend=new BlendTree{name="Hazard movement",blendType=BlendTreeType.Simple1D,blendParameter="Speed",useAutomaticThresholds=false};
+            AssetDatabase.AddObjectToAsset(blend,controller);
+            blend.AddChild(clips[0],0);
+            blend.AddChild(demon?SaveOriginal("Move"):clips[1],1);
+            idle.motion=blend;
+            foreach(string action in new[]{"Death","Hit","Attack"}){
+                controller.AddParameter(action,AnimatorControllerParameterType.Trigger);
+                var state=machine.AddState(action);
+                state.motion=!demon&&action=="Attack"?clips[2]:SaveOriginal(action);
+                var enter=machine.AddAnyStateTransition(state);
+                enter.hasExitTime=false;enter.duration=.04f;enter.canTransitionToSelf=false;
+                enter.AddCondition(AnimatorConditionMode.If,0,action);
+                if(action!="Death"){
+                    var exit=state.AddTransition(idle);
+                    exit.hasExitTime=true;exit.exitTime=1;exit.duration=.08f;
+                }
             }
             var instance=UnityEngine.Object.Instantiate(source);
             try{

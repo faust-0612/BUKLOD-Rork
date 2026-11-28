@@ -161,7 +161,7 @@ namespace Buklod.Empire {
                     var animator=go.GetComponentInChildren<Animator>(true);
                     bool attacked=!fresh&&hazardAttackHistory.TryGetValue(hazard.Id,out int previousAttack)&&hazard.AttackSequence>previousAttack;
                     hazardAttackHistory[hazard.Id]=hazard.AttackSequence;
-                    if(animator&&!hazard.Demon){
+                    if(animator){
                         animator.SetFloat("Speed",delta.sqrMagnitude>.0001f?1f:0f);
                         if(attacked)animator.SetTrigger("Attack");
                     }
