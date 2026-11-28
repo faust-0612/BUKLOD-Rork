@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using UnityEditor;
 using UnityEditor.Build;
+using UnityEditor.Android;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -63,6 +64,11 @@ namespace Buklod.Empire.Editor {
             var output=Path.Combine(root,"buklod-empire-offline-test-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss")+".apk");
             if(File.Exists(output))throw new BuildFailedException("Output already exists.");
             var target=NamedBuildTarget.Android;
+            var icon=AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/EmpireBrand/LauncherIcon.png");
+            if(!icon)throw new BuildFailedException("BUKLOD Empire launcher icon is missing.");
+            var iconKinds=new[]{AndroidPlatformIconKind.Legacy,AndroidPlatformIconKind.Round,AndroidPlatformIconKind.Adaptive};
+            var previousIcons=System.Array.ConvertAll(iconKinds,kind=>PlayerSettings.GetPlatformIcons(target,kind));
+            bool oldSplash=PlayerSettings.SplashScreen.show;
             var oldId=PlayerSettings.GetApplicationIdentifier(target);var oldName=PlayerSettings.productName;
             var oldOrientation=PlayerSettings.defaultInterfaceOrientation;
             var oldBackend=PlayerSettings.GetScriptingBackend(target);var oldArch=PlayerSettings.Android.targetArchitectures;
@@ -70,6 +76,15 @@ namespace Buklod.Empire.Editor {
             var oldExport=EditorUserBuildSettings.exportAsGoogleAndroidProject;var oldScenes=EditorBuildSettings.scenes;
             try{
                 PlayerSettings.SetApplicationIdentifier(target,BattleView.OfflineTestApplicationId);
+                PlayerSettings.SplashScreen.show=false;
+                foreach(var kind in iconKinds){
+                    var slots=PlayerSettings.GetPlatformIcons(target,kind);
+                    foreach(var slot in slots){
+                        if(kind==AndroidPlatformIconKind.Adaptive)slot.SetTextures(icon,icon);
+                        else slot.SetTextures(icon);
+                    }
+                    PlayerSettings.SetPlatformIcons(target,kind,slots);
+                }
                 PlayerSettings.productName="BUKLOD Empire Offline Test";
                 PlayerSettings.defaultInterfaceOrientation=UIOrientation.LandscapeLeft;
                 PlayerSettings.SetScriptingBackend(target,ScriptingImplementation.IL2CPP);
@@ -96,6 +111,8 @@ namespace Buklod.Empire.Editor {
                 throw;
             }finally{
                 IsActive=false;expectedOutput=null;
+                PlayerSettings.SplashScreen.show=oldSplash;
+                for(int i=0;i<iconKinds.Length;i++)PlayerSettings.SetPlatformIcons(target,iconKinds[i],previousIcons[i]);
                 EditorBuildSettings.scenes=oldScenes;
                 PlayerSettings.SetApplicationIdentifier(target,oldId);PlayerSettings.productName=oldName;
                 PlayerSettings.defaultInterfaceOrientation=oldOrientation;PlayerSettings.SetScriptingBackend(target,oldBackend);

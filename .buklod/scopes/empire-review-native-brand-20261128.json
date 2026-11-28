@@ -1,0 +1,29 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-review-native-brand-20261128.json",
+  "baseRef": "a8e47b64db66b937f11da0a2fb263022d443eb0b",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Apply the owner supplied Empire branding to the isolated Android APK.",
+  "chosenApproach": "Use the first frame of the supplied startup art for Android launcher settings and let the existing intro supply the launch branding.",
+  "selectionRationale": "Uses the existing build scope and artwork.",
+  "alternativeApproaches": [
+    "Change permanent project PlayerSettings."
+  ],
+  "riskAreas": [
+    "Android icon slots",
+    "Unity splash"
+  ],
+  "preserveBehaviors": [
+    "Existing animated intro, standalone package and restored editor settings."
+  ],
+  "acceptanceChecks": [
+    "Review packaging configures all launcher icon kinds and turns off Unity splash."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-review-native-brand-20261128.json",
+    "apps/buklod-empire-unity/Assets/Editor/OfflineReviewAndroidBuild.cs",
+    "apps/buklod-empire-unity/Assets/Resources/EmpireBrand/LauncherIcon.png"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": []
+}
