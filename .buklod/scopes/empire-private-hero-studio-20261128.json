@@ -1,0 +1,36 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-private-hero-studio-20261128.json",
+  "baseRef": "77b72c24cc584fe68220f97b881d3e173d23e42d",
+  "productionBaselineEvidence": "Standalone Empire DEV, no approved production APK.",
+  "objective": "Render and inspect exact optimized owner models in an isolated editor studio.",
+  "chosenApproach": "Pinned glTFast imports plus one PreviewRenderUtility camera and original animation sampling.",
+  "selectionRationale": "No substitution, no runtime catalog or build changes, one active high-poly actor.",
+  "alternativeApproaches": [
+    "Bind unapproved 150k triangle models into gameplay; rejected."
+  ],
+  "riskAreas": [
+    "Unity glTFast clip names and render pipeline support",
+    "Private asset rights"
+  ],
+  "preserveBehaviors": [
+    "No production catalog or scene changes",
+    "No MAIN changes",
+    "No asset redistribution"
+  ],
+  "acceptanceChecks": [
+    "Exact input SHA-256 verified before import",
+    "Actual mesh and clips checked",
+    "Editor-only preview with scrubbing"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Editor/OwnerHeroStudio.cs",
+    "apps/buklod-empire-unity/Tools/OWNER_HERO_STUDIO.md",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OwnerHeroStudioContractTests.cs",
+    ".buklod/scopes/empire-private-hero-studio-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OwnerHeroStudioContractTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}
