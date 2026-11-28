@@ -43,6 +43,13 @@ namespace Buklod.Empire.Tests {
                 Assert.AreEqual(1,new OfflinePracticeWarehouse(key).Items.Count);
             }finally{PlayerPrefs.DeleteKey(key);PlayerPrefs.Save();}
         }
+        [Test] public void BattlefieldOrderTouchZoneExcludesControlEdges(){
+            var safe=new Rect(100,50,1000,500);
+            Assert.True(OfflineSessionMenu.IsFieldOrderZone(safe,new Vector2(600,300)));
+            Assert.False(OfflineSessionMenu.IsFieldOrderZone(safe,new Vector2(150,100)));
+            Assert.False(OfflineSessionMenu.IsFieldOrderZone(safe,new Vector2(1050,500)));
+            Assert.False(OfflineSessionMenu.IsFieldOrderZone(safe,new Vector2(600,530)));
+        }
         [Test] public void InvalidConstructionAndFormationTargetsAreRejected(){
             var b=new OfflineBattle("phan");var invalid=new Vector2(float.NaN,10);
             Assert.False(b.CanPlacePlayerBuilding(VillageBuildOrder.House,invalid));

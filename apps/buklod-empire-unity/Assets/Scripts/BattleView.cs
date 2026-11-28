@@ -191,6 +191,24 @@ namespace Buklod.Empire {
         }
         private void LateUpdate(){if(Battle!=null)Follow(false);}
         public Vector3 FieldPosition(Vector2 p)=>Ground(p);
+        internal BattleUnit FindFriendlySoldierAtScreen(Vector2 screen,float radiusPixels){
+            if(Battle==null||Battle.IsAuthoritative||!battleCamera||Paused||radiusPixels<=0)return null;
+            BattleUnit best=null;float dist=radiusPixels*radiusPixels;
+            foreach(var u in Battle.Units){if(!u.PaidMinion||!u.State.Alive||u.Team!=Battle.Player.Team)continue;
+                if(!active.TryGetValue(u.Id,out var visual)||!visual.instance)continue;
+                var pixel=battleCamera.WorldToScreenPoint(visual.instance.transform.position+Vector3.up*(.75f*worldScale));
+                if(pixel.z<=0)continue;float d=(new Vector2(pixel.x,pixel.y)-screen).sqrMagnitude;if(d<dist){dist=d;best=u;}
+            }return best;
+        }
+        internal bool TryFieldPoint(Vector2 screen,out Vector2 point){
+            point=Vector2.zero;if(Battle==null||Battle.IsAuthoritative||!battleCamera||Paused||worldScale<=0)return false;
+            var ray=battleCamera.ScreenPointToRay(screen);Vector3 world;
+            if(Physics.Raycast(ray,out var hit,Mathf.Max(1000,battleCamera.farClipPlane),~0,QueryTriggerInteraction.Ignore))world=hit.point;
+            else{var plane=new Plane(Vector3.up,Vector3.zero);if(!plane.Raycast(ray,out float enter))return false;world=ray.GetPoint(enter);}
+            var at=new Vector2(world.x/worldScale,world.z/worldScale);
+            if(float.IsNaN(at.x)||float.IsNaN(at.y)||float.IsInfinity(at.x)||float.IsInfinity(at.y)||at.x<0||at.y<0||at.x>OfflineBattle.Width||at.y>OfflineBattle.Height||UsesSculptedRift&&!SculptedRiftLayout.Contains(at))return false;
+            point=at;return true;
+        }
         private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}
         private Visual Rent(GameObject prefab,BattleUnit unit){
             if(!pool.TryGetValue(prefab,out var stack)){stack=new Stack<GameObject>();pool[prefab]=stack;}

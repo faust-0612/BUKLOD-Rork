@@ -208,7 +208,7 @@ namespace Buklod.Empire {
             u.ResourceNodeId=selected?.Id??0;return selected;
         }
         private BattleUnit Gatherer(ArenaTeam team,string id)=>units.FirstOrDefault(u=>u.Team==team&&u.State.Alive&&u.Villager?.Alive==true&&u.Villager.Job.Id==id&&u.Villager.Job.Effect==VillageEffect.Gather);
-        public bool OrderPlayerWorker(string id,VillageWorkerOrder order)=>!IsAuthoritative&&OrderWorker(Player.Team,id,order);
+        public bool OrderPlayerWorker(string id,VillageWorkerOrder order)=>!IsAuthoritative&&!AutonomousTraining&&OrderWorker(Player.Team,id,order);
         private bool OrderWorker(ArenaTeam team,string id,VillageWorkerOrder order){
             if(Finished||Time>=OfflineMatchRules.MatchLimit||!Enum.IsDefined(typeof(VillageWorkerOrder),order))return false;
             var worker=Gatherer(team,id);if(worker==null)return false;
@@ -216,7 +216,7 @@ namespace Buklod.Empire {
             if(order==VillageWorkerOrder.Gather&&worker.Cargo<=1e-6)worker.ResourceNodeId=0;
             return true;
         }
-        public bool OrderPlayerResource(string id,VillageResourceKind? resource)=>!IsAuthoritative&&OrderResource(Player.Team,id,resource);
+        public bool OrderPlayerResource(string id,VillageResourceKind? resource)=>!IsAuthoritative&&!AutonomousTraining&&OrderResource(Player.Team,id,resource);
         private bool OrderResource(ArenaTeam team,string id,VillageResourceKind? resource){
             if(Finished||Time>=OfflineMatchRules.MatchLimit||resource.HasValue&&!Enum.IsDefined(typeof(VillageResourceKind),resource.Value))return false;
             var worker=Gatherer(team,id);if(worker==null)return false;worker.PreferredResource=resource;worker.ResourceNodeId=0;

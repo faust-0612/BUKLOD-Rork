@@ -11,7 +11,7 @@ namespace Buklod.Empire {
     public sealed partial class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Text contentStatus;private Button contentCheck,contentDownload;private Font font;private GameObject ownedEventSystem;
-        private OfflinePracticeWarehouse warehouse;private VillageBuildOrder selectedBuild=VillageBuildOrder.House;private int bankPage,selectedBag=-1,selectedBank=-1,selectedSoldierId;private bool armyGroupMode=true;private Button quickLoot,quickBag,quickHealth,quickMana;private Text quickLootLabel,quickHealthLabel,quickManaLabel;private float nextLootRefresh;
+        private OfflinePracticeWarehouse warehouse;private VillageBuildOrder selectedBuild=VillageBuildOrder.House;private int bankPage,selectedBag=-1,selectedBank=-1,selectedSoldierId;private bool armyGroupMode=true;private Button quickLoot,quickBag,quickHealth,quickMana,quickOrders;private Text quickOrdersLabel,fieldOrderHint;private int fieldOrderMode;private float fieldOrderHintUntil;private OfflineBattle fieldOrderMatch;private Text quickLootLabel,quickHealthLabel,quickManaLabel;private float nextLootRefresh;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
         private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private int evolutionPreviewLevel=1;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;private ReviewLiveHeroPreview livePreview;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
@@ -61,6 +61,8 @@ namespace Buklod.Empire {
             ButtonAt("Menu",safeRoot,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
             warehouse=new OfflinePracticeWarehouse();
             quickBag=ButtonAt("Backpack shortcut",safeRoot,new Vector2(.77f,.91f),new Vector2(.88f,.99f),"BAG",()=>{if(!shown&&Active){page=6;showResult=false;Open();}});quickBag.gameObject.SetActive(false);
+            quickOrders=ButtonAt("Battlefield commands",safeRoot,new Vector2(.65f,.91f),new Vector2(.76f,.99f),"ORDERS",()=>{if(!CanUseFieldOrders)return;fieldOrderMode=(fieldOrderMode+1)%4;RefreshFieldOrderText();});quickOrdersLabel=quickOrders.GetComponentInChildren<Text>();quickOrders.gameObject.SetActive(false);
+            fieldOrderHint=Label("Battlefield order guidance",safeRoot,new Vector2(.22f,.765f),new Vector2(.77f,.83f),"",19);fieldOrderHint.color=new Color(1,.86f,.50f);fieldOrderHint.gameObject.SetActive(false);
             quickHealth=QuickPotion("health",new Vector2(.28f,.035f),new Vector2(.36f,.115f),out quickHealthLabel);
             quickMana=QuickPotion("mana",new Vector2(.37f,.035f),new Vector2(.45f,.115f),out quickManaLabel);
             quickLoot=ButtonAt("Collect nearby loot",safeRoot,new Vector2(.38f,.13f),new Vector2(.63f,.23f),"PICK UP",()=>{if(!shown&&!view.Paused&&view.Battle!=null&&view.Battle.TryNearbyLoot(out _,true))authored?.AcceptedAction("Relic acquired");});quickLootLabel=quickLoot.GetComponentInChildren<Text>();quickLoot.gameObject.SetActive(false);
@@ -92,6 +94,34 @@ namespace Buklod.Empire {
             if(view.IsEditorReview)pregame=new ReviewMatchFlow();
             Open();
         }
+        private bool CanUseFieldOrders=>view&&view.Battle!=null&&!view.Battle.IsAuthoritative&&!view.Battle.AutonomousTraining&&!view.Battle.Finished&&!shown&&!starting&&!view.Paused;
+        internal static bool IsFieldOrderZone(UnityEngine.Rect area,Vector2 screen){
+            if(!area.Contains(screen)||area.width<=0||area.height<=0)return false;
+            float x=(screen.x-area.xMin)/area.width,y=(screen.y-area.yMin)/area.height;
+            return x>=.22f&&x<=.76f&&y>=.26f&&y<=.75f;
+        }
+        internal bool ReserveFieldOrderTouch(Vector2 screen)=>fieldOrderMode!=0&&CanUseFieldOrders&&IsFieldOrderZone(MobileBattleInput.SafeArea,screen);
+        private void RefreshFieldOrderText(){
+            if(!quickOrdersLabel||!fieldOrderHint)return;
+            quickOrdersLabel.text=fieldOrderMode==1?"GROUP":fieldOrderMode==2?"UNIT":fieldOrderMode==3?"BUILD":"ORDERS";
+            quickOrdersLabel.color=fieldOrderMode==0?Color.white:new Color(1,.82f,.35f);
+            fieldOrderHint.text=fieldOrderMode==1?"Tap visible ground • Move army in "+view.Battle.PlayerFormation:
+                fieldOrderMode==2?"Tap a friendly recruited soldier, then ground to move":
+                fieldOrderMode==3?"Tap valid ground to build "+selectedBuild:"";
+            fieldOrderHint.gameObject.SetActive(fieldOrderMode!=0);fieldOrderHintUntil=0;
+        }
+        private void FieldOrderFeedback(string text){if(!fieldOrderHint)return;fieldOrderHint.text=text;fieldOrderHint.gameObject.SetActive(true);fieldOrderHintUntil=Time.unscaledTime+2.2f;}
+        internal void CompleteFieldOrderTouch(Vector2 screen){
+            if(!ReserveFieldOrderTouch(screen))return;
+            var battle=view.Battle;
+            if(fieldOrderMode==2){
+                var hit=view.FindFriendlySoldierAtScreen(screen,Mathf.Max(18,MobileBattleInput.SafeArea.height*.052f));
+                if(hit!=null){selectedSoldierId=hit.Id;FieldOrderFeedback((hit.RecruitedCreature?.ToString()??hit.Role.ToString())+" selected • tap destination");return;}
+            }
+            if(!view.TryFieldPoint(screen,out var p)){FieldOrderFeedback("No reachable battlefield point");return;}
+            bool ok=fieldOrderMode==1?battle.OrderPlayerFormationMove(p):fieldOrderMode==2?battle.OrderPlayerSoldierMove(selectedSoldierId,p):battle.OrderPlayerConstruction(selectedBuild,p);
+            FieldOrderFeedback(ok?(fieldOrderMode==3?"Construction queued":fieldOrderMode==1?"Army formation ordered":"Soldier destination ordered"):"Order rejected • check terrain, ownership, vision or resources");
+        }
         private Button QuickPotion(string slot,Vector2 min,Vector2 max,out Text label){
             var button=ButtonAt("Quick "+slot,safeRoot,min,max,slot=="health"?"HP":"MP",()=>{
                 var battle=view.Battle;if(shown||view.Paused||battle==null)return;
@@ -108,7 +138,7 @@ namespace Buklod.Empire {
             if(art!=null&&art.icon&&!raw){var r=Rect("Potion icon",button.transform,new Vector2(.03f,.08f),new Vector2(.48f,.92f));raw=r.gameObject.AddComponent<RawImage>();raw.raycastTarget=false;raw.texture=art.icon;label.rectTransform.anchorMin=new Vector2(.46f,0);label.rectTransform.anchorMax=Vector2.one;label.transform.SetAsLastSibling();}
         }
         private void ApplySafeArea(){lastSafe=MobileBattleInput.SafeArea;safeRoot.anchorMin=new Vector2(lastSafe.xMin/Mathf.Max(1,Screen.width),lastSafe.yMin/Mathf.Max(1,Screen.height));safeRoot.anchorMax=new Vector2(lastSafe.xMax/Mathf.Max(1,Screen.width),lastSafe.yMax/Mathf.Max(1,Screen.height));}
-        private void Open(){if(starting)return;panelGroup.alpha=1;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
+        private void Open(){if(starting)return;fieldOrderMode=0;RefreshFieldOrderText();panelGroup.alpha=1;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
         private bool Active=>view.Battle!=null&&!view.Battle.Finished;
         private void Reply(bool ok,string success,string pickupEffect=null){if(ok&&authored)authored.AcceptedAction(success,pickupEffect);feedback.text=ok?success:"Not available: check eligibility, funds, distance or cooldown.";Rebuild();}
         private void HeroCard(int i,HeroKit kit){
@@ -613,6 +643,9 @@ namespace Buklod.Empire {
             RefreshContentPanel();
             bool quickVisible=!shown&&!starting&&!view.Paused&&Active&&!view.Battle.AutonomousTraining;
             if(quickBag)quickBag.gameObject.SetActive(quickVisible);
+            if(quickOrders)quickOrders.gameObject.SetActive(quickVisible);
+            if(fieldOrderMatch!=view.Battle||!quickVisible){fieldOrderMatch=view.Battle;if(fieldOrderMode!=0){fieldOrderMode=0;RefreshFieldOrderText();}}
+            if(fieldOrderMode!=0&&fieldOrderHintUntil>0&&Time.unscaledTime>=fieldOrderHintUntil)RefreshFieldOrderText();
             if(Time.unscaledTime>=nextLootRefresh){RefreshQuickPotion(quickHealth,quickHealthLabel,"health",view.Battle,quickVisible);RefreshQuickPotion(quickMana,quickManaLabel,"mana",view.Battle,quickVisible);}
             if(quickLoot&&Time.unscaledTime>=nextLootRefresh){nextLootRefresh=Time.unscaledTime+.12f;string item="";bool show=!shown&&!starting&&!view.Paused&&view.Battle!=null&&view.Battle.TryNearbyLoot(out item);quickLoot.gameObject.SetActive(show);if(show)quickLootLabel.text="PICK UP\n"+item;}
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
@@ -642,7 +675,7 @@ namespace Buklod.Empire {
             panelGroup.alpha=1;
             panelGroup.interactable=true;
         }
-        private void OnApplicationPause(bool paused){if(paused&&view&&view.IsEditorReview)ReviewAudioSettings.Save();}
+        private void OnApplicationPause(bool paused){if(paused){fieldOrderMode=0;RefreshFieldOrderText();if(view&&view.IsEditorReview)ReviewAudioSettings.Save();}}
         private void OnDestroy(){HideShowcase();if(view&&view.IsEditorReview)ReviewAudioSettings.Save();if(ownedEventSystem)Destroy(ownedEventSystem);}
     }
 }

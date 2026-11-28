@@ -13,7 +13,7 @@ namespace Buklod.Empire {
         public Vector2 Joystick {get;private set;}
         public Vector2 Aim {get;private set;}
         public int ActiveSkill {get;private set;}=-1;
-        private Finger movement,skill;
+        private Finger movement,skill,orderFinger;private Vector2 orderOrigin;private OfflineSessionMenu orderMenu;
         private Vector2 origin,contactOrigin,actionOrigin;
         private Rect lastArea;
         private BattleView view;
@@ -36,7 +36,7 @@ namespace Buklod.Empire {
         private void OnDisable(){Touch.onFingerDown-=Down;Touch.onFingerMove-=Move;Touch.onFingerUp-=Up;EnhancedTouchSupport.Disable();Reset();}
         private void OnApplicationFocus(bool focused){if(!focused)Reset();}
         private void OnApplicationPause(bool paused){if(paused)Reset();}
-        private void Reset(){movement=null;skill=null;Joystick=Vector2.zero;Aim=Vector2.zero;ActiveSkill=-1;if(online)online.Move(Vector2.zero);}
+        private void Reset(){movement=null;skill=null;orderFinger=null;Joystick=Vector2.zero;Aim=Vector2.zero;ActiveSkill=-1;if(online)online.Move(Vector2.zero);}
         private void Down(Finger finger){
             var at=finger.currentTouch.screenPosition;
             if(online&&online.State!=OnlineConnectionState.Playing)return;
@@ -44,8 +44,9 @@ namespace Buklod.Empire {
             int button=ArenaControlSettings.Nearest(SafeArea,at);
             if(button>0){if(skill==null){skill=finger;ActiveSkill=button;actionOrigin=at;Aim=Vector2.zero;}return;}
             if(movement==null&&ArenaControlSettings.InMovementZone(SafeArea,at)){
-                movement=finger;contactOrigin=at;origin=ArenaTouchLayout.ClampCenter(SafeArea,at,Radius(0));Joystick=Vector2.zero;
+                movement=finger;contactOrigin=at;origin=ArenaTouchLayout.ClampCenter(SafeArea,at,Radius(0));Joystick=Vector2.zero;return;
             }
+            if(view&&orderFinger==null){if(!orderMenu)orderMenu=view.GetComponent<OfflineSessionMenu>();if(orderMenu&&orderMenu.ReserveFieldOrderTouch(at)){orderFinger=finger;orderOrigin=at;}}
         }
         private void UpdateMove(Vector2 at){Joystick=ArenaTouchLayout.Stick(at-contactOrigin,Radius(0));}
         private void Move(Finger finger){
@@ -57,6 +58,7 @@ namespace Buklod.Empire {
             var d=at-center;return d.magnitude>radius*.25f?Vector2.ClampMagnitude(d/Mathf.Max(1,radius),1):Vector2.zero;
         }
         private void Up(Finger finger){
+            if(finger==orderFinger){orderFinger=null;var touch=finger.currentTouch;if(touch.phase!=UnityEngine.InputSystem.TouchPhase.Canceled&&Vector2.Distance(orderOrigin,touch.screenPosition)<=Mathf.Max(12,SafeArea.height*.035f)&&orderMenu)orderMenu.CompleteFieldOrderTouch(touch.screenPosition);return;}
             if(finger==movement){movement=null;Joystick=Vector2.zero;}
             if(finger!=skill)return;
             bool cancel=finger.currentTouch.phase==UnityEngine.InputSystem.TouchPhase.Canceled||!SafeArea.Contains(finger.currentTouch.screenPosition)||Vector2.Distance(finger.currentTouch.screenPosition,PixelCenter(ActiveSkill))>Radius(ActiveSkill)*3.2f;
