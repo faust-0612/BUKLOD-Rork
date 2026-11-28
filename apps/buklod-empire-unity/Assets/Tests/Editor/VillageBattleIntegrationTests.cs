@@ -24,6 +24,23 @@ namespace Buklod.Empire.Tests {
             Assert.True(b.EquipPracticeVault(0));Assert.AreEqual(0,b.PracticeVault.Count);Assert.AreSame(item,b.Player.Relics["weapon"]);
             Assert.False(b.EquipPracticeVault(0));
         }
+        [Test] public void WarehousePersistsCanonicalItemsAcrossInstances(){
+            string key="buklod.test.warehouse."+System.Guid.NewGuid().ToString("N");
+            try{
+                Assert.True(ArenaRelicCatalog.TryGet("phan-weapon-t1",out var item));
+                var bank=new OfflinePracticeWarehouse(key);Assert.True(bank.TryDeposit(item));
+                var reopened=new OfflinePracticeWarehouse(key);Assert.AreEqual(1,reopened.Items.Count);
+                Assert.True(reopened.TryWithdraw(0,out var restored));Assert.AreSame(item,restored);
+                Assert.AreEqual(0,new OfflinePracticeWarehouse(key).Items.Count);
+            }finally{PlayerPrefs.DeleteKey(key);PlayerPrefs.Save();}
+        }
+        [Test] public void CreatureContractsAndIndividualOrdersRejectUnownedTargets(){
+            var b=new OfflineBattle("phan");Assert.False(b.OrderPlayerCreature(WildernessKind.StoneGolem));
+            Assert.False(b.OrderPlayerSoldier(b.Player.Id,VillageArmyOrder.HoldPosition));
+            Assert.False(b.OrderPlayerSoldierMove(b.Player.Id,b.Player.Position));
+            Assert.AreEqual(MinionRole.Siege,OfflineBattle.CreatureRole(WildernessKind.StoneGolem));
+            Assert.AreEqual(MinionRole.Healer,OfflineBattle.CreatureRole(WildernessKind.AzureStag));
+        }
         [Test] public void TwelveCanonicalVillagersAndDamageSync(){
             var b=new OfflineBattle("phan");var villagers=b.Units.Where(u=>u.Kind==BattleTargetKind.Villager).ToArray();
             Assert.AreEqual(12,villagers.Length);Assert.AreEqual(12,villagers.Select(u=>u.Villager.Job.Id).Distinct().Count());
