@@ -5,9 +5,10 @@ using UnityEngine;
 namespace Buklod.Empire {
     // Scene owner receives a trusted authenticated handoff from the future lobby client.
     // No local authority, embedded secrets, MAIN endpoint or offline fallback.
-    [RequireComponent(typeof(OnlineBattlePresentation))]
+    [RequireComponent(typeof(OnlineBattlePresentation),typeof(MobileBattleInput))]
     public sealed class OnlineSessionController:MonoBehaviour {
         OnlineBattlePresentation presentation;
+        MobileBattleInput input;
         HttpsMatchTicketProvider tickets;
         OnlineMatchConnection connection;
         CancellationTokenSource lifetime;
@@ -31,8 +32,13 @@ namespace Buklod.Empire {
             if(!presentation)throw new InvalidOperationException("Online presentation unavailable.");
             var nextTickets=new HttpsMatchTicketProvider(origin,sessionToken);
             var nextConnection=new OnlineMatchConnection(matchId,socket,nextTickets);
-            try{presentation.Bind(nextConnection.Timeline);}
-            catch{nextTickets.Dispose();throw;}
+            try{
+                presentation.Bind(nextConnection.Timeline);
+                input=GetComponent<MobileBattleInput>();
+                if(!input)throw new InvalidOperationException("Online mobile input unavailable.");
+                input.BindOnline(this,presentation.battleCamera);
+            }
+            catch{if(input)input.UnbindOnline(this);presentation.Unbind();nextTickets.Dispose();throw;}
             tickets=nextTickets;connection=nextConnection;lifetime=new CancellationTokenSource();
             running=RunOwned(connection,tickets,lifetime);
             return running;
@@ -41,7 +47,7 @@ namespace Buklod.Empire {
             try{await current.Run(cancel.Token);}
             finally{
                 provider.Dispose();cancel.Dispose();
-                if(ReferenceEquals(connection,current)){lifetime=null;tickets=null;if(current.State!=OnlineConnectionState.Finished&&presentation)presentation.Unbind();}
+                if(ReferenceEquals(connection,current)){lifetime=null;tickets=null;if(input)input.UnbindOnline(this);if(current.State!=OnlineConnectionState.Finished&&presentation)presentation.Unbind();}
             }
         }
         public void Move(Vector2 direction){if(Active)connection.SetMovement(direction);}
@@ -49,6 +55,7 @@ namespace Buklod.Empire {
             return Active&&connection.QueueAction(action,aim,target,text);
         }
         public void Stop(){
+            if(input)input.UnbindOnline(this);
             if(lifetime!=null)lifetime.Cancel();
             if(presentation)presentation.Unbind();
         }

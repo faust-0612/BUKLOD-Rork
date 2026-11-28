@@ -1,0 +1,35 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-online-mobile-controls-20261128.json",
+  "baseRef": "d4f3e4d4364a160663bbed36928178750477e7ed",
+  "productionBaselineEvidence": "Standalone DEV only; no production or online backend mutation.",
+  "objective": "Connect existing mobile input to isolated authenticated online session without changing offline rules.",
+  "chosenApproach": "Reuse existing touch layout and route bounded input through OnlineSessionController, with snapshot-only target selection.",
+  "selectionRationale": "No duplicate touch handlers or client simulation; preserve authoritative server.",
+  "alternativeApproaches": [
+    "Separate duplicate mobile input system"
+  ],
+  "riskAreas": [
+    "Touch lifecycle and online handoff",
+    "Snapshot target selection"
+  ],
+  "preserveBehaviors": [
+    "Offline practice input and controls",
+    "Existing server validation and no MAIN writes"
+  ],
+  "acceptanceChecks": [
+    "Online handoff binds isolated touch controls; movement clears on disconnect or unbind",
+    "All eight control mappings route valid input; targeted commands consider visible live enemies only"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/MobileBattleInput.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/OnlineSessionController.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/OnlineControlRouting.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OnlineControlRoutingTests.cs",
+    ".buklod/scopes/empire-online-mobile-controls-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OnlineControlRoutingTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

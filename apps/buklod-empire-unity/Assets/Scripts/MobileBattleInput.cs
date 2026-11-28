@@ -17,14 +17,29 @@ namespace Buklod.Empire {
         private Vector2 origin,contactOrigin,actionOrigin;
         private Rect lastArea;
         private BattleView view;
-        public void Bind(BattleView battle){view=battle;}
+        private OnlineSessionController online;
+        private Camera onlineCamera;
+        private bool onlinePlaying;
+        public void Bind(BattleView battle){if(online)throw new System.InvalidOperationException("Unbind online before offline input.");view=battle;}
+        public void BindOnline(OnlineSessionController session,Camera camera){
+            if(view||!session||!camera)throw new System.InvalidOperationException("Online input requires its own camera and session.");
+            Reset();online=session;onlineCamera=camera;onlinePlaying=false;
+        }
+        public void UnbindOnline(OnlineSessionController session){if(online!=session)return;Reset();online=null;onlineCamera=null;onlinePlaying=false;}
+        private void Dispatch(int button,Vector2 direction){
+            if(view){view.Cast(button,direction);return;}
+            if(!online||!onlineCamera||online.State!=OnlineConnectionState.Playing)return;
+            var aim=OnlineControlRouting.ToWorld(direction,onlineCamera.transform.right,onlineCamera.transform.forward);
+            if(OnlineControlRouting.TryRoute(online.Snapshot,button,aim,out var action,out int target))online.Command(action,aim,target);
+        }
         private void OnEnable(){lastArea=SafeArea;EnhancedTouchSupport.Enable();Touch.onFingerDown+=Down;Touch.onFingerMove+=Move;Touch.onFingerUp+=Up;}
         private void OnDisable(){Touch.onFingerDown-=Down;Touch.onFingerMove-=Move;Touch.onFingerUp-=Up;EnhancedTouchSupport.Disable();Reset();}
         private void OnApplicationFocus(bool focused){if(!focused)Reset();}
         private void OnApplicationPause(bool paused){if(paused)Reset();}
-        private void Reset(){movement=null;skill=null;Joystick=Vector2.zero;Aim=Vector2.zero;ActiveSkill=-1;}
+        private void Reset(){movement=null;skill=null;Joystick=Vector2.zero;Aim=Vector2.zero;ActiveSkill=-1;if(online)online.Move(Vector2.zero);}
         private void Down(Finger finger){
             var at=finger.currentTouch.screenPosition;
+            if(online&&online.State!=OnlineConnectionState.Playing)return;
             if(!SafeArea.Contains(at))return;
             int button=ArenaControlSettings.Nearest(SafeArea,at);
             if(button>0){if(skill==null){skill=finger;ActiveSkill=button;actionOrigin=at;Aim=Vector2.zero;}return;}
@@ -47,15 +62,22 @@ namespace Buklod.Empire {
             bool cancel=finger.currentTouch.phase==UnityEngine.InputSystem.TouchPhase.Canceled||!SafeArea.Contains(finger.currentTouch.screenPosition)||Vector2.Distance(finger.currentTouch.screenPosition,PixelCenter(ActiveSkill))>Radius(ActiveSkill)*3.2f;
             int button=ActiveSkill;Vector2 direction=cancel?Vector2.zero:ResolveAim(finger.currentTouch.screenPosition,actionOrigin,Radius(button));
             skill=null;ActiveSkill=-1;Aim=Vector2.zero;
-            if(!cancel&&view)view.Cast(button,direction);
+            if(!cancel)Dispatch(button,direction);
         }
         private void Update(){
             if(lastArea!=SafeArea){lastArea=SafeArea;Reset();}
+            if(online){
+                bool playing=online.State==OnlineConnectionState.Playing&&onlineCamera;
+                if(playing!=onlinePlaying){Reset();onlinePlaying=playing;}
+                if(!playing)return;
+            }
 #if UNITY_EDITOR
-            var k=Keyboard.current;if(k==null||movement!=null||skill!=null)return;
-            Joystick=Vector2.ClampMagnitude(new Vector2((k.dKey.isPressed?1:0)-(k.aKey.isPressed?1:0),(k.wKey.isPressed?1:0)-(k.sKey.isPressed?1:0)),1);
-            if(view){if(k.spaceKey.wasPressedThisFrame)view.Cast(1,Vector2.zero);if(k.digit1Key.wasPressedThisFrame)view.Cast(2,Vector2.zero);if(k.digit2Key.wasPressedThisFrame)view.Cast(3,Vector2.zero);if(k.digit3Key.wasPressedThisFrame)view.Cast(4,Vector2.zero);if(k.digit4Key.wasPressedThisFrame)view.Cast(5,Vector2.zero);if(k.rKey.wasPressedThisFrame)view.Cast(6,Vector2.zero);}
+            var k=Keyboard.current;if(k!=null&&movement==null&&skill==null){
+                Joystick=Vector2.ClampMagnitude(new Vector2((k.dKey.isPressed?1:0)-(k.aKey.isPressed?1:0),(k.wKey.isPressed?1:0)-(k.sKey.isPressed?1:0)),1);
+                if(k.spaceKey.wasPressedThisFrame)Dispatch(1,Vector2.zero);if(k.digit1Key.wasPressedThisFrame)Dispatch(2,Vector2.zero);if(k.digit2Key.wasPressedThisFrame)Dispatch(3,Vector2.zero);if(k.digit3Key.wasPressedThisFrame)Dispatch(4,Vector2.zero);if(k.digit4Key.wasPressedThisFrame)Dispatch(5,Vector2.zero);if(k.rKey.wasPressedThisFrame)Dispatch(6,Vector2.zero);
+            }
 #endif
+            if(onlinePlaying&&online&&onlineCamera)online.Move(OnlineControlRouting.ToWorld(Joystick,onlineCamera.transform.right,onlineCamera.transform.forward));
         }
     }
 }
