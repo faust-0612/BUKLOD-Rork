@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-online-hud-candidate-20261128.json",
+  "baseRef": "d780997ef9d6f58c8e1d0aecb65bfca9d77f8ec8",
+  "productionBaselineEvidence": "Standalone Empire DEV only; no verified production APK or backend.",
+  "objective": "Expose authoritative online match HUD and explicit approved-catalog scene assembly; audit owner hero inputs.",
+  "chosenApproach": "Snapshot-driven HUD uses shared touch layout; explicit separate scene assembly with existing provenance gate.",
+  "selectionRationale": "No client-side gameplay authority or duplicate touch input; no unapproved art activation.",
+  "alternativeApproaches": [
+    "Reuse offline HUD and simulation state, rejected due to authority coupling."
+  ],
+  "riskAreas": [
+    "Unity UI lifecycle",
+    "Scene bounds",
+    "Unverified catalog provenance"
+  ],
+  "preserveBehaviors": [
+    "Offline practice unchanged",
+    "No MAIN backend or build settings change",
+    "Existing provenance and authenticated handoff guards"
+  ],
+  "acceptanceChecks": [
+    "HUD reports only server state and cooldowns",
+    "Candidate scene requires an approved catalog and exact arena dimensions",
+    "No client gameplay authority or automatic deployment"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/OnlineSessionController.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/OnlineBattleHud.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OnlineCandidateComposer.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OnlineBattleHudTests.cs",
+    "apps/buklod-empire-unity/Tools/AssetCandidates/LibraryFirst/OWNER_HERO_INPUT_AUDIT.md",
+    ".buklod/scopes/empire-online-hud-candidate-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OnlineBattleHudTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

@@ -5,10 +5,11 @@ using UnityEngine;
 namespace Buklod.Empire {
     // Scene owner receives a trusted authenticated handoff from the future lobby client.
     // No local authority, embedded secrets, MAIN endpoint or offline fallback.
-    [RequireComponent(typeof(OnlineBattlePresentation),typeof(MobileBattleInput))]
+    [RequireComponent(typeof(OnlineBattlePresentation),typeof(MobileBattleInput),typeof(OnlineBattleHud))]
     public sealed class OnlineSessionController:MonoBehaviour {
         OnlineBattlePresentation presentation;
         MobileBattleInput input;
+        OnlineBattleHud hud;
         HttpsMatchTicketProvider tickets;
         OnlineMatchConnection connection;
         CancellationTokenSource lifetime;
@@ -37,9 +38,12 @@ namespace Buklod.Empire {
                 input=GetComponent<MobileBattleInput>();
                 if(!input)throw new InvalidOperationException("Online mobile input unavailable.");
                 input.BindOnline(this,presentation.battleCamera);
+                hud=GetComponent<OnlineBattleHud>();
+                if(!hud)throw new InvalidOperationException("Online HUD unavailable.");
             }
             catch{if(input)input.UnbindOnline(this);presentation.Unbind();nextTickets.Dispose();throw;}
             tickets=nextTickets;connection=nextConnection;lifetime=new CancellationTokenSource();
+            hud.enabled=true;
             running=RunOwned(connection,tickets,lifetime);
             return running;
         }
@@ -55,6 +59,7 @@ namespace Buklod.Empire {
             return Active&&connection.QueueAction(action,aim,target,text);
         }
         public void Stop(){
+            if(hud)hud.enabled=false;
             if(input)input.UnbindOnline(this);
             if(lifetime!=null)lifetime.Cancel();
             if(presentation)presentation.Unbind();
