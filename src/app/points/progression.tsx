@@ -241,7 +241,7 @@ export default function CircleRankProgressionScreen() {
         <>
           <View style={styles.currentCard}>
             <View style={styles.heroRankRow}>
-              <BuklodCircleRankBadge rankName={progress.rank_name} size={79} />
+              <BuklodCircleRankBadge rankName={progress.rank_name} size={79} animate />
               <View style={styles.heroRankDetails}>
                 <Text style={styles.lightLabel}>YOUR PERMANENT CIRCLE RANK</Text>
                 <Text style={styles.currentRank}>{progress.rank_name}</Text>
