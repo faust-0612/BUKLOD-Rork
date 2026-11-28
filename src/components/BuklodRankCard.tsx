@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef } from 'react';
+import BuklodRankDesignRibbon from '@/components/points/BuklodRankDesignRibbon';
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 import {
   Animated,
@@ -35,10 +36,6 @@ export default function BuklodRankCard({
     new Animated.Value(0)
   ).current;
 
-  const pulse = useRef(
-    new Animated.Value(1)
-  ).current;
-
   const safeProgress = Math.max(
     0,
     Math.min(
@@ -57,32 +54,6 @@ export default function BuklodRankCard({
       useNativeDriver: false,
     }).start();
   }, [progress, safeProgress]);
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1.045,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    animation.start();
-
-    return () => {
-      animation.stop();
-    };
-  }, [pulse]);
 
   const message = useMemo(() => {
     if (safeProgress >= 90) {
@@ -108,16 +79,9 @@ export default function BuklodRankCard({
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <Animated.View
-          style={[
-            styles.emblemOuter,
-            {
-              transform: [{ scale: pulse }],
-            },
-          ]}
-        >
-          <BuklodCircleRankBadge rankName={rankName} size={70} />
-        </Animated.View>
+        <View style={styles.emblemOuter}>
+          <BuklodCircleRankBadge rankName={rankName} size={70} animate />
+        </View>
 
         <View style={styles.rankInfo}>
           <Text style={styles.eyebrow}>
@@ -134,6 +98,8 @@ export default function BuklodRankCard({
           </Text>
         </View>
       </View>
+
+      <BuklodRankDesignRibbon rankName={rankName} />
 
       {!!seasonTitle && (
         <View style={styles.seasonPill}>
