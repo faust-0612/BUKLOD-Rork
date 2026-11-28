@@ -4,7 +4,7 @@
 CREATE TABLE private.buklod_quiz_legacy_reference_attestation_r28(question_id uuid PRIMARY KEY, reference_hash text NOT NULL CHECK(reference_hash ~ '^[0-9a-f]{64}$'), attested_at timestamptz NOT NULL DEFAULT now());
 ALTER TABLE private.buklod_quiz_legacy_reference_attestation_r28 ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON private.buklod_quiz_legacy_reference_attestation_r28 FROM PUBLIC,anon,authenticated,service_role;
-CREATE FUNCTION private.buklod_quiz_reference_hash_r28(q public.buklod_quiz_questions) RETURNS text LANGUAGE sql IMMUTABLE SET search_path='' AS $$
+CREATE FUNCTION private.buklod_quiz_reference_hash_r28(q public.buklod_quiz_questions) RETURNS text LANGUAGE sql STABLE SET search_path='' SET timezone='UTC' AS $$
  SELECT encode(sha256(convert_to(jsonb_build_array(q.id,q.exam_id,q.question_type,q.prompt,q.correct_answer,q.explanation,q.rubric,q.created_at,q.updated_at)::text,'UTF8')),'hex');
 $$;
 REVOKE ALL ON FUNCTION private.buklod_quiz_reference_hash_r28(public.buklod_quiz_questions) FROM PUBLIC,anon,authenticated,service_role;
@@ -69,3 +69,33 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.buklod_quiz_historical_ai_payload_v1(uuid,text,boolean) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.buklod_quiz_historical_ai_payload_v1(uuid,text,boolean) TO authenticated;
+
+-- Independently verified both project reference aggregates on 2026-11-28.
+SET LOCAL timezone='UTC';
+CREATE TEMP TABLE r28_attest_target ON COMMIT DROP AS SELECT DISTINCT q.id FROM public.buklod_quiz_attempts a JOIN public.buklod_quiz_responses r ON r.attempt_id=a.id JOIN public.buklod_quiz_attempt_questions aq ON aq.attempt_id=a.id AND aq.question_id=r.question_id JOIN public.buklod_quiz_questions q ON q.id=r.question_id AND q.exam_id=a.exam_id WHERE a.status='NEEDS_REVIEW' AND r.needs_review AND r.manual_score IS NULL;
+DO $guard$ BEGIN
+ IF (SELECT count(*) FROM r28_attest_target)<>52 THEN RAISE EXCEPTION 'Legacy reference population changed'; END IF;
+ PERFORM 1 FROM public.buklod_quiz_questions q JOIN r28_attest_target t ON t.id=q.id ORDER BY q.id FOR SHARE OF q;
+ IF (SELECT md5(string_agg(md5(jsonb_build_array(q.id,q.exam_id,q.question_type,q.prompt,q.correct_answer,q.explanation,q.rubric,q.created_at,q.updated_at)::text),'' ORDER BY q.id)) FROM public.buklod_quiz_questions q JOIN r28_attest_target t ON t.id=q.id) IS DISTINCT FROM '0ee11db4eb348db792eb9293c6177780' THEN RAISE EXCEPTION 'Source reference hash changed'; END IF;
+END $guard$;
+INSERT INTO private.buklod_quiz_legacy_reference_attestation_r28(question_id,reference_hash)
+SELECT q.id,private.buklod_quiz_reference_hash_r28(q) FROM public.buklod_quiz_questions q JOIN r28_attest_target t ON t.id=q.id;
+
+DO $qa$ DECLARE c record; g record; n int:=0; total int:=0; tested boolean; BEGIN
+ FOR c IN SELECT DISTINCT a.exam_id,a.section_id,e.owner_user_id FROM public.buklod_quiz_attempts a JOIN public.buklod_quiz_exams e ON e.id=a.exam_id WHERE a.status='NEEDS_REVIEW' LOOP
+ PERFORM set_config('request.jwt.claim.sub',c.owner_user_id::text,true);
+ tested:=false;
+ FOR g IN SELECT x.attempt_id,max(x.reference_digest) digest,count(*) items,bool_and(coalesce((x.reference->>'auto_verified')::boolean,false)) verified FROM public.buklod_quiz_historical_class_review_v2(c.exam_id,c.section_id) x GROUP BY x.attempt_id LOOP
+ IF g.verified THEN
+ IF g.digest IS NULL THEN RAISE EXCEPTION 'Auto reference missing digest'; END IF;
+ IF NOT tested THEN
+ IF (SELECT count(*) FROM public.buklod_quiz_historical_ai_payload_v1(g.attempt_id,g.digest,false))<>g.items THEN RAISE EXCEPTION 'Auto payload incomplete'; END IF;
+ tested:=true;
+ END IF;
+ n:=n+1;total:=total+g.items;
+ END IF;
+ END LOOP;
+ END LOOP;
+ IF n<>39 OR total<>320 THEN RAISE EXCEPTION 'Auto reference population mismatch: % / %',n,total; END IF;
+ IF has_function_privilege('anon','public.buklod_quiz_historical_ai_payload_v1(uuid,text,boolean)','EXECUTE') OR has_table_privilege('authenticated','private.buklod_quiz_legacy_reference_attestation_r28','SELECT') THEN RAISE EXCEPTION 'Privilege regression'; END IF;
+END $qa$;
