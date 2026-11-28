@@ -1,3 +1,4 @@
+import { SupremeAuthorityBadge } from '@/components/points/BuklodSupremeAuthorityBadge';
 import React, {
   useCallback,
   useEffect,
@@ -371,6 +372,7 @@ export default function MemberPublicProfileScreen() {
                 size={92}
               />
               <Text style={styles.name}>{profile.display_name}</Text>
+              <SupremeAuthorityBadge userId={profile.user_id} size={42}/>
               {isOfficialProfile && (
                 <View style={styles.chip}>
                   <Text style={styles.chipText}>✓ VERIFIED PLATFORM ACCOUNT · NO MEMBER POINTS</Text>

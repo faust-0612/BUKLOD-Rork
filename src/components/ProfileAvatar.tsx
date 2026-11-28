@@ -1,3 +1,4 @@
+import { SupremeAuthorityBadge } from '@/components/points/BuklodSupremeAuthorityBadge';
 import { Image as ExpoImage } from 'expo-image';
 import {
   useEffect,
@@ -570,6 +571,7 @@ export function ProfileAvatar({
         />
       ) : null}
 
+      {userId&&<View pointerEvents="none" style={{position:'absolute',right:-3,top:-4,zIndex:80}}><SupremeAuthorityBadge userId={userId} compact size={Math.max(15,Math.round(size*.45))}/></View>}
       {frameRank&&frameRank.order>=9&&<BuklodRankProfileFrame rank={frameRank} size={size} active={animateRankFrame&&viewerId===rankTargetId}/>}
       <ProfileAvatarStatusIndicator
         userId={rankTargetId}

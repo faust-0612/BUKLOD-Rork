@@ -1,3 +1,4 @@
+import { SupremeAuthorityBadge } from '@/components/points/BuklodSupremeAuthorityBadge';
 import React, { useState } from 'react';
 import {
   Text,
@@ -68,6 +69,7 @@ export default function BuklodTappablePersonName({
         >
           {children}
         </Text>
+        <SupremeAuthorityBadge userId={id}/>
       </BuklodPressable>
 
       <BuklodPersonVisitSheet

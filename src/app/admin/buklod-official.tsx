@@ -1,3 +1,4 @@
+import { SupremeAuthorityBadge } from '@/components/points/BuklodSupremeAuthorityBadge';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -72,7 +73,7 @@ export default function BuklodOfficialConsole() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}
       >
         <View style={styles.hero}>
-          <MaterialCommunityIcons name="check-decagram" size={34} color="#26734C" />
+          <SupremeAuthorityBadge userId={user?.id} size={66} animate/>
           <Text style={styles.eyebrow}>SUPREME SYSTEM AUTHORITY</Text>
           <Text style={styles.title}>BUKLOD Official</Text>
           <Text style={styles.intro}>Above the member rank hierarchy. All cosmetic collections are unlocked. No member rank, BP, QMP or payouts.</Text>

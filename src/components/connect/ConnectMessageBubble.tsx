@@ -1,3 +1,4 @@
+import { SupremeAuthorityBadge } from '@/components/points/BuklodSupremeAuthorityBadge';
 import {useRankConnectCosmetic} from '@/providers/RankConnectCosmeticProvider';
 import React, {
   useMemo,
@@ -713,6 +714,7 @@ export function ConnectMessageBubble({
             ].filter(Boolean).join('. ')}
             accessibilityHint="Tap for date and time; long press for reactions and message actions."
           >
+        {showSenderAvatar&&<SupremeAuthorityBadge userId={senderUserId}/>}
         {!!senderLabel && (
           <Text style={styles.sender}>{senderLabel}</Text>
         )}
