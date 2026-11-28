@@ -12,7 +12,8 @@ namespace Buklod.Empire.Editor {
         const string Source="Assets/Art/Library/KayKitFurniture/";
         const string Atlas=Source+"furniturebits_texture.png";
         const string MaterialPath=CandidateReviewComposer.Out+"/LibraryFurniture.mat";
-        static readonly string[] Names={"cabinet_medium_decorated","shelf_B_large_decorated","table_medium_long","chair_stool_wood","cactus_medium_A","cactus_medium_B","lamp_standing","book_set","table_small","chair_A_wood","shelf_A_small","cabinet_small_decorated"};
+        // Preserve the original curated models and include every pinned furniture mesh.
+        static readonly string[] Names={"cabinet_medium_decorated","shelf_B_large_decorated","table_medium_long","chair_stool_wood","cactus_medium_A","cactus_medium_B","lamp_standing","book_set","table_small","chair_A_wood","shelf_A_small","cabinet_small_decorated","armchair","armchair_pillows","bed_double_A","bed_double_B","bed_single_A","bed_single_B","book_single","cabinet_medium","cabinet_small","cactus_small_A","cactus_small_B","chair_A","chair_B","chair_B_wood","chair_C","chair_stool","couch","couch_pillows","lamp_table","pictureframe_large_A","pictureframe_large_B","pictureframe_medium","pictureframe_small_A","pictureframe_small_B","pictureframe_small_C","pictureframe_standing_A","pictureframe_standing_B","pillow_A","pillow_B","rug_oval_A","rug_oval_B","rug_rectangle_A","rug_rectangle_B","rug_rectangle_stripes_A","rug_rectangle_stripes_B","shelf_A_big","shelf_B_large","shelf_B_small","shelf_B_small_decorated","table_low","table_medium"};
         static readonly Dictionary<string,string> Hashes=new Dictionary<string,string>(StringComparer.Ordinal){
             {"Assets/Art/Library/KayKitFurniture/armchair.fbx","751a982b3ac36cadb18a5e6ae116ff8430cbf56afe2fe4cc36595b48be233cfa"},
             {"Assets/Art/Library/KayKitFurniture/armchair_pillows.fbx","2b940763c0caa04e848838f9f567b8f70e8b62d6e494463e0c64586b6f6edb8a"},
@@ -94,6 +95,11 @@ namespace Buklod.Empire.Editor {
         }
         internal static void Apply(Transform parent){
             ValidateInputs();
+            var expected=new HashSet<string>(Hashes.Keys.Where(path=>path.EndsWith(".fbx",StringComparison.Ordinal)),StringComparer.Ordinal);
+            if(Names.Length!=expected.Count||!expected.SetEquals(Names.Select(name=>Source+name+".fbx")))
+                throw new InvalidOperationException("Library furniture roster does not match pinned meshes.");
+            if(OfflineBattle.Height-12f<(Names.Length-1)*2f)
+                throw new InvalidOperationException("Insufficient exterior space for Library furniture.");
             var models=Names.Select(name=>{
                 string path=Source+name+".fbx";
                 var model=AssetDatabase.LoadAssetAtPath<GameObject>(path);
