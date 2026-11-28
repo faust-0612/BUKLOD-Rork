@@ -38,6 +38,7 @@ namespace Buklod.Empire {
             // Preserve legibility; the old cream sprite washed out every white/green label.
             var border=r.gameObject.AddComponent<Outline>();border.effectColor=new Color(.31f,.54f,.58f,.8f);border.effectDistance=new Vector2(1,-1);
             var b=r.gameObject.AddComponent<Button>();b.targetGraphic=image;
+            if(view.IsEditorReview)r.gameObject.AddComponent<ReviewButtonMotion>();
             var colors=b.colors;colors.normalColor=Color.white;colors.highlightedColor=new Color(1.15f,1.15f,1.15f);colors.pressedColor=new Color(.74f,.82f,.84f);colors.selectedColor=Color.white;colors.disabledColor=new Color(.48f,.52f,.57f,.68f);b.colors=colors;
             b.onClick.AddListener(()=>{if(authored)authored.Click();action();});Label("Label",r,Vector2.zero,Vector2.one,value,23);return b;
         }
@@ -149,8 +150,8 @@ namespace Buklod.Empire {
                 var slot=(SkillSlot)i;
                 var preview=ButtonAt("Preview "+spec.Id,row,new Vector2(.19f,.05f),new Vector2(.76f,.95f),spec.Id.Replace('_',' '),()=>{
                     if(livePreview&&livePreview.PlaySkill(slot)){
-                        feedback.text="Skill preview • no match action or reward";
-                        if(slot==SkillSlot.Ultimate){var voice=GetComponent<ReviewHeroDialogue>();if(voice){var line=voice.PreviewUltimate(selected);if(!string.IsNullOrEmpty(line))feedback.text=line+"  •  Preview";}}
+                        feedback.text=ReviewSkillTrial.Evaluate(selected,slot).Summary+" • No rewards";
+                        if(slot==SkillSlot.Ultimate){var voice=GetComponent<ReviewHeroDialogue>();if(voice){var line=voice.PreviewUltimate(selected);if(!string.IsNullOrEmpty(line))feedback.text=line+" • "+feedback.text;}}
                     }else feedback.text="Live animation unavailable; showing captured portrait.";
                 });
                 preview.GetComponentInChildren<Text>().fontSize=20;
