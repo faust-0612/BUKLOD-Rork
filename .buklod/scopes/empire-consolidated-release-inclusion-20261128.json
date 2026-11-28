@@ -1,0 +1,31 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-consolidated-release-inclusion-20261128.json",
+  "baseRef": "e1db45acbbaffe5130612fb1aed7d333d3217d52",
+  "productionBaselineEvidence": "Empire DEV; no approved production APK or published OTA",
+  "objective": "Record owner-required inclusion in the next consolidated Empire release",
+  "chosenApproach": "Append release ledger and checklist; preserve native-versus-content ABI boundaries",
+  "selectionRationale": "Avoid omission and premature or incompatible OTA publication",
+  "alternativeApproaches": [
+    "Publish incomplete content now; rejected"
+  ],
+  "riskAreas": [
+    "Incomplete native/OTA compatibility",
+    "Asset rights and runtime verification outstanding"
+  ],
+  "preserveBehaviors": [
+    "No MAIN changes",
+    "Existing build and signing gates",
+    "Private asset restriction"
+  ],
+  "acceptanceChecks": [
+    "Ledger and checklist record cumulative inclusion and release prerequisites"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/RELEASE_LEDGER.md",
+    "apps/buklod-empire-unity/MASTER_CHECKLIST.md",
+    ".buklod/scopes/empire-consolidated-release-inclusion-20261128.json"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": []
+}

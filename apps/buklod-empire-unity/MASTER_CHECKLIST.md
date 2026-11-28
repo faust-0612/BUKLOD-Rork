@@ -49,3 +49,10 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 - [x] Authored and wired the missing Demon and Snake controller clips on the original pinned rigs. Both GLBs passed exact checksum and unique skin-joint binding checks. Hit and Death states are available without changing invulnerable hazard gameplay. Unity import and playback deferred.
 
 - [x] Added an isolated offline motion preflight for the original Jungle Demon and Snake prefabs. The Unity gate verifies the movement blend, typed parameters, action transitions and rig curves before packaging. Its execution remains deferred until Unity import.
+
+## Consolidated Empire release inclusion (owner directive, 2026-11-28)
+
+- [ ] Reconcile all post-baseline improvements, including the blueprint-derived physical Rift terrain, bridges, jungle/fog/minimap, complete actual 13-hero roster and attack/skill animation choreography into the same cumulative candidate.
+- [ ] Resolve rights/canonical mapping for private candidates; never package the private editor-only scene.
+- [ ] Classify changes by native runtime versus supported signed content ABI; map/rig/controller/C#/shader updates require compatible native support, not the existing v2 OTA alone.
+- [ ] Finish verification and release gates from RELEASE_LEDGER.md before a single consolidated Empire rollout. No MAIN changes and no premature publication.
