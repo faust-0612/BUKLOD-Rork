@@ -46,7 +46,7 @@ namespace Buklod.Empire {
             Paused=value;if(input)input.enabled=!value;if(value){ControlFeedbackUntil=0;Battle?.CancelPlayerAttack();}
             foreach(var visual in active.Values)if(visual.animator)visual.animator.speed=value?0f:1f;
             foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value?0f:1f;
-            if(value){if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
+            if(value){if(projectiles)projectiles.Clear();if(combatOverlay)combatOverlay.ResetOverlay();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
         public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
         [SerializeField, HideInInspector] private bool editorReviewOnly;
@@ -70,6 +70,8 @@ namespace Buklod.Empire {
         private BattleFieldVisuals fieldVisuals;
         private WorldInteractionEffects worldEffects;
         private BattleEffects effects;
+        ReviewProjectileEffects projectiles;
+        ReviewCombatOverlay combatOverlay;
         private ReviewContactShadows reviewShadows;
         private SkillAudio skillAudio;
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
@@ -116,6 +118,12 @@ namespace Buklod.Empire {
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
+            if(ReviewOnly){
+                if(!projectiles)projectiles=gameObject.AddComponent<ReviewProjectileEffects>();
+                projectiles.Bind(this,effects?effects.pulseMaterial:null);
+                if(!combatOverlay)combatOverlay=gameObject.AddComponent<ReviewCombatOverlay>();
+                combatOverlay.Bind(this);
+            }
             reviewShadows=ReviewOnly?GetComponent<ReviewContactShadows>():null;if(reviewShadows)reviewShadows.Clear();
             reviewFoley=ReviewOnly?GetComponent<ArenaReviewFoley>():null;
             reviewDialogue=ReviewOnly?GetComponent<ReviewHeroDialogue>():null;if(reviewDialogue)reviewDialogue.Stop();
@@ -226,6 +234,7 @@ namespace Buklod.Empire {
                 if(immediate||row.remaining<=0){Return(row.visual);dying.RemoveAt(i);}else{row.visual.fallback?.Tick(Time.deltaTime);dying[i]=row;}
             }
             seen.Clear();
+            if(combatOverlay)combatOverlay.BeginFrame();
             if(reviewShadows)reviewShadows.Begin();
             reviewFarmNodes.Clear();
             if(ReviewOnly)foreach(var node in Battle.ResourceNodes)if(node.StructureId!=0&&node.Kind==VillageResourceKind.Food)reviewFarmNodes[node.StructureId]=node;
@@ -319,6 +328,7 @@ namespace Buklod.Empire {
                     }
                 }
                 bool tookHit=u.DamageTaken>v.damageTaken+.001f;
+                if(combatOverlay&&hero&&inView)combatOverlay.Observe(u.Id,t.position+Vector3.up*(2.1f*worldScale),u.State.Health,u.State.MaxHealth,u.State.Shield,u.State.Level,u.Team==Battle.Player.Team,player,immediate?0:Mathf.Max(0,u.DamageTaken-v.damageTaken));
                 bool built=u.ConstructionWorkSequence>v.constructionWork;v.constructionWork=u.ConstructionWorkSequence;
                 if(built&&!tookHit&&!attackedThisFrame){
                     Trigger(v,"Work");
@@ -337,6 +347,8 @@ namespace Buklod.Empire {
                 if(tookHit&&!immediate&&inView&&reviewFoley)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,t.position);
                 v.damageTaken=u.DamageTaken;v.fallback?.Tick(immediate?0:Time.deltaTime);
             }
+            if(combatOverlay)combatOverlay.EndFrame();
+            if(projectiles)projectiles.Consume(immediate);
             removed.Clear();foreach(var pair in active)if(!seen.Contains(pair.Key)){
                 var v=pair.Value;var u=v.unit;
                 // Retain the unit reference even if the simulation removed a dead minion this tick.

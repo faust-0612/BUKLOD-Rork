@@ -388,6 +388,7 @@ namespace Buklod.Empire {
         private int nextId,tick; private double accumulator;
         private int nextDropId;private readonly System.Random dropRandom,combatRandom,relicRandom;
         private readonly List<ArenaFieldDrop> drops=new List<ArenaFieldDrop>();
+        public ReviewProjectileFeed ProjectileFeed {get;}=new ReviewProjectileFeed();
         public IReadOnlyList<ArenaFieldDrop> Drops {get;}
         private readonly List<ArenaRelicDrop> relicDrops=new List<ArenaRelicDrop>();
         public IReadOnlyList<ArenaRelicDrop> RelicDrops {get;}
@@ -528,6 +529,8 @@ namespace Buklod.Empire {
                 if(!target.Alive){t.ClearCargo();t.WorkerOrder=VillageWorkerOrder.Gather;t.Construction=null;}
             }
             else target.Health=Mathf.Max(0,target.Health-actual);
+            if(!IsAuthoritative&&actor.Kit!=null&&n>0&&basic&&actor.Kit.BasicRange>=8f&&IsPositionVisibleTo(Player.Team,a.Position)&&IsPositionVisibleTo(Player.Team,t.Position))
+                ProjectileFeed.Add(actor.Kit.Id,a.Position,t.Position,Time,false);
             float hpDamage=Mathf.Max(0,priorHp-target.Health);a.DamageDealt+=hpDamage;t.DamageTaken+=hpDamage;if(hpDamage>0)lastFactionDamage=Time;
             // Offline villagers defend themselves only after actual hostile damage.
             // A distant attacker never causes a worker to abandon its assigned job.

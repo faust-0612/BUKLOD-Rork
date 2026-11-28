@@ -16,3 +16,5 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 
 - [x] Wire preview-only costume palette into existing hero showcase; restore original material through property blocks; regression fixture added (not run).
 - [x] Correct learned pursuit attribution to require the same observer and actual player displacement, not observer movement.
+
+- [x] Forward-port bounded confirmed ranged-basic projectile tracers and visible hero HP/shield/level/damage overlays; bind to current BattleView, pause/reset lifecycle and fog checks. Regression fixtures authored, not run. Skill projectile receipts and reward feed remain open.

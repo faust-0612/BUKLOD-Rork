@@ -1,0 +1,36 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-confirmed-combat-presentation-20261128.json",
+  "baseRef": "d69ae7afc69911d21e57fe339b1e96b90b63c0ca",
+  "productionBaselineEvidence": "DEV only, external runtime deferred.",
+  "objective": "Reconcile confirmed ranged basic tracers and visible combat overlays.",
+  "chosenApproach": "Bounded receipt and UI pools fed by canonical simulation and existing visible actor sync.",
+  "selectionRationale": "No combat rule or hidden information changes.",
+  "alternativeApproaches": [
+    "Replace BattleView with divergent version",
+    "Simulate cosmetic projectile damage"
+  ],
+  "riskAreas": [
+    "fog, pooling, pause, performance"
+  ],
+  "preserveBehaviors": [
+    "Existing combat and AI, online authority, MAIN and reward isolation"
+  ],
+  "acceptanceChecks": [
+    "Bounded receipts, fog and pause filtering, finite presentation math; runtime deferred"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewProjectileFeed.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewProjectileEffects.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewCombatOverlay.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewConfirmedCombatTests.cs",
+    "apps/buklod-empire-unity/MASTER_CHECKLIST.md",
+    ".buklod/scopes/empire-confirmed-combat-presentation-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewConfirmedCombatTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}
