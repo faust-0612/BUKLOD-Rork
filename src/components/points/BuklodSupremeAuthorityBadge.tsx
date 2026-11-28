@@ -37,7 +37,7 @@ export function SupremeAuthorityBadge({userId,compact=false,size=20,animate=fals
  if(!visible)return null;
  return <View accessible accessibilityLabel="BUKLOD Supreme — highest system authority" style={{flexDirection:'row',alignItems:'center',gap:4,alignSelf:'flex-start'}}>
  <Animated.View style={{transform:[{scale}]}}><Svg width={size} height={size} viewBox="0 0 100 100">
- <Defs><LinearGradient id="supremeGold" x1="0" y1="0" x2="1" y2="1"><Stop offset="0" stopColor="#FFF8CE"/><Stop offset=".5" stopColor="#E5B54B"/><Stop offset="1" stopColor="#A56B16"/></LinearGradient></Defs>
+ <Defs><LinearGradient id="supremeGold" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor="#FFF8CE"/><Stop offset="50%" stopColor="#E5B54B"/><Stop offset="1" stopColor="#A56B16"/></LinearGradient></Defs>
  <Circle cx="50" cy="50" r="48" fill="#142C25" stroke="url(#supremeGold)" strokeWidth="4"/>
  <Path d="M50 3 L57 21 77 12 78 32 97 50 78 58 88 78 64 79 50 97 36 79 12 78 22 58 3 50 22 32 23 12 43 21Z" fill="url(#supremeGold)"/>
  <Circle cx="50" cy="50" r="30" fill="#153D2C" stroke="#FFF3B4" strokeWidth="2"/>

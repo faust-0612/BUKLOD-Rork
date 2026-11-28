@@ -50,11 +50,11 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
   useEffect(()=>{
     let live=true;
     setAdminVerified(null);
-    if(candidate&&composerOpen&&userId)void Promise.resolve(supabase.rpc('is_system_admin')).then(({data,error})=>{if(live&&!error&&data===true)setAdminVerified(userId);}).catch(()=>{});
+    if(candidate&&composerOpen&&userId)void Promise.resolve((supabase as any).rpc('get_buklod_official_identity_v1',{p_user_id:userId})).then(({data,error})=>{if(live&&!error&&data===true)setAdminVerified(userId);}).catch(()=>{});
     return()=>{live=false;};
   },[candidate,composerOpen,userId]);
   const cosmeticAdmin=candidate&&composerOpen&&adminVerified===userId;
-  const enabled=!!userId&&(config?.features?.rank_wall_designs===true||cosmeticAdmin);
+  const enabled=!!userId&&config?.features?.rank_wall_designs===true;
   const owner=enabled?userId+':'+scopeKey:'';
   const [rankState,setRankState]=useState<{owner:string;name:string|null}>({owner:'',name:null});
   const [stylesState,setStylesState]=useState<{owner:string;rows:Record<string,WallPostStyle>}>({owner:'',rows:{}});
