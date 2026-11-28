@@ -1,7 +1,0 @@
-{
-  "name": "@buklod/genesis-native-ime",
-  "version": "1.0.0",
-  "private": true,
-  "main": "./KeyboardGifInput.tsx",
-  "description": "Local Android GIF IME bridge for exact Genesis staging APK"
-}
