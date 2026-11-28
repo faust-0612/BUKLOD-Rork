@@ -1,0 +1,83 @@
+{
+  "status": "AUDITED_QUIZ_R26_SOURCE_CANDIDATE",
+  "date": "2026-11-28",
+  "scope": "Existing BUKLOD Quiz web-to-MAIN consolidation, canonical R10 source, targeted MAIN launcher and Quiz backend. No unrelated MAIN features or archived native candidates are changed or certified.",
+  "source": {
+    "web": "a242c9f1bf957ee9d745118fd59d2263619a555f",
+    "backend": "9e9cb563014bbff05fac0f3950b4a3ef2f332af1",
+    "productionWebBaseline": "da0f5da96cfb63629d8a4bfd0a7065ec1e949d71",
+    "sql": {
+      "commit": "ebe0dfbc552a8bf41fad28d535b04a0a62c0ce49",
+      "path": "supabase/pending/BUKLOD_QUIZ_CENTRAL_RECORDED_REVIEW_R26.sql",
+      "blob": "840229faba9a219be23bfa6a28e61e3e3b284b09"
+    },
+    "qa": {
+      "commit": "d4bd08f224cf8b8311f5419b2ff6a17435e694f8",
+      "path": "supabase/pending/tests/quiz-r26-recorded-review-local.sh"
+    },
+    "pdf": {
+      "commit": "9967b519e420c62e65044d8fb596d755add740ab",
+      "path": "supabase/pending/quiz-edge-pdf-r26",
+      "baseLiveVersion": 25,
+      "indexBlob": "7b953f106530ac8e81a2f4b7fecea920f27089e4",
+      "moduleBlob": "ecb03ee76ed246cb101ef0bd4dfd6b0029f44160",
+      "test": "tests/quiz-r26-question-independence.test.mjs"
+    }
+  },
+  "verification": {
+    "syntheticSQL": "QUIZ_R26_ISOLATED_SYNTHETIC_QA_PASS_ROLLBACK",
+    "liveReadPreflight": "R26_LIVE_READ_CONTRACT_PREFLIGHT_PASS_ROLLBACK",
+    "liveSampleAttempts": 3,
+    "livePreservedRows": 250,
+    "testSchemasRemaining": 0,
+    "sourceScan": {
+      "canonicalFrontendAppAndSrcFiles": 36,
+      "missingLocalImports": 0,
+      "todoFixmeMarkersFound": 0,
+      "existingReferencedAuthenticatedRpcNames": 67,
+      "missingExistingRpcNames": 0,
+      "newR26RpcInPendingSql": true,
+      "configuredIconAssetsPresent": 3
+    },
+    "pdfRuleCases": {
+      "blocked": 18,
+      "allowed": 9,
+      "itemChecks": 3,
+      "method": "Rule expressions and cases extracted from exact committed source; not Deno deployment."
+    },
+    "comparison": {
+      "webAheadOfProductionBaseline": 12,
+      "webBehind": 0,
+      "mainDevAhead": 53,
+      "mainDevBehind": 0
+    },
+    "live": {
+      "r25Live": true,
+      "r26Live": false,
+      "attempts": 951,
+      "responses": 61909,
+      "released": 460
+    }
+  },
+  "decisions": [
+    "Preserve current production-derived authoritative source rather than wholesale merge divergent archived, KL, unrelated MAIN, or historical standalone branches.",
+    "R26 corrects recorded item scores only with preserved original assignment and faculty confirmation; never reconstruct missing original points.",
+    "PDF question-dependency validation restored on top of current v25 source without deploying it.",
+    "No release or deletion based on source-level verification alone."
+  ],
+  "limitations": [
+    "Source scan is scoped to active Quiz app/src files, changed source, configuration, named Quiz branches and referenced backend contracts; not a line-by-line certification of every unrelated file in either repository.",
+    "TypeScript dependency-aware compilation, Expo build/preview, native/device and real authenticated end-to-end verification deferred; no claim those tests passed.",
+    "Isolated synthetic fixture excludes production triggers and actual Auth gateway; live read-only sample is not a production write test.",
+    "77 historical attempts still require original grading evidence; one unmatched attempt and related records remain protected in quarantine."
+  ],
+  "releaseOrder": [
+    "Verify R26 exact pinned source and build in external environment",
+    "Apply verified R26 SQL under guarded migration and deploy exact PDF candidate only after appropriate edge checks",
+    "Deploy and verify exact MAIN-target preview, authenticated student/faculty flow and production alias",
+    "Release MAIN launcher via required OTA gates and verify legacy independence",
+    "Verify recoverable Dedicated backup, parity, no dependencies and authorization before permanent retirement"
+  ],
+  "productionChangedThisCycle": false,
+  "dedicatedDeleted": false
+}
