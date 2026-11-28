@@ -99,6 +99,10 @@ namespace Buklod.Empire {
                 return target;
             }catch(Exception error){Debug.LogWarning("Live hero preview unavailable; using captured model portrait: "+error.Message);Hide();return null;}
         }
+        public bool SetPalette(ReviewPalette palette){
+            if(!actor||!Enum.IsDefined(typeof(ReviewPalette),palette))return false;
+            return ReviewHeroPalette.Apply(actor,palette)>0;
+        }
         void ApplyPreviewLook(int level){
             if(!previewEquipment||previewEquipment.mounts==null)return;
             foreach(var mount in previewEquipment.mounts){

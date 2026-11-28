@@ -10,6 +10,21 @@ namespace Buklod.Empire.Tests {
                 Assert.GreaterOrEqual(result.Healing,0);Assert.GreaterOrEqual(result.Shield,0);Assert.GreaterOrEqual(result.Displacement,0);
             }
         }
+        [Test] public void CostumePaletteUsesPropertyBlocksAndRestoresOriginal(){
+            var root=GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var shader=Shader.Find("Universal Render Pipeline/Lit")??Shader.Find("Standard");
+            Assert.IsNotNull(shader);var material=new Material(shader){name="armor"};
+            try{
+                var renderer=root.GetComponent<Renderer>();renderer.sharedMaterial=material;
+                string prop=material.HasProperty("_BaseColor")?"_BaseColor":"_Color";
+                var original=new Color(.2f,.3f,.4f,1);material.SetColor(prop,original);
+                Assert.AreEqual(1,ReviewHeroPalette.Apply(root,ReviewPalette.Radiant));
+                var block=new MaterialPropertyBlock();renderer.GetPropertyBlock(block,0);
+                Assert.AreNotEqual(original,block.GetColor(prop));Assert.AreEqual(original,material.GetColor(prop));
+                Assert.AreEqual(1,ReviewHeroPalette.Apply(root,ReviewPalette.Original));renderer.GetPropertyBlock(block,0);
+                Assert.AreEqual(original,block.GetColor(prop));
+            }finally{Object.DestroyImmediate(root);Object.DestroyImmediate(material);}
+        }
         [Test] public void PalettesNeverChangeSacredStoneOrSkin(){
             var baseColor=new Color(.23f,.44f,.56f,.9f);
             foreach(var p in new[]{ReviewPalette.Radiant,ReviewPalette.Nightwatch}){

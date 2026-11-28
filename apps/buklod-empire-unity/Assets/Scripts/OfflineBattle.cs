@@ -1062,7 +1062,8 @@ namespace Buklod.Empire {
         readonly Dictionary<int,BotMemory> botMemory=new Dictionary<int,BotMemory>();
         OfflineBotLearning learned=new OfflineBotLearning();
         int learningObservations,learningCasts,learningAdvances,learningIsolated,lastObservedCast;
-        float lastObservedDistance;
+        Vector2 lastObservedPlayerPosition;
+        int lastObserverId;
         bool previouslyObserved,learningCollected;
         public bool ConfigureBotLearning(OfflineBotLearning profile){
             if(IsAuthoritative||AutonomousTraining||Time!=0||profile==null)return false;
@@ -1074,13 +1075,13 @@ namespace Buklod.Empire {
             var observer=units.Where(v=>v.Team!=Player.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(v,Player)<=18&&ClearSight(v.Position,Player.Position)&&IsVisibleTo(v.Team,Player)).OrderBy(v=>Dist(v,Player)).ThenBy(v=>v.Id).FirstOrDefault();
             if(observer==null){previouslyObserved=false;return;}
             float distance=Dist(observer,Player);
-            if(previouslyObserved){
+            if(previouslyObserved&&lastObserverId==observer.Id){
                 learningObservations++;
                 if(Player.State.CastSequence>lastObservedCast)learningCasts++;
-                if(distance<lastObservedDistance-1)learningAdvances++;
+                if(Vector2.Distance(lastObservedPlayerPosition,observer.Position)-distance>1)learningAdvances++;
                 if(!units.Any(v=>v!=Player&&v.Team==Player.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(v,Player)<10&&IsVisibleTo(observer.Team,v)))learningIsolated++;
             }
-            previouslyObserved=true;lastObservedCast=Player.State.CastSequence;lastObservedDistance=distance;
+            previouslyObserved=true;lastObservedCast=Player.State.CastSequence;lastObservedPlayerPosition=Player.Position;lastObserverId=observer.Id;
         }
         public bool TryCollectBotLearning(out OfflineBotLearning profile){
             profile=null;

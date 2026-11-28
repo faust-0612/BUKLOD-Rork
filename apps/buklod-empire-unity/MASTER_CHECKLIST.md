@@ -13,3 +13,6 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 - [ ] Execute available static checks and focused regressions; fix failures.
 - [ ] Reconcile build scripts, asset prerequisites, source ledger and clean committed candidate.
 - [ ] Declare source complete only after all source tasks are closed. External Unity/APK/device verification separately deferred.
+
+- [x] Wire preview-only costume palette into existing hero showcase; restore original material through property blocks; regression fixture added (not run).
+- [x] Correct learned pursuit attribution to require the same observer and actual player displacement, not observer movement.

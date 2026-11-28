@@ -117,6 +117,7 @@ namespace Buklod.Empire {
             return reviewPortraits?reviewPortraits.Find(selected,full):null;
         }
         private void HideShowcase(){if(livePreview)livePreview.Hide();}
+        ReviewPalette previewPalette=ReviewPalette.Original;
         private void HeroDetails(){
             var kit=HeroKitCatalog.Get(selected);var accent=BattleEffects.Accent(selected);
             title.text=kit.Name.ToUpperInvariant()+"  •  HERO PROFILE";title.color=accent;
@@ -125,6 +126,7 @@ namespace Buklod.Empire {
             var left=Rect("Hero showcase",body,new Vector2(.015f,.04f),new Vector2(.44f,.98f));
             var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,.13f);bg.raycastTarget=false;
             var portrait=ShowcaseTexture(fullBody);
+            bool paletteAvailable=portrait is RenderTexture&&livePreview&&livePreview.SetPalette(previewPalette);
             if(portrait){
                 var r=Rect("Actual model capture",left,new Vector2(.04f,.21f),new Vector2(.96f,.99f));
                 var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;
@@ -133,6 +135,10 @@ namespace Buklod.Empire {
             ButtonAt("Portrait angle",left,new Vector2(.03f,.03f),new Vector2(.48f,.19f),fullBody?"FACE / ARMOR":"FULL BODY",()=>{fullBody=!fullBody;evolutionPreviewLevel=1;Rebuild();});
             var wingButton=ButtonAt("Locked evolution preview",left,new Vector2(.50f,.03f),new Vector2(.97f,.19f),"NEXT STAGE",()=>{evolutionPreviewLevel=ArenaProgression.NextPreviewLevel(evolutionPreviewLevel);fullBody=true;Rebuild();});
             wingButton.interactable=portrait is RenderTexture||evolutionPreviewLevel>1;
+            if(paletteAvailable){
+                var paletteButton=ButtonAt("Costume palette",left,new Vector2(.04f,.21f),new Vector2(.96f,.30f),"PREVIEW: "+previewPalette,()=>{previewPalette=(ReviewPalette)(((int)previewPalette+1)%3);Rebuild();});
+                paletteButton.GetComponentInChildren<Text>().fontSize=16;
+            }
             if(evolutionPreviewLevel>1){
                 var banner=Label("Preview disclaimer",left,new Vector2(.04f,.83f),new Vector2(.96f,.99f),
                     "L"+evolutionPreviewLevel+" • "+ArenaProgression.Evolution(evolutionPreviewLevel)+"\n"+(portrait is RenderTexture?"LOCKED • CONCEPT PREVIEW":"PREVIEW UNAVAILABLE • BASE CAPTURE"),16);
