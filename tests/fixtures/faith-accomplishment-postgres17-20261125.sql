@@ -17,8 +17,10 @@ create function public.buklod_user_has_functional_approver_role(uuid,uuid) retur
 create table public.daily_bible_assignments(id uuid primary key,reading_date date);
 create table public.daily_bible_submissions(id uuid primary key,assignment_id uuid,user_id uuid,cluster_id uuid,status text,submitted_at timestamptz);
 create table public.buklod_scope_formation_approvals_v2(scope_id uuid,learner_id uuid,item_kind text,item_id uuid,status text,created_at timestamptz,updated_at timestamptz,decided_at timestamptz);
-create table public.devotional_completions(id uuid primary key,user_id uuid,completion_date date,completed_at timestamptz);
-create table public.devotional_reward_submissions(id uuid primary key,user_id uuid,completion_id uuid,status text);
+create table public.devotionals(id uuid primary key,publish_date date);
+create table public.devotional_completions(id uuid primary key,user_id uuid,completion_date date,completed_at timestamptz,devotional_id uuid);
+create table public.devotional_reward_submissions(id uuid primary key,user_id uuid,completion_id uuid,status text,devotional_id uuid);
+create table public.kl_reading_sessions(user_id uuid,episode_id uuid,completed_at timestamptz);
 create table public.learning_tracks(id uuid primary key,stage_code text);
 create table public.learning_lessons(id uuid primary key,track_id uuid);
 create table public.lesson_progress(id uuid primary key,user_id uuid,lesson_id uuid);
@@ -40,8 +42,13 @@ insert into public.buklod_scope_memberships values
 insert into public.daily_bible_assignments select ('00000000-0000-0000-0000-00000000010'||i)::uuid, (now() at time zone 'Asia/Manila')::date from generate_series(1,2)i;
 insert into public.daily_bible_submissions select ('00000000-0000-0000-0000-00000000011'||i)::uuid, ('00000000-0000-0000-0000-00000000010'||i)::uuid,'00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000010','approved',now() from generate_series(1,2)i;
 insert into public.daily_bible_submissions values ('00000000-0000-0000-0000-000000000119','00000000-0000-0000-0000-000000000101','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000010','approved',now());
-insert into public.devotional_completions select ('00000000-0000-0000-0000-00000000012'||i)::uuid,'00000000-0000-0000-0000-000000000001',(now() at time zone 'Asia/Manila')::date,now() from generate_series(1,2)i;
-insert into public.devotional_reward_submissions select ('00000000-0000-0000-0000-00000000013'||i)::uuid,'00000000-0000-0000-0000-000000000001',('00000000-0000-0000-0000-00000000012'||i)::uuid,'approved' from generate_series(1,2)i;
+insert into public.devotionals select ('00000000-0000-0000-0000-00000000018'||i)::uuid,(now() at time zone 'Asia/Manila')::date from generate_series(1,2)i;
+insert into public.devotional_completions select ('00000000-0000-0000-0000-00000000012'||i)::uuid,'00000000-0000-0000-0000-000000000001',(now() at time zone 'Asia/Manila')::date,now(),('00000000-0000-0000-0000-00000000018'||i)::uuid from generate_series(1,2)i;
+insert into public.devotional_reward_submissions select ('00000000-0000-0000-0000-00000000013'||i)::uuid,'00000000-0000-0000-0000-000000000001',('00000000-0000-0000-0000-00000000012'||i)::uuid,'approved',('00000000-0000-0000-0000-00000000018'||i)::uuid from generate_series(1,2)i;
+insert into public.kl_reading_sessions values
+ ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000191',now()),
+ ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000191',now()),
+ ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000192',null);
 insert into public.buklod_scope_formation_approvals_v2 select '00000000-0000-0000-0000-000000000010',user_id,'DAILY_DEVOTION',id,'APPROVED',now(),now(),now() from public.devotional_reward_submissions;
 insert into public.learning_tracks values ('00000000-0000-0000-0000-000000000140','101');
 insert into public.learning_lessons select ('00000000-0000-0000-0000-00000000014'||i)::uuid,'00000000-0000-0000-0000-000000000140' from generate_series(1,2)i;

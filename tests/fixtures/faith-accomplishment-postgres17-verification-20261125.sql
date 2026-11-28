@@ -23,6 +23,8 @@ begin
  r:=public.buklod_scope_faith_monitoring_period_v2('00000000-0000-0000-0000-000000000010','week',null);
  select item into m from jsonb_array_elements(r->'members') item where item->>'user_id'='00000000-0000-0000-0000-000000000001';
  if m->>'reading_approved_count' is distinct from '2' or m->>'devotion_completed_count' is distinct from '2'
+ or m->>'devotion_completed_days' is distinct from '1' or m->>'devotion_actual_completion_days' is distinct from '1'
+ or m->>'kl_chapter_count' is distinct from '1' or r->>'devotion_date_basis' is distinct from 'scheduled'
  or m->>'lesson_approved_count' is distinct from '2' or m->>'abaka_completed_count' is distinct from '2'
  or m->>'bible_chapter_count' is distinct from '2' or m->>'mentor_session_count' is distinct from '2'
  or m->>'mentees_reached_count' is distinct from '2' or m->>'children_story_count' is distinct from '1'
@@ -36,6 +38,22 @@ begin
  begin
  perform public.buklod_scope_faith_monitoring_period_v2('00000000-0000-0000-0000-000000000020','week',null);
  raise exception 'Other scope allowed'; exception when insufficient_privilege then null; end;
+end;
+$test$;
+-- Replay two distinct scheduled days from the same past week, completed together today.
+update public.devotionals set publish_date=date_trunc('week',timezone('Asia/Manila',now()))::date-7
+ where id='00000000-0000-0000-0000-000000000181';
+update public.devotionals set publish_date=date_trunc('week',timezone('Asia/Manila',now()))::date-6
+ where id='00000000-0000-0000-0000-000000000182';
+do $test$
+declare r jsonb; m jsonb;
+begin
+ r:=public.buklod_scope_faith_monitoring_period_v2('00000000-0000-0000-0000-000000000010','week',(timezone('Asia/Manila',now()))::date-7);
+ select item into m from jsonb_array_elements(r->'members') item where item->>'user_id'='00000000-0000-0000-0000-000000000001';
+ if m->>'devotion_completed_days' is distinct from '2' or m->>'devotion_completed_count' is distinct from '2'
+ or m->>'devotion_actual_completion_days' is distinct from '1' or jsonb_array_length(m->'devotion_dates')<>2
+ or r->'totals'->>'devotion_completed_days' is distinct from '2'
+ then raise exception 'Late scheduled devotion reconciliation failed: %',m; end if;
 end;
 $test$;
 create table public.saliksik_mastery(user_id uuid,investigation_id uuid,version int,passed_at timestamptz);
