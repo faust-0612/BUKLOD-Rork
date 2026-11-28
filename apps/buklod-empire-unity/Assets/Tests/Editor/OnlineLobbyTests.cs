@@ -34,6 +34,8 @@ namespace Buklod.Empire.Tests {
             var directory=Directory();
             for(int i=0;i<10;i++)Assert.True(directory.Enqueue("p"+i,"ph",OnlineMode.Ranked));
             var id=directory.FormQueued("ph",OnlineMode.Ranked);
+            Assert.True(directory.Ban(id,"p0",null));
+            Assert.True(directory.Ban(id,"p1",null));
             for(int i=0;i<10;i++)Assert.True(directory.Pick(id,"p"+i,HeroKitCatalog.All[i].Id));
             Assert.NotNull(directory.LockDraft(id,"p0"));
             Assert.True(directory.ConfirmReservation(id,true));
