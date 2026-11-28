@@ -77,3 +77,7 @@ Original key poses cover Demon movement, attack, hit and death and Snake hit and
 ## 2026-11-28 — Hazard import acceptance gate
 
 Standalone review preflight now validates both Jungle Hazard Animator controllers, two motion blend clips, required attack/hit/death transitions, and weighted-bone binding for original pose tracks. Python asset and source-contract fixtures passed. Unity import and motion-gate execution remain deferred. No build or deployment.
+
+## 2026-11-28 — Offline army, field loot and warehouse source integration
+
+Reconciled source candidate from authoritative DEV `c181ac5fd3e9d349fb60173b4cce6aab6ce35dfd` and army/loot feature `d8102bdd3de43841a460723c1f185a80eb91e52d`. Preserves the independently committed textured causeways. Distinct paid soldier commands and map-dependent creature contracts, fog-checked tactical waypoints and construction sites, manual field pickups, named rarity labels, 20-item backpack, 48-item local device warehouse, equipment swapping and duplicate-item tier forging are implemented in source. Persistent warehouse is offline-only and device-local; withdrawn items are match-local. No BP/QMP or online protocol changes authorized. Added focused NUnit regression tests; Unity EditMode, PlayMode, APK and visual acceptance remain unexecuted. No production or APK release.

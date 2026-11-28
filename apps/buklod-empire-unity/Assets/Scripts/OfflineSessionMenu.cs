@@ -11,6 +11,7 @@ namespace Buklod.Empire {
     public sealed partial class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Text contentStatus;private Button contentCheck,contentDownload;private Font font;private GameObject ownedEventSystem;
+        private OfflinePracticeWarehouse warehouse;private VillageBuildOrder selectedBuild=VillageBuildOrder.House;private int bankPage,selectedBag=-1,selectedBank=-1,selectedSoldierId;private Button quickLoot;private Text quickLootLabel;private float nextLootRefresh;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
         private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private int evolutionPreviewLevel=1;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;private ReviewLiveHeroPreview livePreview;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
@@ -55,6 +56,8 @@ namespace Buklod.Empire {
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             safeRoot=Rect("Safe menu area",canvas,Vector2.zero,Vector2.one);ApplySafeArea();
             ButtonAt("Menu",safeRoot,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
+            warehouse=new OfflinePracticeWarehouse();
+            quickLoot=ButtonAt("Collect nearby loot",safeRoot,new Vector2(.38f,.13f),new Vector2(.63f,.23f),"PICK UP",()=>{if(!shown&&!view.Paused&&view.Battle!=null&&view.Battle.TryNearbyLoot(out _,true))authored?.AcceptedAction("Relic acquired");});quickLootLabel=quickLoot.GetComponentInChildren<Text>();quickLoot.gameObject.SetActive(false);
             ButtonAt("Zoom in",safeRoot,new Vector2(.91f,.81f),new Vector2(.99f,.89f),"+",()=>ArenaControlSettings.ChangeZoom(-.1f));
             ButtonAt("Zoom out",safeRoot,new Vector2(.91f,.71f),new Vector2(.99f,.79f),"−",()=>ArenaControlSettings.ChangeZoom(.1f));
             panel=Rect("Session panel",safeRoot,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;panelGroup=panel.gameObject.AddComponent<CanvasGroup>();
@@ -64,11 +67,11 @@ namespace Buklod.Empire {
                 var scope=Label("Mode status",panel,new Vector2(.035f,.985f),new Vector2(.965f,1f),"OFFLINE PRACTICE  •  ONLINE NOT ENABLED",12);
                 scope.color=new Color(.85f,.91f,.96f);
             }
-            string[] tabs=view.IsEditorReview?new[]{"LOBBY","HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","RELICS","SETTINGS"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","HUD"};
+            string[] tabs=view.IsEditorReview?new[]{"LOBBY","HEROES","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","VAULT","SETTINGS","ARMY"}:new[]{"MATCH","LOADOUT","SHOP","VILLAGE","MARKET","FIELD","VAULT","HUD","ARMY"};
             if(view.IsEditorReview){page=-1;ReviewAudioSettings.ApplyMaster();}
             navigationTabs=new Button[tabs.Length];navigationMarkers=new Image[tabs.Length];navigationLabels=new Text[tabs.Length];
             for(int i=0;i<tabs.Length;i++){
-                int tab=view.IsEditorReview?i-1:i;float step=.93f/tabs.Length;
+                int tab=i==tabs.Length-1?10:view.IsEditorReview?i-1:i;float step=.93f/tabs.Length;
                 var button=ButtonAt(tabs[i],panel,new Vector2(.035f+i*step,.72f),new Vector2(.035f+(i+1)*step-.01f,.79f),tabs[i],()=>{showResult=false;heroDetail=false;confirmRestart=false;page=tab;feedback.text="";Rebuild();});
                 navigationTabs[i]=button;navigationLabels[i]=button.GetComponentInChildren<Text>();
                 var marker=Rect("Active section",button.transform,new Vector2(.12f,.025f),new Vector2(.88f,.095f)).gameObject.AddComponent<Image>();
@@ -168,29 +171,71 @@ namespace Buklod.Empire {
             ButtonAt("Back to roster",right,Vector2.zero,new Vector2(.47f,.10f),"ROSTER",()=>{heroDetail=false;Rebuild();});
             ButtonAt("Choose hero",right,new Vector2(.51f,0),new Vector2(1,.10f),"USE IN NEXT MATCH",()=>{heroDetail=false;page=-1;Rebuild();feedback.text=kit.Name+" selected for the next match.";});
         }
+        private Button VaultCell(Transform parent,int index,int cols,int rows,string title,ArenaRelicDefinition item,bool selected,Action click){
+            float x=(index%cols)/(float)cols,y=1-(index/cols+1)/(float)rows;
+            var button=ButtonAt(title,parent,new Vector2(x+.006f,y+.01f),new Vector2(x+1f/cols-.006f,y+1f/rows-.01f),item==null?title:item.Slot.ToUpperInvariant()+"\nT"+item.Tier,click);
+            var image=button.GetComponent<Image>();image.color=selected?new Color(.32f,.24f,.12f):new Color(.055f,.085f,.12f);
+            var outline=button.GetComponent<Outline>();outline.effectColor=item==null?new Color(.28f,.32f,.37f):BattleFieldVisuals.TierColor(item.Tier);
+            button.GetComponentInChildren<Text>().color=item==null?new Color(.55f,.60f,.65f):BattleFieldVisuals.TierColor(item.Tier);return button;
+        }
         private void RelicInventory(OfflineBattle battle){
-            var p=battle.Player;
-            var list=p.Relics.Values.OrderBy(x=>x.Slot,StringComparer.Ordinal).ToArray();
-            summary.text=$"Match-local equipment  •  {list.Length} relics  •  {p.Gear.Count}/6 shop items";
-            int row=0;
-            foreach(string slot in new[]{"weapon","shield","armor","boots","jewel"}){
-                var relic=list.FirstOrDefault(x=>x.Slot==slot);float top=1-row*.18f;
-                var r=Rect("Relic "+slot,body,new Vector2(.02f,top-.16f),new Vector2(.98f,top-.015f));
-                var background=r.gameObject.AddComponent<Image>();background.raycastTarget=false;background.color=new Color(.10f,.18f,.21f,.95f);
-                var category=Label("Slot",r,new Vector2(.02f,.05f),new Vector2(.22f,.95f),slot.ToUpperInvariant(),20);
-                category.color=relic==null?new Color(.58f,.67f,.69f):BattleFieldVisuals.TierColor(relic.Tier);
-                var item=Label("Item",r,new Vector2(.23f,.05f),new Vector2(.78f,.95f),relic==null?"Empty":relic.Name,23);
-                item.color=relic==null?new Color(.58f,.67f,.69f):Color.white;
-                var tier=Label("Tier",r,new Vector2(.79f,.05f),new Vector2(.98f,.95f),relic==null?"—":"TIER "+relic.Tier,19);
-                if(relic!=null)tier.color=BattleFieldVisuals.TierColor(relic.Tier);
-                row++;
-            }
-            Label("Relic policy",body,new Vector2(.02f,.01f),new Vector2(.98f,.09f),"Practice inventory only • No persistent rewards",17);
+            var p=battle?.Player;var bag=battle?.PracticeVault;bool baseAccess=battle!=null&&battle.CanShopPlayer&&!battle.AutonomousTraining;
+            if(selectedBag>= (bag?.Count??0))selectedBag=-1;if(selectedBank>=warehouse.Items.Count)selectedBank=-1;
+            summary.text=$"BACKPACK {bag?.Count??0}/{OfflineBattle.PracticeVaultCapacity}  •  DEVICE VAULT {warehouse.Items.Count}/{OfflinePracticeWarehouse.Capacity}  •  Offline only";
+            if(!warehouse.Available)summary.text+=" • Storage unavailable; original data retained";
+            var equip=Rect("Hero equipment",body,new Vector2(0,.18f),new Vector2(.24f,.96f));
+            var backpack=Rect("Backpack grid",body,new Vector2(.25f,.18f),new Vector2(.62f,.90f));
+            var bank=Rect("Vault grid",body,new Vector2(.63f,.18f),new Vector2(1,.90f));
+            Label("Backpack title",body,new Vector2(.25f,.91f),new Vector2(.62f,1),"BACKPACK",22).color=new Color(.91f,.79f,.48f);
+            Label("Vault title",body,new Vector2(.63f,.91f),new Vector2(1,1),"WAREHOUSE",22).color=new Color(.91f,.79f,.48f);
+            var portrait=reviewPortraits?reviewPortraits.Find(p?.State.Kit.Id??selected,true):null;
+            if(portrait){var r=Rect("Hero portrait",equip,new Vector2(.16f,.46f),new Vector2(.84f,1));var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/Mathf.Max(1,portrait.height);}
+            int n=0;foreach(string slot in new[]{"weapon","shield","armor","boots","jewel"}){ArenaRelicDefinition item=null;if(p!=null)p.Relics.TryGetValue(slot,out item);string s=slot;var button=ButtonAt("Equip "+slot,equip,new Vector2(.01f,.35f-n*.085f),new Vector2(.99f,.435f-n*.085f),slot.ToUpperInvariant()+"  "+(item==null?"—":"T"+item.Tier),()=>Reply(battle.UnequipPracticeItem(s),"Returned to backpack"));button.interactable=baseAccess&&item!=null;button.GetComponent<Outline>().effectColor=item==null?new Color(.3f,.32f,.37f):BattleFieldVisuals.TierColor(item.Tier);n++;}
+            for(int i=0;i<OfflineBattle.PracticeVaultCapacity;i++){int k=i;var item=bag!=null&&i<bag.Count?bag[i]:null;var btn=VaultCell(backpack,i,4,5,"",item,selectedBag==i,()=>{selectedBag=k;selectedBank=-1;Rebuild();});btn.interactable=item!=null;}
+            for(int i=0;i<24;i++){int k=bankPage*24+i;var item=k<warehouse.Items.Count?warehouse.Items[k]:null;var btn=VaultCell(bank,i,4,6,"",item,selectedBank==k,()=>{selectedBank=k;selectedBag=-1;Rebuild();});btn.interactable=item!=null;}
+            var picked=selectedBag>=0?bag[selectedBag]:selectedBank>=0?warehouse.Items[selectedBank]:null;
+            string detail=picked==null?"Select item • Forge: two identical relics • Withdrawn items remain match-local":picked.Name+" • T"+picked.Tier+" • "+picked.Hero.ToUpperInvariant()+" • "+(picked.Consumable?"Restore "+picked.Amount.ToString("0"):("ATK "+picked.Stats.Attack.ToString("0.#")+"  HP "+picked.Stats.Hp.ToString("0.#")+"  Shield "+picked.Stats.ShieldMax.ToString("0.#")+"  Mana "+picked.Stats.Mana.ToString("0.#")));
+            Label("Item details",body,new Vector2(0,.08f),new Vector2(1,.18f),detail,20).color=picked==null?Color.white:BattleFieldVisuals.TierColor(picked.Tier);
+            var use=ButtonAt("Use selected",body,new Vector2(0,0),new Vector2(.19f,.08f),picked!=null&&picked.Consumable?"USE":"EQUIP",()=>{int k=selectedBag;selectedBag=-1;Reply(battle.UsePracticeBag(k),"Item used / equipped");});use.interactable=selectedBag>=0&&(picked.Consumable?battle!=null&&!battle.Finished&&p.State.Alive:baseAccess);
+            var deposit=ButtonAt("Deposit",body,new Vector2(.20f,0),new Vector2(.39f,.08f),"DEPOSIT",()=>{int k=selectedBag;selectedBag=-1;Reply(battle.DepositPracticeItem(k,warehouse),"Saved to device vault");});deposit.interactable=baseAccess&&selectedBag>=0&&warehouse.Available;
+            var withdraw=ButtonAt("Withdraw",body,new Vector2(.40f,0),new Vector2(.59f,.08f),"WITHDRAW",()=>{int k=selectedBank;selectedBank=-1;Reply(battle.WithdrawPracticeItem(k,warehouse),"Withdrawn to match backpack");});withdraw.interactable=baseAccess&&selectedBank>=0&&warehouse.Available&&picked.Hero==p.State.Kit.Id;
+            var forge=ButtonAt("Forge",body,new Vector2(.60f,0),new Vector2(.79f,.08f),"FORGE +1",()=>{int k=selectedBag;selectedBag=-1;Reply(battle.ForgePracticeItem(k),"Two matching relics forged into next tier");});forge.interactable=baseAccess&&selectedBag>=0&&battle.CanForgePracticeItem(selectedBag);
+            ButtonAt("Vault page",body,new Vector2(.80f,0),new Vector2(1,.08f),"PAGE "+(bankPage+1)+"/2",()=>{bankPage=1-bankPage;selectedBank=-1;Rebuild();});
+        }
+        private void TacticalMap(OfflineBattle battle,Transform parent,Vector2 min,Vector2 max,int selectedId,Action<Vector2> onPoint){
+            var r=Rect("Tactical map",parent,min,max);var graphic=r.gameObject.AddComponent<ReviewMinimap>();graphic.Bind(view);graphic.SelectedSoldierId=selectedId;graphic.raycastTarget=true;
+            var trigger=r.gameObject.AddComponent<EventTrigger>();var entry=new EventTrigger.Entry{eventID=EventTriggerType.PointerClick};
+            entry.callback.AddListener(data=>{var e=data as PointerEventData;if(e==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(r,e.position,e.pressEventCamera,out var p))return;var bounds=r.rect;var uv=new Vector2(Mathf.InverseLerp(bounds.xMin+2,bounds.xMax-2,p.x),Mathf.InverseLerp(bounds.yMin+2,bounds.yMax-2,p.y));onPoint(new Vector2(uv.x*OfflineBattle.Width,uv.y*OfflineBattle.Height));});trigger.triggers.Add(entry);
+        }
+        private void ArmyPanel(OfflineBattle b){
+            var soldiers=b.Units.Where(u=>u.PaidMinion&&u.Team==b.Player.Team&&u.State.Alive).OrderBy(u=>u.Id).ToArray();
+            var chosen=soldiers.FirstOrDefault(u=>u.Id==selectedSoldierId)??soldiers.FirstOrDefault();selectedSoldierId=chosen?.Id??0;
+            var contracts=b.PlayerCreatureContracts.ToArray();summary.text="ARMORY • "+soldiers.Length+" soldiers • Defeat local creatures to unlock recruitment • Tap visible map to order selected unit";
+            TacticalMap(b,body,new Vector2(0,.14f),new Vector2(.43f,1),selectedSoldierId,p=>Reply(b.OrderPlayerSoldierMove(selectedSoldierId,p),"Soldier waypoint assigned"));
+            ButtonAt("Construction",body,new Vector2(0,0),new Vector2(.43f,.13f),"VILLAGE / BUILD SITE",()=>{page=11;Rebuild();});
+            var commands=Rect("Army commands",body,new Vector2(.45f,0),Vector2.one);
+            void ArmyCell(int i,string value,Action action,bool enabled=true){float x=(i%3)/3f,y=1-(i/3+1)/5f;var button=ButtonAt(value,commands,new Vector2(x+.008f,y+.012f),new Vector2(x+1f/3-.008f,y+.188f),value,action);button.interactable=enabled;}
+            ArmyCell(0,"Creature: "+(b.PlayerCreatureContract?.ToString()??"None"),()=>{var current=Array.IndexOf(contracts,b.PlayerCreatureContract??(WildernessKind)(-1));b.OrderPlayerCreature(contracts.Length==0||current+1>=contracts.Length?(WildernessKind?)null:contracts[current+1]);Rebuild();},contracts.Length>0);
+            ArmyCell(1,"Standard: "+b.PlayerMilitaryRole,()=>Reply(b.OrderPlayerMilitaryRole((MinionRole)(((int)b.PlayerMilitaryRole+1)%5)),"Standard role selected"));
+            ArmyCell(2,chosen==null?"No soldier":(chosen.RecruitedCreature?.ToString()??chosen.Role.ToString())+" #"+chosen.Id,()=>{selectedSoldierId=soldiers[(Array.IndexOf(soldiers,chosen)+1)%soldiers.Length].Id;Rebuild();},chosen!=null);
+            int i=3;foreach(VillageArmyOrder order in Enum.GetValues(typeof(VillageArmyOrder))){var o=order;ArmyCell(i++,"ALL: "+o,()=>Reply(b.OrderPlayerArmy(o),"Army order accepted"));}
+            foreach(VillageArmyOrder order in Enum.GetValues(typeof(VillageArmyOrder))){var o=order;ArmyCell(i++,"UNIT: "+o,()=>Reply(b.OrderPlayerSoldier(selectedSoldierId,o),"Soldier order accepted"),chosen!=null);}
+            ArmyCell(11,"Move to hero",()=>Reply(b.OrderPlayerSoldierMove(selectedSoldierId,b.Player.Position),"Waypoint assigned"),chosen!=null);
+            ArmyCell(12,"Move to base",()=>Reply(b.OrderPlayerSoldierMove(selectedSoldierId,b.Player.Spawn),"Waypoint assigned"),chosen!=null);
+            ArmyCell(13,chosen==null?"No soldier":$"HP {chosen.State.Health:0}/{chosen.State.MaxHealth:0}",()=>{},false);
+            ArmyCell(14,"HOUSE + ARMORY",()=>{},false);
+        }
+        private void ConstructionMap(OfflineBattle b){
+            summary.text="BUILD "+selectedBuild.ToString().ToUpperInvariant()+" • Choose a visible valid location near your base";
+            TacticalMap(b,body,new Vector2(0,.14f),new Vector2(.55f,1),0,p=>Reply(b.IsPositionVisibleTo(b.Player.Team,p)&&b.OrderPlayerConstruction(selectedBuild,p),"Construction queued at selected site"));
+            ButtonAt("Village",body,Vector2.zero,new Vector2(.27f,.13f),"VILLAGE",()=>{page=3;Rebuild();});
+            ButtonAt("Army",body,new Vector2(.28f,0),new Vector2(.55f,.13f),"ARMY",()=>{page=10;Rebuild();});
+            int i=0;foreach(var kind in new[]{VillageBuildOrder.House,VillageBuildOrder.Barracks,VillageBuildOrder.Farm,VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Market}){var k=kind;float top=1-i++/6f;var button=ButtonAt("Select "+k,body,new Vector2(.57f,top-.15f),new Vector2(1,top-.01f),(k==VillageBuildOrder.Barracks?"ARMORY / BARRACKS":k.ToString().ToUpperInvariant())+(k==selectedBuild?" • SELECTED":""),()=>{selectedBuild=k;Rebuild();});}
         }
         private void UpdateNavigation(){
             if(navigationTabs==null)return;
             for(int i=0;i<navigationTabs.Length;i++){
-                bool active=!showResult&&page==(view.IsEditorReview?i-1:i);
+                bool active=!showResult&&page==(i==navigationTabs.Length-1?10:view.IsEditorReview?i-1:i);
                 navigationMarkers[i].enabled=active;
                 navigationLabels[i].color=active?NavigationAccent:Color.white;
                 navigationLabels[i].fontStyle=active?FontStyle.Bold:FontStyle.Normal;
@@ -272,7 +317,7 @@ namespace Buklod.Empire {
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
             if(!view.IsEditorReview||showResult||confirmRestart||!(page==-1&&(pregame==null||!pregame.InWizard)||page==0&&heroDetail))HideShowcase();
-            if(view.IsEditorReview&&navigationTabs!=null)for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=(active&&matchStarted)||i<3||i>=8;
+            if(view.IsEditorReview&&navigationTabs!=null)for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=(active&&matchStarted)||i<3||i==7||i==8;
             if(resumeButton)resumeButton.interactable=active&&(!view.IsEditorReview||matchStarted)&&!confirmRestart;
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
@@ -351,24 +396,33 @@ namespace Buklod.Empire {
                 var worker=gatherers.FirstOrDefault(u=>u.Villager.Job.Id==selectedGatherer)??gatherers.FirstOrDefault();string id=worker?.Villager.Job.Id;selectedGatherer=id;
                 summary.text=$"Wood {bank.Wood:0}  Stone {bank.Stone:0}  Food {bank.Food:0}  Crystal {bank.Crystal:0}  Gold {bank.Gold:0}  •  Cargo {(worker?.Cargo??0):0}  •  Population {b.PopulationUsed(p.Team)}/{b.PopulationCapacity(p.Team)}";
                 bool can=active&&b.Time<OfflineMatchRules.MatchLimit;bool working=can&&worker!=null&&worker.State.Alive;
-                Cell(0,5,4,"Auto gather",()=>Reply(b.OrderPlayerResource(id,null),"Auto gathering"),working);
-                int i=1;foreach(VillageResourceKind kind in Enum.GetValues(typeof(VillageResourceKind))){var k=kind;Cell(i++,5,4,"Gather "+k,()=>Reply(b.OrderPlayerResource(id,k),"Worker assigned to "+k),working);}
-                Cell(6,5,4,"Return cargo",()=>Reply(b.OrderPlayerWorker(id,VillageWorkerOrder.Return),"Return ordered"),working);
-                Cell(7,5,4,"Hold worker",()=>Reply(b.OrderPlayerWorker(id,VillageWorkerOrder.Hold),"Worker held"),working);
-                int j=8;foreach(var kind in new[]{VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Farm,VillageBuildOrder.Barracks,VillageBuildOrder.Market,VillageBuildOrder.House}){var k=kind;Cell(j++,5,4,"Build "+k,()=>Reply(b.OrderPlayerConstructionNearBase(k),"Construction queued"),can&&!b.HasConstructionOrder(p.Team));}
-                Cell(14,5,4,"Repair lowest HP",()=>Reply(b.OrderPlayerRepairMostDamaged(),"Repair queued"),can&&!b.HasConstructionOrder(p.Team));
-                Cell(15,5,4,"Cancel construction",()=>Reply(b.CancelPlayerConstruction(),"Cancelled"),can&&b.HasConstructionOrder(p.Team));
+                Cell(0,5,5,"Auto gather",()=>Reply(b.OrderPlayerResource(id,null),"Auto gathering"),working);
+                int i=1;foreach(VillageResourceKind kind in Enum.GetValues(typeof(VillageResourceKind))){var k=kind;Cell(i++,5,5,"Gather "+k,()=>Reply(b.OrderPlayerResource(id,k),"Worker assigned to "+k),working);}
+                Cell(6,5,5,"Return cargo",()=>Reply(b.OrderPlayerWorker(id,VillageWorkerOrder.Return),"Return ordered"),working);
+                Cell(7,5,5,"Hold worker",()=>Reply(b.OrderPlayerWorker(id,VillageWorkerOrder.Hold),"Worker held"),working);
+                int j=8;foreach(var kind in new[]{VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Farm,VillageBuildOrder.Barracks,VillageBuildOrder.Market,VillageBuildOrder.House}){var k=kind;Cell(j++,5,5,"Build "+(k==VillageBuildOrder.Barracks?"Armory / Barracks":k.ToString()),()=>Reply(b.OrderPlayerConstructionNearBase(k),"Construction queued"),can&&!b.HasConstructionOrder(p.Team));}
+                Cell(14,5,5,"Repair lowest HP",()=>Reply(b.OrderPlayerRepairMostDamaged(),"Repair queued"),can&&!b.HasConstructionOrder(p.Team));
+                Cell(15,5,5,"Cancel construction",()=>Reply(b.CancelPlayerConstruction(),"Cancelled"),can&&b.HasConstructionOrder(p.Team));
                 var builder=b.Units.FirstOrDefault(u=>u.Team==p.Team&&u.Villager?.Job.Effect==VillageEffect.Build);
-                Cell(16,5,4,builder?.Construction!=null?builder.Construction.Kind+" "+builder.Construction.Progress.ToString("0.0")+"s":"Builder idle",()=>{},false);
-                Cell(17,5,4,"Worker: "+(id??"none"),()=>{int index=System.Array.IndexOf(gatherers,worker);selectedGatherer=gatherers[(index+1)%gatherers.Length].Villager.Job.Id;Rebuild();},gatherers.Length>1);
-                Cell(18,5,4,b.RecruitmentPending(p.Team)?"Recruiting (12s)":"Recruit: 20 wood + 30 food",()=>Reply(b.RecruitPlayerGatherer(),"Recruitment queued"),can&&b.CanRecruitPlayerGatherer);
-                Cell(19,5,4,"Cancel recruitment",()=>Reply(b.CancelPlayerRecruitment(),"Recruitment cancelled"),can&&b.RecruitmentPending(p.Team));
+                Cell(16,5,5,builder?.Construction!=null?builder.Construction.Kind+" "+builder.Construction.Progress.ToString("0.0")+"s":"Builder idle",()=>{},false);
+                Cell(17,5,5,"Worker: "+(id??"none"),()=>{int index=System.Array.IndexOf(gatherers,worker);selectedGatherer=gatherers[(index+1)%gatherers.Length].Villager.Job.Id;Rebuild();},gatherers.Length>1);
+                Cell(18,5,5,b.RecruitmentPending(p.Team)?"Recruiting (12s)":"Recruit: 20 wood + 30 food",()=>Reply(b.RecruitPlayerGatherer(),"Recruitment queued"),can&&b.CanRecruitPlayerGatherer);
+                Cell(19,5,5,"Cancel recruitment",()=>Reply(b.CancelPlayerRecruitment(),"Recruitment cancelled"),can&&b.RecruitmentPending(p.Team));
+                Cell(20,5,5,"Armory: "+b.PlayerMilitaryRole,()=>Reply(b.OrderPlayerMilitaryRole((MinionRole)(((int)b.PlayerMilitaryRole+1)%5)),"Military role selected"),can);
+                Cell(21,5,5,"Army: "+b.PlayerArmyOrder,()=>Reply(b.OrderPlayerArmy((VillageArmyOrder)(((int)b.PlayerArmyOrder+1)%4)),"Army order issued"),can);
+                Cell(22,5,5,"House + barracks required",()=>{},false);
+                Cell(23,5,5,"Soldiers "+b.PaidTroops(p.Team),()=>{page=10;Rebuild();},can);
+                Cell(24,5,5,"Choose build site",()=>{page=11;Rebuild();},can);
             }else if(page==4&&b!=null){
                 var bank=b.GetVillage(p.Team);summary.text=$"Village gold {bank.Gold:0}  •  Buy 10 units / 15 gold  •  Sell 10 units / 6 gold  •  Living market required";
                 int i=0;foreach(var kind in new[]{VillageResourceKind.Wood,VillageResourceKind.Stone,VillageResourceKind.Food,VillageResourceKind.Crystal}){var k=kind;Cell(i++,4,2,"Buy "+k,()=>Reply(b.TradePlayerResource(k,true),"Trade complete"),active);Cell(i++,4,2,"Sell "+k,()=>Reply(b.TradePlayerResource(k,false),"Trade complete"),active);}
-            }else if(page==(view.IsEditorReview?7:6)){
+            }else if(page==7){
                 ControlSettingsPage();
-            }else if(page==6&&b!=null&&view.IsEditorReview){
+            }else if(page==11&&b!=null&&!b.Finished){
+                ConstructionMap(b);
+            }else if(page==10&&b!=null&&!b.Finished){
+                ArmyPanel(b);
+            }else if(page==6){
                 RelicInventory(b);
             }else if(page==5&&b!=null){
                 summary.text=$"Damage {p.DamageDealt:0} dealt / {p.DamageTaken:0} taken • Relics {p.Relics.Count} • Nearest visible field targets";
@@ -502,7 +556,7 @@ namespace Buklod.Empire {
         }
         private void BeginMatch(bool close=true){
             CovenantLoadout? loadout=enableCovenant?new CovenantLoadout(path,first,second,third):(CovenantLoadout?)null;
-            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);matchStarted=true;confirmRestart=false;heroDetail=false;selectedGatherer=null;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
+            view.StartMatch(selected,difficulty,tactic,loadout,autoTraining,seed);matchStarted=true;confirmRestart=false;heroDetail=false;selectedGatherer=null;selectedBag=selectedBank=-1;selectedSoldierId=0;lastFinished=false;showResult=false;resultRevealAt=-1;title.rectTransform.localScale=Vector3.one;if(close)Close();else view.SetPaused(true);
         }
         private void Close(){HideShowcase();if(view.IsEditorReview){ReviewAudioSettings.Save();var dialogue=GetComponent<ReviewHeroDialogue>();if(dialogue)dialogue.Stop();}shown=false;panel.gameObject.SetActive(false);view.SetPaused(false);}
         private void ApplyResultReveal(){
@@ -515,6 +569,7 @@ namespace Buklod.Empire {
         }
         private void Update(){
             RefreshContentPanel();
+            if(quickLoot&&Time.unscaledTime>=nextLootRefresh){nextLootRefresh=Time.unscaledTime+.12f;string item="";bool show=!shown&&!starting&&!view.Paused&&view.Battle!=null&&view.Battle.TryNearbyLoot(out item);quickLoot.gameObject.SetActive(show);if(show)quickLootLabel.text="PICK UP\n"+item;}
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;
             bool finished=view.Battle!=null&&view.Battle.Finished;

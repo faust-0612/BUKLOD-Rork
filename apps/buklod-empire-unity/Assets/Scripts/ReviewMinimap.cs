@@ -4,12 +4,13 @@ namespace Buklod.Empire {
     // Read-only schematic battlefield. Never exposes hidden enemy positions or changes input.
     public sealed class ReviewMinimap:MaskableGraphic {
         BattleView view;
+        public int SelectedSoldierId {get;set;}
         float nextRefresh;
         public void Bind(BattleView owner){view=owner;raycastTarget=false;SetVerticesDirty();}
         public static Vector2 Normalize(Vector2 p)=>new Vector2(Mathf.Clamp01(p.x/OfflineBattle.Width),Mathf.Clamp01(p.y/OfflineBattle.Height));
         public static bool ShowUnit(OfflineBattle battle,BattleUnit unit)=>unit.State.Alive&&(unit.Team==battle.Player.Team||battle.IsVisibleTo(battle.Player.Team,unit));
         void Update(){
-            if(!view||!view.IsEditorReview||Time.unscaledTime<nextRefresh)return;
+            if(!view||view.Battle==null||Time.unscaledTime<nextRefresh)return;
             nextRefresh=Time.unscaledTime+.15f;SetVerticesDirty();
         }
         Vector2 Point(Rect rect,Vector2 position){
@@ -33,7 +34,7 @@ namespace Buklod.Empire {
             vh.AddTriangle(i,i+1,i+2);vh.AddTriangle(i,i+2,i+3);
         }
         protected override void OnPopulateMesh(VertexHelper vh){
-            vh.Clear();if(!view||!view.IsEditorReview||view.Battle==null)return;
+            vh.Clear();if(!view||view.Battle==null||view.Battle.IsAuthoritative)return;
             var battle=view.Battle;
             Rect outer=GetPixelAdjustedRect();if(outer.width<12||outer.height<12)return;
             Quad(vh,outer.min,outer.max,new Color32(143,166,158,210));
@@ -72,6 +73,7 @@ namespace Buklod.Empire {
                 var point=Point(rect,u.Position);
                 if(u.Kind==BattleTargetKind.Structure)Dot(vh,point,r*(u.Core?2.0f:1.35f),tint);
                 else if(u.Kind==BattleTargetKind.Hero)Diamond(vh,point,r*1.45f,tint);
+                else if(u.PaidMinion&&u.Team==battle.Player.Team)Diamond(vh,point,r*(u.Id==SelectedSoldierId?2.0f:1.0f),u.Id==SelectedSoldierId?new Color32(255,220,90,255):tint);
                 else Dot(vh,point,r*.6f,tint);
             }
             if(battle.Player.State.Alive)Diamond(vh,Point(rect,battle.Player.Position),r*2.1f,new Color32(244,244,190,255));

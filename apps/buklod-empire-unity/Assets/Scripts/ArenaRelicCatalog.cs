@@ -16,8 +16,41 @@ namespace Buklod.Empire {
         }
     }
     public sealed class ArenaRelicDrop {
-        public readonly int Id;public readonly ArenaRelicDefinition Item;public readonly Vector2 Position;public readonly float SpawnedAt;
-        internal ArenaRelicDrop(int id,ArenaRelicDefinition item,Vector2 position,float now){Id=id;Item=item;Position=position;SpawnedAt=now;}
+        public readonly int Id;public readonly ArenaRelicDefinition Item;public readonly Vector2 Position;public readonly float SpawnedAt;public readonly ArenaTeam? OwnerTeam;
+        internal ArenaRelicDrop(int id,ArenaRelicDefinition item,Vector2 position,float now,ArenaTeam? ownerTeam=null){Id=id;Item=item;Position=position;SpawnedAt=now;OwnerTeam=ownerTeam;}
+    }
+    // Local practice warehouse, never loaded by the authoritative match host.
+    // Only canonical item identifiers are persisted; no BP/QMP or network writes.
+    public sealed class OfflinePracticeWarehouse {
+        public const int Capacity=48;
+        private const string StorageKey="buklod.empire.practice.warehouse.v1";
+        [Serializable] private sealed class Snapshot {public int version=1;public string[] ids;}
+        private readonly List<ArenaRelicDefinition> items=new List<ArenaRelicDefinition>();
+        private readonly string key;
+        public bool Available {get;private set;}=true;
+        public IReadOnlyList<ArenaRelicDefinition> Items=>items.AsReadOnly();
+        public OfflinePracticeWarehouse(string storageKey=null){
+            key=storageKey??StorageKey;
+            try{
+                if(!PlayerPrefs.HasKey(key))return;
+                var s=JsonUtility.FromJson<Snapshot>(PlayerPrefs.GetString(key));
+                if(s==null||s.version!=1||s.ids==null||s.ids.Length>Capacity){Available=false;return;}
+                foreach(var id in s.ids){if(!ArenaRelicCatalog.TryGet(id,out var item)){items.Clear();Available=false;return;}items.Add(item);}
+            }catch{items.Clear();Available=false;}
+        }
+        private bool Save(List<ArenaRelicDefinition> next){
+            if(!Available)return false;string old=PlayerPrefs.GetString(key,"");bool existed=PlayerPrefs.HasKey(key);
+            try{PlayerPrefs.SetString(key,JsonUtility.ToJson(new Snapshot{ids=next.Select(x=>x.Id).ToArray()}));PlayerPrefs.Save();}
+            catch{Available=false;try{if(existed)PlayerPrefs.SetString(key,old);else PlayerPrefs.DeleteKey(key);}catch{}return false;}
+            items.Clear();items.AddRange(next);return true;
+        }
+        public bool TryDeposit(ArenaRelicDefinition item){
+            if(!Available||items.Count>=Capacity||item==null||!ArenaRelicCatalog.TryGet(item.Id,out var canonical)||!ReferenceEquals(item,canonical))return false;
+            var next=new List<ArenaRelicDefinition>(items){item};return Save(next);
+        }
+        public bool TryWithdraw(int index,out ArenaRelicDefinition item){
+            item=null;if(!Available||index<0||index>=items.Count)return false;var next=new List<ArenaRelicDefinition>(items);var selected=next[index];next.RemoveAt(index);if(!Save(next))return false;item=selected;return true;
+        }
     }
     // Exact canonical names/IDs/levels and base stats from arena-v2-armory.mjs at 700eb3961de0927fecb15eaf264b9a9247bb9cdd.
     // Match-only adaptation: 13 x 5 slots x 4 tiers + 13 x 2 consumables x 4 tiers.

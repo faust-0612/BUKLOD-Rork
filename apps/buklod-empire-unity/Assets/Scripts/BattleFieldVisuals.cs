@@ -14,6 +14,7 @@ namespace Buklod.Empire {
         private MaterialPropertyBlock block;
         private readonly Dictionary<(int,int),Color> appliedTints=new Dictionary<(int,int),Color>();
         private bool review;
+        private readonly Dictionary<(int,int),TextMesh> lootLabels=new Dictionary<(int,int),TextMesh>();
         private BattleEffects battleEffects;
         private ReviewPresentationAudio presentationAudio;
         private WorldInteractionEffects worldEffects;
@@ -73,13 +74,15 @@ namespace Buklod.Empire {
                 }
             }
         }
-        private void Loot(int type,int id,Vector2 position,GameObject prefab,int tier,float spawnedAt){
+        private void Loot(int type,int id,Vector2 position,GameObject prefab,int tier,float spawnedAt,string itemName){
             var go=Present(type,id,position,prefab,out _);if(!go)return;
-            if(!review)return;
             Tint((type,id),go,TierColor(tier));
             float t=Mathf.Max(0,bound.Time-spawnedAt);
-            go.transform.position=view.FieldPosition(position)+Vector3.up*(.15f+.12f*Mathf.Sin(t*3+id));
+            go.transform.localScale=prefab.transform.localScale*1.25f;
+            go.transform.position=view.FieldPosition(position)+Vector3.up*(.35f+.16f*Mathf.Sin(t*3+id));
             go.transform.rotation=Quaternion.Euler(0,t*72,0)*prefab.transform.rotation;
+            var key=(type,id);if(!lootLabels.TryGetValue(key,out var label)||!label){var marker=new GameObject("Loot label "+id);marker.transform.SetParent(transform,false);label=marker.AddComponent<TextMesh>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.GetComponent<MeshRenderer>().sharedMaterial=label.font.material;label.anchor=TextAnchor.MiddleCenter;label.alignment=TextAlignment.Center;label.fontSize=48;label.characterSize=.035f;label.text="T"+tier+" • "+itemName;label.color=TierColor(tier);lootLabels[key]=label;}
+            label.gameObject.SetActive(Vector2.Distance(position,bound.Player.Position)<=22);label.transform.position=view.FieldPosition(position)+Vector3.up*1.7f;if(view.battleCamera)label.transform.rotation=view.battleCamera.transform.rotation;
         }
         private GameObject ConstructionPrefab(ArenaTeam team,VillageBuildOrder kind){
             foreach(var f in view.visuals.factions)if(f.team==team){
@@ -167,8 +170,8 @@ namespace Buklod.Empire {
                     }
                     if(attacked&&battleEffects)battleEffects.Emit(go.transform.position,hazard.Demon?new Color(1,.2f,.35f):new Color(.45f,1,.15f),1);
                 }
-                foreach(var d in bound.Drops)if(Visible(d.Position))Loot(2,d.Id,d.Position,view.visuals.fieldPickup,d.Item.Tier,d.SpawnedAt);
-                foreach(var d in bound.RelicDrops)if(Visible(d.Position))Loot(3,d.Id,d.Position,view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt);
+                foreach(var d in bound.Drops)if(Visible(d.Position))Loot(2,d.Id,d.Position,view.visuals.fieldPickup,d.Item.Tier,d.SpawnedAt,d.Item.Name);
+                foreach(var d in bound.RelicDrops)if(Visible(d.Position))Loot(3,d.Id,d.Position,view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt,d.Item.Name);
                 if(review)foreach(var u in bound.Units){
                     if(!u.State.Alive||!Nearby(u.Position)||(u.Team!=bound.Player.Team&&!bound.IsVisibleTo(bound.Player.Team,u)))continue;
                     if(u.Villager!=null&&u.Cargo>1e-6){
@@ -191,6 +194,7 @@ namespace Buklod.Empire {
             foreach(var key in removed){active.Remove(key);prefabs.Remove(key);appliedTints.Remove(key);if(key.Item1==1)campAnimators.Remove(key.Item2);}
         }
         private void Return((int,int) key,GameObject go){
+            if(lootLabels.TryGetValue(key,out var label)){if(label)Destroy(label.gameObject);lootLabels.Remove(key);}
             if(!go)return;go.SetActive(false);
             if(pooled>=PoolLimit||!prefabs.TryGetValue(key,out var prefab)||!prefab){Destroy(go);return;}
             if(!pools.TryGetValue(prefab,out var pool)){pool=new Stack<GameObject>();pools.Add(prefab,pool);}pool.Push(go);pooled++;
@@ -198,6 +202,7 @@ namespace Buklod.Empire {
         private void Clear(){
             foreach(var go in active.Values)if(go)Destroy(go);
             foreach(var pool in pools.Values)foreach(var go in pool)if(go)Destroy(go);
+            foreach(var label in lootLabels.Values)if(label)Destroy(label.gameObject);lootLabels.Clear();
             active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();campHistory.Clear();hazardAttackHistory.Clear();campAnimators.Clear();campDeathUntil.Clear();pooled=0;
         }
         private void OnDestroy(){Clear();}

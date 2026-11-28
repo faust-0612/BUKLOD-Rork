@@ -3,6 +3,54 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class VillageBattleIntegrationTests {
+        [Test] public void OfflineMilitaryOrdersAreValidatedAndDoNotChangeWaveRoles(){
+            var b=new OfflineBattle("phan");
+            Assert.True(b.OrderPlayerMilitaryRole(MinionRole.Mage));
+            Assert.AreEqual(MinionRole.Mage,b.PlayerMilitaryRole);
+            Assert.True(b.OrderPlayerArmy(VillageArmyOrder.GuardBase));
+            Assert.False(b.OrderPlayerArmy((VillageArmyOrder)999));
+            Assert.False(b.OrderPlayerMilitaryRole((MinionRole)999));
+            Assert.AreEqual(0,b.PaidTroops(ArenaTeam.Lux));
+        }
+        [Test] public void OfflineRelicsAreStoredAndEquippedOnlyThroughVault(){
+            var b=new OfflineBattle("phan");
+            var field=(System.Collections.Generic.List<ArenaRelicDrop>)typeof(OfflineBattle).GetField("relicDrops",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(b);
+            var item=new ArenaRelicDefinition("test","phan","weapon","Test blade","test",1,1,false,new ArenaRelicStats{Attack=5});
+            field.Add(new ArenaRelicDrop(123,item,b.Player.Position,b.Time));
+            b.Advance(.1f,Vector2.zero);
+            Assert.AreEqual(1,field.Count,"Human offline loot remains on ground until explicitly collected.");
+            Assert.True(b.CollectPlayerRelic(123));Assert.False(b.CollectPlayerRelic(123));
+            Assert.AreEqual(1,b.PracticeVault.Count);Assert.AreEqual(0,b.Player.Relics.Count);
+            Assert.True(b.EquipPracticeVault(0));Assert.AreEqual(0,b.PracticeVault.Count);Assert.AreSame(item,b.Player.Relics["weapon"]);
+            Assert.False(b.EquipPracticeVault(0));
+        }
+        [Test] public void WarehousePersistsCanonicalItemsAcrossInstances(){
+            string key="buklod.test.warehouse."+System.Guid.NewGuid().ToString("N");
+            try{
+                Assert.True(ArenaRelicCatalog.TryGet("phan-weapon-t1",out var item));
+                var bank=new OfflinePracticeWarehouse(key);Assert.True(bank.TryDeposit(item));
+                var reopened=new OfflinePracticeWarehouse(key);Assert.AreEqual(1,reopened.Items.Count);
+                Assert.True(reopened.TryWithdraw(0,out var restored));Assert.AreSame(item,restored);
+                Assert.AreEqual(0,new OfflinePracticeWarehouse(key).Items.Count);
+            }finally{PlayerPrefs.DeleteKey(key);PlayerPrefs.Save();}
+        }
+        [Test] public void ForgeConsumesExactlyTwoMatchingRelics(){
+            var b=new OfflineBattle("phan");
+            Assert.True(ArenaRelicCatalog.TryGet("phan-weapon-t1",out var item));
+            var field=(System.Collections.Generic.List<ArenaRelicDrop>)typeof(OfflineBattle).GetField("relicDrops",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(b);
+            field.Add(new ArenaRelicDrop(101,item,b.Player.Position,b.Time,b.Player.Team));
+            field.Add(new ArenaRelicDrop(102,item,b.Player.Position,b.Time,b.Player.Team));
+            Assert.True(b.CollectPlayerRelic(101));Assert.False(b.CanForgePracticeItem(0));
+            Assert.True(b.CollectPlayerRelic(102));Assert.True(b.ForgePracticeItem(0));
+            Assert.AreEqual(1,b.PracticeVault.Count);Assert.AreEqual(2,b.PracticeVault[0].Tier);Assert.False(b.ForgePracticeItem(0));
+        }
+        [Test] public void CreatureContractsAndIndividualOrdersRejectUnownedTargets(){
+            var b=new OfflineBattle("phan");Assert.False(b.OrderPlayerCreature(WildernessKind.StoneGolem));
+            Assert.False(b.OrderPlayerSoldier(b.Player.Id,VillageArmyOrder.HoldPosition));
+            Assert.False(b.OrderPlayerSoldierMove(b.Player.Id,b.Player.Position));
+            Assert.AreEqual(MinionRole.Siege,OfflineBattle.CreatureRole(WildernessKind.StoneGolem));
+            Assert.AreEqual(MinionRole.Healer,OfflineBattle.CreatureRole(WildernessKind.AzureStag));
+        }
         [Test] public void TwelveCanonicalVillagersAndDamageSync(){
             var b=new OfflineBattle("phan");var villagers=b.Units.Where(u=>u.Kind==BattleTargetKind.Villager).ToArray();
             Assert.AreEqual(12,villagers.Length);Assert.AreEqual(12,villagers.Select(u=>u.Villager.Job.Id).Distinct().Count());
