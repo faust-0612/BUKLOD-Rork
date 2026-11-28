@@ -29,7 +29,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   </View>;
 }
 
-function MemberRow({ member, expected, start, through, scheduled }: { member: FaithPeriodMember; expected: number; start: string; through: string; scheduled: boolean }) {
+function MemberRow({ member, expected, start, through, scheduled, duplicateName }: { member: FaithPeriodMember; expected: number; start: string; through: string; scheduled: boolean; duplicateName: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const dates = useMemo(() => {
     if (!scheduled || !member.devotion_dates) return [];
@@ -47,6 +47,7 @@ function MemberRow({ member, expected, start, through, scheduled }: { member: Fa
       <View style={styles.avatar}><Text style={styles.initial}>{member.member_name.charAt(0).toUpperCase() || '?'}</Text></View>
       <View style={styles.memberTitle}>
         <Text style={styles.memberName}>{member.member_name}</Text>
+        {duplicateName && <Text style={styles.memberSubtitle}>Same name · Account …{member.user_id.slice(-8)}</Text>}
         <Text style={styles.memberSubtitle}>Reading {member.reading_approved_days}/{expected} · Devotion {member.devotion_completed_days}/{expected} {scheduled ? 'scheduled' : 'activity days'}</Text>
       </View>
       <MaterialCommunityIcons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={GREEN} />
@@ -57,6 +58,7 @@ function MemberRow({ member, expected, start, through, scheduled }: { member: Fa
       <Text style={styles.memberRate}>BUKLOD Lessons {member.lesson_approved_count}</Text>
     </View>
     {expanded ? <View style={styles.details}>
+      <Text style={styles.detail}>Account reference: …{member.user_id.slice(-8)}</Text>
       <Text style={styles.detail}>Daily Reading: {member.reading_submitted_days} submitted days, {member.reading_approved_days} approved, {member.reading_revision_days} need revision</Text>
       <Text style={styles.detail}>Devotion: {member.devotion_submitted_days} submitted {scheduled ? 'scheduled dates' : 'activity days'}, {member.devotion_completed_days} completed, {member.devotion_revision_days} need revision</Text>
       <Text style={styles.detail}>Actual completion days: {displayAccomplishment(member.devotion_actual_completion_days)}</Text>
@@ -105,9 +107,19 @@ export default function BuklodFaithPeriodReport({ scopeId, scopeName }: Props) {
   const canPrevious = previous >= earliest;
   const canNext = next <= today;
 
-  const filtered = useMemo(() => (activeReport?.members ?? []).filter((member) =>
-    member.member_name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
-  ), [activeReport, search]);
+  const nameCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const member of activeReport?.members ?? []) {
+      const name = member.member_name.trim().toLocaleLowerCase();
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    return counts;
+  }, [activeReport]);
+  const filtered = useMemo(() => (activeReport?.members ?? []).filter((member) => {
+    const query = search.trim().toLocaleLowerCase();
+    return member.member_name.toLocaleLowerCase().includes(query)
+      || member.user_id.slice(-8).toLocaleLowerCase().includes(query);
+  }), [activeReport, search]);
 
   const exportNamed = async () => {
     if (!activeReport || exporting) return;
@@ -201,13 +213,13 @@ export default function BuklodFaithPeriodReport({ scopeId, scopeName }: Props) {
         Reading and Devotion rates use {activeReport.expected_days} elapsed days × {totals.active_members} members. {activeReport.devotion_date_basis === 'scheduled' ? 'Devotion uses scheduled publication dates, including late approved completions.' : 'Legacy devotion activity-day calculation; scheduled coverage is unavailable.'} Reading and devotion reflect canonical member activities across active scopes. ABAKA, KL and personal Bible count member accomplishments during membership; mentoring counts approved shared-scope sessions. Mentor and mentee totals are separate, not additive. Unavailable sources are not counted as zero.
       </Text>
       <Text style={styles.sectionTitle}>INDIVIDUAL MEMBER REPORT</Text>
-      <TextInput style={styles.search} placeholder="Search member by name" placeholderTextColor="#738679"
+      <TextInput style={styles.search} placeholder="Search name or account reference" placeholderTextColor="#738679"
         value={search} onChangeText={(value) => { setSearch(value); setVisibleCount(PAGE_SIZE); }}
         autoCapitalize="none" accessibilityLabel="Search report member by name" />
       <Text style={styles.count}>{filtered.length} of {activeReport.members.length} member(s)</Text>
       {filtered.length === 0 ? <Text style={styles.helper}>No member matches this search.</Text> : null}
       {filtered.slice(0, visibleCount).map((member) =>
-        <MemberRow key={member.user_id} member={member} expected={activeReport.expected_days} start={activeReport.start_date} through={activeReport.as_of_date} scheduled={activeReport.devotion_date_basis === 'scheduled'} />)}
+        <MemberRow key={member.user_id} member={member} expected={activeReport.expected_days} start={activeReport.start_date} through={activeReport.as_of_date} scheduled={activeReport.devotion_date_basis === 'scheduled'} duplicateName={(nameCounts.get(member.member_name.trim().toLocaleLowerCase()) ?? 0) > 1} />)}
       {filtered.length > visibleCount ? <Pressable style={styles.more} accessibilityRole="button"
         onPress={() => setVisibleCount((n) => n + PAGE_SIZE)}>
         <Text style={styles.moreLabel}>Show more ({filtered.length - visibleCount} remaining)</Text>

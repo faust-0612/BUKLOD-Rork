@@ -1,4 +1,13 @@
 begin;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+do $test$
+declare r jsonb;
+begin
+ r:=public.buklod_scope_faith_monitoring_period_v3('00000000-0000-0000-0000-000000000010','month',null);
+ if exists(select 1 from jsonb_array_elements(r->'members') item where item->>'children_teaching_count' is not null)
+ then raise exception 'Disabled empty teaching source falsely reports zero'; end if;
+end;
+$test$;
 do $test$
 declare actor uuid:='00000000-0000-0000-0000-000000000002'; cluster uuid:='00000000-0000-0000-0000-000000000010';
  other_cluster uuid:='00000000-0000-0000-0000-000000000020'; req uuid:='11111111-1111-1111-1111-111111111111';
@@ -57,5 +66,15 @@ begin
 end;
 $test$;
 reset role;
+update private.buklod_children_teaching_rollout set enabled=false where id;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+do $test$
+declare r jsonb; m jsonb;
+begin
+ r:=public.buklod_scope_faith_monitoring_period_v3('00000000-0000-0000-0000-000000000010','month',null);
+ select item into m from jsonb_array_elements(r->'members') item where item->>'user_id'='00000000-0000-0000-0000-000000000002';
+ if m->>'children_teaching_count' is distinct from '2' then raise exception 'Disabling intake erased historical count'; end if;
+end;
+$test$;
 rollback;
 select 'CHILDREN_TEACHING_BEHAVIOR_QA_PASS' as verdict;

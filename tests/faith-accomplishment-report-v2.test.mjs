@@ -30,3 +30,10 @@ test('formation accomplishments preserve Nov 17 member-attribution policy',()=>{
  assert.doesNotMatch(sql,/f0.scope_id=m.scope_id/);
  assert.match(sql,/case f0.status when 'APPROVED' then 0/);
 });
+
+test('duplicate names remain separate accounts in the member report',()=>{
+ assert.match(ui,/key=\{member.user_id\}/);
+ assert.match(ui,/Same name · Account/);
+ assert.match(ui,/nameCounts.get/);
+ assert.match(ui,/member.user_id.slice\(-8\)/);
+});
