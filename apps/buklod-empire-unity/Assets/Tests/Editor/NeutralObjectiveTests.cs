@@ -30,6 +30,13 @@ namespace Buklod.Empire.Tests {
             Assert.Greater(OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Strategist,.6f,3,1,0),OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Strategist,.6f,1,3,0));
             Assert.Less(OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Support,.6f,2,2,1),OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Support,.6f,2,2,0));
         }
+        [Test] public void HeroSkillPolicyUsesActualRolesAndSafeDash(){
+            Assert.AreEqual(SkillSlot.Ultimate,OfflineBattle.BotPreferredSkill("lhen",4,2,2,.7f,.8f,false,true));
+            Assert.AreEqual(SkillSlot.Primary,OfflineBattle.BotPreferredSkill("mitch",12,1,0,.9f,.8f,false,true));
+            Assert.IsNull(OfflineBattle.BotPreferredSkill("quin",14,1,0,.9f,.8f,false,false));
+            Assert.AreEqual(SkillSlot.Primary,OfflineBattle.BotPreferredSkill("quin",14,1,0,.9f,.8f,false,true));
+            Assert.IsNull(OfflineBattle.BotPreferredSkill("phan",12,1,0,.9f,.8f,false,true));
+        }
         [Test] public void HazardRangeIncludesBoundary(){
             Assert.True(OfflineBattle.InHazardRange(Vector2.right*10,Vector2.zero,10));
             Assert.False(OfflineBattle.InHazardRange(Vector2.right*10.1f,Vector2.zero,10));

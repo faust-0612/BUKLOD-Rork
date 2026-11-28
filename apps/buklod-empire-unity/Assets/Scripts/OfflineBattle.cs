@@ -1089,6 +1089,39 @@ namespace Buklod.Empire {
             }else if(Time-m.SeenAt>5){m.HasObservation=false;m.ObservedHero=0;m.TargetId=0;m.EnemyCastBursts=0;}
             return true;
         }
+        // Skill policy reflects actual HeroSkillRules, never changes mana, cooldown or damage.
+        public static SkillSlot? BotPreferredSkill(string hero,float distance,int enemies,int wounded,float hp,float targetHp,bool pressured,bool safeDash){
+            bool close=distance<=6, group=enemies>=2, rescue=wounded>=2||hp<.35f;
+            switch(hero){
+                case "phan":if(rescue&&enemies>0)return SkillSlot.Ultimate;if(close)return SkillSlot.Primary;break;
+                case "quin":if(distance<=12&&targetHp<.75f)return SkillSlot.Secondary;if(safeDash&&distance>13)return SkillSlot.Primary;break;
+                case "van":if(rescue&&enemies>0)return SkillSlot.Ultimate;if(wounded>0)return SkillSlot.Primary;break;
+                case "christian":if(rescue&&enemies>0)return SkillSlot.Ultimate;if(safeDash&&distance>3&&distance<=8)return SkillSlot.Primary;if(group)return SkillSlot.Secondary;break;
+                case "lhen":if(wounded>=2)return SkillSlot.Ultimate;if(wounded>0)return SkillSlot.Secondary;if(close)return SkillSlot.Primary;break;
+                case "ace":if(rescue&&enemies>0)return SkillSlot.Ultimate;if(wounded>0)return SkillSlot.Primary;break;
+                case "ellusur":if(rescue&&enemies>0)return SkillSlot.Ultimate;if(wounded>0)return SkillSlot.Secondary;break;
+                case "jawo":if(group&&distance<=9.5f)return SkillSlot.Ultimate;if(distance<=7.5f)return SkillSlot.Primary;if(safeDash&&distance<=9)return SkillSlot.Secondary;break;
+                case "mitch":if(rescue&&enemies>0)return SkillSlot.Ultimate;if(distance<=13)return SkillSlot.Primary;break;
+                case "niel":if(group&&distance<=14)return SkillSlot.Ultimate;if(safeDash&&distance>3&&distance<=8&&hp>.65f)return SkillSlot.Secondary;if(distance<=12)return SkillSlot.Primary;break;
+                case "angel":if(rescue&&enemies>0)return SkillSlot.Ultimate;if(pressured||wounded>0)return SkillSlot.Primary;if(group)return SkillSlot.Secondary;break;
+                case "vhen":if(group&&distance<=9)return SkillSlot.Ultimate;if(distance<=6)return SkillSlot.Secondary;if(distance<=10)return SkillSlot.Primary;break;
+                case "trudice":if(group&&distance<=11)return SkillSlot.Ultimate;if(pressured&&distance<=6)return SkillSlot.Secondary;if(distance<=11)return SkillSlot.Primary;break;
+            }
+            return null;
+        }
+        bool BotDashSafe(BattleUnit u,Vector2 aim){
+            if(aim.sqrMagnitude<.001f)return false;
+            var end=u.Position+aim.normalized*7f;
+            if(Blocked(end)||!ClearSight(u.Position,end)||(navigation!=null&&!navigation.CanTraverse(u.Position,end)))return false;
+            if(JungleHazardsActive&&!SafeJungleSegment(u.Position,end))return false;
+            return !units.Any(v=>v.Team!=u.Team&&v.IsCombatStructure&&v.State.Alive&&Vector2.Distance(v.Position,end)<10);
+        }
+        float BotFocusBonus(BattleUnit u,BattleUnit target){
+            if(target.Kind!=BattleTargetKind.Hero)return 0;
+            int allies=0;
+            foreach(var v in units)if(v!=u&&v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(u,v)<=18&&botMemory.TryGetValue(v.Id,out var m)&&m.TargetId==target.Id)allies++;
+            return Mathf.Min(4,allies*1.5f);
+        }
         private void Bot(BattleUnit u,float speed){
             if(JungleHazardsActive&&JungleClearance(u.Position)<0){
                 var nearest=hazards.OrderBy(h=>Mathf.Min(HazardClearance(u.Position,h.Position,h.WarningRadius+2),HazardClearance(u.Position,h.Home,h.Demon?22:12))).First();
@@ -1106,9 +1139,9 @@ namespace Buklod.Empire {
                     new[]{"blade","boots","armor","withering_thorn","sealbreaker","renewal"};
                 foreach(var item in order)if(Buy(u,item))break;
             }
-            if(u.Retreat){if(a.Health/a.MaxHealth<.45f)UseTactic(u,Vector2.zero);if(!units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<15)&&BeginRecall(u))return;Steer(u,u.Spawn-u.Position,speed);return;}
+            if(u.Retreat){if(a.Health/a.MaxHealth<.45f)UseTactic(u,Vector2.zero);if(!units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<15&&IsVisibleTo(u.Team,v))&&BeginRecall(u))return;Steer(u,u.Spawn-u.Position,speed);return;}
             bool supported=thinking&&TrySupport(u);
-            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&v.Villager?.Job.Effect==VillageEffect.Gather?4:0)+(ClearSight(u.Position,v.Position)?3:0)+(v.Id==memory.TargetId?2.5f:0)+(style==BotStyle.Hunter&&v.Kind==BattleTargetKind.Hero?(1-v.State.Health/v.State.MaxHealth)*5:0)+(style==BotStyle.Strategist&&v.IsCombatStructure?3:0)).ThenBy(v=>v.Id).FirstOrDefault();
+            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&v.Villager?.Job.Effect==VillageEffect.Gather?4:0)+(ClearSight(u.Position,v.Position)?3:0)+(v.Id==memory.TargetId?2.5f:0)+(style==BotStyle.Hunter&&v.Kind==BattleTargetKind.Hero?(1-v.State.Health/v.State.MaxHealth)*5:0)+(style==BotStyle.Strategist&&v.IsCombatStructure?3:0)+BotFocusBonus(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
             var defense=DefenseThreat(u);if(defense!=null)t=defense;
             if(thinking)memory.TargetId=t?.Id??0;
             // Local, visible numerical advantage: regroup rather than feed isolated deaths.
@@ -1127,7 +1160,7 @@ namespace Buklod.Empire {
                 var camp=wilderness.Camps.Where(c=>c.Alive&&(!JungleHazardsActive||JungleClearance(c.Position)>=0)&&(c.Boss?Vector2.Distance(u.Position,c.Position)<40:((u.Team==ArenaTeam.Lux)==(c.Position.x<Width/2)))&&(Time<180||Vector2.Distance(u.Position,c.Position)<35)).OrderBy(c=>Vector2.Distance(u.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
                 if(camp!=null){var campDirection=camp.Position-u.Position;if(campDirection.magnitude>a.Kit.BasicRange*.9f||!ClearSight(u.Position,camp.Position))Steer(u,campDirection,speed);else if(thinking){if(camp.Health<=90)UseTactic(u,campDirection);Basic(u,campDirection,null,camp.Id);}return;}
             }
-            if(t==null&&(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit))t=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
+            if(t==null&&(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit))t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&IsVisibleTo(u.Team,v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
             var goal=t==null?LaneGoal(u):t.Position;
             if(t==null&&memory.HasObservation&&Time-memory.SeenAt<=3&&hp>.65f&&memory.Pressure<.45f&&style!=BotStyle.Support&&Vector2.Distance(u.Position,memory.LastSeen)>3&&Vector2.Distance(u.Position,memory.LastSeen)<22)goal=memory.LastSeen;
             if(t==null&&style==BotStyle.Support){
@@ -1149,12 +1182,17 @@ namespace Buklod.Empire {
             if(t==null||!thinking||!IsVisibleTo(u.Team,t))return;
             var dir=t.Position-u.Position;Basic(u,dir,null,0,t.Id);
             if(supported||Finished)return;
-            // One successful skill per decision: preserve mana and make the action readable.
-            int nearby=Enemies(a,8,Vector2.zero).Count;
-            if((nearby>=3||nearby>=2&&memory.Pressure>.5f||style==BotStyle.Hunter&&t.Kind==BattleTargetKind.Hero&&t.State.Health<t.State.MaxHealth*.22f&&Dist(u,t)<7)&&a.TryCast(this,SkillSlot.Ultimate,dir,Time,!Finished))return;
-            if(memory.EnemyCastBursts>=3&&hp<.6f&&Dist(u,t)<6&&UseTactic(u,Vector2.zero))return;
-            if(nearby>=2&&a.TryCast(this,SkillSlot.Secondary,dir,Time,!Finished))return;
-            if(Dist(u,t)<=Mathf.Max(9f,a.Kit.BasicRange)&&ClearSight(u.Position,t.Position))a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);
+            // One successful skill per decision, with kit-specific range and support conditions.
+            int nearby=Enemies(a,10,Vector2.zero).Count;
+            int wounded=Allies(a,9).Count(v=>v.Kit!=null&&v.Health<v.MaxHealth*.65f);
+            if(memory.EnemyCastBursts>=3&&hp<.6f&&Dist(u,t)<6&&(u.Tactic==ArenaTactic.Renew||u.Tactic==ArenaTactic.CleansingLight)&&UseTactic(u,Vector2.zero))return;
+            if(!ClearSight(u.Position,t.Position))return;
+            var slot=BotPreferredSkill(a.Kit.Id,Dist(u,t),nearby,wounded,hp,t.State.Health/Mathf.Max(1,t.State.MaxHealth),memory.Pressure>.35f,BotDashSafe(u,dir));
+            if(slot.HasValue&&a.TryCast(this,slot.Value,dir,Time,!Finished))return;
+            // Fall back to an actual damaging primary only, never blind dash/wall/support spam.
+            string primary=a.Kit.Primary.Id;
+            float range=primary=="groundbreaker"||primary=="resonance_wave"?6:primary=="vine_riff"?7.5f:primary=="pigment_bolt"?13:primary=="echo_lance"?12:primary=="question_sigil"?11:0;
+            if(range>0&&Dist(u,t)<=range)a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);
         }
         // Bounded retaliation, no pursuit, resource minting or construction override.
         private void DefendVillageWorker(BattleUnit worker){
