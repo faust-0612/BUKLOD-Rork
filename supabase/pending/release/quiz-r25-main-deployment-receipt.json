@@ -1,0 +1,42 @@
+{
+  "status": "R25_MAIN_BACKEND_VERIFIED_LIVE_WEB_PREVIEW_PENDING",
+  "date": "2026-11-28",
+  "sqlCandidate": "45340bcf0bd29fac6b29b064cbb0426417740bc9",
+  "syntheticTestCandidate": "8ca2fba31d85afc8978f7dd00e0abd2e2b3d626f",
+  "syntheticTest": {
+    "result": "QUIZ_R25_ISOLATED_SYNTHETIC_QA_PASS_ROLLBACK",
+    "runtime": "MAIN PostgreSQL, transaction-isolated renamed public/private/auth fixture schemas, no live student records, no role changes",
+    "scope": "historical eligibility, explicit confirmation, missing evidence, caps, outsider denial, mixed class approval, score and audit preservation",
+    "rollbackConfirmed": true,
+    "testSchemasRemaining": 0,
+    "limitations": "Fixture uses test identity functions and excludes real gateway and production triggers."
+  },
+  "migration": {
+    "name": "buklod_quiz_r25_verified_historical_review_compatibility",
+    "success": true,
+    "blob": "3803a53daff8d9255c93692ae33586f7982c341e",
+    "recordHashGuardsPassed": true
+  },
+  "verifiedLive": {
+    "r25Rpc": true,
+    "authenticatedManualApproval": true,
+    "anonymousApproval": false,
+    "attempts": 951,
+    "responses": 61909,
+    "released": 460,
+    "active": 0
+  },
+  "frontend": {
+    "candidate": "5d643744507fe2e2b1a79fe50bfbe977251eb968",
+    "compiled": false,
+    "previewDeploymentVerified": false
+  },
+  "publicQuizAliasChanged": false,
+  "dedicatedDeleted": false,
+  "remaining": [
+    "R25 exact frontend typecheck/export and preview upload",
+    "Authenticated R25 preview smoke",
+    "Production alias promotion of exact preview and MAIN launcher OTA",
+    "Recoverable dedicated backup and verified no dependency before retirement"
+  ]
+}
