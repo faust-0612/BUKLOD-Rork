@@ -20,3 +20,6 @@ Audio Settings → Content Updates: automatic small signed manifest check when c
 
 ## Reviewed replacement sources
 Place the actual approved source files under Assets/EmpireContentSource/ and create manifest.json with status RIGHTS_AND_SOURCE_REVIEWED and entries containing slot, assetPath, author, license (CC0-1.0), sourceUrl (HTTPS), redistributionReviewed (true), and files (each path, sha256, metaSha256). List every new dependency and its Unity .meta hash. Existing native baseline dependencies only are allowed outside that root. Do not include scripts, plugins, scenes, or new shaders. CC-BY remote content awaits signed attribution delivery; do not mislabel a license. Example slots: coin-collect, lux_tower, stone. The gate is not a substitute for actual rights review or Unity playback. Export and sign a full 66-slot revision; no live deployment by this code.
+
+### Same-revision recovery
+If the newest signed revision is damaged and the client falls back, the client may offer a repair of the exact previously recorded signed envelope when bytes are missing or corrupt. The anti-replay floor stays intact. A conflicting envelope, an older network revision, or a same-revision offer with no repairable missing bytes is rejected. Already verified bundles are reused; activation remains restart-only. This is source implementation, pending device verification.

@@ -20,6 +20,7 @@ namespace Buklod.Empire {
         byte[] offerEnvelope;
         string root;
         int floor,activeRevision;
+        byte[] floorEnvelope;
         bool restartRequired;
         HashSet<string> activeHashes=new HashSet<string>(StringComparer.Ordinal);
         UnityWebRequest request;
@@ -29,7 +30,14 @@ namespace Buklod.Empire {
             return updatedCatalog?updatedCatalog:baseCatalog;
         }
         public bool CanCheck=>!Busy&&!restartRequired&&trust!=null;
-        public bool CanDownload=>CanCheck&&offered!=null&&offered.revision>floor;
+        public bool CanDownload=>CanCheck&&offered!=null&&CanOfferRevision(offered.revision,floor,activeRevision,PendingBytes,offerEnvelope,floorEnvelope);
+        internal static bool CanOfferRevision(int revision,int acceptedFloor,int active,long missing,byte[] incoming,byte[] recorded){
+            if(revision<=0||revision<acceptedFloor||missing<0||incoming==null||incoming.Length==0)return false;
+            if(revision>acceptedFloor)return true;
+            // Repair only the exact previously accepted signed envelope. Never accept a
+            // different payload for the same revision or an older network offer.
+            return active<acceptedFloor&&missing>0&&recorded!=null&&recorded.SequenceEqual(incoming);
+        }
         public string Status{get;private set;}="Built-in content ready";
         public long PendingBytes{get;private set;}
         public float Progress{get;private set;}
@@ -57,7 +65,15 @@ namespace Buklod.Empire {
         static List<Candidate> ReadReceipts(string folder,EmpireContentProtocol.Trust t,string unity){
             var rows=new List<Candidate>();
             if(!Directory.Exists(folder))return rows;
-            foreach(var path in Directory.EnumerateFiles(folder,"revision-*.json").Take(64)){
+            // Enumerate highest canonical filenames first: directory enumeration order is
+            // not a revision ordering. Ignore malformed names before applying the bound.
+            var paths=Directory.EnumerateFiles(folder,"revision-*.json").Select(path=>{
+                var name=Path.GetFileNameWithoutExtension(path);
+                int revision=0;
+                return new {path,revision=name.StartsWith("revision-",StringComparison.Ordinal)&&int.TryParse(name.Substring(9),out revision)&&revision>0&&name=="revision-"+revision?revision:0};
+            }).Where(x=>x.revision>0).OrderByDescending(x=>x.revision).Take(64);
+            foreach(var entry in paths){
+                string path=entry.path;
                 try{
                     if(new FileInfo(path).Length>EmpireContentProtocol.MaxManifestBytes)continue;
                     byte[] bytes=File.ReadAllBytes(path);var m=EmpireContentProtocol.Verify(bytes,t,unity);
@@ -73,7 +89,7 @@ namespace Buklod.Empire {
             while(!work.IsCompleted)yield return null;
             if(work.IsFaulted||work.IsCanceled){Status="Cache unavailable; built-in content";yield break;}
             var candidates=work.Result;
-            if(candidates.Count>0)floor=candidates[0].manifest.revision;
+            if(candidates.Count>0){floor=candidates[0].manifest.revision;floorEnvelope=candidates[0].envelope;}
             foreach(var candidate in candidates.Take(3)){
                 var m=candidate.manifest;
                 var check=Task.Run(()=>m.bundles.All(b=>EmpireContentProtocol.Matches(Blob(b),b)));
@@ -160,7 +176,7 @@ namespace Buklod.Empire {
             done(null);
         }
         IEnumerator CheckRoutine(){
-            Busy=true;offered=null;PendingBytes=0;Progress=0;Status="Checking signed content...";
+            Busy=true;offered=null;offerEnvelope=null;PendingBytes=0;Progress=0;Status="Checking signed content...";
             try{
                 byte[] envelope=null;yield return Fetch("manifest.json",EmpireContentProtocol.MaxManifestBytes,b=>envelope=b);
                 if(envelope==null){Status="Update check unavailable; offline content retained";yield break;}
@@ -173,9 +189,11 @@ namespace Buklod.Empire {
                 while(!task.IsCompleted)yield return null;
                 if(task.IsFaulted||task.IsCanceled){Status="Invalid or incompatible signed content rejected";yield break;}
                 var result=task.Result;
-                if(result.manifest.revision<=floor){Status="No newer compatible revision; active "+activeRevision;yield break;}
+                if(!CanOfferRevision(result.manifest.revision,floor,activeRevision,result.missing,envelope,floorEnvelope)){
+                    Status=result.manifest.revision==floor&&activeRevision<floor?"Cached revision cannot be repaired from this offer; built-in or previous content retained":"No newer compatible revision; active "+activeRevision;yield break;
+                }
                 offered=result.manifest;offerEnvelope=envelope;PendingBytes=result.missing;
-                Status="Revision "+offered.revision+" available • "+(PendingBytes/1048576d).ToString("0.0")+" MB • download only on approval";
+                Status=(offered.revision==floor?"Repair revision ":"Revision ")+offered.revision+" available • "+(PendingBytes/1048576d).ToString("0.0")+" MB • download only on approval";
             }finally{Busy=false;Progress=0;}
         }
         // Keep the two newest signed receipts plus the actually active recovery revision.
@@ -275,7 +293,7 @@ namespace Buklod.Empire {
                 });
                 while(!commit.IsCompleted)yield return null;
                 if(commit.IsFaulted||commit.IsCanceled){Status="Activation receipt failed; current assets retained";yield break;}
-                floor=m.revision;restartRequired=true;offered=null;PendingBytes=0;Status="Revision "+floor+" verified on disk. Restart app to activate.";
+                floor=m.revision;floorEnvelope=envelope;restartRequired=true;offered=null;offerEnvelope=null;PendingBytes=0;Status="Revision "+floor+" verified on disk. Restart app to activate.";
             }finally{Busy=false;Progress=0;}
         }
         void OnDestroy(){if(request!=null)request.Abort();if(updatedCatalog&&updatedCatalog!=baseCatalog)Destroy(updatedCatalog);staticOverrides.Clear();overrides.Clear();foreach(var b in loaded)if(b)b.Unload(false);}

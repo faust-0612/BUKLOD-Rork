@@ -41,6 +41,18 @@ namespace Buklod.Empire.Tests {
                 Assert.False(File.Exists(destination+".partial"));
             }finally{Directory.Delete(folder,true);}
         }
+        [Test] public void DamagedLatestRevisionCanRepairWithoutWeakeningReplayFloor(){
+            var m=Valid();m.revision=7;var recorded=Sign(m);
+            Assert.IsTrue(EmpireContentUpdater.CanOfferRevision(7,7,6,120,recorded,recorded));
+            Assert.IsTrue(EmpireContentUpdater.CanOfferRevision(7,7,0,120,recorded,recorded));
+            Assert.IsFalse(EmpireContentUpdater.CanOfferRevision(7,7,7,120,recorded,recorded));
+            Assert.IsFalse(EmpireContentUpdater.CanOfferRevision(7,7,6,0,recorded,recorded));
+            m.bundles[0].bytes++;var conflict=Sign(m);
+            Assert.IsFalse(EmpireContentUpdater.CanOfferRevision(7,7,6,120,conflict,recorded));
+            Assert.IsFalse(EmpireContentUpdater.CanOfferRevision(7,7,6,120,recorded,null));
+            m.revision=6;Assert.IsFalse(EmpireContentUpdater.CanOfferRevision(6,7,6,120,Sign(m),recorded));
+            m.revision=8;Assert.IsTrue(EmpireContentUpdater.CanOfferRevision(8,7,6,120,Sign(m),recorded));
+        }
         [Test] public void ValidSignatureAndCompatibleRuntime(){Assert.AreEqual(1,EmpireContentProtocol.Verify(Sign(Valid()),trust,UnityVersion).revision);}
         [Test] public void TamperedSignatureRejected(){Assert.Throws<CryptographicException>(()=>EmpireContentProtocol.Verify(Sign(Valid(),true),trust,UnityVersion));}
         [Test] public void OtherRuntimeRejected(){Assert.Throws<InvalidDataException>(()=>EmpireContentProtocol.Verify(Sign(Valid()),trust,"6000.6.10f1"));}

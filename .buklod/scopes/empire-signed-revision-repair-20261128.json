@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-signed-revision-repair-20261128.json",
+  "baseRef": "0971d88b3d0fbdbba9cf873317d88cc8a280f0c7",
+  "productionBaselineEvidence": "Empire DEV only; no deployed content revision",
+  "objective": "Repair corrupted latest signed content without lowering anti-replay floor or reinstalling APK.",
+  "chosenApproach": "Exact signed receipt equality, missing bundle verification, deterministic receipt order and existing atomic activation path.",
+  "selectionRationale": "Existing strict newer-only rule made same-revision corruption unrecoverable until a new revision was published.",
+  "alternativeApproaches": [
+    "Reset replay floor or accept altered same-revision manifest; rejected."
+  ],
+  "riskAreas": [
+    "Unity/IL2CPP execution deferred",
+    "Host trust not configured",
+    "Unchanged invalid bundle content requires newer revision"
+  ],
+  "preserveBehaviors": [
+    "Explicit download consent",
+    "Signed immutable manifest and hash verification",
+    "Built-in and prior fallback",
+    "No remote code or MAIN mutations"
+  ],
+  "acceptanceChecks": [
+    "Exact same-revision repair eligible only when active is older and missing bytes exist",
+    "Conflicting envelope and downgrade rejected",
+    "Next newer signed offer remains eligible"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/EmpireContentUpdater.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/EmpireContentProtocolTests.cs",
+    "apps/buklod-empire-unity/Tools/EMPIRE_CONTENT_UPDATE.md",
+    ".buklod/scopes/empire-signed-revision-repair-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/EmpireContentProtocolTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}
