@@ -5,6 +5,7 @@
   "Tools/identity_detail.py",
   "Tools/fidelity_geometry.py",
   "Tools/hair_motion.py",
+  "Tools/eye_motion.py",
   "Tools/sculpt_geometry.py",
   "Tools/joint_geometry.py",
   "Tools/refine_surfaces.py",

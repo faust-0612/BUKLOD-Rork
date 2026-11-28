@@ -11,12 +11,18 @@ def mesh_checks(data):
         start=v.get('byteOffset',0)+a.get('byteOffset',0);end=start+a['count']*width
         if end>len(buf) or end>v.get('byteOffset',0)+v['byteLength']:raise ValueError('Accessor bounds')
         return list(struct.iter_unpack('<'+fmt,buf[start:end]))
+    bones=d['skins'][0]['joints']
+    eyes={slot for slot,node in enumerate(bones) if d['nodes'][node]['name'] in ('ReviewEye_L','ReviewEye_R')}
+    if len(eyes)!=2:raise ValueError('Expected two eye joints')
+    weighted_eyes=set()
     for m in d['meshes']:
         for p in m['primitives']:
             a=p['attributes'];count=d['accessors'][a['POSITION']]['count']
             if count>=65536 or max(x[0] for x in values(p['indices'],'H'))>=count:raise ValueError('Index range')
             for j,w in zip(values(a['JOINTS_0'],'HHHH'),values(a['WEIGHTS_0'],'ffff')):
-                if max(j)>=len(d['skins'][0]['joints']) or min(w)<0 or abs(sum(w)-1)>1e-5:raise ValueError('Skin weights')
+                if max(j)>=len(bones) or min(w)<0 or abs(sum(w)-1)>1e-5:raise ValueError('Skin weights')
+                weighted_eyes.update(joint for joint,weight in zip(j,w) if joint in eyes and weight>0)
+    if weighted_eyes!=eyes:raise ValueError('Eye joints missing geometry weights')
 
 class RosterGeometryTests(unittest.TestCase):
     def test_all_canonical_models_keep_rig_and_animation(self):
@@ -36,7 +42,7 @@ class RosterGeometryTests(unittest.TestCase):
                     self.assertGreater(b[5],a[5])
                     self.assertLess(c[5],.8*b[5])
                     self.assertNotIn(row['meshHash'],hashes);hashes.add(row['meshHash'])
-                    mesh_checks(new.read_bytes())
+                    mesh_checks(new.read_bytes());mesh_checks(lod.read_bytes())
             self.assertEqual(len(hashes),13)
 
 if __name__=='__main__':unittest.main()

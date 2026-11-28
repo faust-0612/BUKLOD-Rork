@@ -75,7 +75,7 @@ def replace_face_box(h,mat,joint,c,s):
         return True
     return False
 
-def add_details(h,result):
+def add_details(h,result,eyes=None):
     _,_,_,head,arms,_,_=result
     # Nasal bridge and nostril wings, skinned to the original head joint.
     _,_,_,nose,_=PROFILES[h.id];y=1.764*h.h
@@ -96,9 +96,10 @@ def add_details(h,result):
                 zz=face_depth(h,xx,yy)+.0035
                 radius=(.0024 if upper else .0017)*(.55+.45*math.sin(math.pi*u))
                 angle=2*math.pi*v;ny,nz=math.cos(angle),math.sin(angle)
-                return (xx,yy+radius*ny,zz+radius*nz),(0,ny,nz),(head,head,1.)
+                joint=eyes[side] if eyes else head
+                return (xx,yy+radius*ny,zz+radius*nz),(0,ny,nz),(joint,joint,1.)
             _grid(h,3,rim,8 if getattr(h,'mobile_lod',False) else 16,6)
-        h.ell(5,head,(cx-.0028,cy+.003,face_depth(h,cx,cy)+.010),(.0022,.0022,.0015),6,3)
+        h.ell(5,eyes[side] if eyes else head,(cx-.0028,cy+.003,face_depth(h,cx,cy)+.010),(.0022,.0022,.0015),6,3)
     # Distinct raised detail on the existing canonical hand-held equipment.
     hand=arms[1][2];x,y,z=h.rest[hand];c=(x+.025,y-.025,z+.05)
     def at(dx,dy,dz):return (c[0]+dx,c[1]+dy,c[2]+dz)

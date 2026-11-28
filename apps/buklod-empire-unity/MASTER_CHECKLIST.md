@@ -35,3 +35,6 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 - [ ] Complete adaptive combat and strategic AI regressions, all-hero gameplay and progression coverage, durable online host and settlement composition, online lobby/HUD, and full secure updater slot and publishing coverage.
 - [ ] Provide isolated hosting and pinned updater trust for the intended Android version code. Install the 103 verified Library inputs on the build workstation. Generate the review scene, catalog, NavMesh and Android settings through the documented isolated path.
 - [ ] Full Unity C# compilation, EditMode/PlayMode, Android/APK and hosted multiplayer verification are deferred. Production-only catalog and scene readiness remains blocked. Source-complete and build-ready verdict remains open.
+
+- [x] Forward-ported two weighted eye joints per hero, the idle blink and head/chest curves, and the reset curves for authored motion overrides. Full-detail and LOD eye weights verified across all 13 generated rigs. Facial expression and lip-sync coverage remain open.
+- [x] Forward-ported hand-bound weapon traces for confirmed basic attacks. Traces are limited to visible review heroes, clear on pause/cull, and are purely visual. Unity execution deferred.

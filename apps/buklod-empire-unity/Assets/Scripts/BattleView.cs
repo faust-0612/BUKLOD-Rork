@@ -44,7 +44,10 @@ namespace Buklod.Empire {
         public float ControlFeedbackUntil {get;private set;}
         public void SetPaused(bool value){
             Paused=value;if(input)input.enabled=!value;if(value){ControlFeedbackUntil=0;Battle?.CancelPlayerAttack();}
-            foreach(var visual in active.Values)if(visual.animator)visual.animator.speed=value?0f:1f;
+            foreach(var visual in active.Values){
+                if(visual.animator)visual.animator.speed=value?0f:1f;
+                if(value&&visual.weaponTrail)visual.weaponTrail.SetVisible(false);
+            }
             foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value?0f:1f;
             if(value){if(projectiles)projectiles.Clear();if(combatOverlay)combatOverlay.ResetOverlay();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
@@ -90,6 +93,7 @@ namespace Buklod.Empire {
             public float collapseDuration;
             public Vector3 collapsePosition,collapseScale;
             public Quaternion collapseRotation;
+            public ReviewWeaponTrail weaponTrail;
             public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public GameObject instance,prefab;public Animator animator;public ReviewClipPlayback fallback;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
@@ -178,7 +182,10 @@ namespace Buklod.Empire {
             else go=Instantiate(prefab,transform);
             go.SetActive(true);
             var v=new Visual{instance=go,prefab=prefab,animator=go.GetComponentInChildren<Animator>(true)};
-            if(ReviewOnly){v.farmGrowth=go.GetComponent<ReviewFarmGrowth>();v.equipment=go.GetComponent<ReviewEquipmentVisual>();if(v.equipment)v.equipment.ResetVisual();}
+            if(ReviewOnly){v.farmGrowth=go.GetComponent<ReviewFarmGrowth>();v.equipment=go.GetComponent<ReviewEquipmentVisual>();if(v.equipment)v.equipment.ResetVisual();
+                v.weaponTrail=go.GetComponent<ReviewWeaponTrail>();
+                if(v.weaponTrail)v.weaponTrail.Bind(v.animator,effects?effects.pulseMaterial:null,BattleEffects.Accent(unit.State.Kit.Id));
+            }
             v.lodGroups=go.GetComponentsInChildren<LODGroup>(true);
             v.renderers=go.GetComponentsInChildren<Renderer>(true);v.originalShadows=new ShadowCastingMode[v.renderers.Length];
             for(int i=0;i<v.renderers.Length;i++){
@@ -301,11 +308,13 @@ namespace Buklod.Empire {
                         else v.animator.SetFloat("Speed",speed,.10f,Time.deltaTime);
                     }else v.animator.SetFloat("Speed",immediate?0:flat.magnitude*(1-Mathf.Exp(-18*Time.deltaTime))/Mathf.Max(.0001f,Time.deltaTime));
                 }
+                if(v.weaponTrail)v.weaponTrail.SetVisible(inView&&!immediate&&!Battle.Finished);
                 bool attackedThisFrame=u.LastAttack>v.attack;
                 if(attackedThisFrame){
                     v.attack=u.LastAttack;
                     if(u.Kind!=BattleTargetKind.Structure&&u.AttackFacing.sqrMagnitude>.001f)t.rotation=Quaternion.LookRotation(new Vector3(u.AttackFacing.x,0,u.AttackFacing.y));
                     Trigger(v,"Attack");
+                    if(v.weaponTrail)v.weaponTrail.Begin();
                     if(u.Kind==BattleTargetKind.Hero){
                         if(effects)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
                         if(reviewFoley&&inView&&!immediate)reviewFoley.WeaponAttack(u.State.Kit.Id,t.position,player);
@@ -374,6 +383,7 @@ namespace Buklod.Empire {
                 // Culling an alive unit or expiring a temporary structure never emits a death effect.
                 bool visibleDeath=!immediate&&u!=null&&!u.State.Alive&&!u.Temporary&&
                     (!ReviewOnly||Battle.IsPositionVisibleTo(Battle.Player.Team,u.Position))&&GeometryUtility.TestPlanesAABB(frustum,new Bounds(v.instance.transform.position,Vector3.one*Mathf.Max(2,worldScale*8)));
+                if(v.weaponTrail)v.weaponTrail.SetVisible(false);
                 if(visibleDeath){
                     var kind=u.Core?WorldImpactKind.Core:u.Kind==BattleTargetKind.Structure?WorldImpactKind.Structure:WorldImpactKind.Unit;
                     var tint=u.Team==ArenaTeam.Lux?new Color(.55f,.69f,.82f):new Color(.48f,.25f,.28f);

@@ -1,0 +1,47 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-face-weapon-motion-20261128.json",
+  "baseRef": "7d9f266131b110af3e909f9314a96883ed95cbcd",
+  "productionBaselineEvidence": "Standalone DEV. Production APK identity unverified.",
+  "objective": "Reconcile existing facial and weapon motion source into the review pipeline.",
+  "chosenApproach": "Reuse the isolated pregame rig and tracer components without merging shared gameplay files.",
+  "selectionRationale": "Preserves the current authoritative battle and asset pipeline.",
+  "alternativeApproaches": [
+    "Whole branch merge would overwrite newer offline gameplay and review bindings."
+  ],
+  "riskAreas": [
+    "Rig weight and animation curve coverage",
+    "pooled trail visibility"
+  ],
+  "preserveBehaviors": [
+    "All offline game and reward rules",
+    "MAIN, BP/QMP, production, and online isolation"
+  ],
+  "acceptanceChecks": [
+    "Each full-detail and LOD hero export contains two weighted eye joints",
+    "Review trails clear off-screen and on pause"
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-face-weapon-motion-20261128.json",
+    "apps/buklod-empire-unity/Assets/Editor/CandidateReviewComposer.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OfflineAuthoredMotionReview.cs",
+    "apps/buklod-empire-unity/Assets/Editor/ReviewFaceMotion.cs",
+    "apps/buklod-empire-unity/Assets/Editor/ReviewSecondaryMotion.cs",
+    "apps/buklod-empire-unity/Assets/Editor/ReviewWeaponTrailComposer.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewWeaponTrail.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewWeaponTrailTests.cs",
+    "apps/buklod-empire-unity/MASTER_CHECKLIST.md",
+    "apps/buklod-empire-unity/RELEASE_LEDGER.md",
+    "apps/buklod-empire-unity/Tools/eye_motion.py",
+    "apps/buklod-empire-unity/Tools/hero-pipeline-inputs.json",
+    "apps/buklod-empire-unity/Tools/identity_detail.py",
+    "apps/buklod-empire-unity/Tools/prepare-hero-review.py",
+    "apps/buklod-empire-unity/Tools/test_fidelity_roster.py"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewWeaponTrailTests.cs",
+    "apps/buklod-empire-unity/Tools/test_fidelity_roster.py"
+  ],
+  "lockedFeatureChanges": []
+}

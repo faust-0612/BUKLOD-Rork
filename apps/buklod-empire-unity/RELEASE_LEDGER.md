@@ -55,3 +55,7 @@ No production release, no paid CI, no current APK update.
 - Intake archive: `BUKLOD_Empire_Library_Intake.zip`; its generated staging manifest matched the existing pinned SHA. Installer `--verify-only` checked 103 assets without importing them. Use the owner’s archive and preparation script to reproduce the staging directory, then run `python Tools/install-library-assets.py <staged-path>` on the build checkout. Held items still require rights and mapping review.
 - Isolated review source pins Unity `6000.3.29f1` and the ARM64 IL2CPP diagnostic package `org.mzbministry.buklod.empire.review`. Its generated scene and settings are separate from the production preflight, which blocked on the production-specific editor and six missing project/catalog/scene inputs in this checkout. Build trust is absent as expected until real hosting, public signing trust and Android version are configured. The hosted match service and its durable isolated storage/configuration are also outstanding.
 - Status: PARTIAL DEV source. No RC, APK, OTA, online deployment, or MAIN/BP/QMP change.
+
+## 2026-11-28 — Facial motion and basic attack trails
+
+DEV follows `7d9f266131b110af3e909f9314a96883ed95cbcd`. Reused isolated pregame implementations for the 13-hero blink rig and hand-bound basic attack traces. Verified exported full-detail and LOD skin data for both eye joints on every hero. Editor animation import, playback, visual quality, and device impact remain deferred. The existing startup logo remains wired to the offline review startup. No APK, host or live deployment.
