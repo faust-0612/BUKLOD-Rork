@@ -75,13 +75,14 @@ namespace Buklod.Empire {
             }
         }
         private void Loot(int type,int id,Vector2 position,GameObject prefab,int tier,float spawnedAt,string itemName){
-            var go=Present(type,id,position,prefab,out _);if(!go)return;
+            var go=Present(type,id,position,prefab,out var fresh);if(!go)return;
+            if(fresh&&battleEffects&&bound.Time-spawnedAt<.6f)battleEffects.Emit(view.FieldPosition(position),TierColor(tier),tier>=3?2:1);
             Tint((type,id),go,TierColor(tier));
             float t=Mathf.Max(0,bound.Time-spawnedAt);
             go.transform.localScale=prefab.transform.localScale*1.25f;
             go.transform.position=view.FieldPosition(position)+Vector3.up*(.35f+.16f*Mathf.Sin(t*3+id));
             go.transform.rotation=Quaternion.Euler(0,t*72,0)*prefab.transform.rotation;
-            var key=(type,id);if(!lootLabels.TryGetValue(key,out var label)||!label){var marker=new GameObject("Loot label "+id);marker.transform.SetParent(transform,false);label=marker.AddComponent<TextMesh>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.GetComponent<MeshRenderer>().sharedMaterial=label.font.material;label.anchor=TextAnchor.MiddleCenter;label.alignment=TextAlignment.Center;label.fontSize=48;label.characterSize=.035f;label.text="T"+tier+" • "+itemName;label.color=TierColor(tier);lootLabels[key]=label;}
+            var key=(type,id);if(!lootLabels.TryGetValue(key,out var label)||!label){var marker=new GameObject("Loot label "+id);marker.transform.SetParent(transform,false);label=marker.AddComponent<TextMesh>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.GetComponent<MeshRenderer>().sharedMaterial=label.font.material;label.anchor=TextAnchor.MiddleCenter;label.alignment=TextAlignment.Center;label.fontSize=48;label.characterSize=.046f;label.text="T"+tier+" • "+itemName;label.color=TierColor(tier);lootLabels[key]=label;}
             label.gameObject.SetActive(Vector2.Distance(position,bound.Player.Position)<=22);label.transform.position=view.FieldPosition(position)+Vector3.up*1.7f;if(view.battleCamera)label.transform.rotation=view.battleCamera.transform.rotation;
         }
         private GameObject ConstructionPrefab(ArenaTeam team,VillageBuildOrder kind){

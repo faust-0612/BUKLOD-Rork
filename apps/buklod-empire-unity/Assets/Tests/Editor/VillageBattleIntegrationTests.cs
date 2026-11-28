@@ -34,6 +34,15 @@ namespace Buklod.Empire.Tests {
                 Assert.AreEqual(0,new OfflinePracticeWarehouse(key).Items.Count);
             }finally{PlayerPrefs.DeleteKey(key);PlayerPrefs.Save();}
         }
+        [Test] public void QuickPotionConsumesOnlyOnActualRecovery(){
+            var b=new OfflineBattle("phan");
+            var bag=(System.Collections.Generic.List<ArenaRelicDefinition>)typeof(OfflineBattle).GetField("practiceVault",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(b);
+            Assert.True(ArenaRelicCatalog.TryGet("phan-consumable-health-t1",out var potion));bag.Add(potion);
+            Assert.AreEqual(1,b.CountPracticePotions("health"));Assert.False(b.UseQuickPracticePotion("health"));Assert.AreEqual(1,bag.Count);
+            b.Player.State.Health-=20;float previous=b.Player.State.Health;
+            Assert.True(b.UseQuickPracticePotion("health"));Assert.Greater(b.Player.State.Health,previous);Assert.AreEqual(0,bag.Count);
+            Assert.False(b.UseQuickPracticePotion("cache"));Assert.False(b.UseQuickPracticePotion("health"));
+        }
         [Test] public void ForgeConsumesExactlyTwoMatchingRelics(){
             var b=new OfflineBattle("phan");
             Assert.True(ArenaRelicCatalog.TryGet("phan-weapon-t1",out var item));

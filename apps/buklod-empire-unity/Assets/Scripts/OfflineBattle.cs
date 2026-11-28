@@ -733,9 +733,19 @@ namespace Buklod.Empire {
             if(practiceVault.Count>=PracticeVaultCapacity)return false;
             practiceVault.Add(d.Item);relicDrops.Remove(d);PlayerReceipt(Player,"BACKPACK ITEM",0,0,"stored",0,d.Item.Tier);Player.EarnedFeedbackSequence++;Player.RelicFeedbackSequence++;return true;
         }
+        private int FindQuickPotion(string slot){
+            if(slot!="health"&&slot!="mana")return -1;
+            int best=-1;for(int i=0;i<practiceVault.Count;i++){var item=practiceVault[i];if(item.Consumable&&item.Slot==slot&&(best<0||item.Amount>practiceVault[best].Amount))best=i;}return best;
+        }
+        public int CountPracticePotions(string slot){
+            if(IsAuthoritative||slot!="health"&&slot!="mana")return 0;
+            int count=0;foreach(var item in practiceVault)if(item.Consumable&&item.Slot==slot)count++;return count;
+        }
+        public bool CanUseQuickPracticePotion(string slot)=>!IsAuthoritative&&!Finished&&!AutonomousTraining&&Player.State.Alive&&FindQuickPotion(slot)>=0&&(slot=="health"?Player.State.Health<Player.State.MaxHealth:Player.State.Mana<Player.State.MaxMana);
+        public bool UseQuickPracticePotion(string slot)=>CanUseQuickPracticePotion(slot)&&UsePracticeBag(FindQuickPotion(slot));
         public bool UsePracticeBag(int index){
             if(IsAuthoritative||Finished||AutonomousTraining||!Player.State.Alive||index<0||index>=practiceVault.Count)return false;var item=practiceVault[index];if(item.Slot=="cache")return OpenPracticeCache(index);if(!item.Consumable)return EquipPracticeVault(index);
-            var a=Player.State;float before=item.Slot=="health"?a.Health:a.Mana;if(item.Slot=="health")a.Heal(item.Amount);else a.Mana=Mathf.Min(a.MaxMana,a.Mana+item.Amount);if((item.Slot=="health"?a.Health:a.Mana)<=before)return false;practiceVault.RemoveAt(index);return true;
+            var a=Player.State;float before=item.Slot=="health"?a.Health:a.Mana;if(item.Slot=="health")a.Heal(item.Amount);else a.Mana=Mathf.Min(a.MaxMana,a.Mana+item.Amount);if((item.Slot=="health"?a.Health:a.Mana)<=before)return false;practiceVault.RemoveAt(index);PlayerReceipt(Player,"POTION USED",0,0,item.Slot,(item.Slot=="health"?a.Health:a.Mana)-before);Player.PickupFeedbackSequence++;Player.LastPickupFeedbackEffect=item.Slot;return true;
         }
         public bool DepositPracticeItem(int index,OfflinePracticeWarehouse bank){if(IsAuthoritative||AutonomousTraining||!CanShopPlayer||bank==null||index<0||index>=practiceVault.Count)return false;var item=practiceVault[index];if(!bank.TryDeposit(item))return false;practiceVault.RemoveAt(index);return true;}
         public bool WithdrawPracticeItem(int index,OfflinePracticeWarehouse bank){if(IsAuthoritative||AutonomousTraining||!CanShopPlayer||bank==null||practiceVault.Count>=PracticeVaultCapacity||index<0||index>=bank.Items.Count||bank.Items[index].Hero!=Player.State.Kit.Id)return false;if(!bank.TryWithdraw(index,out var item))return false;practiceVault.Add(item);return true;}

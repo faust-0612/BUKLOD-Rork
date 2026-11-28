@@ -114,6 +114,12 @@ namespace Buklod.Empire {
             camera.transform.position=focus+direction*Mathf.Max(3,bounds.size.magnitude*2);
             camera.transform.LookAt(focus);
         }
+        public Texture ShowEquipped(BattleView owner,BattleUnit unit){
+            if(unit==null||unit.State.Kit==null)return null;
+            var image=Show(owner,unit.State.Kit.Id,true,1);
+            if(image&&previewEquipment){previewEquipment.ResetVisual();previewEquipment.Apply(unit);}
+            return image;
+        }
         public void PlayEntrance(){
             if(!actor||!animator||!camera||!camera.enabled)return;
             string action=ReviewEntranceProfiles.Motion(hero);

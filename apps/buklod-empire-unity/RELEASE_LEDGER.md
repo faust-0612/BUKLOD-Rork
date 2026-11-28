@@ -89,3 +89,7 @@ Adds ten pinned Quaternius CC0 RPG and medieval weapon GLBs, URP capture of actu
 ## 2026-11-28 — Offline treasure cache behavior
 
 Added player boss cache pickup, backpack OPEN action which consumes one cache and spawns a real equipment relic plus village-gold pickup on the battlefield, with ground capacity/ownership checks and no authoritative cache identifiers or BP/QMP effect. Added direct BAG access and item-model selection for health/mana field pickups. Added NUnit regression for single consumption and real ground items; not executed in this session.
+
+## 2026-11-28 — Premium inventory and battlefield presentation source pass
+
+Baseline `6c073b835d79a73429a49b7ed628f17fd7bf9cad` retains the authored item-art catalog, treasure cache, group formations and direct backpack access. Uses existing menu sprite assets with metallic inset frame, live equipped hero preview in inventory, contextual item stat tooltip, direct HP/MP potion controls tied to the actual backpack and recovery, loot spawn pulse and fog-safe minimap drop markers. No replacement meshes, paid assets, online rules, MAIN or production changes. Added quick-potion regression test; source candidate only pending Unity compilation and device acceptance. The reference images remain design benchmarks, not evidence of visual parity.

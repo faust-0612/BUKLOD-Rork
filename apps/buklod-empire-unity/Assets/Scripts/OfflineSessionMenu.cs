@@ -11,7 +11,7 @@ namespace Buklod.Empire {
     public sealed partial class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Text contentStatus;private Button contentCheck,contentDownload;private Font font;private GameObject ownedEventSystem;
-        private OfflinePracticeWarehouse warehouse;private VillageBuildOrder selectedBuild=VillageBuildOrder.House;private int bankPage,selectedBag=-1,selectedBank=-1,selectedSoldierId;private bool armyGroupMode=true;private Button quickLoot,quickBag;private Text quickLootLabel;private float nextLootRefresh;
+        private OfflinePracticeWarehouse warehouse;private VillageBuildOrder selectedBuild=VillageBuildOrder.House;private int bankPage,selectedBag=-1,selectedBank=-1,selectedSoldierId;private bool armyGroupMode=true;private Button quickLoot,quickBag,quickHealth,quickMana;private Text quickLootLabel,quickHealthLabel,quickManaLabel;private float nextLootRefresh;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
         private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private int evolutionPreviewLevel=1;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;private ReviewLiveHeroPreview livePreview;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
@@ -26,8 +26,9 @@ namespace Buklod.Empire {
         private Text[] navigationLabels;
         private static readonly Color NavigationAccent=new Color(.63f,.94f,.42f,1);
         private static readonly string[] GearIds={"blade","armor","boots","sealbreaker","withering_thorn","precision","fervor","renewal","wisdom","aegis","vitality","giantbane"};
-        private static readonly Color Navy=new Color(.035f,.065f,.105f,.99f);
-        private static readonly Color MenuButton=new Color(.105f,.19f,.24f,1f);
+        private static readonly Color Navy=new Color(.045f,.038f,.034f,.98f);
+        private static readonly Color AntiqueGold=new Color(.77f,.61f,.35f,1);
+        private static readonly Color MenuButton=new Color(.17f,.135f,.095f,1f);
         private RectTransform Rect(string name,Transform parent,Vector2 min,Vector2 max){
             var go=new GameObject(name,typeof(RectTransform));var r=go.GetComponent<RectTransform>();r.SetParent(parent,false);r.anchorMin=min;r.anchorMax=max;r.offsetMin=r.offsetMax=Vector2.zero;return r;
         }
@@ -37,11 +38,13 @@ namespace Buklod.Empire {
         private Button ButtonAt(string name,Transform parent,Vector2 min,Vector2 max,string value,Action action){
             var r=Rect(name,parent,min,max);var image=r.gameObject.AddComponent<Image>();image.color=MenuButton;
             // Preserve legibility; the old cream sprite washed out every white/green label.
-            var border=r.gameObject.AddComponent<Outline>();border.effectColor=new Color(.31f,.54f,.58f,.8f);border.effectDistance=new Vector2(1,-1);
+            var border=r.gameObject.AddComponent<Outline>();border.effectColor=AntiqueGold;border.effectDistance=new Vector2(1,-1);
+            var inset=Rect("Inset metallic edge",r,new Vector2(.025f,.065f),new Vector2(.975f,.935f));var edge=inset.gameObject.AddComponent<Image>();edge.color=new Color(.025f,.02f,.015f,.32f);edge.raycastTarget=false;
+            if(authored&&authored.menuButton){image.sprite=authored.menuButton;image.type=authored.menuButton.border.sqrMagnitude>0?Image.Type.Sliced:Image.Type.Simple;image.color=new Color(.69f,.61f,.48f,1);}
             var b=r.gameObject.AddComponent<Button>();b.targetGraphic=image;
             if(view.IsEditorReview)r.gameObject.AddComponent<ReviewButtonMotion>();
             var colors=b.colors;colors.normalColor=Color.white;colors.highlightedColor=new Color(1.15f,1.15f,1.15f);colors.pressedColor=new Color(.74f,.82f,.84f);colors.selectedColor=Color.white;colors.disabledColor=new Color(.48f,.52f,.57f,.68f);b.colors=colors;
-            b.onClick.AddListener(()=>{if(authored)authored.Click();action();});Label("Label",r,Vector2.zero,Vector2.one,value,23);return b;
+            b.onClick.AddListener(()=>{if(authored)authored.Click();action();});var label=Label("Label",r,Vector2.zero,Vector2.one,value,23);label.color=new Color(1,.92f,.76f);var shadow=label.gameObject.AddComponent<Shadow>();shadow.effectColor=new Color(0,0,0,.9f);shadow.effectDistance=new Vector2(1,-1);return b;
         }
         private void Cell(int i,int cols,int rows,string text,Action action,bool enabled=true){
             float x=(i%cols)/(float)cols,y=1-(i/cols+1)/(float)rows;
@@ -58,10 +61,13 @@ namespace Buklod.Empire {
             ButtonAt("Menu",safeRoot,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
             warehouse=new OfflinePracticeWarehouse();
             quickBag=ButtonAt("Backpack shortcut",safeRoot,new Vector2(.77f,.91f),new Vector2(.88f,.99f),"BAG",()=>{if(!shown&&Active){page=6;showResult=false;Open();}});quickBag.gameObject.SetActive(false);
+            quickHealth=QuickPotion("health",new Vector2(.28f,.035f),new Vector2(.36f,.115f),out quickHealthLabel);
+            quickMana=QuickPotion("mana",new Vector2(.37f,.035f),new Vector2(.45f,.115f),out quickManaLabel);
             quickLoot=ButtonAt("Collect nearby loot",safeRoot,new Vector2(.38f,.13f),new Vector2(.63f,.23f),"PICK UP",()=>{if(!shown&&!view.Paused&&view.Battle!=null&&view.Battle.TryNearbyLoot(out _,true))authored?.AcceptedAction("Relic acquired");});quickLootLabel=quickLoot.GetComponentInChildren<Text>();quickLoot.gameObject.SetActive(false);
             ButtonAt("Zoom in",safeRoot,new Vector2(.91f,.81f),new Vector2(.99f,.89f),"+",()=>ArenaControlSettings.ChangeZoom(-.1f));
             ButtonAt("Zoom out",safeRoot,new Vector2(.91f,.71f),new Vector2(.99f,.79f),"−",()=>ArenaControlSettings.ChangeZoom(.1f));
             panel=Rect("Session panel",safeRoot,Vector2.zero,Vector2.one);panelBackground=panel.gameObject.AddComponent<Image>();panelBackground.color=Navy;panelGroup=panel.gameObject.AddComponent<CanvasGroup>();
+            if(authored&&authored.menuPanel){panelBackground.sprite=authored.menuPanel;panelBackground.type=authored.menuPanel.border.sqrMagnitude>0?Image.Type.Sliced:Image.Type.Simple;}
             title=Label("Title",panel,new Vector2(.08f,.88f),new Vector2(.92f,.98f),"OFFLINE TRAINING",36);
             summary=Label("Summary",panel,new Vector2(.04f,.80f),new Vector2(.96f,.88f),"",21);
             if(view.IsEditorReview){
@@ -85,6 +91,21 @@ namespace Buklod.Empire {
             if(view.IsEditorReview){var startLabel=startButton.GetComponentInChildren<Text>();startLabel.color=NavigationAccent;startLabel.fontStyle=FontStyle.Bold;}
             if(view.IsEditorReview)pregame=new ReviewMatchFlow();
             Open();
+        }
+        private Button QuickPotion(string slot,Vector2 min,Vector2 max,out Text label){
+            var button=ButtonAt("Quick "+slot,safeRoot,min,max,slot=="health"?"HP":"MP",()=>{
+                var battle=view.Battle;if(shown||view.Paused||battle==null)return;
+                if(battle.UseQuickPracticePotion(slot)&&authored)authored.AcceptedAction("Picked up",slot);
+            });
+            label=button.GetComponentInChildren<Text>();label.color=slot=="health"?new Color(1,.42f,.32f):new Color(.36f,.73f,1);
+            button.gameObject.SetActive(false);return button;
+        }
+        private void RefreshQuickPotion(Button button,Text label,string slot,OfflineBattle battle,bool visible){
+            if(!button)return;int count=visible?battle.CountPracticePotions(slot):0;
+            button.gameObject.SetActive(visible&&count>0);if(count<=0)return;
+            label.text=(slot=="health"?"HP ":"MP ")+count;button.interactable=battle.CanUseQuickPracticePotion(slot);
+            var art=view.visuals.ResolveItem(slot,1);var raw=button.GetComponentInChildren<RawImage>(true);
+            if(art!=null&&art.icon&&!raw){var r=Rect("Potion icon",button.transform,new Vector2(.03f,.08f),new Vector2(.48f,.92f));raw=r.gameObject.AddComponent<RawImage>();raw.raycastTarget=false;raw.texture=art.icon;label.rectTransform.anchorMin=new Vector2(.46f,0);label.rectTransform.anchorMax=Vector2.one;label.transform.SetAsLastSibling();}
         }
         private void ApplySafeArea(){lastSafe=MobileBattleInput.SafeArea;safeRoot.anchorMin=new Vector2(lastSafe.xMin/Mathf.Max(1,Screen.width),lastSafe.yMin/Mathf.Max(1,Screen.height));safeRoot.anchorMax=new Vector2(lastSafe.xMax/Mathf.Max(1,Screen.width),lastSafe.yMax/Mathf.Max(1,Screen.height));}
         private void Open(){if(starting)return;panelGroup.alpha=1;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
@@ -184,14 +205,18 @@ namespace Buklod.Empire {
         private void RelicInventory(OfflineBattle battle){
             var p=battle?.Player;var bag=battle?.PracticeVault;bool baseAccess=battle!=null&&battle.CanShopPlayer&&!battle.AutonomousTraining;
             if(selectedBag>= (bag?.Count??0))selectedBag=-1;if(selectedBank>=warehouse.Items.Count)selectedBank=-1;
+            title.text="INVENTORY & WAREHOUSE";title.color=AntiqueGold;
             summary.text=$"BACKPACK {bag?.Count??0}/{OfflineBattle.PracticeVaultCapacity}  •  DEVICE VAULT {warehouse.Items.Count}/{OfflinePracticeWarehouse.Capacity}  •  Offline only";
             if(!warehouse.Available)summary.text+=" • Storage unavailable; original data retained";
             var equip=Rect("Hero equipment",body,new Vector2(0,.18f),new Vector2(.24f,.96f));
+            var equipBg=equip.gameObject.AddComponent<Image>();equipBg.color=new Color(.045f,.035f,.027f,.95f);equipBg.raycastTarget=false;var equipFrame=equip.gameObject.AddComponent<Outline>();equipFrame.effectColor=AntiqueGold;
             var backpack=Rect("Backpack grid",body,new Vector2(.25f,.18f),new Vector2(.62f,.90f));
             var bank=Rect("Vault grid",body,new Vector2(.63f,.18f),new Vector2(1,.90f));
             Label("Backpack title",body,new Vector2(.25f,.91f),new Vector2(.62f,1),"BACKPACK",22).color=new Color(.91f,.79f,.48f);
             Label("Vault title",body,new Vector2(.63f,.91f),new Vector2(1,1),"WAREHOUSE",22).color=new Color(.91f,.79f,.48f);
-            var portrait=reviewPortraits?reviewPortraits.Find(p?.State.Kit.Id??selected,true):null;
+            Texture portrait=null;
+            if(view.IsEditorReview&&p!=null){if(!livePreview)livePreview=gameObject.AddComponent<ReviewLiveHeroPreview>();portrait=livePreview.ShowEquipped(view,p);}
+            if(!portrait&&reviewPortraits)portrait=reviewPortraits.Find(p?.State.Kit.Id??selected,true);
             if(portrait){var r=Rect("Hero portrait",equip,new Vector2(.32f,.12f),new Vector2(.68f,.96f));var image=r.gameObject.AddComponent<RawImage>();image.texture=portrait;image.raycastTarget=false;var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/Mathf.Max(1,portrait.height);}
             int n=0;foreach(string slot in new[]{"weapon","shield","armor","boots","jewel"}){
                 ArenaRelicDefinition item=null;if(p!=null)p.Relics.TryGetValue(slot,out item);string s=slot;
@@ -204,7 +229,9 @@ namespace Buklod.Empire {
             for(int i=0;i<24;i++){int k=bankPage*24+i;var item=k<warehouse.Items.Count?warehouse.Items[k]:null;var btn=VaultCell(bank,i,4,6,"",item,selectedBank==k,()=>{selectedBank=k;selectedBag=-1;Rebuild();});btn.interactable=item!=null;}
             var picked=selectedBag>=0?bag[selectedBag]:selectedBank>=0?warehouse.Items[selectedBank]:null;
             string detail=picked==null?"Select item • Forge: two identical relics • Withdrawn items remain match-local":picked.Name+" • T"+picked.Tier+" • "+picked.Hero.ToUpperInvariant()+" • "+(picked.Slot=="cache"?"Open in battlefield: drops equipment and village gold":picked.Consumable?"Restore "+picked.Amount.ToString("0"):("ATK "+picked.Stats.Attack.ToString("0.#")+"  HP "+picked.Stats.Hp.ToString("0.#")+"  Shield "+picked.Stats.ShieldMax.ToString("0.#")+"  Mana "+picked.Stats.Mana.ToString("0.#")));
-            Label("Item details",body,new Vector2(0,.08f),new Vector2(1,.18f),detail,20).color=picked==null?Color.white:BattleFieldVisuals.TierColor(picked.Tier);
+            var detailPanel=Rect("Item tooltip",body,new Vector2(0,.085f),new Vector2(1,.175f));var tooltipBg=detailPanel.gameObject.AddComponent<Image>();tooltipBg.color=new Color(.02f,.016f,.012f,.95f);tooltipBg.raycastTarget=false;var tooltipEdge=detailPanel.gameObject.AddComponent<Outline>();tooltipEdge.effectColor=picked==null?AntiqueGold:BattleFieldVisuals.TierColor(picked.Tier);
+            if(picked!=null&&!picked.Consumable)detail+=$"  SPD +{picked.Stats.Speed*100:0.#}%  CD -{picked.Stats.Cooldown*100:0.#}%";
+            Label("Item details",detailPanel,new Vector2(.02f,0),new Vector2(.98f,1),detail,20).color=picked==null?Color.white:BattleFieldVisuals.TierColor(picked.Tier);
             var use=ButtonAt("Use selected",body,new Vector2(0,0),new Vector2(.19f,.08f),picked!=null&&picked.Slot=="cache"?"OPEN":picked!=null&&picked.Consumable?"USE":"EQUIP",()=>{int k=selectedBag;selectedBag=-1;if(picked.Slot=="cache"){if(battle.OpenPracticeCache(k)){Close();}else Reply(false,"");}else Reply(battle.UsePracticeBag(k),"Item used / equipped");});use.interactable=selectedBag>=0&&(picked.Slot=="cache"?battle.CanOpenPracticeCache(selectedBag):picked.Consumable?battle!=null&&!battle.Finished&&p.State.Alive:baseAccess);
             var deposit=ButtonAt("Deposit",body,new Vector2(.20f,0),new Vector2(.39f,.08f),"DEPOSIT",()=>{int k=selectedBag;selectedBag=-1;Reply(battle.DepositPracticeItem(k,warehouse),"Saved to device vault");});deposit.interactable=baseAccess&&selectedBag>=0&&warehouse.Available;
             var withdraw=ButtonAt("Withdraw",body,new Vector2(.40f,0),new Vector2(.59f,.08f),"WITHDRAW",()=>{int k=selectedBank;selectedBank=-1;Reply(battle.WithdrawPracticeItem(k,warehouse),"Withdrawn to match backpack");});withdraw.interactable=baseAccess&&selectedBank>=0&&warehouse.Available&&picked.Hero==p.State.Kit.Id;
@@ -290,7 +317,7 @@ namespace Buklod.Empire {
             if(contentDownload)contentDownload.interactable=updater&&updater.CanDownload;
         }
         private void Lobby(){
-            title.text="BUKLOD EMPIRE";title.color=NavigationAccent;
+            title.text="BUKLOD EMPIRE";title.color=AntiqueGold;if(view.Battle!=null)panelBackground.color=new Color(.045f,.038f,.034f,.83f);
             var stats=view.PracticeStats(selected);
             summary.text=stats==null?"GENESIS RIFT  |  Local practice arena":$"GENESIS RIFT  |  Local mastery {stats.Mastery}  •  {stats.completed} matches  •  {stats.wins} wins";
             var kit=HeroKitCatalog.Get(selected);
@@ -325,7 +352,7 @@ namespace Buklod.Empire {
             UpdateNavigation();resultStats=null;resultActions=null;resultEmblem=null;
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
-            if(!view.IsEditorReview||showResult||confirmRestart||!(page==-1&&(pregame==null||!pregame.InWizard)||page==0&&heroDetail))HideShowcase();
+            if(!view.IsEditorReview||showResult||confirmRestart||!(page==-1&&(pregame==null||!pregame.InWizard)||page==0&&heroDetail||page==6))HideShowcase();
             if(view.IsEditorReview&&navigationTabs!=null)for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=(active&&matchStarted)||i<3||i==7||i==8;
             if(resumeButton)resumeButton.interactable=active&&(!view.IsEditorReview||matchStarted)&&!confirmRestart;
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
@@ -578,7 +605,9 @@ namespace Buklod.Empire {
         }
         private void Update(){
             RefreshContentPanel();
-            if(quickBag)quickBag.gameObject.SetActive(!shown&&!starting&&!view.Paused&&Active&&!view.Battle.AutonomousTraining);
+            bool quickVisible=!shown&&!starting&&!view.Paused&&Active&&!view.Battle.AutonomousTraining;
+            if(quickBag)quickBag.gameObject.SetActive(quickVisible);
+            if(Time.unscaledTime>=nextLootRefresh){RefreshQuickPotion(quickHealth,quickHealthLabel,"health",view.Battle,quickVisible);RefreshQuickPotion(quickMana,quickManaLabel,"mana",view.Battle,quickVisible);}
             if(quickLoot&&Time.unscaledTime>=nextLootRefresh){nextLootRefresh=Time.unscaledTime+.12f;string item="";bool show=!shown&&!starting&&!view.Paused&&view.Battle!=null&&view.Battle.TryNearbyLoot(out item);quickLoot.gameObject.SetActive(show);if(show)quickLootLabel.text="PICK UP\n"+item;}
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;

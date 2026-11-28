@@ -67,6 +67,8 @@ namespace Buklod.Empire {
                 if(!camp.Alive||!battle.IsPositionVisibleTo(battle.Player.Team,camp.Position))continue;
                 Diamond(vh,Point(rect,camp.Position),r*(camp.Boss?2:1.15f),new Color32(244,186,83,255));
             }
+            foreach(var d in battle.Drops)if(battle.IsPositionVisibleTo(battle.Player.Team,d.Position))Diamond(vh,Point(rect,d.Position),r*1.1f,BattleFieldVisuals.TierColor(d.Item.Tier));
+            foreach(var d in battle.RelicDrops)if((!d.OwnerTeam.HasValue||d.OwnerTeam.Value==battle.Player.Team)&&battle.IsPositionVisibleTo(battle.Player.Team,d.Position))Diamond(vh,Point(rect,d.Position),r*1.5f,BattleFieldVisuals.TierColor(d.Item.Tier));
             foreach(var u in battle.Units){
                 if(!ShowUnit(battle,u)||u==battle.Player)continue;
                 var tint=u.Team==battle.Player.Team?new Color32(83,189,255,255):new Color32(244,91,101,255);
