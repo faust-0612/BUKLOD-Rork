@@ -8,10 +8,10 @@ import {BuklodProfileGlassCard,BuklodProfileGlassRow} from '@/components/BuklodP
 
 type Snapshot={owner:string;pending:number;redeemed:number};
 export default function BuklodRankCollectionProfileRow(){
-  const {user}=useAuth();
+  const {user,hasRole}=useAuth();
   const {config}=useRuntimeConfig();
   const owner=user?.id??'';
-  const enabled=!!owner&&config?.features?.rank_bonus_collections===true;
+  const enabled=!hasRole('system_admin')&&!!owner&&config?.features?.rank_bonus_collections===true;
   const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
   const [failed,setFailed]=useState(false);
   const lastFetch=useRef({owner:'',at:0});

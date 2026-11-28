@@ -12,9 +12,9 @@ const EMPTY: Preference = { reminders_enabled: false, snoozed_until: null };
 
 /** Mount only behind an explicitly enabled server feature flag after RC. */
 export default function BuklodRankBonusCollection() {
-  const { user } = useAuth();
+  const { user,hasRole } = useAuth();
   const accountId = user?.id ?? '';
-  return accountId ? <AccountCollection key={accountId} userId={accountId}/> : null;
+  return accountId&&!hasRole('system_admin') ? <AccountCollection key={accountId} userId={accountId}/> : null;
 }
 function AccountCollection({userId}:{userId:string}) {
   const {config}=useRuntimeConfig();

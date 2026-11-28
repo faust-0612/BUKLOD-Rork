@@ -73,9 +73,9 @@ export default function BuklodOfficialConsole() {
       >
         <View style={styles.hero}>
           <MaterialCommunityIcons name="check-decagram" size={34} color="#26734C" />
-          <Text style={styles.eyebrow}>PROTECTED PLATFORM IDENTITY</Text>
+          <Text style={styles.eyebrow}>SUPREME SYSTEM AUTHORITY</Text>
           <Text style={styles.title}>BUKLOD Official</Text>
-          <Text style={styles.intro}>Official voice and community interaction. This account does not earn member points, QMP or payouts.</Text>
+          <Text style={styles.intro}>Above the member rank hierarchy. All cosmetic collections are unlocked. No member rank, BP, QMP or payouts.</Text>
         </View>
 
         {loading && !stats ? <ActivityIndicator color="#26734C" size="large" /> : null}

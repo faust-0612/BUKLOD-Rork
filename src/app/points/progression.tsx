@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import {useAuth} from '@/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -54,7 +54,11 @@ const number = (value: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-export default function CircleRankProgressionScreen() {
+export default function CircleRankProgressionRoute(){
+ const {hasRole}=useAuth();
+ return hasRole('system_admin')?<Redirect href="/admin/design-studio"/>:<CircleRankProgressionScreen/>;
+}
+function CircleRankProgressionScreen() {
   const { config } = useRuntimeConfig();
   const {user}=useAuth();
   const owner=user?.id??'';

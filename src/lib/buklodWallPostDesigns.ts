@@ -1,5 +1,9 @@
 import { getBuklodCircleRankArt } from '@/lib/buklodCircleRankArt';
 
+/** Cosmetic scope only: never a member rank or a persisted identity. */
+export const OFFICIAL_COSMETIC_ACCESS = 'official-cosmetic-access' as const;
+export function hasOfficialCosmeticAccess(value:unknown):boolean {return value===OFFICIAL_COSMETIC_ACCESS;}
+
 /** Text-only post appearance; never changes the app's seasonal theme or grants rank. */
 export type WallPostDesign = { readonly id:string; readonly name:string; readonly group:string; readonly minFamilyIndex:number; readonly minRankOrder:number; readonly start:string; readonly end:string; readonly ink:string; readonly motif:'rays'|'orbit'|'leaves'|'stars'|'frame' };
 export const WALL_POST_DESIGNS: readonly WallPostDesign[] = [
@@ -241,6 +245,7 @@ export function resolveWallPostDesign(id: unknown): WallPostDesign | null {
 }
 /** Presentation-only picker gate: server must independently verify the author rank on writes. */
 export function availableWallPostDesigns(rankName?: string | null): readonly WallPostDesign[] {
+  if(hasOfficialCosmeticAccess(rankName))return WALL_POST_DESIGNS;
   const rank = getBuklodCircleRankArt(rankName);
   return rank ? WALL_POST_DESIGNS.filter(d => d.minRankOrder <= rank.order) : [];
 }
@@ -270,9 +275,9 @@ export function wallFontForViewer(id:unknown): WallFontId {
 export function canSelectWallFont(id:unknown,rankName?:string|null):boolean {
   const font=WALL_FONT_PRESETS.find(f=>f.id===id);
   const rank=getBuklodCircleRankArt(rankName);
-  return !!font && !!rank && rank.order>=font.minRankOrder;
+  return !!font && (hasOfficialCosmeticAccess(rankName)|| (!!rank && rank.order>=font.minRankOrder));
 }
 export function wallDesignMotionAllowed(design:WallPostDesign,rankName?:string|null):boolean {
   const rank=getBuklodCircleRankArt(rankName);
-  return !!rank && rank.order>=Math.max(design.minRankOrder,design.minFamilyIndex*5+2);
+  return hasOfficialCosmeticAccess(rankName)|| (!!rank && rank.order>=Math.max(design.minRankOrder,design.minFamilyIndex*5+2));
 }

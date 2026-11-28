@@ -5,7 +5,7 @@ import BuklodLivingWallArt from '@/components/BuklodLivingWallArt';
 import { rankBonusFrameForViewer, type RankBonusFrame } from '@/lib/buklodRankBonusFrames';
 import {canSelectWallAlignment, type WallPostStyle, type WallAlignment} from '@/lib/buklodWallPostStylePersistence';
 import { BUKLOD_CIRCLE_RANK_FAMILIES } from '@/lib/buklodCircleRankArt';
-import { availableWallPostDesigns, resolveWallPostDesign, WALL_POST_DESIGNS, WALL_FONT_PRESETS, canSelectWallFont, wallDesignMotionAllowed, type WallPostDesign, type WallFontId } from '@/lib/buklodWallPostDesigns';
+import { hasOfficialCosmeticAccess, availableWallPostDesigns, resolveWallPostDesign, WALL_POST_DESIGNS, WALL_FONT_PRESETS, canSelectWallFont, wallDesignMotionAllowed, type WallPostDesign, type WallFontId } from '@/lib/buklodWallPostDesigns';
 
 /** Lightweight vector artwork; no remote assets or animated feed overhead. */
 export function WallPostDesignArt({ design }: { design: WallPostDesign }) {
@@ -140,7 +140,7 @@ export function WallPostStyleEditor({rankName,value,onChange,previewText,disable
       })}
     </ScrollView>
     {!design&&(rankBonusFrameForViewer(value.bonusKey)?<WallRankBonusFrame frame={rankBonusFrameForViewer(value.bonusKey)!}><Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:value.alignment==='auto'?'center':value.alignment,padding:20},wallFontTextStyle(value.fontId)]}>{previewText}</Text></WallRankBonusFrame>:<Text numberOfLines={6} style={[styles.normalText,{fontSize:22,textAlign:value.alignment==='auto'?'center':value.alignment},wallFontTextStyle(value.fontId)]}>{previewText}</Text>)}
-    {redeemedBonusKeys.length>0&&<><Text style={styles.group}>Redeemed signature frames</Text><ScrollView horizontal><Pressable style={styles.normal} onPress={()=>onChange({...value,bonusKey:null})} disabled={disabled}><Text style={styles.normalText}>None</Text></Pressable>{redeemedBonusKeys.map(key=>{const frame=rankBonusFrameForViewer(key);return frame?<Pressable key={key} disabled={disabled} accessibilityRole="button" accessibilityState={{selected:value.bonusKey===key}} onPress={()=>onChange({...value,bonusKey:key})} style={[styles.normal,{marginHorizontal:4,borderColor:frame.color},value.bonusKey===key&&styles.selected]}><Text style={styles.normalText}>{frame.title}</Text></Pressable>:null;})}</ScrollView></>}
+    {redeemedBonusKeys.length>0&&<><Text style={styles.group}>{hasOfficialCosmeticAccess(rankName)?'Official signature frames':'Redeemed signature frames'}</Text><ScrollView horizontal><Pressable style={styles.normal} onPress={()=>onChange({...value,bonusKey:null})} disabled={disabled}><Text style={styles.normalText}>None</Text></Pressable>{redeemedBonusKeys.map(key=>{const frame=rankBonusFrameForViewer(key);return frame?<Pressable key={key} disabled={disabled} accessibilityRole="button" accessibilityState={{selected:value.bonusKey===key}} onPress={()=>onChange({...value,bonusKey:key})} style={[styles.normal,{marginHorizontal:4,borderColor:frame.color},value.bonusKey===key&&styles.selected]}><Text style={styles.normalText}>{frame.title}</Text></Pressable>:null;})}</ScrollView></>}
     {design&&<Pressable disabled={disabled||!motionAllowed} accessibilityRole="switch" accessibilityState={{checked:value.animated,disabled:disabled||!motionAllowed}}
        onPress={()=>onChange({...value,animated:!value.animated})} style={styles.normal}>
        <Text style={styles.normalText}>{motionAllowed?'Living ambiance: '+(value.animated?'On':'Off'):'Living ambiance unlocks at the next eligible rank'}</Text>

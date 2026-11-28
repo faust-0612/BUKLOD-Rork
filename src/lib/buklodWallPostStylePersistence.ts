@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { canSelectWallPostDesign, canSelectWallFont, resolveWallPostDesign, wallDesignMotionAllowed, wallFontForViewer, type WallFontId } from '@/lib/buklodWallPostDesigns';
+import { OFFICIAL_COSMETIC_ACCESS, hasOfficialCosmeticAccess, canSelectWallPostDesign, canSelectWallFont, resolveWallPostDesign, wallDesignMotionAllowed, wallFontForViewer, type WallFontId } from '@/lib/buklodWallPostDesigns';
 import { useAuth } from '@/providers/AuthProvider';
 import { RANK_BONUS_FRAMES } from '@/lib/buklodRankBonusFrames';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
@@ -9,7 +9,7 @@ import { canUseRankBonusFrame, rankBonusFrameForViewer } from '@/lib/buklodRankB
 import {getBuklodCircleRankArt} from '@/lib/buklodCircleRankArt';
 export type WallAlignment='auto'|'left'|'center'|'right';
 export function wallAlignmentForViewer(value:unknown):WallAlignment{return value==='left'||value==='center'||value==='right'?value:'auto';}
-export function canSelectWallAlignment(value:unknown,rankName:string|null){return value==='auto'||(wallAlignmentForViewer(value)!=='auto'&&(getBuklodCircleRankArt(rankName)?.order??0)>=3);}
+export function canSelectWallAlignment(value:unknown,rankName:string|null){return value==='auto'||(wallAlignmentForViewer(value)!=='auto'&&(hasOfficialCosmeticAccess(rankName)||(getBuklodCircleRankArt(rankName)?.order??0)>=3));}
 export type WallPostStyle = { designId: string | null; fontId: WallFontId; animated: boolean; bonusKey:string|null; alignment:WallAlignment };
 const EMPTY_STYLES: Record<string,WallPostStyle> = Object.freeze({});
 export const DEFAULT_WALL_POST_STYLE: WallPostStyle = {designId:null,fontId:'standard',animated:false,bonusKey:null,alignment:'auto'};
@@ -54,7 +54,7 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
     return()=>{live=false;};
   },[candidate,composerOpen,userId]);
   const cosmeticAdmin=candidate&&composerOpen&&adminVerified===userId;
-  const enabled=config?.features?.rank_wall_designs===true&&!!userId;
+  const enabled=!!userId&&(config?.features?.rank_wall_designs===true||cosmeticAdmin);
   const owner=enabled?userId+':'+scopeKey:'';
   const [rankState,setRankState]=useState<{owner:string;name:string|null}>({owner:'',name:null});
   const [stylesState,setStylesState]=useState<{owner:string;rows:Record<string,WallPostStyle>}>({owner:'',rows:{}});
@@ -63,17 +63,17 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
   const [bonusState,setBonusState]=useState<{owner:string;keys:string[]}>({owner:'',keys:[]});
   const rankEpoch=useRef(0),readEpoch=useRef(0);
   useEffect(()=>{
-    if(!owner||!composerOpen||!bonusEnabled)return;
+    if(!owner||!composerOpen||!bonusEnabled||candidate)return;
     let live=true;
     setBonusState({owner,keys:[]});
     void Promise.resolve((supabase as any).from('buklod_rank_bonus_ledger_v1').select('bonus_key').eq('user_id',userId).not('redeemed_at','is',null).is('revoked_at',null)).then(({data,error})=>{
       if(live&&!error)setBonusState({owner,keys:(data??[]).map((r:any)=>String(r.bonus_key)).filter((key:string)=>!!rankBonusFrameForViewer(key))});
     }).catch(()=>{});
     return()=>{live=false;};
-  },[owner,userId,composerOpen,bonusEnabled]);
+  },[owner,userId,composerOpen,bonusEnabled,candidate]);
   useEffect(()=>{
     const seq=++rankEpoch.current;
-    if(!owner||!composerOpen)return;
+    if(!owner||!composerOpen||candidate)return;
     setRankState({owner,name:null});
     void Promise.resolve(supabase.rpc('get_my_buklod_rank_progress')).then(({data,error})=>{
       if(seq!==rankEpoch.current||error)return;
@@ -81,7 +81,7 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
       setRankState({owner,name});
     }).catch(()=>{});
     return()=>{rankEpoch.current++;};
-  },[owner,composerOpen]);
+  },[owner,composerOpen,candidate]);
   useEffect(()=>{
     const seq=++readEpoch.current;
     if(!owner||!ids)return;
@@ -105,6 +105,6 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
     if(!owner)return;
     setStylesState(prev=>({owner,rows:{...(prev.owner===owner?prev.rows:{}),[postId]:style}}));
   },[owner]);
-  return {enabled,rankName:cosmeticAdmin?'BUKLOD Prime Elite I':rankState.owner===owner&&owner?rankState.name:null,
+  return {enabled,rankName:cosmeticAdmin?OFFICIAL_COSMETIC_ACCESS:rankState.owner===owner&&owner?rankState.name:null,
     styles:stylesState.owner===owner&&owner?stylesState.rows:EMPTY_STYLES,redeemedBonusKeys:cosmeticAdmin?RANK_BONUS_FRAMES.map(f=>f.key):bonusEnabled&&owner&&bonusState.owner===owner?bonusState.keys:[],remember};
 }
