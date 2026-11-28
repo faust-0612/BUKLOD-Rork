@@ -11,7 +11,7 @@ namespace Buklod.Empire {
     public sealed partial class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Text contentStatus;private Button contentCheck,contentDownload;private Font font;private GameObject ownedEventSystem;
-        private OfflinePracticeWarehouse warehouse;private VillageBuildOrder selectedBuild=VillageBuildOrder.House;private int bankPage,selectedBag=-1,selectedBank=-1,selectedSoldierId;private bool armyGroupMode=true;private Button quickLoot;private Text quickLootLabel;private float nextLootRefresh;
+        private OfflinePracticeWarehouse warehouse;private VillageBuildOrder selectedBuild=VillageBuildOrder.House;private int bankPage,selectedBag=-1,selectedBank=-1,selectedSoldierId;private bool armyGroupMode=true;private Button quickLoot,quickBag;private Text quickLootLabel;private float nextLootRefresh;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
         private Image panelBackground;private RectTransform safeRoot;private Rect lastSafe;private int selectedControl;private ArenaHudLayoutEditor layoutEditor;private ArenaAuthoredUi authored;private float resultRevealAt=-1;private bool showResult,starting,heroDetail,fullBody=true,confirmRestart,matchStarted;private int evolutionPreviewLevel=1;private CanvasGroup panelGroup;private ReviewPortraits reviewPortraits;private ReviewLiveHeroPreview livePreview;
         private ArenaDifficulty difficulty=ArenaDifficulty.Normal;
@@ -57,6 +57,7 @@ namespace Buklod.Empire {
             safeRoot=Rect("Safe menu area",canvas,Vector2.zero,Vector2.one);ApplySafeArea();
             ButtonAt("Menu",safeRoot,new Vector2(.89f,.91f),new Vector2(.99f,.99f),"MENU",Open);
             warehouse=new OfflinePracticeWarehouse();
+            quickBag=ButtonAt("Backpack shortcut",safeRoot,new Vector2(.77f,.91f),new Vector2(.88f,.99f),"BAG",()=>{if(!shown&&Active){page=6;showResult=false;Open();}});quickBag.gameObject.SetActive(false);
             quickLoot=ButtonAt("Collect nearby loot",safeRoot,new Vector2(.38f,.13f),new Vector2(.63f,.23f),"PICK UP",()=>{if(!shown&&!view.Paused&&view.Battle!=null&&view.Battle.TryNearbyLoot(out _,true))authored?.AcceptedAction("Relic acquired");});quickLootLabel=quickLoot.GetComponentInChildren<Text>();quickLoot.gameObject.SetActive(false);
             ButtonAt("Zoom in",safeRoot,new Vector2(.91f,.81f),new Vector2(.99f,.89f),"+",()=>ArenaControlSettings.ChangeZoom(-.1f));
             ButtonAt("Zoom out",safeRoot,new Vector2(.91f,.71f),new Vector2(.99f,.79f),"−",()=>ArenaControlSettings.ChangeZoom(.1f));
@@ -202,9 +203,9 @@ namespace Buklod.Empire {
             for(int i=0;i<OfflineBattle.PracticeVaultCapacity;i++){int k=i;var item=bag!=null&&i<bag.Count?bag[i]:null;var btn=VaultCell(backpack,i,4,5,"",item,selectedBag==i,()=>{selectedBag=k;selectedBank=-1;Rebuild();});btn.interactable=item!=null;}
             for(int i=0;i<24;i++){int k=bankPage*24+i;var item=k<warehouse.Items.Count?warehouse.Items[k]:null;var btn=VaultCell(bank,i,4,6,"",item,selectedBank==k,()=>{selectedBank=k;selectedBag=-1;Rebuild();});btn.interactable=item!=null;}
             var picked=selectedBag>=0?bag[selectedBag]:selectedBank>=0?warehouse.Items[selectedBank]:null;
-            string detail=picked==null?"Select item • Forge: two identical relics • Withdrawn items remain match-local":picked.Name+" • T"+picked.Tier+" • "+picked.Hero.ToUpperInvariant()+" • "+(picked.Consumable?"Restore "+picked.Amount.ToString("0"):("ATK "+picked.Stats.Attack.ToString("0.#")+"  HP "+picked.Stats.Hp.ToString("0.#")+"  Shield "+picked.Stats.ShieldMax.ToString("0.#")+"  Mana "+picked.Stats.Mana.ToString("0.#")));
+            string detail=picked==null?"Select item • Forge: two identical relics • Withdrawn items remain match-local":picked.Name+" • T"+picked.Tier+" • "+picked.Hero.ToUpperInvariant()+" • "+(picked.Slot=="cache"?"Open in battlefield: drops equipment and village gold":picked.Consumable?"Restore "+picked.Amount.ToString("0"):("ATK "+picked.Stats.Attack.ToString("0.#")+"  HP "+picked.Stats.Hp.ToString("0.#")+"  Shield "+picked.Stats.ShieldMax.ToString("0.#")+"  Mana "+picked.Stats.Mana.ToString("0.#")));
             Label("Item details",body,new Vector2(0,.08f),new Vector2(1,.18f),detail,20).color=picked==null?Color.white:BattleFieldVisuals.TierColor(picked.Tier);
-            var use=ButtonAt("Use selected",body,new Vector2(0,0),new Vector2(.19f,.08f),picked!=null&&picked.Consumable?"USE":"EQUIP",()=>{int k=selectedBag;selectedBag=-1;Reply(battle.UsePracticeBag(k),"Item used / equipped");});use.interactable=selectedBag>=0&&(picked.Consumable?battle!=null&&!battle.Finished&&p.State.Alive:baseAccess);
+            var use=ButtonAt("Use selected",body,new Vector2(0,0),new Vector2(.19f,.08f),picked!=null&&picked.Slot=="cache"?"OPEN":picked!=null&&picked.Consumable?"USE":"EQUIP",()=>{int k=selectedBag;selectedBag=-1;if(picked.Slot=="cache"){if(battle.OpenPracticeCache(k)){Close();}else Reply(false,"");}else Reply(battle.UsePracticeBag(k),"Item used / equipped");});use.interactable=selectedBag>=0&&(picked.Slot=="cache"?battle.CanOpenPracticeCache(selectedBag):picked.Consumable?battle!=null&&!battle.Finished&&p.State.Alive:baseAccess);
             var deposit=ButtonAt("Deposit",body,new Vector2(.20f,0),new Vector2(.39f,.08f),"DEPOSIT",()=>{int k=selectedBag;selectedBag=-1;Reply(battle.DepositPracticeItem(k,warehouse),"Saved to device vault");});deposit.interactable=baseAccess&&selectedBag>=0&&warehouse.Available;
             var withdraw=ButtonAt("Withdraw",body,new Vector2(.40f,0),new Vector2(.59f,.08f),"WITHDRAW",()=>{int k=selectedBank;selectedBank=-1;Reply(battle.WithdrawPracticeItem(k,warehouse),"Withdrawn to match backpack");});withdraw.interactable=baseAccess&&selectedBank>=0&&warehouse.Available&&picked.Hero==p.State.Kit.Id;
             var forge=ButtonAt("Forge",body,new Vector2(.60f,0),new Vector2(.79f,.08f),"FORGE +1",()=>{int k=selectedBag;selectedBag=-1;Reply(battle.ForgePracticeItem(k),"Two matching relics forged into next tier");});forge.interactable=baseAccess&&selectedBag>=0&&battle.CanForgePracticeItem(selectedBag);
@@ -577,6 +578,7 @@ namespace Buklod.Empire {
         }
         private void Update(){
             RefreshContentPanel();
+            if(quickBag)quickBag.gameObject.SetActive(!shown&&!starting&&!view.Paused&&Active&&!view.Battle.AutonomousTraining);
             if(quickLoot&&Time.unscaledTime>=nextLootRefresh){nextLootRefresh=Time.unscaledTime+.12f;string item="";bool show=!shown&&!starting&&!view.Paused&&view.Battle!=null&&view.Battle.TryNearbyLoot(out item);quickLoot.gameObject.SetActive(show);if(show)quickLootLabel.text="PICK UP\n"+item;}
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;

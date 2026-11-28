@@ -35,7 +35,7 @@ namespace Buklod.Empire {
                 if(!PlayerPrefs.HasKey(key))return;
                 var s=JsonUtility.FromJson<Snapshot>(PlayerPrefs.GetString(key));
                 if(s==null||s.version!=1||s.ids==null||s.ids.Length>Capacity){Available=false;return;}
-                foreach(var id in s.ids){if(!ArenaRelicCatalog.TryGet(id,out var item)){items.Clear();Available=false;return;}items.Add(item);}
+                foreach(var id in s.ids){if(!ArenaRelicCatalog.TryGetPractice(id,out var item)){items.Clear();Available=false;return;}items.Add(item);}
             }catch{items.Clear();Available=false;}
         }
         private bool Save(List<ArenaRelicDefinition> next){
@@ -45,7 +45,7 @@ namespace Buklod.Empire {
             items.Clear();items.AddRange(next);return true;
         }
         public bool TryDeposit(ArenaRelicDefinition item){
-            if(!Available||items.Count>=Capacity||item==null||!ArenaRelicCatalog.TryGet(item.Id,out var canonical)||!ReferenceEquals(item,canonical))return false;
+            if(!Available||items.Count>=Capacity||item==null||!ArenaRelicCatalog.TryGetPractice(item.Id,out var canonical)||!ReferenceEquals(item,canonical))return false;
             var next=new List<ArenaRelicDefinition>(items){item};return Save(next);
         }
         public bool TryWithdraw(int index,out ArenaRelicDefinition item){
@@ -117,6 +117,11 @@ namespace Buklod.Empire {
         private static readonly Dictionary<string,ArenaRelicDefinition> index=items.ToDictionary(x=>x.Id,StringComparer.Ordinal);
         public static IReadOnlyList<ArenaRelicDefinition> All {get;}=Array.AsReadOnly(items);
         public static bool TryGet(string id,out ArenaRelicDefinition item){item=null;return id!=null&&index.TryGetValue(id,out item);}
+        // Practice-only caches are not included in All or in the authoritative relic lookup.
+        private static readonly Dictionary<string,ArenaRelicDefinition> caches=HeroKitCatalog.All.SelectMany(h=>Enumerable.Range(1,4).Select(t=>new ArenaRelicDefinition(h.Id+"-practice-cache-t"+t,h.Id,"cache","Genesis Treasure Cache","offline:boss",1,t,true,default))).ToDictionary(x=>x.Id,StringComparer.Ordinal);
+        internal static bool TryGetPractice(string id,out ArenaRelicDefinition item){
+            if(TryGet(id,out item))return true;return id!=null&&caches.TryGetValue(id,out item);
+        }
         public static int DropTier(int level,float quality,bool hunt,bool behind){
             float score=Mathf.Clamp01(quality)+(behind?.11f:0);return hunt&&level>=12&&score>.72f?4:level>=9&&score>.61f?3:level>=5&&score>.34f?2:1;
         }

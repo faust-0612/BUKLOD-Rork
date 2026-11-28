@@ -85,3 +85,7 @@ Reconciled source candidate from authoritative DEV `c181ac5fd3e9d349fb60173b4cce
 ## 2026-11-28 — Screenshot-directed item art and formations (source candidate)
 
 Adds ten pinned Quaternius CC0 RPG and medieval weapon GLBs, URP capture of actual item models for inventory icons, catalog-based 3D relic drops, equipment slots around the hero, paid army line/wedge/column placement and combat feedback. Asset source URLs, names, hashes and paths are recorded in Tools/AssetCandidates/LibraryFirst/manifest.json. Boots artwork is not supplied by these packs; existing generic relic presentation remains for that slot pending a properly licensed imported model. Source only: Unity import/capture, compilation, visual parity, performance and device acceptance unverified. No APK or production release. Existing authority and stage gates remain.
+
+## 2026-11-28 — Offline treasure cache behavior
+
+Added player boss cache pickup, backpack OPEN action which consumes one cache and spawns a real equipment relic plus village-gold pickup on the battlefield, with ground capacity/ownership checks and no authoritative cache identifiers or BP/QMP effect. Added direct BAG access and item-model selection for health/mana field pickups. Added NUnit regression for single consumption and real ground items; not executed in this session.

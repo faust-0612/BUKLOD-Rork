@@ -58,6 +58,16 @@ namespace Buklod.Empire.Tests {
             }
             var b=new OfflineBattle("phan");Assert.True(b.SetPlayerFormation(VillageFormation.Wedge));Assert.False(b.SetPlayerFormation((VillageFormation)999));Assert.False(b.OrderPlayerFormationMove(b.Player.Position));
         }
+        [Test] public void PracticeCacheOpensIntoRealGroundItemsOnlyOnce(){
+            var b=new OfflineBattle("phan");
+            Assert.True(ArenaRelicCatalog.TryGetPractice("phan-practice-cache-t1",out var cache));
+            Assert.False(ArenaRelicCatalog.TryGet(cache.Id,out _),"Practice cache must not enter the authoritative catalog.");
+            var field=(System.Collections.Generic.List<ArenaRelicDrop>)typeof(OfflineBattle).GetField("relicDrops",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(b);
+            field.Add(new ArenaRelicDrop(123,cache,b.Player.Position,b.Time,b.Player.Team));
+            Assert.True(b.CollectPlayerRelic(123));Assert.True(b.OpenPracticeCache(0));Assert.False(b.OpenPracticeCache(0));
+            Assert.AreEqual(0,b.PracticeVault.Count);Assert.AreEqual(1,b.RelicDrops.Count);Assert.AreEqual(1,b.Drops.Count);
+            Assert.AreEqual("weapon",b.RelicDrops[0].Item.Slot);Assert.AreEqual("gold",b.Drops[0].Item.Effect);
+        }
         [Test] public void TwelveCanonicalVillagersAndDamageSync(){
             var b=new OfflineBattle("phan");var villagers=b.Units.Where(u=>u.Kind==BattleTargetKind.Villager).ToArray();
             Assert.AreEqual(12,villagers.Length);Assert.AreEqual(12,villagers.Select(u=>u.Villager.Job.Id).Distinct().Count());

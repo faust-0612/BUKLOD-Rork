@@ -679,6 +679,7 @@ namespace Buklod.Empire {
                 if(!IsAuthoritative&&!camp.Boss&&creatureContracts[(int)hero.Team].Add(camp.Kind))PlayerReceipt(hero,"RECRUITMENT UNLOCK: "+camp.Kind);
                 PlayerReceipt(hero,camp.Kind.ToString(),hero.Gold-beforeGold,earnedXp);
                 RollRelic(hero,camp.Position,camp.Boss?.65f:.4f,camp.Boss?"boss":"buff");
+                if(!IsAuthoritative&&!AutonomousTraining&&hero==Player&&camp.Boss)SpawnPracticeCache(hero,camp.Position);
                 if(camp.Boss&&!IsAuthoritative||dropRandom.NextDouble()<(camp.Boss?.92:.48))SpawnDrop(hero,camp.Position,camp.Boss);
             }return true;
         }
@@ -703,6 +704,24 @@ namespace Buklod.Empire {
             if((item==null||item.Consumable)&&!IsAuthoritative&&hero==Player&&source=="boss")ArenaRelicCatalog.TryGet(hero.State.Kit.Id+"-weapon-t"+ArenaRelicCatalog.DropTier(hero.State.Level,quality,hunt,behind),out item);
             if(item!=null)relicDrops.Add(new ArenaRelicDrop(++nextDropId,item,position,Time,IsAuthoritative?(ArenaTeam?)null:hero.Team));
         }
+        private void SpawnPracticeCache(BattleUnit hero,Vector2 position){
+            if(relicDrops.Count>=ArenaRelicCatalog.GroundLimit||drops.Count+relicDrops.Count>=36)return;
+            int tier=hero.State.Level>=12?3:hero.State.Level>=5?2:1;
+            if(ArenaRelicCatalog.TryGetPractice(hero.State.Kit.Id+"-practice-cache-t"+tier,out var item))
+                relicDrops.Add(new ArenaRelicDrop(++nextDropId,item,position,Time,hero.Team));
+        }
+        public bool CanOpenPracticeCache(int index)=>!IsAuthoritative&&!AutonomousTraining&&!Finished&&Player.State.Alive&&index>=0&&index<practiceVault.Count&&practiceVault[index].Slot=="cache"&&practiceVault[index].Hero==Player.State.Kit.Id&&relicDrops.Count<ArenaRelicCatalog.GroundLimit&&drops.Count<ArenaPickupCatalog.Limit&&drops.Count+relicDrops.Count<=34;
+        public bool OpenPracticeCache(int index){
+            if(!CanOpenPracticeCache(index))return false;var cache=practiceVault[index];var hero=Player;
+            var slots=new[]{"weapon","shield","armor","boots","jewel"};int max=hero.State.Level>=12?4:hero.State.Level>=9?3:hero.State.Level>=6?2:hero.State.Level>=3?1:0;
+            string slot=slots[relicRandom.Next(max+1)];int tier=Mathf.Min(cache.Tier,hero.State.Level>=9?3:hero.State.Level>=5?2:1);
+            int coinTier=hero.State.Level>=9?3:hero.State.Level>=4?2:1;
+            if(!ArenaRelicCatalog.TryGet(hero.State.Kit.Id+"-"+slot+"-t"+tier,out var gear)||!ArenaPickupCatalog.TryGet("u-gold-2-t"+coinTier,out var gold))return false;
+            var left=hero.Position+Vector2.left*.9f;var right=hero.Position+Vector2.right*.9f;
+            if(Blocked(left)||!ClearSight(hero.Position,left))left=hero.Position;if(Blocked(right)||!ClearSight(hero.Position,right))right=hero.Position;
+            practiceVault.RemoveAt(index);relicDrops.Add(new ArenaRelicDrop(++nextDropId,gear,left,Time,hero.Team));
+            drops.Add(new ArenaFieldDrop(++nextDropId,gold,right,hero.Team,Time));PlayerReceipt(hero,"TREASURE CACHE OPENED");hero.EarnedFeedbackSequence++;return true;
+        }
         public const int PracticeVaultCapacity=20;
         private readonly List<ArenaRelicDefinition> practiceVault=new List<ArenaRelicDefinition>();
         public IReadOnlyList<ArenaRelicDefinition> PracticeVault=>practiceVault.AsReadOnly();
@@ -715,7 +734,7 @@ namespace Buklod.Empire {
             practiceVault.Add(d.Item);relicDrops.Remove(d);PlayerReceipt(Player,"BACKPACK ITEM",0,0,"stored",0,d.Item.Tier);Player.EarnedFeedbackSequence++;Player.RelicFeedbackSequence++;return true;
         }
         public bool UsePracticeBag(int index){
-            if(IsAuthoritative||Finished||AutonomousTraining||!Player.State.Alive||index<0||index>=practiceVault.Count)return false;var item=practiceVault[index];if(!item.Consumable)return EquipPracticeVault(index);
+            if(IsAuthoritative||Finished||AutonomousTraining||!Player.State.Alive||index<0||index>=practiceVault.Count)return false;var item=practiceVault[index];if(item.Slot=="cache")return OpenPracticeCache(index);if(!item.Consumable)return EquipPracticeVault(index);
             var a=Player.State;float before=item.Slot=="health"?a.Health:a.Mana;if(item.Slot=="health")a.Heal(item.Amount);else a.Mana=Mathf.Min(a.MaxMana,a.Mana+item.Amount);if((item.Slot=="health"?a.Health:a.Mana)<=before)return false;practiceVault.RemoveAt(index);return true;
         }
         public bool DepositPracticeItem(int index,OfflinePracticeWarehouse bank){if(IsAuthoritative||AutonomousTraining||!CanShopPlayer||bank==null||index<0||index>=practiceVault.Count)return false;var item=practiceVault[index];if(!bank.TryDeposit(item))return false;practiceVault.RemoveAt(index);return true;}
@@ -752,7 +771,7 @@ namespace Buklod.Empire {
         private bool CollectRelic(BattleUnit u,int id){
             if(Finished||!u.State.Alive||u.State.Kit==null)return false;
             var d=relicDrops.Find(x=>x.Id==id);if(d==null||Time-d.SpawnedAt>=ArenaRelicCatalog.Lifetime||d.Item.Hero!=u.State.Kit.Id||d.OwnerTeam.HasValue&&d.OwnerTeam.Value!=u.Team||Vector2.Distance(u.Position,d.Position)>ArenaRelicCatalog.Radius)return false;
-            var a=u.State;var item=d.Item;
+            var a=u.State;var item=d.Item;if(item.Slot=="cache")return false;
             if(item.Consumable){float before=item.Slot=="health"?a.Health:a.Mana;if(item.Slot=="health")a.Heal(item.Amount);else a.Mana=Mathf.Min(a.MaxMana,a.Mana+item.Amount);if((item.Slot=="health"?a.Health:a.Mana)<=before)return false;}
             else{
                 if(u.RelicSlots.TryGetValue(item.Slot,out var previous)&&previous.Tier>=item.Tier)return false;
