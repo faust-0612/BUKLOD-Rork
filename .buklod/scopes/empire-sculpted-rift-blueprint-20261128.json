@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-sculpted-rift-blueprint-20261128.json",
+  "baseRef": "d056fe9f5970cad24dc8a15a15425549d5fbe0e1",
+  "productionBaselineEvidence": "Standalone offline DEV; no approved production APK.",
+  "objective": "Replace square offline battlefield with actual blueprint-derived sculpted geometry, curved connected lanes and navigation/minimap parity.",
+  "chosenApproach": "Shared perimeter and lane definition, actual mesh collider, original material and authored foliage reuse, scene integration and review-only simulation routing.",
+  "selectionRationale": "Avoid a flat square background, preserve existing battle coordinates and economy rules, no server protocol changes.",
+  "alternativeApproaches": [
+    "Texture-only replacement or full gameplay coordinate remap, rejected."
+  ],
+  "riskAreas": [
+    "Unity NavMesh bake",
+    "Shader and generated geometry render quality",
+    "Pathfinding pacing and visual readability"
+  ],
+  "preserveBehaviors": [
+    "Existing 13 heroes, faction elimination, towers, camps, economy and cover coordinates",
+    "Authoritative online and production layout unchanged",
+    "No new APK or MAIN modification"
+  ],
+  "acceptanceChecks": [
+    "Old rectangle renderers disabled in actual review scene",
+    "Actual new island mesh feeds NavMesh collider",
+    "Curved lanes and minimap share geometry",
+    "New map assets included in build dependency gate"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OfflineReviewComposer.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewMinimap.cs",
+    "apps/buklod-empire-unity/Assets/Shaders/Review/RiftWater.shader",
+    "apps/buklod-empire-unity/Assets/Editor/ReviewAuthoredAssetGate.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/SculptedRiftLayout.cs",
+    "apps/buklod-empire-unity/Assets/Editor/SculptedRiftComposer.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/SculptedRiftTests.cs",
+    "apps/buklod-empire-unity/Tools/SCULPTED_RIFT_BLUEPRINT.md",
+    ".buklod/scopes/empire-sculpted-rift-blueprint-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/SculptedRiftTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

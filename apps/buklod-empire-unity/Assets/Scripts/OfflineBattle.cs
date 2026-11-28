@@ -407,6 +407,7 @@ namespace Buklod.Empire {
             if(lux==0||ten==0)Finish(lux==ten?(ArenaTeam?)null:lux==0?ArenaTeam.Tenebra:ArenaTeam.Lux,"elimination");
         }
         private readonly IBattleNavigation navigation;
+        private readonly bool sculptedRift;
         public IReadOnlyList<BattleUnit> Units {get;}
         public BattleUnit Player {get;}
         internal bool IsAuthoritative {get;}
@@ -419,10 +420,10 @@ namespace Buklod.Empire {
         public float Time=>tick*Step;
         public bool Finished {get;private set;}
         public ArenaTeam? Winner {get;private set;}
-        public OfflineBattle(string hero,IBattleNavigation navigation=null,int seed=1,ArenaDifficulty difficulty=ArenaDifficulty.Normal,bool autonomousTraining=false)
-            :this(hero,navigation,seed,difficulty,autonomousTraining,null){}
-        internal OfflineBattle(string hero,IBattleNavigation navigation,int seed,ArenaDifficulty difficulty,bool autonomousTraining,ArenaDraftPick[] draft){
-            IsAuthoritative=draft!=null;
+        public OfflineBattle(string hero,IBattleNavigation navigation=null,int seed=1,ArenaDifficulty difficulty=ArenaDifficulty.Normal,bool autonomousTraining=false,bool sculptedRift=false)
+            :this(hero,navigation,seed,difficulty,autonomousTraining,null,sculptedRift){}
+        internal OfflineBattle(string hero,IBattleNavigation navigation,int seed,ArenaDifficulty difficulty,bool autonomousTraining,ArenaDraftPick[] draft,bool sculptedRift=false){
+            IsAuthoritative=draft!=null;this.sculptedRift=sculptedRift&&!IsAuthoritative;
             if(IsAuthoritative&&(autonomousTraining||!ArenaDraftRules.Valid(draft)))throw new ArgumentException("Invalid authoritative draft.");
             if(!Enum.IsDefined(typeof(ArenaDifficulty),difficulty))throw new ArgumentOutOfRangeException(nameof(difficulty));
             Difficulty=difficulty;AutonomousTraining=autonomousTraining;this.navigation=navigation;dropRandom=new System.Random(seed);combatRandom=new System.Random(unchecked(seed*397+17));relicRandom=new System.Random(unchecked(seed*7919+71));Drops=drops.AsReadOnly();RelicDrops=relicDrops.AsReadOnly();
@@ -464,6 +465,7 @@ namespace Buklod.Empire {
         private static bool Finite(Vector2 v)=>!float.IsNaN(v.x)&&!float.IsInfinity(v.x)&&!float.IsNaN(v.y)&&!float.IsInfinity(v.y);
         private bool Blocked(Vector2 p,float radius=1){
             if(!Finite(p)||p.x<2||p.y<2||p.x>Width-2||p.y>Height-2)return true;
+            if(sculptedRift&&!SculptedRiftLayout.Contains(p,radius))return true;
             foreach(var c in cover)if(c.expires>Time&&Vector2.Distance(c.position,p)<c.radius+radius)return true;
             return false;
         }
@@ -994,7 +996,7 @@ namespace Buklod.Empire {
             var enemy=(ArenaTeam)(1-(int)u.Team);
             if(!IsAuthoritative){
                 var tower=ActiveTowers(enemy).FirstOrDefault(v=>v.Lane==u.Lane);
-                if(tower!=null)return tower.Position;
+                if(tower!=null)return sculptedRift?SculptedRiftLayout.LaneWaypoint((int)u.Lane,u.Position,u.Team==ArenaTeam.Lux,tower.Position):tower.Position;
                 var core=units.FirstOrDefault(v=>v.Team==enemy&&v.Core&&Attackable(v));
                 if(core!=null)return core.Position;
             }

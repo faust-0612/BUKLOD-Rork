@@ -23,6 +23,8 @@ namespace Buklod.Empire {
             vh.AddVert(new Vector3(max.x,min.y),tint,Vector2.zero);
             vh.AddTriangle(i,i+1,i+2);vh.AddTriangle(i,i+2,i+3);
         }
+        static void Triangle(VertexHelper vh,Vector2 a,Vector2 b,Vector2 c,Color32 color){int i=vh.currentVertCount;vh.AddVert(a,color,Vector2.zero);vh.AddVert(b,color,Vector2.zero);vh.AddVert(c,color,Vector2.zero);vh.AddTriangle(i,i+1,i+2);}
+        static void Segment(VertexHelper vh,Vector2 a,Vector2 b,float width,Color32 color){var d=(b-a).normalized;var n=new Vector2(-d.y,d.x)*width;Triangle(vh,a-n,a+n,b+n,color);Triangle(vh,a-n,b+n,b-n,color);}
         static void Dot(VertexHelper vh,Vector2 p,float radius,Color32 tint)=>Quad(vh,p-Vector2.one*radius,p+Vector2.one*radius,tint);
         static void Diamond(VertexHelper vh,Vector2 p,float r,Color32 tint){
             int i=vh.currentVertCount;
@@ -38,12 +40,22 @@ namespace Buklod.Empire {
             var rect=new Rect(outer.xMin+2,outer.yMin+2,outer.width-4,outer.height-4);
             Quad(vh,rect.min,rect.max,new Color32(13,28,27,230));
             float r=Mathf.Max(1.3f,Mathf.Min(rect.width,rect.height)*.016f);
-            foreach(float lane in new[]{.19f,.5f,.81f}){
-                float y=rect.yMin+rect.height*lane;
-                Quad(vh,new Vector2(rect.xMin,y-r*.5f),new Vector2(rect.xMax,y+r*.5f),new Color32(86,107,91,170));
+            if(view.UsesSculptedRift){
+                var center=Point(rect,SculptedRiftLayout.Center);
+                for(int i=0;i<SculptedRiftLayout.BoundarySegments;i++)Triangle(vh,center,Point(rect,SculptedRiftLayout.Boundary(i)),Point(rect,SculptedRiftLayout.Boundary(i+1)),new Color32(37,74,49,255));
+                for(int lane=0;lane<3;lane++)for(int i=0;i<40;i++)
+                    Segment(vh,Point(rect,SculptedRiftLayout.LanePoint(lane,i,40)),Point(rect,SculptedRiftLayout.LanePoint(lane,i+1,40)),r*.55f,new Color32(173,155,119,220));
+                for(int i=0;i<40;i++){float a=1+218*i/40f,b=1+218*(i+1)/40f;
+                    Segment(vh,Point(rect,new Vector2(SculptedRiftLayout.RiverX(a),a)),Point(rect,new Vector2(SculptedRiftLayout.RiverX(b),b)),r*.8f,new Color32(52,132,157,240));
+                }
+            }else{
+                foreach(float lane in new[]{.19f,.5f,.81f}){
+                    float y=rect.yMin+rect.height*lane;
+                    Quad(vh,new Vector2(rect.xMin,y-r*.5f),new Vector2(rect.xMax,y+r*.5f),new Color32(86,107,91,170));
+                }
+                float river=rect.center.x;
+                Quad(vh,new Vector2(river-r,rect.yMin),new Vector2(river+r,rect.yMax),new Color32(43,104,135,190));
             }
-            float river=rect.center.x;
-            Quad(vh,new Vector2(river-r,rect.yMin),new Vector2(river+r,rect.yMax),new Color32(43,104,135,190));
             if(battle.Finished)return;
             foreach(var node in battle.ResourceNodes){
                 if(node.Stock<=0||node.Team!=battle.Player.Team&&!battle.IsPositionVisibleTo(battle.Player.Team,node.Position))continue;

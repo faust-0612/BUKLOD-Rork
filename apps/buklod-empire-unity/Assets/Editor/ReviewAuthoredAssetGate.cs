@@ -83,6 +83,8 @@ namespace Buklod.Empire.Editor {
             ValidateLibraryAudioInputs();
             var present=new HashSet<string>(dependencies,StringComparer.Ordinal);
             AuthoredRosterBuildGate.ValidateDependencies(present);
+            foreach(var asset in new[]{"WalkableIsland","CliffFaces","CurvedLanes","RiverWater","CausewayDecks","CoverOutcrops","ObjectiveTerraces"})
+                if(!present.Contains(SculptedRiftComposer.Out+"/"+asset+".asset"))throw new BuildFailedException("Sculpted map missing from actual build: "+asset);
             LibraryVillageReview.ValidateDependencies(present);
             LibraryStructureReview.ValidateDependencies(present);
             LibraryWildlifeReview.ValidateDependencies(present);

@@ -11,6 +11,8 @@ namespace Buklod.Empire {
         [Tooltip("Preserve full-detail hero geometry and visible hero shadows. Disable only for an explicit lower-quality mode.")]
         public bool premiumVisuals=true;
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
+        [SerializeField,HideInInspector] private bool sculptedRift;
+        public bool UsesSculptedRift=>ReviewOnly&&sculptedRift;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
         [SerializeField,HideInInspector] private bool privateCandidatePractice;
         private ArenaReviewFoley reviewFoley;
@@ -57,6 +59,7 @@ namespace Buklod.Empire {
         [SerializeField, HideInInspector] private bool editorReviewOnly;
 #if UNITY_EDITOR
         public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
+        public void ConfigureSculptedRift(){if(Application.isPlaying||!editorReviewOnly)throw new System.InvalidOperationException("Sculpted Rift is isolated review only.");sculptedRift=true;}
         public bool IsConfiguredReview=>editorReviewOnly;
         public void ConfigurePrivateCandidatePractice(){if(Application.isPlaying||!editorReviewOnly)throw new System.InvalidOperationException("Private practice requires editor review.");privateCandidatePractice=true;}
 #endif
@@ -125,7 +128,7 @@ namespace Buklod.Empire {
 #endif
             nextCatalog.Validate();
             // Validate the requested simulation and loadout before retiring any existing match visuals.
-            var candidate=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
+            var candidate=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous,UsesSculptedRift);
             if(!autonomous&&!privateCandidatePractice)candidate.ConfigureBotLearning(OfflineBotLearningStore.Load(hero,difficulty));
             if(!candidate.SelectPlayerTactic(tactic)||covenant.HasValue&&!candidate.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();

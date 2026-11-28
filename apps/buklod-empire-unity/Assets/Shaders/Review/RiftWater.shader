@@ -9,6 +9,7 @@ Shader "BUKLOD/Review/RiftWater" {
         _ShoreFoam("Shore foam",Range(0,1))=.55
         _RiverCenter("River center X",Float)=160
         _RiverHalfWidth("River half width",Float)=5.3
+        _RiverMeander("Sculpted river",Float)=0
     }
     SubShader {
         Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Geometry" "RenderType"="Opaque"}
@@ -29,7 +30,7 @@ Shader "BUKLOD/Review/RiftWater" {
             TEXTURECUBE(_ReviewSkyCube); SAMPLER(sampler_ReviewSkyCube);
             CBUFFER_START(UnityPerMaterial)
             half4 _Deep,_Shallow,_Sky;
-            float _WaveStrength,_ReflectionStrength,_ShoreFoam,_RiverCenter,_RiverHalfWidth;
+            float _WaveStrength,_ReflectionStrength,_ShoreFoam,_RiverCenter,_RiverHalfWidth,_RiverMeander;
             CBUFFER_END
             struct Attributes {float4 positionOS:POSITION;float3 normalOS:NORMAL;};
             struct Varyings {float4 positionCS:SV_POSITION;float3 positionWS:TEXCOORD0;half3 normalWS:TEXCOORD1;half fog:TEXCOORD2;};
@@ -64,7 +65,9 @@ Shader "BUKLOD/Review/RiftWater" {
                 half fresnel=.02h+.98h*pow(1-nv,5);
                 half spec=saturate(dot(normal,halfway));
                 half gleam=(pow(spec,80)*.85h+pow(spec,18)*.14h)*sun.shadowAttenuation;
-                float bankDistance=max(0,_RiverHalfWidth-abs(p.x-_RiverCenter));
+                float z=(p.y-110)*6.283185307/220;
+                float center=_RiverCenter+_RiverMeander*(7*sin(z)+2.5*sin(z*2));
+                float bankDistance=max(0,_RiverHalfWidth-abs(p.x-center));
                 float edge=1-smoothstep(.15,2.0,bankDistance);
                 half ripples=saturate((sin(a)+sin(b)+sin(c))*.1667+.5);
                 half3 color=lerp(_Deep.rgb,_Shallow.rgb,saturate(edge*.80+ripples*.15));

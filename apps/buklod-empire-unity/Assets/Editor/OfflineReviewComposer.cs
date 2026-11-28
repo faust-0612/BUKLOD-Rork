@@ -63,11 +63,12 @@ namespace Buklod.Empire.Editor {
             if(Mathf.Abs(bound.min.x)>.1f||Mathf.Abs(bound.max.x-OfflineBattle.Width)>.1f||Mathf.Abs(bound.min.z)>.1f||Mathf.Abs(bound.max.z-OfflineBattle.Height)>.1f)
                 throw new InvalidOperationException("Map failed canonical alignment: "+bound);
             foreach(var collider in map.GetComponentsInChildren<Collider>(true))collider.enabled=false;
-            // Walkable flat reference plane, matching existing match-local terrain semantics.
-            var floor=new GameObject("Navigation ground proxy",typeof(BoxCollider));
-            floor.transform.SetParent(world.transform,false);floor.transform.localPosition=new Vector3(OfflineBattle.Width/2,-.5f,OfflineBattle.Height/2);
-            floor.GetComponent<BoxCollider>().size=new Vector3(OfflineBattle.Width,1,OfflineBattle.Height);
-            foreach(var circle in new[]{new Vector3(.29f,.23f,.025f),new Vector3(.71f,.77f,.025f),new Vector3(.42f,.41f,.025f),new Vector3(.58f,.59f,.025f),new Vector3(.48f,.81f,.018f),new Vector3(.52f,.19f,.018f)}){
+            // Assemble the actual curved terrain and collision mesh before baking navigation.
+            var camera=new GameObject("Review camera",typeof(Camera),typeof(AudioListener)).GetComponent<Camera>();
+            camera.tag="MainCamera";camera.fieldOfView=46;camera.farClipPlane=250;
+            EnvironmentReviewLook.Apply(map,camera);
+            SculptedRiftComposer.Assemble(map,world.transform);
+            foreach(var circle in Enumerable.Range(0,SculptedRiftLayout.CoverCount).Select(SculptedRiftLayout.Cover)){
                 var obstacle=new GameObject("Canonical cover proxy",typeof(CapsuleCollider),typeof(NavMeshModifier));
                 obstacle.transform.SetParent(world.transform,false);float radius=circle.z*OfflineBattle.Height;
                 obstacle.transform.localPosition=new Vector3(circle.x*OfflineBattle.Width,0,circle.y*OfflineBattle.Height);
@@ -82,15 +83,12 @@ namespace Buklod.Empire.Editor {
             if(nav){EditorUtility.CopySerialized(surface.navMeshData,nav);surface.RemoveData();surface.navMeshData=nav;surface.AddData();EditorUtility.SetDirty(nav);}
             else AssetDatabase.CreateAsset(surface.navMeshData,navPath);
             VerifyRoutes();
-            var camera=new GameObject("Review camera",typeof(Camera),typeof(AudioListener)).GetComponent<Camera>();
-            camera.tag="MainCamera";camera.fieldOfView=46;camera.farClipPlane=250;
             var sun=new GameObject("Review sunlight",typeof(Light)).GetComponent<Light>();
             sun.type=LightType.Directional;sun.color=new Color(1,.93f,.82f);sun.intensity=1.12f;sun.shadows=LightShadows.Soft;sun.transform.rotation=Quaternion.Euler(48,-35,0);
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.38f,.46f,.58f);RenderSettings.ambientEquatorColor=new Color(.28f,.32f,.34f);RenderSettings.ambientGroundColor=new Color(.18f,.21f,.17f);
-            EnvironmentReviewLook.Apply(map,camera);
             LibraryVillageReview.Apply(world.transform);
             var root=new GameObject("UNAPPROVED EDITOR OFFLINE MATCH",typeof(BattleView),typeof(BattleEffects),typeof(WorldInteractionEffects),typeof(ReviewContactShadows));
-            var view=root.GetComponent<BattleView>();view.visuals=c;view.battleCamera=camera;view.cameraHeight=19.5f;view.ConfigureEditorReview();
+            var view=root.GetComponent<BattleView>();view.visuals=c;view.battleCamera=camera;view.cameraHeight=19.5f;view.ConfigureEditorReview();view.ConfigureSculptedRift();
             var shader=Shader.Find("BUKLOD/CombatPulse");if(!shader)throw new InvalidOperationException("Combat shader missing.");
             var mat=AssetDatabase.LoadAssetAtPath<Material>(Out+"/ReviewPulse.mat");
             if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,Out+"/ReviewPulse.mat");}
@@ -136,6 +134,11 @@ namespace Buklod.Empire.Editor {
                 var path=new NavMeshPath();
                 if(!NavMesh.CalculatePath(a.position,b.position,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete)
                     throw new InvalidOperationException("Lane has no complete route: "+fraction);
+                int lane=fraction<.3f?0:fraction>.7f?2:1;
+                for(int i=0;i<=40;i++){
+                    var p=SculptedRiftLayout.LanePoint(lane,i,40);
+                    if(!NavMesh.SamplePosition(new Vector3(p.x,0,p.y),out _,2,NavMesh.AllAreas))throw new InvalidOperationException("Curved lane is obstructed: "+lane+"/"+i);
+                }
             }
             foreach(float x in new[]{17f,OfflineBattle.Width-17})for(int i=0;i<5;i++){
                 var spawn=new Vector3(x,0,OfflineBattle.Height*.5f+(i-2)*5);
