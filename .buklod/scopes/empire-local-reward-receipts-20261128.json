@@ -1,0 +1,36 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-local-reward-receipts-20261128.json",
+  "baseRef": "96811fcc7b1b364f89f2924c8ee71dce0371a6b1",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Show confirmed match-local receipts without changing rewards.",
+  "chosenApproach": "Bounded receipt feed after accepted actions and existing HUD priority.",
+  "selectionRationale": "No duplicated economy or hidden enemy information.",
+  "alternativeApproaches": [
+    "Infer rewards from button taps",
+    "Change reward formula"
+  ],
+  "riskAreas": [
+    "receipt lifecycle",
+    "currency isolation",
+    "HUD warning priority"
+  ],
+  "preserveBehaviors": [
+    "Existing economy, AI, online authority, MAIN and BP/QMP"
+  ],
+  "acceptanceChecks": [
+    "Rejected purchases do not emit receipt; bounded feed; source tests authored; external runtime deferred"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleHud.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewRewardFeed.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewRewardReceiptTests.cs",
+    "apps/buklod-empire-unity/MASTER_CHECKLIST.md",
+    ".buklod/scopes/empire-local-reward-receipts-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewRewardReceiptTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

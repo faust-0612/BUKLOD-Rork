@@ -128,10 +128,13 @@ namespace Buklod.Empire {
             guideCaption.gameObject.SetActive(visible);
             if(visible)guideCaption.text=guide.Hint;
         }
+        int rewardCursor;
+        string rewardText="";
+        float rewardUntil;
         private void ReviewUpdate(OfflineBattle b){
             var p=b.Player;var s=p.State;bool fresh=hudMatch!=b;
             float h=Fraction(s.Health,s.MaxHealth),m=Fraction(s.Mana,s.MaxMana),x=s.Level>=15?1:Fraction(p.Xp,OfflineBattle.ExperienceThreshold(s.Level));
-            if(fresh){hudMatch=b;lastLevel=s.Level;healthShown=h;manaShown=m;xpShown=x;announcement="";announcementUntil=0;nextObjectiveAt=0;for(int i=0;i<3;i++)if(SkillCueCatalog.TryGet(s.Kit.Skill((SkillSlot)i).Id,out var cue))glyphs[i].SetCue(cue,BattleEffects.Accent(s.Kit.Id));}
+            if(fresh){rewardCursor=0;rewardText="";rewardUntil=0;hudMatch=b;lastLevel=s.Level;healthShown=h;manaShown=m;xpShown=x;announcement="";announcementUntil=0;nextObjectiveAt=0;for(int i=0;i<3;i++)if(SkillCueCatalog.TryGet(s.Kit.Skill((SkillSlot)i).Id,out var cue))glyphs[i].SetCue(cue,BattleEffects.Accent(s.Kit.Id));}
             if(s.Level>lastLevel){lastLevel=s.Level;announcement="LEVEL "+s.Level+(s.Level==6?"  |  ULTIMATE UNLOCKED":"");announcementUntil=b.Time+2.5f;xpShown=x;nextObjectiveAt=0;}
             float rate=1-Mathf.Exp(-12*Time.unscaledDeltaTime);
             healthShown=Mathf.Lerp(healthShown,h,rate);manaShown=Mathf.Lerp(manaShown,m,rate);xpShown=Mathf.Lerp(xpShown,x,rate);
@@ -139,11 +142,13 @@ namespace Buklod.Empire {
             mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*manaShown,safeArea.height*.013f);
             xp.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*xpShown,safeArea.height*.009f);
             for(int i=0;i<3;i++)if(cooldown[i+2].fillAmount<=.001f)labels[i+2].text=i==2?"ULT":i==0?"S1":"S2";
+            if(b.RewardFeed.Sequence>rewardCursor){rewardCursor=b.RewardFeed.Sequence;if(b.RewardFeed.TryGet(rewardCursor,out var receipt)&&b.Time-receipt.Time<=2.5f){rewardText=receipt.Summary;rewardUntil=receipt.Time+2.5f;nextObjectiveAt=0;}}
             if(b.Time<nextObjectiveAt&&!fresh&&string.IsNullOrEmpty(b.PlayerAttackFeedback))return;
             nextObjectiveAt=b.Time+.15f;
             if(!string.IsNullOrEmpty(b.JungleWarning)){objective.text=b.JungleWarning;objective.color=new Color(1,.25f,.25f);return;}
             if(!string.IsNullOrEmpty(b.PlayerAttackFeedback)){objective.text=b.PlayerAttackFeedback;objective.color=new Color(1,.92f,.62f);return;}
             if(b.Time<announcementUntil){objective.text=announcement;objective.color=new Color(1,.82f,.40f);return;}
+            if(b.Time<rewardUntil){objective.text=rewardText;objective.color=new Color(.65f,1,.55f);return;}
             objective.color=new Color(.85f,.94f,.91f);
             WildernessCamp nearest=null;float dist=float.PositiveInfinity;
             foreach(var camp in b.Camps){
@@ -172,7 +177,7 @@ namespace Buklod.Empire {
             if(!canvas.enabled||!input)return;
             if(width!=Screen.width||height!=Screen.height||safeArea!=MobileBattleInput.SafeArea||layoutRevision!=ArenaControlSettings.Revision)Layout();
             if(dialogueCaption)dialogueCaption.text=dialogue?dialogue.Caption:"";
-            if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo||view.Battle!=null&&(!string.IsNullOrEmpty(view.Battle.PlayerAttackFeedback)||!string.IsNullOrEmpty(view.Battle.JungleWarning)));
+            if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo||view.Battle!=null&&(view.Battle.RewardFeed.Sequence>rewardCursor||view.Battle==hudMatch&&view.Battle.Time<rewardUntil||!string.IsNullOrEmpty(view.Battle.PlayerAttackFeedback)||!string.IsNullOrEmpty(view.Battle.JungleWarning)));
             if(minimap)minimap.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
             var stick=buttons[0].rectTransform;stick.anchorMin=stick.anchorMax=Normalized(input.MovementCenter);
             for(int i=1;i<buttons.Length;i++)buttons[i].rectTransform.localScale=Vector3.one*(input.ActiveSkill==i?.92f:1f);

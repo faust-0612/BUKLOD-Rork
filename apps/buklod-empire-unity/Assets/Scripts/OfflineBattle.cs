@@ -389,6 +389,10 @@ namespace Buklod.Empire {
         private int nextDropId;private readonly System.Random dropRandom,combatRandom,relicRandom;
         private readonly List<ArenaFieldDrop> drops=new List<ArenaFieldDrop>();
         public ReviewProjectileFeed ProjectileFeed {get;}=new ReviewProjectileFeed();
+        public ReviewRewardFeed RewardFeed {get;}=new ReviewRewardFeed();
+        void PlayerReceipt(BattleUnit u,string name,int gold=0,float xp=0,string effect="",float amount=0,int tier=0){
+            if(!IsAuthoritative&&!AutonomousTraining&&u==Player)RewardFeed.Add(Time,name,gold,xp,effect,amount,tier);
+        }
         public IReadOnlyList<ArenaFieldDrop> Drops {get;}
         private readonly List<ArenaRelicDrop> relicDrops=new List<ArenaRelicDrop>();
         public IReadOnlyList<ArenaRelicDrop> RelicDrops {get;}
@@ -545,14 +549,14 @@ namespace Buklod.Empire {
             if(actor.Kit?.Id=="jawo"&&n>0&&Time-a.RhythmAt>=.39f){a.RhythmStacks=Time-a.RhythmAt>4?1:Math.Min(5,a.RhythmStacks+1);a.RhythmAt=Time;}
             if(target.Kit?.Id=="trudice"&&hpDamage>0)actor.Health=Mathf.Max(1,actor.Health-hpDamage*Mathf.Clamp(target.Buff("reflect",Time),0,.3f));
             if(!target.Alive){
-                if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager&&!t.RevivedMinion){a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?OfflineMatchRules.KillGold(t.ConsecutiveDeaths,t.KillStreak):t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16);a.EarnedFeedbackSequence++;}
+                if(a.Kind==BattleTargetKind.Hero&&t.Kind!=BattleTargetKind.Villager&&!t.RevivedMinion){int beforeGold=a.Gold;float xp=t.Kind==BattleTargetKind.Hero?90:t.Kind==BattleTargetKind.Structure?65:16;a.Gold=Mathf.Min(9999,a.Gold+(t.Kind==BattleTargetKind.Hero?OfflineMatchRules.KillGold(t.ConsecutiveDeaths,t.KillStreak):t.Kind==BattleTargetKind.Structure?45:22));GainXp(a,xp);a.EarnedFeedbackSequence++;PlayerReceipt(a,t.Kind==BattleTargetKind.Hero?"HERO DEFEATED":t.Kind==BattleTargetKind.Structure?"STRUCTURE DEFEATED":"MINION DEFEATED",a.Gold-beforeGold,xp);}
                 if(t.Kind==BattleTargetKind.Hero){
                     t.Deaths++;t.ConsecutiveDeaths++;t.KillStreak=0;t.RespawnAt=Time+OfflineMatchRules.RespawnDelay(Time);
                     if(a.Kind==BattleTargetKind.Hero){a.Kills++;a.KillStreak++;a.ConsecutiveDeaths=0;}
                     foreach(var contribution in t.RecentHeroDamage){
                         if(contribution.Key==a.Id||Time-contribution.Value>OfflineMatchRules.AssistWindow)continue;
                         var helper=units.FirstOrDefault(v=>v.Id==contribution.Key&&v.Team==a.Team&&v.Kind==BattleTargetKind.Hero);
-                        if(helper!=null){helper.Assists++;helper.Gold=Mathf.Min(9999,helper.Gold+OfflineMatchRules.AssistGold);helper.EarnedFeedbackSequence++;}
+                        if(helper!=null){int beforeGold=helper.Gold;helper.Assists++;helper.Gold=Mathf.Min(9999,helper.Gold+OfflineMatchRules.AssistGold);helper.EarnedFeedbackSequence++;PlayerReceipt(helper,"ASSIST",helper.Gold-beforeGold);}
                     }
                     t.RecentHeroDamage.Clear();
                 }
@@ -641,6 +645,7 @@ namespace Buklod.Empire {
                 a.ShieldCapacity=105+current.ShieldMax;a.PickupShield(Mathf.Max(0,current.ShieldMax-old.ShieldMax),Time);
                 a.EquipmentCooldown=(u.Gear.Contains("wisdom")?.12f:0)+current.Cooldown;
             }
+            PlayerReceipt(u,"RELIC "+item.Slot,0,0,item.Consumable?"used":"equipped",0,item.Tier);
             relicDrops.Remove(d);u.EarnedFeedbackSequence++;u.RelicFeedbackSequence++;return true;
         }
         public bool CollectPlayerPickup(int id)=>CollectPickup(Player,id);
@@ -658,7 +663,7 @@ namespace Buklod.Empire {
                 case "cooldown":amount=s.ReduceActiveCooldowns(v/1000,Time);break;
                 case "haste":case "fury":case "guard":case "regen":if(s.ExtendPickupBuff(item.Effect,v,item.Duration,Time))amount=v;break;
             }
-            if(amount<=0)return false;drops.Remove(d);u.LastPickupFeedbackEffect=item.Effect;u.EarnedFeedbackSequence++;u.PickupFeedbackSequence++;return true;
+            if(amount<=0)return false;PlayerReceipt(u,"FIELD PICKUP",0,item.Effect=="xp"?amount:0,item.Effect=="xp"?"":item.Effect,item.Effect=="xp"?0:amount);drops.Remove(d);u.LastPickupFeedbackEffect=item.Effect;u.EarnedFeedbackSequence++;u.PickupFeedbackSequence++;return true;
         }
         private void CollectNearby(BattleUnit u){for(int i=drops.Count-1;i>=0;i--)if(CollectPickup(u,drops[i].Id))break;for(int i=relicDrops.Count-1;i>=0;i--)if(CollectRelic(u,relicDrops[i].Id))break;}
         public bool Dash(SkillActor actor,Vector2 direction,float distance)=>Move(Find(actor),direction,distance);
@@ -805,8 +810,8 @@ namespace Buklod.Empire {
             u.State.EquipmentCooldown=(u.Gear.Contains("wisdom")?.12f:0)+u.RelicStats.Cooldown;
             if(item=="vitality"){u.State.MaxHealth+=purchased?45:-45;u.State.Health=Mathf.Min(u.State.MaxHealth,u.State.Health);}
         }
-        private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok){GearChanged(u,item,true);u.PurchaseFeedbackSequence++;}return ok;}
-        private bool Sell(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TrySell(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok)GearChanged(u,item,false);return ok;}
+        private bool Buy(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TryBuy(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok){GearChanged(u,item,true);u.PurchaseFeedbackSequence++;PlayerReceipt(u,item,0,0,"bought");}return ok;}
+        private bool Sell(BattleUnit u,string item){int gold=u.Gold;bool ok=OfflineMatchRules.TrySell(item,u.Gear,ref gold,Vector2.Distance(u.Position,u.Spawn),u.State.Alive,!Finished&&CoreAlive(u.Team));u.Gold=gold;if(ok){GearChanged(u,item,false);PlayerReceipt(u,item,0,0,"sold");}return ok;}
         public float BasicAttackCooldown(BattleUnit u){
             if(u==null||u.State.Kit==null)return 0;
             float speed=1+(u.Gear.Contains("fervor")?.2f:0)+u.CovenantBonus.AttackSpeed+Mathf.Clamp(u.State.Buff("attack_speed",Time),0,.25f);
