@@ -14,6 +14,7 @@ declare
  v_saliksik jsonb;
  v_children jsonb;
  v_has_saliksik boolean;
+ v_totals jsonb;
 begin
  if auth.uid() is null then raise exception 'Authentication required' using errcode='42501'; end if;
  -- Reuse the exact-scope, leadership-only authorization and period bounds.
@@ -40,6 +41,7 @@ begin
  ), reading as (
   select s.user_id,count(distinct s.assignment_id) n
   from public.daily_bible_submissions s
+  join members u on u.uid=s.user_id
   join public.daily_bible_assignments a on a.id=s.assignment_id
   left join lateral (
     select f.status from public.buklod_scope_formation_approvals_v2 f
@@ -49,24 +51,51 @@ begin
   ) f on true
   where a.reading_date between v_start and v_end
     and upper(coalesce(f.status,s.status,''))='APPROVED'
-    and exists(select 1 from membership m where m.user_id=s.user_id and m.scope_id=s.cluster_id
-      and s.submitted_at>=m.joined_at)
   group by s.user_id
- ), devotion as (
-  select s.user_id,count(distinct dc.id) n
+ ), devotion_events as (
+  -- Scheduled dates drive period coverage; actual completion dates remain separate.
+  -- Match the Nov 17 all-active-member-scope reporting policy: source scope
+  -- is processing attribution, not report ownership. V1's authorized roster
+  -- is the boundary. Canonical server submission status is the legacy fallback.
+  select s.user_id, d.id devotional_id, d.publish_date scheduled_date,
+    coalesce(dc.completion_date,(dc.completed_at at time zone 'Asia/Manila')::date) actual_date,
+    bool_or(upper(coalesce(f.status,s.status,'PENDING'))='APPROVED') approved,
+    bool_or(upper(coalesce(f.status,s.status,'PENDING'))='REJECTED') revision
   from public.devotional_reward_submissions s
   join public.devotional_completions dc on dc.id=s.completion_id and dc.user_id=s.user_id
-  where dc.completion_date between v_start and v_end
-    and exists(select 1 from membership m
-      join lateral (
-        select f.status from public.buklod_scope_formation_approvals_v2 f
-        where f.scope_id=m.scope_id and f.learner_id=s.user_id
-          and f.item_kind='DAILY_DEVOTION' and f.item_id=s.id
-        order by f.updated_at desc nulls last,f.created_at desc limit 1
-      ) f on true
-      where m.user_id=s.user_id and dc.completed_at>=m.joined_at
-        and upper(f.status)='APPROVED')
-  group by s.user_id
+  join public.devotionals d on d.id=s.devotional_id and d.id=dc.devotional_id
+  join members u on u.uid=s.user_id
+  left join lateral (
+    select f0.status from public.buklod_scope_formation_approvals_v2 f0
+    where f0.learner_id=s.user_id
+      and f0.item_kind='DAILY_DEVOTION' and f0.item_id=s.id
+    order by case f0.status when 'APPROVED' then 0 when 'REJECTED' then 1 else 2 end,
+      f0.created_at desc limit 1
+  ) f on true
+  where d.publish_date between v_start and v_end and dc.completed_at is not null
+    and dc.completed_at<=now()
+  group by s.user_id,d.id,d.publish_date,coalesce(dc.completion_date,(dc.completed_at at time zone 'Asia/Manila')::date)
+ ), devotion_dates as (
+  select user_id,scheduled_date,bool_or(approved) approved,bool_or(revision) revision,
+    coalesce(jsonb_agg(distinct actual_date order by actual_date) filter(where approved and actual_date is not null),'[]'::jsonb) actual_dates
+  from devotion_events group by user_id,scheduled_date
+ ), devotion as (
+  select user_id,count(*) submitted_days,count(*) filter(where approved) completed_days,
+    count(*) filter(where revision and not approved) revision_days,
+    jsonb_agg(jsonb_build_object('scheduled_date',scheduled_date,'status',
+      case when approved then 'APPROVED' when revision then 'REJECTED' else 'PENDING' end,
+      'completion_dates',actual_dates) order by scheduled_date) dates
+  from devotion_dates group by user_id
+ ), devotion_counts as (
+  select user_id,count(distinct devotional_id) filter(where approved) n,
+    count(distinct actual_date) filter(where approved) actual_days
+  from devotion_events group by user_id
+ ), kl as (
+  -- Completed reading sessions are canonical; the server sets completed_at on verified chapter completion.
+  select p.user_id,count(distinct p.episode_id) n from public.kl_reading_sessions p
+  where p.completed_at>=v_start_ts and p.completed_at<v_end_ts
+    and exists(select 1 from membership m where m.user_id=p.user_id and p.completed_at>=m.joined_at)
+  group by p.user_id
  ), abc as (
   select p.user_id,count(distinct p.lesson_id) n from public.buklod_abc_growth_progress p
   where p.completed_at>=v_start_ts and p.completed_at<v_end_ts
@@ -95,7 +124,13 @@ begin
  )
  select coalesce(jsonb_agg(u.item || jsonb_build_object(
  'reading_approved_count',coalesce(r.n,0),
- 'devotion_completed_count',coalesce(d.n,0),
+ 'devotion_completed_count',coalesce(dc.n,0),
+ 'devotion_submitted_days',coalesce(d.submitted_days,0),
+ 'devotion_completed_days',coalesce(d.completed_days,0),
+ 'devotion_revision_days',coalesce(d.revision_days,0),
+ 'devotion_actual_completion_days',coalesce(dc.actual_days,0),
+ 'devotion_dates',coalesce(d.dates,'[]'::jsonb),
+ 'kl_chapter_count',coalesce(k.n,0),
  'abaka_completed_count',coalesce(a.n,0),
  'bible_chapter_count',coalesce(b.n,0),
  'mentor_session_count',coalesce(m.n,0),
@@ -104,7 +139,9 @@ begin
  'children_story_count',null,'children_teaching_count',null,'saliksik_completed_count',null
  ) order by lower(u.item->>'member_name'),u.uid),'[]'::jsonb)
  into v_members from members u left join reading r on r.user_id=u.uid
- left join devotion d on d.user_id=u.uid left join abc a on a.user_id=u.uid
+ left join devotion d on d.user_id=u.uid
+ left join devotion_counts dc on dc.user_id=u.uid left join kl k on k.user_id=u.uid
+ left join abc a on a.user_id=u.uid
  left join bible b on b.user_id=u.uid left join mentors m on m.mentor_id=u.uid
  left join mentees t on t.mentee_id=u.uid;
  -- Story assessments are recorded on server confirmation. Never import local
@@ -153,7 +190,19 @@ begin
     coalesce((v_saliksik->>(item->>'user_id'))::bigint,0)) order by lower(item->>'member_name'),item->>'user_id'),'[]'::jsonb)
   into v_members from jsonb_array_elements(v_members) item;
  end if;
- return v_report || jsonb_build_object('members',v_members,'accomplishment_report_version',2);
+ select jsonb_build_object(
+  'devotion_submitted_days',coalesce(sum((item->>'devotion_submitted_days')::integer),0),
+  'devotion_completed_days',coalesce(sum((item->>'devotion_completed_days')::integer),0),
+  'members_with_activity',count(*) filter(where (item->>'reading_submitted_days')::integer>0
+   or (item->>'devotion_submitted_days')::integer>0 or (item->>'lesson_approved_count')::integer>0
+   or (item->>'lesson_pending_count')::integer>0 or (item->>'abaka_completed_count')::integer>0
+   or (item->>'saliksik_completed_count')::integer>0 or (item->>'children_story_count')::integer>0
+   or (item->>'bible_chapter_count')::integer>0 or (item->>'kl_chapter_count')::integer>0
+   or (item->>'mentor_session_count')::integer>0 or (item->>'mentee_session_count')::integer>0)
+ ) into v_totals from jsonb_array_elements(v_members) item;
+ return v_report || jsonb_build_object('members',v_members,
+  'totals',(v_report->'totals')||v_totals,'accomplishment_report_version',2,
+  'devotion_date_basis','scheduled');
 end;
 $fn$;
 revoke all on function public.buklod_scope_faith_monitoring_period_v2(uuid,text,date) from public,anon;

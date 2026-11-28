@@ -1,0 +1,179 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/genesis-206-cumulative-runtime-qa-20261126.json",
+  "objective": "Reconcile latest MAIN KL series/dictionary source and independent Admin privacy UI fixes into cumulative Genesis QA; one pinned local runtime source regression and TypeScript run, no deployment.",
+  "baseRef": "f5ceb643a991b0409054833525669e91a164df2b",
+  "productionBaselineEvidence": "MAIN 9aed7d6; MAIN draft d22ac487; prior Academy f5ceb643 verified isolated fixture receipt; staging live group cc65a12a remains unchanged.",
+  "chosenApproach": "24 exact matching-ancestor blobs from MAIN draft and independent Admin draft, preserve all Genesis-specific Connect, Marites, read-only Points and governance deltas; one local QA runner reuses matching deps.",
+  "selectionRationale": "Avoid overwriting newer Genesis-only fixes or accidentally activating shared backend features; verify latest source at exact candidate before any export.",
+  "allowedPaths": [
+    ".buklod/scopes/genesis-206-cumulative-runtime-qa-20261126.json",
+    "scripts/local-genesis-206-cumulative-runtime-qa.sh",
+    "scripts/test-kl-series-dictionary-local.sh",
+    "src/app/admin/churches.tsx",
+    "src/app/admin/content-reports.tsx",
+    "src/app/admin/devotionals.tsx",
+    "src/app/admin/pilot/cohorts.tsx",
+    "src/app/admin/pilot/content.tsx",
+    "src/app/admin/pilot/index.tsx",
+    "src/app/admin/pilot/runtime.tsx",
+    "src/app/admin/privacy/index.tsx",
+    "src/components/AdminGate.tsx",
+    "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx",
+    "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx",
+    "src/components/kabihasnang-ligaw/KlReaderScreen.tsx",
+    "src/components/kabihasnang-ligaw/KlSeriesShelf.tsx",
+    "src/components/useAdminShared.ts",
+    "src/lib/kabihasnang-ligaw/dictionary.ts",
+    "src/lib/kabihasnang-ligaw/useKlChapterDictionary.ts",
+    "supabase/functions/kl-dictionary-worker/index.ts",
+    "supabase/migrations/20261126080000_kl_series_and_dictionary_v1.sql",
+    "supabase/migrations/20261126080001_kl_dictionary_scheduler_v1.sql",
+    "supabase/tests/kl_series_dictionary_contract.sql",
+    "tests/admin-privacy-moderation-ui-source.test.cjs",
+    "tests/genesis-206-cumulative-runtime-boundary-20261126.test.mjs",
+    "tests/kl-dictionary-expansion-20261119.test.mjs",
+    "tests/kl-series-auto-dictionary-20261126.test.mjs"
+  ],
+  "regressionTests": [
+    "supabase/tests/kl_series_dictionary_contract.sql",
+    "tests/admin-privacy-moderation-ui-source.test.cjs",
+    "tests/genesis-206-cumulative-runtime-boundary-20261126.test.mjs",
+    "tests/kl-dictionary-expansion-20261119.test.mjs",
+    "tests/kl-series-auto-dictionary-20261126.test.mjs"
+  ],
+  "lockedFeatureChanges": [
+    {
+      "id": "app-runtime",
+      "reason": "Matching-ancestor KL series and Admin source fixes, preserve existing feature controls.",
+      "preservedBehaviors": [
+        "Existing reader gates, fallback, offline glossary, admin auth, Genesis motion host and read-only Points."
+      ],
+      "tests": [
+        "tests/kl-series-auto-dictionary-20261126.test.mjs",
+        "tests/admin-privacy-moderation-ui-source.test.cjs",
+        "tests/genesis-206-cumulative-runtime-boundary-20261126.test.mjs"
+      ]
+    },
+    {
+      "id": "backend-security",
+      "reason": "Copy undeployed KL dictionary worker and two migration sources only; no provisioning or deployment.",
+      "preservedBehaviors": [
+        "Quiz/publication authorization and private glossary jobs remain protected. All migrations remain held."
+      ],
+      "tests": [
+        "supabase/tests/kl_series_dictionary_contract.sql",
+        "tests/genesis-206-cumulative-runtime-boundary-20261126.test.mjs"
+      ]
+    }
+  ],
+  "acceptanceChecks": [
+    "Exact scope and blob parity, targeted actual Node regression, isolated KL SQL fixture, TypeScript.",
+    "Keep shared-backend Academy, SALIKSIK and Children Teaching disabled; no automatic publish; dedicated backend and actual ad/nav/runtime release gates pending."
+  ],
+  "preserveBehaviors": [
+    "Existing Genesis Connect latest-first and Marites preview source; individual Points read-only; previously verified ABaKa/Faith/SALIKSIK/Children/Academy source unchanged."
+  ],
+  "alternativeApproaches": [
+    "Blind merge MAIN or Admin branch rejected.",
+    "Run old staging publisher rejected."
+  ],
+  "riskAreas": [
+    "app-runtime",
+    "story",
+    "backend-security",
+    "auth-privacy",
+    "navigation-scroll",
+    "release-identity",
+    "ads-monetization"
+  ],
+  "publicationStatus": "QA_ONLY_NO_EXPORT_OR_PUBLISH",
+  "sourceIntake": {
+    "mainSha": "d22ac48782fbd2c9a604187161c430effcad80b4",
+    "adminSha": "b0fe09b7d580add44d0851f806f163bf443f8f12",
+    "exactBlobs": {
+      "scripts/test-kl-series-dictionary-local.sh": "b89e65897f83df6c7e30513f2c92e8d5f9e3e9b3",
+      "src/components/kabihasnang-ligaw/KlDynamicLibrary.tsx": "95e08ea3970a1d1fbd6538da85e6087d91117860",
+      "src/components/kabihasnang-ligaw/KlPublishingStudio.tsx": "8fd40b57d0097b837bee064a33617ec0f4f25ee8",
+      "src/components/kabihasnang-ligaw/KlReaderScreen.tsx": "0ead8aeb003fd98f17382d627ab24b9b1083fcc0",
+      "src/components/kabihasnang-ligaw/KlSeriesShelf.tsx": "6e93c6b196a84487a622b86288670531e7493221",
+      "src/lib/kabihasnang-ligaw/dictionary.ts": "e43bad7b0651bd572733fb2198006e16eec916e3",
+      "src/lib/kabihasnang-ligaw/useKlChapterDictionary.ts": "799e88c50dc3607181bfd63777451cfe2472041a",
+      "supabase/functions/kl-dictionary-worker/index.ts": "c323b19601b19fcc2f458e9ddc699deeb619ed3f",
+      "supabase/migrations/20261126080000_kl_series_and_dictionary_v1.sql": "bbfbc8505f92a7bac3ef8f9757c265932fce7372",
+      "supabase/migrations/20261126080001_kl_dictionary_scheduler_v1.sql": "ae01587ea4ec4eb07f54426492d13549cdf66ffc",
+      "supabase/tests/kl_series_dictionary_contract.sql": "95e0989f5aa1de5627e85980fe82cb216887bea8",
+      "tests/kl-dictionary-expansion-20261119.test.mjs": "643ce43bcace24c707e216b67249fd04d378e95f",
+      "tests/kl-series-auto-dictionary-20261126.test.mjs": "1de06994454a650bd53a1071e91429fb8282a489",
+      "src/app/admin/churches.tsx": "f26e7cbde394922c4f10db96c63bb9628fefe81f",
+      "src/app/admin/content-reports.tsx": "3ab755fb619a757b8b646a60c73697b8a415daae",
+      "src/app/admin/devotionals.tsx": "77657d2c974cb23c42491e099025de6726006fee",
+      "src/app/admin/pilot/cohorts.tsx": "61e40a10ec4c14208959f41efff0cb9e3e9c9b55",
+      "src/app/admin/pilot/content.tsx": "42313938b1d6ae7cf079ad949fc6427886cbbded",
+      "src/app/admin/pilot/index.tsx": "aac3b488d4b61a42a4e86c8453a4fe329b395fe9",
+      "src/app/admin/pilot/runtime.tsx": "d1e6031b2cd8e95bd5010961b81c36c49819ae93",
+      "src/app/admin/privacy/index.tsx": "5dbfb2274e7b735cfbc4f798573100c2b3eedb2d",
+      "src/components/AdminGate.tsx": "ef4892d800bcbcab9ae5c42a0e1dfba222095498",
+      "src/components/useAdminShared.ts": "7630e256f1584133ff37f0f6b8f126e262cd680d",
+      "tests/admin-privacy-moderation-ui-source.test.cjs": "fe060c3daf64acc99af52c4cc9dc9ecef6b357bc"
+    }
+  },
+  "regressionSuite": [
+    "tests/admin-privacy-moderation-ui-source.test.cjs",
+    "tests/kl-dictionary-expansion-20261119.test.mjs",
+    "tests/kl-series-auto-dictionary-20261126.test.mjs",
+    "tests/kl-generator-supabase-security-failover.test.mjs",
+    "tests/genesis-206-staging-points-readonly-20261124.test.mjs",
+    "tests/buklod-points-live-backend-compatible-staging-20261124.test.mjs",
+    "tests/cluster-connect-notifications-points-20261108.test.mjs",
+    "tests/buklod-ad-opportunities.test.cjs",
+    "tests/connect-inbox-ads-guard-20261123.test.mjs",
+    "tests/connect-inbox-notification-navigation-20261123.test.mjs",
+    "tests/connect-inbox-realtime-staging-20261123.test.mjs",
+    "tests/messenger-inbox-density-20261117.test.mjs",
+    "tests/marites-wall-upload-behavior-20261124.test.mjs",
+    "tests/marites-wall-upload-fastpath-20261124.test.mjs",
+    "tests/word-bible-navigation-20261123.test.cjs",
+    "tests/word-scripture-link-20261123.test.cjs",
+    "tests/genesis-main-home-no-empire-20261124.test.mjs",
+    "tests/genesis-navigation-auth-kingdom-retirement-20261124.test.mjs",
+    "tests/navigation-v2-ads-preservation.test.mjs",
+    "tests/dashboard-ad-navigation-prewarm-20261116.test.mjs",
+    "tests/dashboard-navigation-auth-20261117.test.mjs",
+    "tests/buklod-native-ad-navigation-scroll.test.mjs",
+    "tests/admob-native-video-prefetch-20261114.test.mjs",
+    "tests/genesis-wall-connect-ads-navigation-quiz-20261120.test.mjs",
+    "tests/children-stories-navigation-ad-safety.test.mjs",
+    "tests/protected-feature-lock.test.mjs",
+    "tests/health-center-consultation-card-20261110.test.mjs",
+    "tests/nov14-imci-health-flow.test.mjs",
+    "tests/abaka-doctrine-catalog.test.cjs",
+    "tests/abaka-doctrine-genesis-integration-20261124.test.cjs",
+    "tests/abaka-doctrine-unbounded-progression-20261126.test.cjs",
+    "tests/academy-auth-navigation-security-20261126.test.mjs",
+    "tests/buklod-academy-automated-oversight.test.mjs",
+    "tests/buklod-academy-genesis-isolation.test.mjs",
+    "tests/buklod-academy-iso21001-evidence-gate.test.mjs",
+    "tests/buklod-academy-iso21001-quality-pack.test.mjs",
+    "tests/buklod-academy-owner-quality-overview.test.mjs",
+    "tests/buklod-academy-rework-pdf-recovery.test.mjs",
+    "tests/buklod-academy-staging-contract.test.mjs",
+    "tests/buklod-university-completion-motion.test.mjs",
+    "tests/children-teaching-faith-security-20261126.test.mjs",
+    "tests/faith-accomplishment-named-notifications-20261125.test.mjs",
+    "tests/faith-accomplishment-report-v2.test.mjs",
+    "tests/faith-monitoring-named-period.test.cjs",
+    "tests/named-formation-submission-notifications-20261125.test.mjs",
+    "tests/saliksik-adaptive-mastery-20261112.test.mjs",
+    "tests/saliksik-auto-research-e2e-20261124.test.mjs",
+    "tests/saliksik-backend-security-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-20261112.test.mjs",
+    "tests/saliksik-cluster-faith-auto-research-20261124.test.mjs",
+    "tests/saliksik-cluster-faith-manuscript-20261124.test.mjs",
+    "tests/saliksik-faith-canonical-integration-20261126.test.mjs",
+    "tests/saliksik-manuscript-unlock-20261124.test.mjs",
+    "tests/saliksik-sql-pg-qa.test.mjs",
+    "tests/saliksik-written-master-20261113.test.mjs",
+    "tests/genesis-206-cumulative-runtime-boundary-20261126.test.mjs"
+  ]
+}

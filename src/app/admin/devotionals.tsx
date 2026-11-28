@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { AdminGate } from '@/components/AdminGate';
-import { Button, Card, SectionTitle, shared } from '@/components/UI';
+import { Button, Card, SectionTitle } from '@/components/UI';
+import { useAdminShared } from '@/components/useAdminShared';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
 export default function DevotionalManager() {
+  const shared = useAdminShared();
   const [items,setItems]=useState<any[]>([]);
 
   const load=useCallback(async()=>{
@@ -40,7 +42,7 @@ export default function DevotionalManager() {
                 <View style={{flex:1}}>
                   <Text style={shared.h2}>{item.title}</Text>
                   <Text style={shared.muted}>{item.bible_passage || 'No passage'} • {item.series?.title || 'No series'}</Text>
-                  <Text style={styles.meta}>{item.publish_date || 'No date'} {item.day_number ? `• Day ${item.day_number}` : ''}</Text>
+                  <Text style={[shared.muted, { fontSize: 12, marginTop: 5 }]}>{item.publish_date || 'No date'} {item.day_number ? `• Day ${item.day_number}` : ''}</Text>
                 </View>
                 <Text style={[styles.badge,item.is_published?styles.live:styles.draft]}>
                   {item.is_published ? 'LIVE/SCHEDULED' : 'DRAFT'}

@@ -16,6 +16,9 @@ export type FaithPeriodMember = {
   lesson_stages: FaithPeriodStage[];
   reading_approved_count?: number | null;
   devotion_completed_count?: number | null;
+  devotion_actual_completion_days?: number | null;
+  devotion_dates?: { scheduled_date: string; status: 'APPROVED' | 'REJECTED' | 'PENDING'; completion_dates: string[] }[];
+  kl_chapter_count?: number | null;
   abaka_completed_count?: number | null;
   saliksik_completed_count?: number | null;
   children_story_count?: number | null;
@@ -33,6 +36,7 @@ export type FaithPeriodResult = {
   end_date: string;
   as_of_date: string;
   expected_days: number;
+  devotion_date_basis: 'scheduled' | 'legacy';
   totals: {
     active_members: number;
     reading_submitted_days: number;
@@ -79,7 +83,7 @@ export function percentage(value: number, denominator: number): number {
   return Math.min(100, Math.round(100 * value / denominator));
 }
 
-export const ACCOMPLISHMENT_METRICS = [["reading_approved_count","Daily Reading assignments"],["devotion_completed_count","Daily Devotion completions"],["abaka_completed_count","ABAKA lessons"],["saliksik_completed_count","SALIKSIK investigations"],["children_story_count","Children stories"],["bible_chapter_count","Personal Bible chapters"],["children_teaching_count","Children teaching sessions"],["mentor_session_count","Mentor sessions"],["mentee_session_count","Mentee sessions"],["mentees_reached_count","Distinct in-scope mentees"]] as const;
+export const ACCOMPLISHMENT_METRICS = [["reading_approved_count","Daily Reading assignments"],["devotion_completed_count","Word / Daily Devotion completions"],["kl_chapter_count","KL verified chapters"],["abaka_completed_count","ABAKA lessons"],["saliksik_completed_count","SALIKSIK investigations"],["children_story_count","Children stories"],["bible_chapter_count","Personal Bible chapters"],["children_teaching_count","Children teaching sessions"],["mentor_session_count","Mentor sessions"],["mentee_session_count","Mentee sessions"],["mentees_reached_count","Distinct in-scope mentees"]] as const;
 export function accomplishmentCount(value: unknown): number | null {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
@@ -130,6 +134,7 @@ export async function fetchFaithPeriodReport(
     period,
     start_date: start, end_date: end, as_of_date: through,
     expected_days: Math.min(31, nonnegative(raw.expected_days)),
+    devotion_date_basis: raw.devotion_date_basis === 'scheduled' ? 'scheduled' : 'legacy',
     totals: {
       active_members: nonnegative(totals.active_members),
       reading_submitted_days: nonnegative(totals.reading_submitted_days),
@@ -156,6 +161,15 @@ export async function fetchFaithPeriodReport(
         lesson_pending_count: nonnegative(row.lesson_pending_count),
         reading_approved_count: accomplishmentCount(row.reading_approved_count),
         devotion_completed_count: accomplishmentCount(row.devotion_completed_count),
+        devotion_actual_completion_days: accomplishmentCount(row.devotion_actual_completion_days),
+        kl_chapter_count: accomplishmentCount(row.kl_chapter_count),
+        devotion_dates: raw.devotion_date_basis === 'scheduled' && Array.isArray(row.devotion_dates) ? row.devotion_dates.flatMap((value: unknown) => {
+          const d = object(value);
+          const date = validDate(d.scheduled_date);
+          const status = d.status;
+          if (!date || date < start || date > through || (status !== 'APPROVED' && status !== 'REJECTED' && status !== 'PENDING')) return [];
+          return [{ scheduled_date: date, status, completion_dates: Array.isArray(d.completion_dates) ? d.completion_dates.map(validDate).filter(Boolean) : [] }];
+        }) : undefined,
         abaka_completed_count: accomplishmentCount(row.abaka_completed_count),
         saliksik_completed_count: accomplishmentCount(row.saliksik_completed_count),
         children_story_count: accomplishmentCount(row.children_story_count),
@@ -196,11 +210,15 @@ export function faithPeriodToCsvRows(report: FaithPeriodResult): Record<string, 
     'Devotion submitted days': member.devotion_submitted_days,
     'Devotion completed days': member.devotion_completed_days,
     'Devotion completed %': percentage(member.devotion_completed_days, report.expected_days),
+    'Devotion date basis': report.devotion_date_basis,
+    'Actual completion days': displayAccomplishment(member.devotion_actual_completion_days),
+    'Scheduled devotion records': member.devotion_dates?.map(d => `${d.scheduled_date}: ${d.status}${d.completion_dates.length ? ' (' + d.completion_dates.join(', ') + ')' : ''}`).join('; ') ?? 'Not available',
     'Devotion needs revision days': member.devotion_revision_days,
     'Lessons approved in period': member.lesson_approved_count,
     'Lessons pending in period': member.lesson_pending_count,
     'Daily Reading assignments': displayAccomplishment(member.reading_approved_count),
-    'Daily Devotion completions': displayAccomplishment(member.devotion_completed_count),
+    'Word / Daily Devotion completions': displayAccomplishment(member.devotion_completed_count),
+    'KL verified chapters': displayAccomplishment(member.kl_chapter_count),
     'ABAKA lessons': displayAccomplishment(member.abaka_completed_count),
     'SALIKSIK investigations': displayAccomplishment(member.saliksik_completed_count),
     'Children stories': displayAccomplishment(member.children_story_count),

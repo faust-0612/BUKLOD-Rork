@@ -29,3 +29,9 @@ test('report v3 retains exact v2 authorization and counts scope sessions',()=>{
  assert.match(read('src/lib/buklodScopeFaithPeriodReport.ts'),/buklod_scope_faith_monitoring_period_v3/);
  assert.match(read('supabase/tests/faith_named_notification_release_gate_20261125.sql'),/submit_my_children_teaching_v1/);
 });
+
+test('disabled teaching report does not invent zero and retains historical records',()=>{
+ assert.match(report,/count\(distinct t.id\)>0 or v_enabled then count\(distinct t.id\) else null/);
+ assert.match(report,/children_teaching_count'\)::integer,0\)>0/);
+ assert.match(report,/members_with_activity',active_count/);
+});

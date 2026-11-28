@@ -1,9 +1,11 @@
 import { ScrollView, Text } from 'react-native';
 import { router } from 'expo-router';
 import { AdminGate } from '@/components/AdminGate';
-import { Button, SectionTitle, shared } from '@/components/UI';
+import { Button, SectionTitle } from '@/components/UI';
+import { useAdminShared } from '@/components/useAdminShared';
 
 export default function PilotOperations(){
+  const shared = useAdminShared();
   return(
     <AdminGate>
       <ScrollView style={shared.screen} contentContainerStyle={shared.content}>

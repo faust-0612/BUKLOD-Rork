@@ -26,7 +26,7 @@ describe('Faith Monitoring period reports', () => {
   it('requests a bounded period and preserves each member name and progress', async () => {
     (supabase.rpc as jest.Mock).mockResolvedValueOnce({ data: payload, error: null });
     const report = await fetchFaithPeriodReport('scope-1', 'week', '2026-11-01');
-    expect(supabase.rpc).toHaveBeenCalledWith('buklod_scope_faith_monitoring_period_v1', {
+    expect(supabase.rpc).toHaveBeenCalledWith('buklod_scope_faith_monitoring_period_v3', {
       p_scope_id: 'scope-1', p_period: 'week', p_anchor_date: '2026-11-01',
     });
     expect(report.members).toHaveLength(2);
@@ -34,6 +34,43 @@ describe('Faith Monitoring period reports', () => {
     expect(report.members[0].lesson_stages).toEqual([{ stage_code: 101, approved_count: 2 }]);
     expect(report.members[1].reading_approved_days).toBe(0);
     expect(report.expected_days).toBe(7);
+  });
+
+  it('preserves scheduled versus actual completion and exports identical counts', async () => {
+    const dates = [
+      { scheduled_date: '2026-10-27', status: 'APPROVED', completion_dates: ['2026-10-28'] },
+      { scheduled_date: '2026-10-28', status: 'APPROVED', completion_dates: ['2026-10-28'] },
+    ];
+    (supabase.rpc as jest.Mock).mockResolvedValueOnce({ error: null, data: {
+      ...payload, devotion_date_basis: 'scheduled', members: [{ ...payload.members[0],
+        devotion_completed_days: 2, devotion_completed_count: 2,
+        devotion_actual_completion_days: 1, devotion_dates: dates, kl_chapter_count: 3 }],
+    } });
+    const report = await fetchFaithPeriodReport('scope-1', 'week', '2026-11-01');
+    expect(report.devotion_date_basis).toBe('scheduled');
+    expect(report.members[0].devotion_dates).toEqual(dates);
+    const csv = faithPeriodToCsvRows(report)[0];
+    expect(csv['Devotion completed days']).toBe(2);
+    expect(csv['Actual completion days']).toBe('1');
+    expect(csv['KL verified chapters']).toBe('3');
+    expect(csv['Children teaching sessions']).toBe('Not available');
+  });
+
+  it('falls back only for missing versioned RPC and labels legacy dates', async () => {
+    (supabase.rpc as jest.Mock)
+      .mockResolvedValueOnce({ data: null, error: { code: 'PGRST202', message: 'buklod_scope_faith_monitoring_period_v3 not found' } })
+      .mockResolvedValueOnce({ data: null, error: { code: 'PGRST202', message: 'buklod_scope_faith_monitoring_period_v2 not found' } })
+      .mockResolvedValueOnce({ data: payload, error: null });
+    const report = await fetchFaithPeriodReport('scope-1', 'week', '2026-11-01');
+    expect(report.devotion_date_basis).toBe('legacy');
+    expect(report.members[0].devotion_dates).toBeUndefined();
+    expect(supabase.rpc).toHaveBeenLastCalledWith('buklod_scope_faith_monitoring_period_v1', expect.anything());
+  });
+
+  it('does not fall back after access denial', async () => {
+    (supabase.rpc as jest.Mock).mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'Not authorized' } });
+    await expect(fetchFaithPeriodReport('scope-1', 'week', '2026-11-01')).rejects.toThrow('authorized workspace leaders');
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
   });
 
   it('rejects cross-scope data without displaying another workspace roster', async () => {

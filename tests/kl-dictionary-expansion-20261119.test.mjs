@@ -7,7 +7,7 @@ const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8'
 const asModule = source => 'data:text/javascript,' + encodeURIComponent(stripTypeScriptTypes(source));
 const extrasUrl = asModule(read('src/lib/kabihasnang-ligaw/dictionaryExtras.ts'));
 const dictionary = read('src/lib/kabihasnang-ligaw/dictionary.ts');
-const { KL_DICTIONARY, splitDictionaryTerms, dictionaryForManuscript, dictionaryByName } =
+const { KL_DICTIONARY, splitDictionaryTerms, dictionaryForManuscript, dictionaryByName, createKlDictionary, parseKlDictionaryRows } =
   await import(asModule(dictionary.replace("'./dictionaryExtras'", JSON.stringify(extrasUrl))));
 const reader = read('src/components/kabihasnang-ligaw/KlReaderScreen.tsx');
 const names = KL_DICTIONARY.map(entry => entry.name);
@@ -38,6 +38,28 @@ test('extra glossary entries require a mention in readable prose',()=>{
   const shown = dictionaryForManuscript('Si Tali at Elyam ay nasa Dumalir.').map(e=>e.name);
   assert.ok(shown.includes('Elyam'));
   assert.ok(!shown.includes('Narek'));
-  assert.match(reader,/dictionaryForManuscript\(reading\.text \?\? ''\)\.map/);
+  assert.match(reader,/dictionary\.forManuscript\(reading\.text \?\? ''\)\.map/);
   assert.doesNotMatch(reader,/KL_DICTIONARY\.map/);
+});
+
+test('server glossary merges only distinct, bounded valid terms without overriding canonical definitions',()=>{
+ const remote=[
+  {name:'Ulapin',kind:'Nilalang',meaning:'Nilalang na may pakpak na tila ulap.'},
+  {name:'Ulapin ng Pampang',kind:'Nilalang',meaning:'Natatanging nilalang na nakatira sa pampang.'},
+  {name:'Calen',kind:'Tauhan',meaning:'Hindi dapat mapalitan ang canonical alias.'},
+  {name:'Phan',kind:'Tauhan',meaning:'Hindi dapat mapalitan ang canonical meaning.'},
+  {name:'Invalid',kind:'Nilalang',meaning:'x'},
+  {name:'Ulapin',kind:'Bagay',meaning:'Duplicate candidate should not replace.'},
+ ];
+ const dictionary=createKlDictionary(remote);
+ assert.equal(parseKlDictionaryRows(remote).length,4);
+ assert.equal(dictionary.byName('calen')?.name,'Maestro Calen');
+ assert.equal(dictionary.byName('Phan')?.meaning,dictionaryByName('Phan')?.meaning);
+ assert.equal(dictionary.byName('Invalid'),null);
+ const text='Ang Ulapin ng Pampang ay malapit sa Ulapin. Ulapino.';
+ const parts=dictionary.split(text);
+ assert.equal(parts.map(p=>p.text).join(''),text);
+ assert.deepEqual(parts.filter(p=>p.term).map(p=>p.term),['Ulapin ng Pampang','Ulapin']);
+ assert.ok(!dictionary.forManuscript('Walang bagong nilalang.').some(x=>x.name==='Ulapin'));
+ assert.equal(createKlDictionary().byName('Ulapin'),null);
 });
