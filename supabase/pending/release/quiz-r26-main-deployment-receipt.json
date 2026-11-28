@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-28",
+  "status": "R26_MAIN_BACKEND_DEPLOYED_PUBLIC_CUTOVER_BLOCKED_BY_EXTERNAL_BUILD",
+  "sourceAudit": "420bf9a429c5d14af77b16f57fbe147e795defad",
+  "webCandidate": "a242c9f1bf957ee9d745118fd59d2263619a555f",
+  "backend": {
+    "migration": "buklod_quiz_r26_verified_recorded_review_and_score_correction",
+    "sqlBlob": "840229faba9a219be23bfa6a28e61e3e3b284b09",
+    "syntheticTestPassedPreviously": true,
+    "liveReadPreflightPassedPreviously": true,
+    "applySuccess": true,
+    "recordHashGuardPassed": true,
+    "postDeploy": {
+      "r26Live": true,
+      "authenticatedExecute": true,
+      "anonymousExecute": false
+    },
+    "rollbackSourceCommit": "77e83b296ee89d3296152517587b04ceeac45e5f"
+  },
+  "pdf": {
+    "slug": "buklod-quiz-pdf",
+    "version": 26,
+    "status": "ACTIVE",
+    "verifyJwt": true,
+    "exactSourceMatch": true,
+    "sourceCommit": "9967b519e420c62e65044d8fb596d755add740ab",
+    "files": {
+      "index": "7b953f106530ac8e81a2f4b7fecea920f27089e4",
+      "independence": "ecb03ee76ed246cb101ef0bd4dfd6b0029f44160"
+    },
+    "rollbackSourceCommit": "2d41cf3a5158b38dc4bbb657b23bb1664198fe7b",
+    "runtimeGeminiGenerationTest": "NOT_RUN"
+  },
+  "data": {
+    "main": {
+      "exams": 21,
+      "sections": 61,
+      "attempts": 951,
+      "responses": 61909,
+      "released": 460,
+      "active": 0,
+      "quarantine": 83
+    },
+    "dedicated": {
+      "exams": 21,
+      "sections": 61,
+      "attempts": 952,
+      "responses": 61959,
+      "released": 461,
+      "active": 0
+    },
+    "fullRecoverableBackupVerified": false
+  },
+  "ci": {
+    "runId": 46097413550,
+    "conclusion": "startup_failure",
+    "jobCount": 0,
+    "rootCause": "Provider did not start any job; exact billing or infrastructure reason not established by available endpoint"
+  },
+  "localFallback": {
+    "commit": "adc395b1a8e6c57e3b2b90162446a513f0956794",
+    "path": "supabase/pending/release/quiz-r26-local-preview.sh",
+    "execution": "NOT_RUN",
+    "scope": "exact web candidate, preview only, hash verification and production baseline guard"
+  },
+  "remaining": [
+    "Actual frontend compilation and exact immutable Expo preview",
+    "Authenticated student and faculty smoke test",
+    "Public alias promotion and verification",
+    "MAIN launcher OTA including mandatory regression gates",
+    "Recoverable full Dedicated backup and dependency retirement verification"
+  ],
+  "productionWebAliasChanged": false,
+  "dedicatedDeleted": false
+}
