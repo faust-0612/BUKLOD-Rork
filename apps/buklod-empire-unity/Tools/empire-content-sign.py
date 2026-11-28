@@ -4,6 +4,9 @@ Private key stays outside Git. No deployment/network operation is performed.
 """
 import argparse, base64, hashlib, json, pathlib, re, shutil, subprocess, tempfile, urllib.parse
 from pathlib import Path
+import sys
+sys.dont_write_bytecode = True
+from empire_ota_gate import verify_base, verify_export, stamp_export
 
 PROJECT = Path(__file__).resolve().parents[1]
 TRUST = PROJECT / "Assets/Resources/EmpireContentTrust.json"
@@ -63,10 +66,37 @@ def expected_slots():
     if len(slots)!=66: raise ValueError("Unexpected v2 content roster")
     return slots
 
+def accepted_base(args):
+    trust = json.loads(TRUST.read_text(encoding="utf-8"))
+    return verify_base(PROJECT, args.base_apk, args.base_receipt, trust)
+
+def preflight(args):
+    print(json.dumps(accepted_base(args), indent=2))
+    print("EMPIRE_OTA_NATIVE_COMPATIBILITY_PASS; local evidence only")
+
+def export(args):
+    base = accepted_base(args)
+    folder = PROJECT / "Builds/EmpireContent"
+    before = set(folder.glob("unsigned-*"))
+    executable = Path(args.unity).resolve(strict=True)
+    subprocess.run([str(executable), "-batchmode", "-quit", "-projectPath", str(PROJECT),
+                    "-buildTarget", "Android", "-executeMethod", "Buklod.Empire.Editor.EmpireContentPublisher.Export",
+                    "-logFile", "-"], check=True, timeout=3600)
+    created = set(folder.glob("unsigned-*")) - before
+    if len(created) != 1:
+        raise ValueError("Expected exactly one fresh Unity content export")
+    destination = created.pop()
+    if accepted_base(args) != base:
+        raise ValueError("Native base or source changed during export")
+    stamp_export(destination, base)
+    print("Verified local export provenance:", destination)
+
 def sign(args):
+    base = accepted_base(args)
     key = key_path(args.key)
     trust = json.loads(TRUST.read_text(encoding="utf-8"))
     source = Path(args.unsigned_dir).resolve(strict=True)
+    verify_export(source, base)
     output = Path(args.output).resolve()
     if output.exists(): raise FileExistsError(output)
     doc = json.loads((source / "unsigned-content.json").read_text(encoding="utf-8"))
@@ -117,7 +147,12 @@ def sign(args):
 def main():
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest="action",required=True)
     t=sub.add_parser("trust");t.add_argument("--key",required=True);t.add_argument("--base-url",required=True);t.add_argument("--apk-code",type=int,required=True);t.set_defaults(fn=make_trust)
-    s=sub.add_parser("sign");s.add_argument("--key",required=True);s.add_argument("--unsigned-dir",required=True);s.add_argument("--output",required=True);s.add_argument("--revision",type=int,required=True);s.set_defaults(fn=sign)
+    def add_base(parser):
+        parser.add_argument("--base-apk", required=True)
+        parser.add_argument("--base-receipt", required=True)
+    pflight=sub.add_parser("preflight");add_base(pflight);pflight.set_defaults(fn=preflight)
+    exp=sub.add_parser("export");add_base(exp);exp.add_argument("--unity",required=True);exp.set_defaults(fn=export)
+    s=sub.add_parser("sign");add_base(s);s.add_argument("--key",required=True);s.add_argument("--unsigned-dir",required=True);s.add_argument("--output",required=True);s.add_argument("--revision",type=int,required=True);s.set_defaults(fn=sign)
     args=p.parse_args();args.fn(args)
 
 if __name__=="__main__":main()
