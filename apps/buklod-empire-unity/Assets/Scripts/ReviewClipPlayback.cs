@@ -14,6 +14,7 @@ namespace Buklod.Empire {
         string locomotion="Idle";bool action,death;float remaining,blendAge,blendDuration;
         float[] blendFrom;
         static readonly HashSet<string> warned=new HashSet<string>();
+        static readonly string[] LocomotionNames={"Idle","Walk","Run"};
         public static ReviewClipPlayback TryCreate(Animator animator,string id){
             try{return new ReviewClipPlayback(animator);}
             catch(Exception e){if(warned.Add(id))Debug.LogWarning("Offline clip playback unavailable for "+id+": "+e.Message);return null;}
@@ -73,7 +74,7 @@ namespace Buklod.Empire {
             if(death&&remaining<=0)return;
             blendAge+=dt;ApplyBlend(blendDuration<=0?1:Mathf.Clamp01(blendAge/blendDuration));
             // Loop every visible locomotion contribution, including outgoing clips.
-            foreach(var name in new[]{"Idle","Walk","Run"})if(indices.TryGetValue(name,out var i)&&mixer.GetInputWeight(i)>0&&clips[i].GetTime()>=assets[i].length)
+            foreach(var name in LocomotionNames)if(indices.TryGetValue(name,out var i)&&mixer.GetInputWeight(i)>0&&clips[i].GetTime()>=assets[i].length)
                 clips[i].SetTime(clips[i].GetTime()%assets[i].length);
             float step=action?Mathf.Min(dt,Mathf.Max(0,remaining)):dt;
             graph.Evaluate(step);

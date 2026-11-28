@@ -1,0 +1,39 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-authored-character-production-20261128.json",
+  "baseRef": "2c8d6d6d6f5306f0e9d395b9e89f8bfab35b0389",
+  "productionBaselineEvidence": "Standalone DEV only, no approved release.",
+  "objective": "Add deterministic authored skinned hero intake and mobile candidate optimization, with explicit rights and motion mapping.",
+  "chosenApproach": "Blender 4.5 LTS pipeline on exact owner-supplied source bytes, preserve skin and UVs, verify candidate LOD geometry and clips; keep out of live catalog.",
+  "selectionRationale": "Avoid procedural primitive replacements and unverified assets; separate high-detail reference from gameplay budgets.",
+  "alternativeApproaches": [
+    "Reuse procedural geometry or decimate unweighted render meshes, rejected."
+  ],
+  "riskAreas": [
+    "Blender API/export compatibility",
+    "Decimation deformation",
+    "Animation redistribution rights"
+  ],
+  "preserveBehaviors": [
+    "Existing review and production catalogs unchanged",
+    "No MAIN or online deployment",
+    "Animation fallback remains bounded"
+  ],
+  "acceptanceChecks": [
+    "Exact original hashes and geometry validated",
+    "Incomplete mapping and unknown license rejected",
+    "LOD skin and clip drift rejected",
+    "No new approval or production receipt"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewClipPlayback.cs",
+    "apps/buklod-empire-unity/Tools/authored-hero-candidate.py",
+    "apps/buklod-empire-unity/Tools/test_authored_hero_candidate.py",
+    "apps/buklod-empire-unity/Tools/AUTHORED_HERO_PRODUCTION.md",
+    ".buklod/scopes/empire-authored-character-production-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Tools/test_authored_hero_candidate.py"
+  ],
+  "lockedFeatureChanges": []
+}
