@@ -1,0 +1,32 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-room-durable-start-20261128.json",
+  "baseRef": "39b9cbff03ca1096e4c1d0033cf4a280edb47e5c",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Require durable start in reserved room composition.",
+  "chosenApproach": "Inject the existing leased start contract into the reserved host and route owner updates through it.",
+  "selectionRationale": "Single owner-thread path preserves reservation semantics.",
+  "alternativeApproaches": [
+    "Expose the raw driver for unrelated standalone callers."
+  ],
+  "riskAreas": [
+    "room lifecycle",
+    "lease failure"
+  ],
+  "preserveBehaviors": [
+    "Offline gameplay and existing economy unchanged"
+  ],
+  "acceptanceChecks": [
+    "Denied lease renewal keeps simulation tick at zero."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-room-durable-start-20261128.json",
+    "apps/buklod-empire-unity/Assets/Scripts/ReservedRoomHost.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OnlineLobbyTests.cs",
+    "apps/buklod-empire-unity/MASTER_CHECKLIST.md"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OnlineLobbyTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

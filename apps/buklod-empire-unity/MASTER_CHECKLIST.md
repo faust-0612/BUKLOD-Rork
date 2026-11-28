@@ -43,3 +43,5 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 
 - [x] Fixed signed updater retry when the destination contains a corrupt receipt. An exact signed retry is idempotent and a different valid signed receipt for the same revision is rejected. Unity regression fixture authored, execution deferred.
 - [x] Compared branch-changed project paths by exact Git blob for the ticket, reconstruction, older integrated APK and migration branches. Nonidentical-path semantic reconciliation remains open.
+
+- [x] Wired reserved Unity room composition through the durable lease/start coordinator. The room exposes an owner-thread pump and requires an injected store and host lease identity. Added denied-renewal regression coverage. A concrete isolated store, trusted settlement and ingress remain required.

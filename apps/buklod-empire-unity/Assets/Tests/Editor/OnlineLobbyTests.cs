@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using NUnit.Framework;
+using System.Threading;
+using System.Threading.Tasks;
 namespace Buklod.Empire.Tests {
     public sealed class OnlineLobbyTests {
         static OnlineLobbyDirectory Directory()=>new OnlineLobbyDirectory(new[]{"ph","sg"});
@@ -21,6 +23,29 @@ namespace Buklod.Empire.Tests {
             for(int i=0;i<10;i++){if(i>0)Assert.False(d.Pick(id,"p"+i,heroes[0].Id));Assert.True(d.Pick(id,"p"+i,heroes[i].Id));}
             Assert.IsNull(d.LockDraft(id,"p1"));Assert.NotNull(d.LockDraft(id,"p0"));
             Assert.AreEqual(LobbyPhase.ReservationPending,d.Snapshot(id,"p0").Phase);Assert.False(d.Leave(id,"p0"));Assert.IsNull(d.LockDraft(id,"p0"));
+        }
+        sealed class RejectingHostStore:IOnlineStartStore,IMatchIdentityVerifier {
+            public int Renewals;
+            public Task<bool> RenewLease(Guid match,Guid host,CancellationToken token){Renewals++;return Task.FromResult(false);}
+            public Task<bool> StartReserved(Guid match,Guid host,CancellationToken token)=>throw new InvalidOperationException();
+            public Task<string> VerifyAccountAsync(string bearer,CancellationToken token)=>Task.FromResult<string>(null);
+        }
+        [Test] public void HandedOffRoomStopsIfItsLeaseCannotBeRenewed(){
+            var directory=Directory();
+            for(int i=0;i<10;i++)Assert.True(directory.Enqueue("p"+i,"ph",OnlineMode.Ranked));
+            var id=directory.FormQueued("ph",OnlineMode.Ranked);
+            for(int i=0;i<10;i++)Assert.True(directory.Pick(id,"p"+i,HeroKitCatalog.All[i].Id));
+            Assert.NotNull(directory.LockDraft(id,"p0"));
+            Assert.True(directory.ConfirmReservation(id,true));
+            var store=new RejectingHostStore();
+            using(var host=ReservedRoomHost.Create(directory,id,store,Guid.NewGuid(),store)){
+                Assert.NotNull(host);
+                host.Pump();
+                Assert.AreEqual(1,store.Renewals);
+                host.Pump();
+                Assert.AreEqual(DurableStartState.RecoveryRequired,host.State);
+                Assert.AreEqual(0,host.Grants.Tick);
+            }
         }
         [Test] public void ExpirationReleasesUnreservedMembership(){
             var now=DateTimeOffset.UtcNow;var d=new OnlineLobbyDirectory(new[]{"ph"},()=>now);
