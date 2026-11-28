@@ -13,6 +13,11 @@ namespace Buklod.Empire.Tests {
             Assert.AreEqual(3,OfflineBattle.VenomTicks);
             Assert.AreEqual(.06f,OfflineBattle.VenomTicks*OfflineBattle.VenomTickFraction,.0001f);
         }
+        [Test] public void HazardSegmentDetectsCrossingEvenWhenEndpointsAreSafe(){
+            Assert.AreEqual(-5f,OfflineBattle.HazardSegmentClearance(Vector2.left*10,Vector2.right*10,Vector2.zero,5),.0001f);
+            Assert.AreEqual(1f,OfflineBattle.HazardSegmentClearance(new Vector2(-10,6),new Vector2(10,6),Vector2.zero,5),.0001f);
+            Assert.AreEqual(5f,OfflineBattle.HazardSegmentClearance(Vector2.right*10,Vector2.right*10,Vector2.zero,5),.0001f);
+        }
         [Test] public void HazardRangeIncludesBoundary(){
             Assert.True(OfflineBattle.InHazardRange(Vector2.right*10,Vector2.zero,10));
             Assert.False(OfflineBattle.InHazardRange(Vector2.right*10.1f,Vector2.zero,10));

@@ -976,7 +976,51 @@ namespace Buklod.Empire {
                 (Dist(v,threat)<distance||(Dist(v,threat)==distance&&v.Id<u.Id)));
             return closer<2?threat:null;
         }
+        public static float HazardClearance(Vector2 point,Vector2 center,float radius)=>Vector2.Distance(point,center)-radius;
+        public static float HazardSegmentClearance(Vector2 from,Vector2 to,Vector2 center,float radius){
+            var delta=to-from;float length=delta.sqrMagnitude;
+            float fraction=length>.0001f?Mathf.Clamp01(Vector2.Dot(center-from,delta)/length):0;
+            return HazardClearance(from+delta*fraction,center,radius);
+        }
+        float JungleClearance(Vector2 point){
+            float clearance=float.PositiveInfinity;
+            foreach(var h in hazards){
+                clearance=Mathf.Min(clearance,HazardClearance(point,h.Position,h.WarningRadius+2));
+                clearance=Mathf.Min(clearance,HazardClearance(point,h.Home,h.Demon?22:12));
+            }
+            return clearance;
+        }
+        bool SafeJungleSegment(Vector2 from,Vector2 to){
+            foreach(var h in hazards)if(HazardSegmentClearance(from,to,h.Position,h.WarningRadius+2)<0||HazardSegmentClearance(from,to,h.Home,h.Demon?22:12)<0)return false;
+            return true;
+        }
+        static readonly float[] AvoidAngles={0,30,-30,60,-60,90,-90,120,-120,150,-150,180};
+        bool HazardSteer(BattleUnit u,Vector2 dir,float speed){
+            if(!JungleHazardsActive||u.Kind!=BattleTargetKind.Hero||HumanControlled(u)||dir.sqrMagnitude<.001f)return false;
+            float current=JungleClearance(u.Position);
+            float look=Mathf.Min(8,Mathf.Max(1,dir.magnitude));
+            var forward=dir.normalized;
+            if(current>=0&&SafeJungleSegment(u.Position,u.Position+forward*look))return false;
+            float step=Mathf.Min(speed*Step,dir.magnitude);
+            if(step<=0)return true;
+            Vector2 chosen=Vector2.zero;float best=float.NegativeInfinity;
+            foreach(float angle in AvoidAngles){
+                float rad=angle*Mathf.Deg2Rad,cos=Mathf.Cos(rad),sin=Mathf.Sin(rad);
+                var heading=new Vector2(forward.x*cos-forward.y*sin,forward.x*sin+forward.y*cos);
+                var next=u.Position+heading*step;
+                if(Blocked(next)||(navigation!=null&&!navigation.CanTraverse(u.Position,next)))continue;
+                float clearance=JungleClearance(next);
+                if(current<0?clearance<=current+.0001f:!SafeJungleSegment(u.Position,next))continue;
+                float ahead=JungleClearance(u.Position+heading*look);
+                float score=current<0?clearance*4+ahead*.15f+Vector2.Dot(heading,forward)*.05f:Vector2.Dot(heading,forward)*2+Mathf.Clamp(ahead,-8,8)*.18f;
+                if(score>best){best=score;chosen=heading;}
+            }
+            if(chosen.sqrMagnitude>0)Move(u,chosen,step);
+            // If every step is unsafe, hold rather than walk into the hazard.
+            return true;
+        }
         private void Steer(BattleUnit u,Vector2 dir,float speed){
+            if(HazardSteer(u,dir,speed))return;
             if(dir.sqrMagnitude<1)return;float n=Mathf.Min(speed*Step,dir.magnitude);
             if(Move(u,dir,n))return;
             if(navigation!=null&&navigation.TryWaypoint(u.Position,u.Position+dir,out var waypoint)&&Move(u,waypoint-u.Position,Mathf.Min(n,Vector2.Distance(u.Position,waypoint))))return;
@@ -998,7 +1042,11 @@ namespace Buklod.Empire {
             }return false;
         }
         private void Bot(BattleUnit u,float speed){
-            if(JungleHazardsActive)foreach(var hazard in hazards)if(InHazardRange(u.Position,hazard.Position,hazard.WarningRadius+2)){var away=u.Position-hazard.Position;Steer(u,away.sqrMagnitude>.01f?away:Vector2.right,speed);return;}
+            if(JungleHazardsActive&&JungleClearance(u.Position)<0){
+                var nearest=hazards.OrderBy(h=>Mathf.Min(HazardClearance(u.Position,h.Position,h.WarningRadius+2),HazardClearance(u.Position,h.Home,h.Demon?22:12))).First();
+                var center=HazardClearance(u.Position,nearest.Position,nearest.WarningRadius+2)<HazardClearance(u.Position,nearest.Home,nearest.Demon?22:12)?nearest.Position:nearest.Home;
+                var away=u.Position-center;HazardSteer(u,away.sqrMagnitude>.01f?away:Vector2.right,speed);return;
+            }
             var a=u.State;u.Retreat=CanRespawn(u.Team)&&OfflineMatchRules.Retreat(a.Health/a.MaxHealth,u.Retreat);
             if(Vector2.Distance(u.Position,u.Spawn)<12&&CoreAlive(u.Team)){
                 var order=a.Health/a.MaxHealth<.45f?new[]{"armor","vitality","boots","blade","aegis","wisdom"}:new[]{"blade","boots","armor","withering_thorn","sealbreaker","renewal"};
@@ -1010,7 +1058,7 @@ namespace Buklod.Empire {
             var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&v.Villager?.Job.Effect==VillageEffect.Gather?4:0)+(ClearSight(u.Position,v.Position)?3:0)).ThenBy(v=>v.Id).FirstOrDefault();
             var defense=DefenseThreat(u);if(defense!=null)t=defense;
             if(t==null&&u.Jungler&&CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&a.Health/a.MaxHealth>.55f){
-                var camp=wilderness.Camps.Where(c=>c.Alive&&(c.Boss?Vector2.Distance(u.Position,c.Position)<40:((u.Team==ArenaTeam.Lux)==(c.Position.x<Width/2)))&&(Time<180||Vector2.Distance(u.Position,c.Position)<35)).OrderBy(c=>Vector2.Distance(u.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
+                var camp=wilderness.Camps.Where(c=>c.Alive&&(!JungleHazardsActive||JungleClearance(c.Position)>=0)&&(c.Boss?Vector2.Distance(u.Position,c.Position)<40:((u.Team==ArenaTeam.Lux)==(c.Position.x<Width/2)))&&(Time<180||Vector2.Distance(u.Position,c.Position)<35)).OrderBy(c=>Vector2.Distance(u.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
                 if(camp!=null){var campDirection=camp.Position-u.Position;if(campDirection.magnitude>a.Kit.BasicRange*.9f||!ClearSight(u.Position,camp.Position))Steer(u,campDirection,speed);else{if(camp.Health<=90)UseTactic(u,campDirection);Basic(u,campDirection,null,camp.Id);}return;}
             }
             if(t==null&&(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit))t=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
