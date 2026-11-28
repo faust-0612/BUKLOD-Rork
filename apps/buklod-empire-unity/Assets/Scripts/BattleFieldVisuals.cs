@@ -15,6 +15,7 @@ namespace Buklod.Empire {
         private readonly Dictionary<(int,int),Color> appliedTints=new Dictionary<(int,int),Color>();
         private bool review;
         private readonly Dictionary<(int,int),TextMesh> lootLabels=new Dictionary<(int,int),TextMesh>();
+        private readonly Dictionary<(int,int),float> constructionHeights=new Dictionary<(int,int),float>();
         private BattleEffects battleEffects;
         private ReviewPresentationAudio presentationAudio;
         private WorldInteractionEffects worldEffects;
@@ -187,9 +188,9 @@ namespace Buklod.Empire {
                     var order=u.Construction;
                     if(order!=null&&order.Kind!=VillageBuildOrder.Repair&&Nearby(order.Position)&&(u.Team==bound.Player.Team||Visible(order.Position))){
                         var prefab=ConstructionPrefab(u.Team,order.Kind);var go=Present(5,u.Id,order.Position,prefab,out _);
-                        if(go){var scale=prefab.transform.localScale;scale.y*=Mathf.Lerp(.10f,1,order.Completion);go.transform.localScale=scale;go.transform.position=view.FieldPosition(order.Position);
+                        if(go){go.transform.localScale=prefab.transform.localScale;var keyForBounds=(5,u.Id);if(!constructionHeights.TryGetValue(keyForBounds,out float height)){height=.5f;foreach(var renderer in go.GetComponentsInChildren<Renderer>(true))if(renderer)height=Mathf.Max(height,renderer.bounds.max.y-go.transform.position.y);constructionHeights[keyForBounds]=height;}float reveal=Mathf.SmoothStep(.12f,1,order.Completion);go.transform.position=view.FieldPosition(order.Position)-Vector3.up*height*(1-reveal);
                             var key=(5,u.Id);if(!lootLabels.TryGetValue(key,out var label)||!label){var marker=new GameObject("Construction status "+u.Id);marker.transform.SetParent(transform,false);label=marker.AddComponent<TextMesh>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.GetComponent<MeshRenderer>().sharedMaterial=label.font.material;label.anchor=TextAnchor.MiddleCenter;label.alignment=TextAlignment.Center;label.fontSize=48;label.characterSize=.046f;lootLabels[key]=label;}
-                            label.text=order.Kind.ToString()+" • "+Mathf.RoundToInt(order.Completion*100)+"%";label.color=new Color(.94f,.78f,.42f);label.transform.position=view.FieldPosition(order.Position)+Vector3.up*2.8f;if(view.battleCamera)label.transform.rotation=view.battleCamera.transform.rotation;
+                            string stage=order.Progress<=0?"Site marked":order.Completion<.25f?"Foundation":order.Completion<.72f?"Structure":"Finishing";label.text=order.Kind+" • "+stage+" • "+Mathf.RoundToInt(order.Completion*100)+"%";label.color=new Color(.94f,.78f,.42f);label.transform.position=view.FieldPosition(order.Position)+Vector3.up*2.8f;if(view.battleCamera)label.transform.rotation=view.battleCamera.transform.rotation;
                         }
                     }
                 }
@@ -198,6 +199,7 @@ namespace Buklod.Empire {
             foreach(var key in removed){active.Remove(key);prefabs.Remove(key);appliedTints.Remove(key);if(key.Item1==1)campAnimators.Remove(key.Item2);}
         }
         private void Return((int,int) key,GameObject go){
+            constructionHeights.Remove(key);
             if(lootLabels.TryGetValue(key,out var label)){if(label)Destroy(label.gameObject);lootLabels.Remove(key);}
             if(!go)return;go.SetActive(false);
             if(pooled>=PoolLimit||!prefabs.TryGetValue(key,out var prefab)||!prefab){Destroy(go);return;}
@@ -207,7 +209,7 @@ namespace Buklod.Empire {
             foreach(var go in active.Values)if(go)Destroy(go);
             foreach(var pool in pools.Values)foreach(var go in pool)if(go)Destroy(go);
             foreach(var label in lootLabels.Values)if(label)Destroy(label.gameObject);lootLabels.Clear();
-            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();campHistory.Clear();hazardAttackHistory.Clear();campAnimators.Clear();campDeathUntil.Clear();pooled=0;
+            constructionHeights.Clear();active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();campHistory.Clear();hazardAttackHistory.Clear();campAnimators.Clear();campDeathUntil.Clear();pooled=0;
         }
         private void OnDestroy(){Clear();}
     }

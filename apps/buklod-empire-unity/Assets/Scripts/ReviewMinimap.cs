@@ -84,6 +84,7 @@ namespace Buklod.Empire {
                 if(!ShowUnit(battle,u)||u==battle.Player)continue;
                 var tint=u.Team==battle.Player.Team?new Color32(83,189,255,255):new Color32(244,91,101,255);
                 var point=Point(rect,u.Position);
+                if(u.Team==battle.Player.Team&&u.PaidMinion&&u.ArmyAttackTargetId!=0){foreach(var target in battle.Units)if(target.Id==u.ArmyAttackTargetId&&ShowUnit(battle,target)){Segment(vh,point,Point(rect,target.Position),r*.20f,new Color32(255,116,80,190));break;}}
                 if(u.Team==battle.Player.Team&&u.PaidMinion&&u.ArmyWaypoint.HasValue){var destination=Point(rect,u.ArmyWaypoint.Value);Segment(vh,point,destination,r*.16f,new Color32(232,193,94,155));Diamond(vh,destination,r*.85f,new Color32(255,220,90,210));}
                 if(u.Team==battle.Player.Team&&u.Construction!=null){var job=u.Construction;var destination=Point(rect,job.Position);Segment(vh,point,destination,r*.18f,new Color32(117,231,165,180));Dot(vh,destination,r*1.5f,new Color32(117,231,165,200));}
                 if(u.Kind==BattleTargetKind.Structure)Dot(vh,point,r*(u.Core?2.0f:1.35f),tint);

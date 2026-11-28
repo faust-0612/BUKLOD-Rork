@@ -44,6 +44,7 @@ namespace Buklod.Empire {
         public WildernessKind? RecruitedCreature {get;internal set;}
         internal VillageArmyOrder? IndividualOrder;
         internal Vector2? ArmyWaypoint;
+        internal int ArmyAttackTargetId;
         public bool IsVillageBuilding=>IsDepot||IsGuardPost||IsFarm||IsBarracks||IsMarket||IsHouse;
         internal bool IsCombatStructure=>Kind==BattleTargetKind.Structure&&(!IsVillageBuilding||IsGuardPost);
         public VillageConstructionOrder Construction {get;internal set;}
@@ -308,8 +309,17 @@ namespace Buklod.Empire {
             if(IsAuthoritative||Finished||AutonomousTraining||!ValidArmyDestination(point))return false;
             var army=units.Where(u=>u.Team==Player.Team&&u.PaidMinion&&u.State.Alive).OrderBy(u=>u.Role==MinionRole.Healer?2:u.Role==MinionRole.Mage||u.Role==MinionRole.Gunner?1:0).ThenBy(u=>u.Id).ToArray();if(army.Length==0)return false;
             var center=army.Aggregate(Vector2.zero,(sum,u)=>sum+u.Position)/army.Length;var forward=point-center;var goals=new Vector2[army.Length];
-            for(int i=0;i<army.Length;i++){var goal=point+FormationOffset(PlayerFormation,i,army.Length,forward);if(!ValidArmyDestination(goal))return false;goals[i]=goal;}
-            for(int i=0;i<army.Length;i++){army[i].ArmyWaypoint=goals[i];army[i].IndividualOrder=VillageArmyOrder.HoldPosition;}return true;
+            // Preserve requested formation where possible; fall back to a tighter formation
+            // or a column at a narrow bridge. Validate every destination before changing orders.
+            bool placed=false;
+            foreach(var formation in new[]{PlayerFormation,VillageFormation.Column}.Distinct()){
+                foreach(float spacing in new[]{2.8f,2.2f,1.8f}){
+                    bool valid=true;for(int i=0;i<army.Length;i++){var goal=point+FormationOffset(formation,i,army.Length,forward,spacing);if(!ValidArmyDestination(goal)){valid=false;break;}goals[i]=goal;}
+                    if(valid){placed=true;break;}
+                }if(placed)break;
+            }
+            if(!placed)return false;
+            for(int i=0;i<army.Length;i++){army[i].ArmyAttackTargetId=0;army[i].ArmyWaypoint=goals[i];army[i].IndividualOrder=VillageArmyOrder.HoldPosition;}return true;
         }
         private readonly HashSet<WildernessKind>[] creatureContracts={new HashSet<WildernessKind>(),new HashSet<WildernessKind>()};
         public WildernessKind? PlayerCreatureContract {get;private set;}
@@ -317,10 +327,19 @@ namespace Buklod.Empire {
         internal static MinionRole CreatureRole(WildernessKind kind){switch(kind){case WildernessKind.AzureStag:return MinionRole.Healer;case WildernessKind.StoneGolem:return MinionRole.Siege;case WildernessKind.EmeraldSerpent:return MinionRole.Mage;case WildernessKind.WindFalcon:case WildernessKind.RiverSpirit:return MinionRole.Gunner;default:return MinionRole.Infantry;}}
         public bool OrderPlayerCreature(WildernessKind? kind){if(IsAuthoritative||Finished||AutonomousTraining||kind.HasValue&&!creatureContracts[(int)Player.Team].Contains(kind.Value))return false;PlayerCreatureContract=kind;if(kind.HasValue)playerMilitaryRole=CreatureRole(kind.Value);return true;}
         public bool OrderPlayerMilitaryRole(MinionRole role){if(IsAuthoritative||Finished||AutonomousTraining||!Enum.IsDefined(typeof(MinionRole),role))return false;playerMilitaryRole=role;PlayerCreatureContract=null;return true;}
-        public bool OrderPlayerArmy(VillageArmyOrder order){if(IsAuthoritative||Finished||AutonomousTraining||!Enum.IsDefined(typeof(VillageArmyOrder),order))return false;playerArmyOrder=order;foreach(var u in units)if(u.Team==Player.Team&&u.PaidMinion){u.IndividualOrder=null;u.ArmyWaypoint=null;}return true;}
+        public bool OrderPlayerArmy(VillageArmyOrder order){if(IsAuthoritative||Finished||AutonomousTraining||!Enum.IsDefined(typeof(VillageArmyOrder),order))return false;playerArmyOrder=order;foreach(var u in units)if(u.Team==Player.Team&&u.PaidMinion){u.IndividualOrder=null;u.ArmyWaypoint=null;u.ArmyAttackTargetId=0;}return true;}
         private BattleUnit ControlledSoldier(int id)=>units.FirstOrDefault(u=>u.Id==id&&u.Team==Player.Team&&u.PaidMinion&&u.State.Alive);
-        public bool OrderPlayerSoldier(int id,VillageArmyOrder order){if(IsAuthoritative||Finished||AutonomousTraining||!Enum.IsDefined(typeof(VillageArmyOrder),order))return false;var u=ControlledSoldier(id);if(u==null)return false;u.IndividualOrder=order;u.ArmyWaypoint=null;return true;}
-        public bool OrderPlayerSoldierMove(int id,Vector2 point){if(IsAuthoritative||Finished||AutonomousTraining||!ValidArmyDestination(point))return false;var u=ControlledSoldier(id);if(u==null)return false;u.ArmyWaypoint=point;u.IndividualOrder=VillageArmyOrder.HoldPosition;return true;}
+        public bool OrderPlayerSoldier(int id,VillageArmyOrder order){if(IsAuthoritative||Finished||AutonomousTraining||!Enum.IsDefined(typeof(VillageArmyOrder),order))return false;var u=ControlledSoldier(id);if(u==null)return false;u.IndividualOrder=order;u.ArmyWaypoint=null;u.ArmyAttackTargetId=0;return true;}
+        public bool OrderPlayerSoldierMove(int id,Vector2 point){if(IsAuthoritative||Finished||AutonomousTraining||!ValidArmyDestination(point))return false;var u=ControlledSoldier(id);if(u==null)return false;u.ArmyWaypoint=point;u.IndividualOrder=VillageArmyOrder.HoldPosition;u.ArmyAttackTargetId=0;return true;}
+        private BattleUnit VisibleArmyTarget(int id,ArenaTeam team)=>units.FirstOrDefault(u=>u.Id==id&&u.Team!=team&&Attackable(u)&&IsVisibleTo(team,u));
+        public bool CanPlayerArmyAttack(int targetId)=>!IsAuthoritative&&!AutonomousTraining&&!Finished&&Time<OfflineMatchRules.MatchLimit&&VisibleArmyTarget(targetId,Player.Team)!=null;
+        public bool OrderPlayerArmyAttack(int targetId,int soldierId=0){
+            if(!CanPlayerArmyAttack(targetId))return false;
+            var soldiers=units.Where(u=>u.Team==Player.Team&&u.PaidMinion&&u.State.Alive&&u.Role!=MinionRole.Healer&&(soldierId==0||u.Id==soldierId)).ToArray();
+            if(soldiers.Length==0)return false;
+            foreach(var soldier in soldiers){soldier.ArmyAttackTargetId=targetId;soldier.ArmyWaypoint=null;soldier.IndividualOrder=VillageArmyOrder.HoldPosition;}
+            return true;
+        }
         private BattleUnit MilitarySite(ArenaTeam team)=>units.Where(u=>u.Team==team&&u.State.Alive&&u.IsBarracks).OrderBy(u=>u.Id).FirstOrDefault();
         public int PaidTroops(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.PaidMinion&&u.State.Alive);
         public int PaidTroopCapacity(ArenaTeam team)=>Mathf.Max(0,PopulationCapacity(team)-(PopulationUsed(team)-PaidTroops(team)));
@@ -1444,8 +1463,20 @@ namespace Buklod.Empire {
         private void Minion(BattleUnit u){
             if(!u.State.CanAttack(Time)&&!u.State.CanMove(Time))return;
             var s=MinionCombatRules.Stats(u.Role);
-            var candidates=units.Where(v=>v!=u&&(v.Kind!=BattleTargetKind.Villager||!CoreAlive(v.Team)||Time>=OfflineMatchRules.MatchLimit)&&v.State.Alive&&Dist(u,v)<=s.RangeSourceUnits/40&&(v.Team==u.Team||IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))).Select(v=>new BattleTarget(v.Id,v.Team,v.Kind,Dist(u,v)*40,true,Attackable(v),v.State.MaxHealth-v.State.Health));
-            var target=MinionCombatRules.Select(u.Role,u.Team,candidates,s.RangeSourceUnits);
+            // Explicit RTS targets may include enemy villagers; automatic lane waves keep
+            // their existing worker protection and target priorities. Stop pursuing hidden targets.
+            BattleUnit ordered=null;
+            if(!IsAuthoritative&&u.PaidMinion&&u.ArmyAttackTargetId!=0){
+                ordered=VisibleArmyTarget(u.ArmyAttackTargetId,u.Team);
+                if(ordered==null||Time>=OfflineMatchRules.MatchLimit){u.ArmyAttackTargetId=0;ordered=null;}
+            }
+            var candidates=units.Where(v=>v!=u&&(v.Kind!=BattleTargetKind.Villager||v==ordered||!CoreAlive(v.Team)||Time>=OfflineMatchRules.MatchLimit)&&v.State.Alive&&Dist(u,v)<=s.RangeSourceUnits/40&&(v.Team==u.Team||IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position))).Select(v=>new BattleTarget(v.Id,v.Team,v.Kind,Dist(u,v)*40,true,Attackable(v),v.State.MaxHealth-v.State.Health));
+            BattleTarget? target=ordered!=null&&Dist(u,ordered)*40<=s.RangeSourceUnits&&ClearSight(u.Position,ordered.Position)?
+                new BattleTarget(ordered.Id,ordered.Team,ordered.Kind,Dist(u,ordered)*40,true,true):
+                MinionCombatRules.Select(u.Role,u.Team,candidates,s.RangeSourceUnits);
+            if(ordered!=null&&(!target.HasValue||target.Value.Id!=ordered.Id)){
+                Steer(u,ordered.Position-u.Position,s.SpeedSourceUnits/40*(1+u.State.Buff("haste",Time))*(1-Mathf.Clamp(u.State.Buff("slow",Time),0,.45f)));return;
+            }
             if(target.HasValue&&u.State.CanAttack(Time)){
                 if(Time-u.LastAttack<s.Cooldown)return;
                 var t=units.First(v=>v.Id==target.Value.Id);
@@ -1456,6 +1487,7 @@ namespace Buklod.Empire {
                 }
                 u.AttackFacing=(t.Position-u.Position).normalized;u.LastAttackTargetPosition=t.Position;u.LastAttack=Time;return;
             }
+            if(ordered!=null)return;
             var goal=LaneGoal(u);
             if(!IsAuthoritative&&!u.PaidMinion&&u.Role==MinionRole.Healer&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&Time<OfflineMatchRules.MatchLimit){
                 // Stay with the wounded wave rather than walk alone into the fortress.

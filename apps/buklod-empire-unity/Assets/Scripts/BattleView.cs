@@ -200,6 +200,14 @@ namespace Buklod.Empire {
                 if(pixel.z<=0)continue;float d=(new Vector2(pixel.x,pixel.y)-screen).sqrMagnitude;if(d<dist){dist=d;best=u;}
             }return best;
         }
+        internal BattleUnit FindEnemyArmyTargetAtScreen(Vector2 screen,float radiusPixels){
+            if(Battle==null||Battle.IsAuthoritative||!battleCamera||Paused||radiusPixels<=0)return null;
+            BattleUnit best=null;float dist=radiusPixels*radiusPixels;
+            foreach(var u in Battle.Units){if(!Battle.CanPlayerArmyAttack(u.Id)||!active.TryGetValue(u.Id,out var visual)||!visual.instance)continue;
+                var pixel=battleCamera.WorldToScreenPoint(visual.instance.transform.position+Vector3.up*(.75f*worldScale));
+                if(pixel.z<=0)continue;float d=(new Vector2(pixel.x,pixel.y)-screen).sqrMagnitude;if(d<dist){dist=d;best=u;}
+            }return best;
+        }
         internal bool TryFieldPoint(Vector2 screen,out Vector2 point){
             point=Vector2.zero;if(Battle==null||Battle.IsAuthoritative||!battleCamera||Paused||worldScale<=0)return false;
             var ray=battleCamera.ScreenPointToRay(screen);Vector3 world;

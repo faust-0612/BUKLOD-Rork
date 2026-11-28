@@ -105,8 +105,8 @@ namespace Buklod.Empire {
             if(!quickOrdersLabel||!fieldOrderHint)return;
             quickOrdersLabel.text=fieldOrderMode==1?"GROUP":fieldOrderMode==2?"UNIT":fieldOrderMode==3?"BUILD":"ORDERS";
             quickOrdersLabel.color=fieldOrderMode==0?Color.white:new Color(1,.82f,.35f);
-            fieldOrderHint.text=fieldOrderMode==1?"Tap visible ground • Move army in "+view.Battle.PlayerFormation:
-                fieldOrderMode==2?"Tap a friendly recruited soldier, then ground to move":
+            fieldOrderHint.text=fieldOrderMode==1?"Tap ground to move formation • tap visible enemy to attack":
+                fieldOrderMode==2?"Select friendly soldier • tap ground or visible enemy":
                 fieldOrderMode==3?"Tap valid ground to build "+selectedBuild:"";
             fieldOrderHint.gameObject.SetActive(fieldOrderMode!=0);fieldOrderHintUntil=0;
         }
@@ -118,6 +118,7 @@ namespace Buklod.Empire {
                 var hit=view.FindFriendlySoldierAtScreen(screen,Mathf.Max(18,MobileBattleInput.SafeArea.height*.052f));
                 if(hit!=null){selectedSoldierId=hit.Id;FieldOrderFeedback((hit.RecruitedCreature?.ToString()??hit.Role.ToString())+" selected • tap destination");return;}
             }
+            if(fieldOrderMode==1||fieldOrderMode==2){var enemy=view.FindEnemyArmyTargetAtScreen(screen,Mathf.Max(18,MobileBattleInput.SafeArea.height*.045f));if(enemy!=null){bool sent=fieldOrderMode==1?battle.OrderPlayerArmyAttack(enemy.Id):selectedSoldierId>0&&battle.OrderPlayerArmyAttack(enemy.Id,selectedSoldierId);FieldOrderFeedback(sent?"Attack order accepted":"Select an eligible soldier or visible enemy");return;}}
             if(!view.TryFieldPoint(screen,out var p)){FieldOrderFeedback("No reachable battlefield point");return;}
             bool ok=fieldOrderMode==1?battle.OrderPlayerFormationMove(p):fieldOrderMode==2?battle.OrderPlayerSoldierMove(selectedSoldierId,p):battle.OrderPlayerConstruction(selectedBuild,p);
             FieldOrderFeedback(ok?(fieldOrderMode==3?"Construction queued":fieldOrderMode==1?"Army formation ordered":"Soldier destination ordered"):"Order rejected • check terrain, ownership, vision or resources");

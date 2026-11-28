@@ -50,6 +50,17 @@ namespace Buklod.Empire.Tests {
             Assert.False(OfflineSessionMenu.IsFieldOrderZone(safe,new Vector2(1050,500)));
             Assert.False(OfflineSessionMenu.IsFieldOrderZone(safe,new Vector2(600,530)));
         }
+        [Test] public void ExplicitArmyAttackRejectsFriendlyAndUnownedUnits(){
+            var b=new OfflineBattle("phan");
+            Assert.False(b.CanPlayerArmyAttack(b.Player.Id));
+            Assert.False(b.OrderPlayerArmyAttack(b.Player.Id));
+            Assert.False(b.OrderPlayerArmyAttack(int.MaxValue));
+            var foe=b.Units.First(u=>u.Team!=b.Player.Team&&u.Kind==BattleTargetKind.Villager);
+            Place(foe,b.Player.Position+Vector2.right*2);
+            Assert.True(b.CanPlayerArmyAttack(foe.Id));
+            Assert.False(b.OrderPlayerArmyAttack(foe.Id,b.Player.Id));
+            Assert.False(b.OrderPlayerArmyAttack(foe.Id),"No paid military units exist at match start.");
+        }
         [Test] public void InvalidConstructionAndFormationTargetsAreRejected(){
             var b=new OfflineBattle("phan");var invalid=new Vector2(float.NaN,10);
             Assert.False(b.CanPlacePlayerBuilding(VillageBuildOrder.House,invalid));
