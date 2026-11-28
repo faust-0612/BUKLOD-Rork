@@ -160,7 +160,26 @@ export async function createBuklodQuizLaunchUrl(
     );
   }
 
-  return launchUrl;
+  // The MAIN bridge must hand off only a one-time magic-link token to the
+  // existing Quiz origin. Never navigate to an arbitrary returned URL.
+  if (result.session_launch_ready !== true || !sessionLaunchUrl) {
+    throw new Error('BUKLOD Quiz did not return a valid MAIN session launch.');
+  }
+  let destination: URL;
+  try { destination = new URL(launchUrl); } catch {
+    throw new Error('BUKLOD Quiz returned an invalid launch destination.');
+  }
+  const fragment = new URLSearchParams(destination.hash.slice(1));
+  const token = fragment.get('buklod_quiz_token_hash');
+  if (destination.origin !== 'https://buklod-quiz.expo.app' ||
+      destination.pathname !== '/' || destination.search ||
+      destination.username || destination.password ||
+      !token || !/^[A-Za-z0-9_-]{16,512}$/.test(token) ||
+      fragment.getAll('buklod_quiz_token_hash').length !== 1 ||
+      destination.hash !== '#buklod_quiz_token_hash=' + encodeURIComponent(token)) {
+    throw new Error('BUKLOD Quiz rejected an unexpected session launch destination.');
+  }
+  return destination.toString();
 }
 
 export async function openBuklodQuizFromMain(
