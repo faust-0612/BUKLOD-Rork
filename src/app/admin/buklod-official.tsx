@@ -20,6 +20,7 @@ type OfficialStats = {
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const DOORS: { title: string; subtitle: string; icon: IconName; path: string }[] = [
+  { title: 'Premium Design Studio', subtitle: 'All rank cosmetic designs, frames and animations — no member rewards', icon: 'palette-outline', path: '/admin/design-studio' },
   { title: 'Official Announcements', subtitle: 'Public Home and profile announcement boards', icon: 'bullhorn-outline', path: '/admin/system-announcement-boards' },
   { title: 'Wall Review & Takedowns', subtitle: 'Inspect every public Wall post and apply reversible audited moderation', icon: 'shield-check-outline', path: '/admin/wall-control' },
   { title: 'Official User Messages', subtitle: 'Search members and send individually addressed official notices', icon: 'email-check-outline', path: '/admin/official-messages' },
@@ -107,7 +108,7 @@ export default function BuklodOfficialConsole() {
 
             <View style={styles.notice}>
               <Text style={styles.noticeTitle}>Community Management</Text>
-              <Text style={styles.subtle}>Official interactions continue normally. Member reward ledgers, QMP shares, Kingdom progression and cash payouts are separate.</Text>
+              <Text style={styles.subtle}>Official interactions continue normally. Member reward ledgers, QMP shares and cash payouts are separate.</Text>
             </View>
 
             {DOORS.map((door) => (

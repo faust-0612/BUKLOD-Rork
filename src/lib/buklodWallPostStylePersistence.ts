@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { canSelectWallPostDesign, canSelectWallFont, resolveWallPostDesign, wallDesignMotionAllowed, wallFontForViewer, type WallFontId } from '@/lib/buklodWallPostDesigns';
+import { useAuth } from '@/providers/AuthProvider';
+import { RANK_BONUS_FRAMES } from '@/lib/buklodRankBonusFrames';
 import { useRuntimeConfig } from '@/providers/RuntimeConfigProvider';
 
 import { canUseRankBonusFrame, rankBonusFrameForViewer } from '@/lib/buklodRankBonusFrames';
@@ -42,6 +44,16 @@ export async function persistWallPostStyle(postId:string,userId:string,style:Wal
 /** Bounded reads; no viewer rank check, no additional requests while flag off. */
 export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unknown}[],composerOpen:boolean,scopeKey='public') {
   const {config}=useRuntimeConfig();
+  const {user,hasRole}=useAuth();
+  const [adminVerified,setAdminVerified]=useState<string|null>(null);
+  const candidate=!!userId&&user?.id===userId&&hasRole('system_admin');
+  useEffect(()=>{
+    let live=true;
+    setAdminVerified(null);
+    if(candidate&&composerOpen&&userId)void Promise.resolve(supabase.rpc('is_system_admin')).then(({data,error})=>{if(live&&!error&&data===true)setAdminVerified(userId);}).catch(()=>{});
+    return()=>{live=false;};
+  },[candidate,composerOpen,userId]);
+  const cosmeticAdmin=candidate&&composerOpen&&adminVerified===userId;
   const enabled=config?.features?.rank_wall_designs===true&&!!userId;
   const owner=enabled?userId+':'+scopeKey:'';
   const [rankState,setRankState]=useState<{owner:string;name:string|null}>({owner:'',name:null});
@@ -93,6 +105,6 @@ export function useWallPostStyles(userId:string|undefined,posts:readonly {id:unk
     if(!owner)return;
     setStylesState(prev=>({owner,rows:{...(prev.owner===owner?prev.rows:{}),[postId]:style}}));
   },[owner]);
-  return {enabled,rankName:rankState.owner===owner&&owner?rankState.name:null,
-    styles:stylesState.owner===owner&&owner?stylesState.rows:EMPTY_STYLES,redeemedBonusKeys:bonusEnabled&&owner&&bonusState.owner===owner?bonusState.keys:[],remember};
+  return {enabled,rankName:cosmeticAdmin?'BUKLOD Prime Elite I':rankState.owner===owner&&owner?rankState.name:null,
+    styles:stylesState.owner===owner&&owner?stylesState.rows:EMPTY_STYLES,redeemedBonusKeys:cosmeticAdmin?RANK_BONUS_FRAMES.map(f=>f.key):bonusEnabled&&owner&&bonusState.owner===owner?bonusState.keys:[],remember};
 }

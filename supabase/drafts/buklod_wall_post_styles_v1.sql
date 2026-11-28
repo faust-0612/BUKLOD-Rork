@@ -24,9 +24,12 @@ create policy wall_post_style_insert_v1 on public.buklod_wall_post_styles_v1
  and exists(select 1 from public.community_posts p where p.id=post_id
    and p.user_id=(select auth.uid()) and p.deleted_at is null and not coalesce(p.is_reel,false)
    and nullif(pg_catalog.btrim(p.media_path),'') is null and nullif(pg_catalog.btrim(p.media_mime_type),'') is null and nullif(pg_catalog.btrim(p.body),'') is not null)
- and (bonus_key is null or exists(select 1 from public.buklod_rank_bonus_ledger_v1 b where b.user_id=(select auth.uid()) and b.bonus_key=buklod_wall_post_styles_v1.bonus_key and b.redeemed_at is not null and b.revoked_at is null))
+ and (bonus_key is null or (select public.is_system_admin()) or exists(select 1 from public.buklod_rank_bonus_ledger_v1 b where b.user_id=(select auth.uid()) and b.bonus_key=buklod_wall_post_styles_v1.bonus_key and b.redeemed_at is not null and b.revoked_at is null))
  and not exists(select 1 from public.community_post_media m where m.post_id=buklod_wall_post_styles_v1.post_id)
- and exists(select 1 from public.get_my_buklod_rank_progress() r where
+ and exists(select 1 from (
+   select 40 as rank_order where (select public.is_system_admin())
+   union all select rank_order from public.get_my_buklod_rank_progress() where not (select public.is_system_admin())
+ ) r where
    r.rank_order between 1 and 40
    and (alignment='auto' or r.rank_order>=3)
    and r.rank_order >= case font_id when 'standard' then 1 when 'bold' then 2 when 'serif' then 8 when 'editorial' then 18 when 'royal' then 28 when 'cosmic' then 33 when 'divine' then 38 else 99 end
