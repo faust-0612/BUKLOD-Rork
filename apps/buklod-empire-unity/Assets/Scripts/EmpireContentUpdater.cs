@@ -199,6 +199,36 @@ namespace Buklod.Empire {
             return new DriveInfo(Path.GetPathRoot(path)).AvailableFreeSpace;
 #endif
         }
+        internal static void CommitReceipt(string destination,byte[] envelope,EmpireContentProtocol.Trust trust,string unity){
+            var incoming=EmpireContentProtocol.Verify(envelope,trust,unity);
+            if(Path.GetFileName(destination)!="revision-"+incoming.revision+".json")
+                throw new InvalidDataException("Receipt path does not match the signed revision.");
+            string temp=destination+".partial";
+            try{
+                using(var file=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None)){
+                    file.Write(envelope,0,envelope.Length);
+                    file.Flush(true);
+                }
+                if(File.Exists(destination)){
+                    byte[] existing=null;
+                    EmpireContentProtocol.Manifest previous=null;
+                    if(new FileInfo(destination).Length<=EmpireContentProtocol.MaxManifestBytes){
+                        existing=File.ReadAllBytes(destination);
+                        try{previous=EmpireContentProtocol.Verify(existing,trust,unity);}
+                        catch(Exception error) when(error is ArgumentException||error is FormatException||
+                            error is InvalidDataException||error is System.Security.Cryptography.CryptographicException){}
+                    }
+                    if(previous!=null&&previous.revision==incoming.revision){
+                        if(existing.SequenceEqual(envelope))return;
+                        throw new InvalidDataException("Conflicting signed receipt for this revision.");
+                    }
+                    // An invalid receipt could never be activated. Removing it before the
+                    // rename cannot discard a recoverable revision.
+                    File.Delete(destination);
+                }
+                File.Move(temp,destination);
+            }finally{if(File.Exists(temp))File.Delete(temp);}
+        }
         IEnumerator DownloadRoutine(){
             Busy=true;Progress=0;var m=offered;var envelope=offerEnvelope;Status="Preparing content download...";
             try{
@@ -241,11 +271,7 @@ namespace Buklod.Empire {
                 // Receipt is the commit point; activation is deliberately deferred to the next launch.
                 var commit=Task.Run(()=>{
                     if(!m.bundles.All(b=>EmpireContentProtocol.Matches(Blob(b),b)))throw new InvalidDataException("Incomplete revision");
-                    string dest=Receipt(m.revision),tmp=dest+".partial";
-                    try{
-                        using(var f=new FileStream(tmp,FileMode.Create,FileAccess.Write,FileShare.None)){f.Write(envelope,0,envelope.Length);f.Flush(true);}
-                        File.Move(tmp,dest);
-                    }finally{if(File.Exists(tmp))File.Delete(tmp);}
+                    CommitReceipt(Receipt(m.revision),envelope,trust,unity);
                 });
                 while(!commit.IsCompleted)yield return null;
                 if(commit.IsFaulted||commit.IsCanceled){Status="Activation receipt failed; current assets retained";yield break;}

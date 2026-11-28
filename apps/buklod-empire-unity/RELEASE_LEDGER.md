@@ -63,3 +63,9 @@ DEV follows `7d9f266131b110af3e909f9314a96883ed95cbcd`. Reused isolated pregame 
 ## 2026-11-28 — Authored structure destruction
 
 Baseline `37a979979df881a01c1423d62d43047ae1df5905`. Forward-ported the pregame branch fragment partitioner as separately generated review-only collapse prefabs for authored Lux and Tenebra cores and towers. Runtime selects the fragments by exact source prefab, preserves fog and retirement limits, and falls back to root collapse for remote replacements. Static updater component restrictions are preserved. Six changed C# files parsed and 33 authored input checks passed. Unity fragment generation and playback deferred. The production preflight remains blocked on seven production inputs. No build or deployment.
+
+## 2026-11-28 — Update receipt recovery and historical branch inventory
+
+At baseline `2cadc8fa9b08326ffa1ccde2c16f0e59211a63fa`, exact blob matches among project paths changed by each historical branch were ticket 2/3, reconstruction 13/17, integrated APK 15/38, and migration 10/14. The older integrated APK branch's BattleWorldObjects.cs is the only absent path in that comparison. These counts distinguish exact source parity from paths requiring semantic comparison. No historical branch was merged wholesale.
+
+The updater can recover a corrupt same-revision receipt without replacing a valid signed revision. Receipt publication still follows full bundle hash verification. Authoring coverage includes invalid cache recovery, exact retry, conflicting signed revision rejection, and staging file cleanup. Unity test execution remains deferred.

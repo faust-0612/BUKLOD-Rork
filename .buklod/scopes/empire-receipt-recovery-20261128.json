@@ -1,0 +1,33 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-receipt-recovery-20261128.json",
+  "baseRef": "2cadc8fa9b08326ffa1ccde2c16f0e59211a63fa",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Recover safely from corrupted signed-update cache receipts.",
+  "chosenApproach": "Validate both incoming and existing receipts before updating the commit point.",
+  "selectionRationale": "Preserves valid receipts and enables retries after invalid cache state.",
+  "alternativeApproaches": [
+    "Unconditional overwrite could replace a valid revision."
+  ],
+  "riskAreas": [
+    "offline recovery",
+    "idempotency"
+  ],
+  "preserveBehaviors": [
+    "Signed manifests, bundle hash validation and offline fallback"
+  ],
+  "acceptanceChecks": [
+    "Corrupt cache can recover and valid signed conflicts are rejected."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-receipt-recovery-20261128.json",
+    "apps/buklod-empire-unity/Assets/Scripts/EmpireContentUpdater.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/EmpireContentProtocolTests.cs",
+    "apps/buklod-empire-unity/MASTER_CHECKLIST.md",
+    "apps/buklod-empire-unity/RELEASE_LEDGER.md"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/EmpireContentProtocolTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

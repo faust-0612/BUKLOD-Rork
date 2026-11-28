@@ -25,6 +25,22 @@ namespace Buklod.Empire.Tests {
             if(tampered)signature[0]^=1;
             return Encoding.UTF8.GetBytes(JsonUtility.ToJson(new EmpireContentProtocol.Envelope{payload=Convert.ToBase64String(payload),signature=Convert.ToBase64String(signature)}));
         }
+        [Test] public void ReceiptRetryReplacesInvalidCacheAndPreservesValidRevision(){
+            var folder=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try{
+                var destination=Path.Combine(folder,"revision-1.json");
+                var valid=Sign(Valid());
+                File.WriteAllBytes(destination,Sign(Valid(),true));
+                EmpireContentUpdater.CommitReceipt(destination,valid,trust,UnityVersion);
+                EmpireContentUpdater.CommitReceipt(destination,valid,trust,UnityVersion);
+                var conflict=Valid();
+                conflict.bundles[0].bytes++;
+                Assert.Throws<InvalidDataException>(()=>EmpireContentUpdater.CommitReceipt(destination,Sign(conflict),trust,UnityVersion));
+                CollectionAssert.AreEqual(valid,File.ReadAllBytes(destination));
+                Assert.False(File.Exists(destination+".partial"));
+            }finally{Directory.Delete(folder,true);}
+        }
         [Test] public void ValidSignatureAndCompatibleRuntime(){Assert.AreEqual(1,EmpireContentProtocol.Verify(Sign(Valid()),trust,UnityVersion).revision);}
         [Test] public void TamperedSignatureRejected(){Assert.Throws<CryptographicException>(()=>EmpireContentProtocol.Verify(Sign(Valid(),true),trust,UnityVersion));}
         [Test] public void OtherRuntimeRejected(){Assert.Throws<InvalidDataException>(()=>EmpireContentProtocol.Verify(Sign(Valid()),trust,"6000.6.10f1"));}

@@ -40,3 +40,6 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 - [x] Forward-ported hand-bound weapon traces for confirmed basic attacks. Traces are limited to visible review heroes, clear on pause/cull, and are purely visual. Unity execution deferred.
 
 - [x] Wired built-in core and tower collapse fragments to their exact authored source prefab. Sidecar prefabs keep the static updater allowlist intact. Missing, unreadable or updated art uses the existing root-collapse presentation. Source checks passed. Unity import and fixture execution deferred.
+
+- [x] Fixed signed updater retry when the destination contains a corrupt receipt. An exact signed retry is idempotent and a different valid signed receipt for the same revision is rejected. Unity regression fixture authored, execution deferred.
+- [x] Compared branch-changed project paths by exact Git blob for the ticket, reconstruction, older integrated APK and migration branches. Nonidentical-path semantic reconciliation remains open.
