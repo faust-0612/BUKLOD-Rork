@@ -7,7 +7,10 @@ namespace Buklod.Empire {
         public const int BoundarySegments=96;
         public const float Width=OfflineBattle.Width,Height=OfflineBattle.Height;
         public static Vector2 Center=>new Vector2(Width*.5f,Height*.5f);
-        public static Vector2 Boundary(int index){
+        static readonly Vector2[] perimeter=CreatePerimeter();
+        static Vector2[] CreatePerimeter(){var result=new Vector2[BoundarySegments];for(int i=0;i<result.Length;i++)result[i]=ComputeBoundary(i);return result;}
+        public static Vector2 Boundary(int index)=>perimeter[((index%BoundarySegments)+BoundarySegments)%BoundarySegments];
+        static Vector2 ComputeBoundary(int index){
             float a=index*(2*Mathf.PI/BoundarySegments),x=Mathf.Cos(a),y=Mathf.Sin(a);
             float radial=Mathf.Pow(Mathf.Pow(Mathf.Abs(x),4)+Mathf.Pow(Mathf.Abs(y),4),-.25f);
             // Gentle, centrally symmetric perimeter variations instead of a box edge.
@@ -16,6 +19,8 @@ namespace Buklod.Empire {
         }
         public static bool Contains(Vector2 p,float clearance=0){
             if(float.IsNaN(p.x)||float.IsNaN(p.y)||float.IsInfinity(p.x)||float.IsInfinity(p.y)||clearance<0)return false;
+            // Interior fast path stays strictly inside the sampled polygon even at the corners.
+            if(clearance<=2&&p.x>=40&&p.x<=Width-40&&p.y>=40&&p.y<=Height-40)return true;
             // Same exact polygon used for the mesh and navigation surface.
             bool inside=false;float d2=float.PositiveInfinity;
             for(int i=0;i<BoundarySegments;i++){
@@ -35,7 +40,17 @@ namespace Buklod.Empire {
             if(lane==1)return baseY;
             float d=Mathf.Min(x,Width-x),u=Mathf.Clamp01((d-35)/125);
             float bend=12*Mathf.Sin(Mathf.PI*u)*Mathf.Sin(Mathf.PI*u);
-            return baseY+(lane==0?-bend:bend);
+            // The two canonical river-side cover islands lie on the former straight lanes.
+            // Curve around their solid footprints, including road width and agent clearance.
+            float coverX=lane==0?Width*.52f:Width*.48f;
+            float q=Mathf.Clamp01(Mathf.Abs(x-coverX)/30f);
+            float detour=12*(1-q*q*(3-2*q));
+            return baseY+(lane==0?-(bend+detour):bend+detour);
+        }
+        public static Vector2 Crossing(int lane){
+            float x=Width*.5f;
+            for(int i=0;i<12;i++)x=RiverX(LaneHeight(lane,x));
+            return new Vector2(x,LaneHeight(lane,x));
         }
         public static Vector2 LanePoint(int lane,int index,int count){
             float x=Mathf.Lerp(19,Width-19,index/(float)count);return new Vector2(x,LaneHeight(lane,x));

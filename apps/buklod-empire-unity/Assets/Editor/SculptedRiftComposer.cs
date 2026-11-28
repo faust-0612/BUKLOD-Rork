@@ -77,8 +77,8 @@ namespace Buklod.Empire.Editor {
                 float h0=3.2f+2.1f*(.5f+.5f*Mathf.Sin(i*.83f)),h1=3.2f+2.1f*(.5f+.5f*Mathf.Sin((i+1)*.83f));
                 Vector2 a1=Vector2.Lerp(a,center,.035f),b1=Vector2.Lerp(b,center,.035f);
                 Vector2 a2=Vector2.Lerp(a,center,.10f),b2=Vector2.Lerp(b,center,.10f);
-                g.Quad(V(b,0),V(a,0),V(a1,-h0),V(b1,-h1));
-                g.Quad(V(b1,-h1),V(a1,-h0),V(a2,-11),V(b2,-11));
+                g.Quad(V(a,0),V(b,0),V(b1,-h1),V(a1,-h0));
+                g.Quad(V(a1,-h0),V(b1,-h1),V(b2,-11),V(a2,-11));
             }
         }
         static void Outcrop(Geometry g,Vector2 c,float radius,int seed){
@@ -157,8 +157,9 @@ namespace Buklod.Empire.Editor {
             PlaceMesh(holder.transform,"Three interlocking lanes",roads.Save("CurvedLanes"),paving);
             var bridges=new Geometry();var bridgeTrim=new Geometry();
             for(int lane=0;lane<3;lane++){
-                float z=SculptedRiftLayout.LaneHeight(lane,160),x=SculptedRiftLayout.RiverX(z);
-                var route=new[]{new Vector2(x-10,z),new Vector2(x,z),new Vector2(x+10,z)};
+                var crossing=SculptedRiftLayout.Crossing(lane);float x=crossing.x;
+                var route=new List<Vector2>();
+                for(int i=0;i<=10;i++){float px=x-10+2*i;route.Add(new Vector2(px,SculptedRiftLayout.LaneHeight(lane,px)));}
                 Strip(bridgeTrim,route,5.2f,.049f);Strip(bridges,route,4.1f,.058f);
             }
             PlaceMesh(holder.transform,"Three river crossings",bridges.Save("CausewayDecks"),paving);

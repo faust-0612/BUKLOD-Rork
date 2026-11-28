@@ -1,0 +1,34 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-sculpted-rift-cover-clearance-20261128.json",
+  "baseRef": "eba228edd0dc570501311b8a73076cc0c23a7272",
+  "productionBaselineEvidence": "Standalone offline DEV only.",
+  "objective": "Resolve river-side lane collisions and align bridge surfaces to the actual curved route.",
+  "chosenApproach": "Shared symmetric detours around canonical cover, fixed point river intersection, cached perimeter and corrected outward cliff normals.",
+  "selectionRationale": "Keep lane width clear and avoid expensive trigonometry every movement step.",
+  "alternativeApproaches": [
+    "Moving solid-cover gameplay anchors or shrinking lane widths, rejected."
+  ],
+  "riskAreas": [
+    "Unity NavMesh and rendered scene validation pending"
+  ],
+  "preserveBehaviors": [
+    "Existing cover anchors and authoritative gameplay",
+    "No APK, MAIN or production changes"
+  ],
+  "acceptanceChecks": [
+    "Numerical lane/cover clearance exceeds road half width",
+    "Crossings follow river/road centerlines",
+    "New geometry remains symmetric"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/SculptedRiftLayout.cs",
+    "apps/buklod-empire-unity/Assets/Editor/SculptedRiftComposer.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/SculptedRiftTests.cs",
+    ".buklod/scopes/empire-sculpted-rift-cover-clearance-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/SculptedRiftTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

@@ -17,6 +17,17 @@ namespace Buklod.Empire.Tests {
                 foreach(int lane in new[]{0,1,2})Assert.IsTrue(SculptedRiftLayout.Contains(SculptedRiftLayout.LanePoint(lane,i,80),4));
                 float z=220*i/80f;Assert.AreEqual(320,SculptedRiftLayout.RiverX(z)+SculptedRiftLayout.RiverX(220-z),.001f);
             }
+            for(int lane=0;lane<3;lane++){
+                var crossing=SculptedRiftLayout.Crossing(lane);
+                Assert.AreEqual(SculptedRiftLayout.RiverX(crossing.y),crossing.x,.01f);
+                for(int i=0;i<=200;i++){
+                    var p=SculptedRiftLayout.LanePoint(lane,i,200);
+                    for(int j=0;j<SculptedRiftLayout.CoverCount;j++){
+                        var cover=SculptedRiftLayout.Cover(j);
+                        Assert.Greater(Vector2.Distance(p,new Vector2(cover.x*320,cover.y*220))-cover.z*220,4.2f,"Lane intersects solid cover");
+                    }
+                }
+            }
             Assert.Less(SculptedRiftLayout.LaneHeight(0,100),41.8f);
             Assert.AreEqual(41.8f,SculptedRiftLayout.LaneHeight(0,35),.001f);
         }
