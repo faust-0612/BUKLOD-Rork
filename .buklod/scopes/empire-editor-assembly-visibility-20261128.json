@@ -1,0 +1,30 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-editor-assembly-visibility-20261128.json",
+  "baseRef": "61282990d73a51f7dca04a5706d975e6bc5673c3",
+  "productionBaselineEvidence": "Empire DEV only",
+  "objective": "Allow existing editor asset import and animation tooling to access internal runtime helpers without public APIs",
+  "chosenApproach": "Friend access to Unity predefined Editor assembly, not other player assemblies",
+  "selectionRationale": "Source audit found editor calls to internal CombatMotionRhythm and ReviewWeaponTrail helpers; existing runtime asmdef only grants test assembly access.",
+  "alternativeApproaches": [
+    "Make all internal runtime helpers public; rejected."
+  ],
+  "riskAreas": [
+    "Unity compiler remains deferred"
+  ],
+  "preserveBehaviors": [
+    "No runtime game or release changes"
+  ],
+  "acceptanceChecks": [
+    "Editor source can reference internal helpers across assembly boundary"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/AssemblyInfo.cs",
+    ".buklod/scopes/empire-editor-assembly-visibility-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewWeaponTrailTests.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/CombatSignatureTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}
