@@ -63,6 +63,7 @@ import BuklodActiveCharacterArt
 
 import BuklodAdLightRewardCard
   from '@/components/BuklodAdLightRewardCard';
+import BuklodRankDesignRibbon from '@/components/points/BuklodRankDesignRibbon';
 import BuklodCircleRankBadge from '@/components/points/BuklodCircleRankBadge';
 import { showBuklodAdOpportunity, warmBuklodAdOpportunity } from '@/lib/buklodAdOpportunities';
 import BuklodCharacterLevelRecognition from '@/components/points/BuklodCharacterLevelRecognition';
@@ -486,6 +487,7 @@ export default function BuklodProfileCharacterCard({
               </View>
             </View>
 
+            <BuklodRankDesignRibbon rankName={rankLabel} />
             <View style={styles.pointsSection}>
               <View style={styles.pointsHeader}>
                 <Text style={styles.pointsHeaderTitle}>
