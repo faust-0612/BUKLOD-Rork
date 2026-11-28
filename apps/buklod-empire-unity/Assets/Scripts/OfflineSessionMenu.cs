@@ -157,7 +157,7 @@ namespace Buklod.Empire {
                 pic.texture=portrait;pic.raycastTarget=false;
                 var fit=pic.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
             }
-            var name=Label("Hero name",r,new Vector2(left,.63f),new Vector2(.95f,.94f),(chosen?"✓ ":"")+kit.Name,27);name.color=accent;
+            var name=Label("Hero name",r,new Vector2(left,.63f),new Vector2(.95f,.94f),(chosen?"✓ ":"")+kit.Name+"\n"+kit.RoleProfile.Role,20);name.color=accent;
             for(int j=0;j<3;j++){
                 if(!SkillCueCatalog.TryGet(kit.Skill((SkillSlot)j).Id,out var cue))continue;
                 var symbol=Rect("Skill "+j,r,new Vector2(left+(1-left)*(.05f+j*.30f),.23f),new Vector2(left+(1-left)*(.30f+j*.30f),.61f)).gameObject.AddComponent<ReviewSkillGlyph>();
@@ -179,7 +179,7 @@ namespace Buklod.Empire {
             var kit=HeroKitCatalog.Get(selected);var accent=BattleEffects.Accent(selected);
             title.text=kit.Name.ToUpperInvariant()+"  •  HERO PROFILE";title.color=accent;
             SacredStoneCatalog.TryGet(selected,out var stone);
-            summary.text=stone==null?"Next match selection":stone.Name+"  •  "+stone.VirtueTl+"  •  Next match selection";
+            summary.text=kit.RoleProfile.Label+" • "+(stone==null?"Next match selection":stone.Name+" • "+stone.VirtueTl);
             var left=Rect("Hero showcase",body,new Vector2(.015f,.04f),new Vector2(.44f,.98f));
             var bg=left.gameObject.AddComponent<Image>();bg.color=Color.Lerp(Navy,accent,.13f);bg.raycastTarget=false;
             var portrait=ShowcaseTexture(fullBody);
@@ -202,7 +202,7 @@ namespace Buklod.Empire {
                 banner.color=accent;
             }
             var right=Rect("Hero profile",body,new Vector2(.46f,.04f),new Vector2(.99f,.98f));
-            Label("Hero stats",right,new Vector2(0,.78f),Vector2.one,$"ATK {kit.BasicDamage:0}   RANGE {kit.BasicRange:0.#}   SPEED {kit.Speed:0.##}\nPassive: "+kit.Passive.Replace('_',' '),22);
+            Label("Hero stats",right,new Vector2(0,.78f),Vector2.one,$"ATK {kit.BasicDamage:0}   RANGE {kit.BasicRange:0.#}   SPEED {kit.Speed:0.##}\nPassive: "+kit.Passive.Replace('_',' '),18);
             for(int i=0;i<3;i++){
                 var spec=kit.Skill((SkillSlot)i);float y=.76f-i*.18f;
                 var row=Rect("Skill "+i,right,new Vector2(0,y-.16f),new Vector2(1,y));
@@ -367,7 +367,7 @@ namespace Buklod.Empire {
                 var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)portrait.width/portrait.height;
             }
             var name=Label("Selected hero name",left,new Vector2(.04f,.09f),new Vector2(.96f,.25f),kit.Name,32);name.color=Color.Lerp(BattleEffects.Accent(selected),Color.white,.40f);name.fontStyle=FontStyle.Bold;
-            Label("Roster label",left,new Vector2(.04f,0),new Vector2(.96f,.09f),"13 HEROES  •  39 SKILLS",16);
+            Label("Roster label",left,new Vector2(.04f,0),new Vector2(.96f,.09f),kit.RoleProfile.Label,16);
             var right=Rect("Play and settings",body,new Vector2(.49f,.03f),new Vector2(.99f,.97f));
             var practice=ButtonAt("Practice",right,new Vector2(0,.70f),Vector2.one,"PLAY OFFLINE  •  "+difficulty,StartNew);
             practice.GetComponentInChildren<Text>().color=NavigationAccent;
@@ -445,8 +445,8 @@ namespace Buklod.Empire {
             if(view.IsEditorReview&&page==-1){Lobby();return;}
             if(page==0){
                 if(view.IsEditorReview&&heroDetail){HeroDetails();return;}
-                for(int i=0;i<HeroKitCatalog.All.Count;i++){var kit=HeroKitCatalog.All[i];if(view.IsEditorReview)HeroCard(i,kit);else Cell(i,5,3,(selected==kit.Id?"✓ ":"")+kit.Name,()=>{selected=kit.Id;Rebuild();});}
-                if(view.IsEditorReview){var kit=HeroKitCatalog.Get(selected);summary.text=kit.Name+"  •  "+kit.Passive.Replace('_',' ')+"  •  "+string.Join(" / ",new[]{kit.Primary.Id,kit.Secondary.Id,kit.Ultimate.Id}.Select(x=>x.Replace('_',' ')));}
+                for(int i=0;i<HeroKitCatalog.All.Count;i++){var kit=HeroKitCatalog.All[i];if(view.IsEditorReview)HeroCard(i,kit);else Cell(i,5,3,(selected==kit.Id?"✓ ":"")+kit.Name+"\n"+kit.RoleProfile.Role,()=>{selected=kit.Id;Rebuild();});}
+                if(view.IsEditorReview){var kit=HeroKitCatalog.Get(selected);summary.text=kit.Name+"  •  "+kit.RoleProfile.Label+"  •  "+kit.Passive.Replace('_',' ')+"  •  "+string.Join(" / ",new[]{kit.Primary.Id,kit.Secondary.Id,kit.Ultimate.Id}.Select(x=>x.Replace('_',' ')));}
                 if(pregame?.Stage==ReviewMatchStage.Hero)return;
                 Cell(13,5,3,"AI: "+difficulty,()=>{difficulty=(ArenaDifficulty)(((int)difficulty+1)%5);Rebuild();});
                 Cell(14,5,3,autoTraining?"AI vs AI":"Play hero",()=>{autoTraining=!autoTraining;Rebuild();});

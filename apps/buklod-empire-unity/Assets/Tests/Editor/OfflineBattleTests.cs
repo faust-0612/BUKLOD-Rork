@@ -4,6 +4,25 @@ using UnityEngine;
 namespace Buklod.Empire.Tests {
     public sealed class OfflineBattleTests {
         static BattleUnit MidTower(OfflineBattle b,ArenaTeam team)=>b.Units.Single(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&u.Lane==ArenaLane.Mid);
+        [Test] public void AllCanonicalHeroesHaveDistinctSpecializationsAndExpectedRoles(){
+            var expected=new[]{HeroRole.Fighter,HeroRole.Assassin,HeroRole.Tank,HeroRole.Commander,HeroRole.Mage,HeroRole.Support,HeroRole.Engineer,HeroRole.Marksman,HeroRole.Fighter,HeroRole.Assassin,HeroRole.Support,HeroRole.Summoner,HeroRole.Mage};
+            Assert.AreEqual(13,HeroKitCatalog.All.Count);
+            CollectionAssert.AreEqual(expected,HeroKitCatalog.All.Select(h=>h.RoleProfile.Role).ToArray());
+            Assert.AreEqual(13,HeroKitCatalog.All.Select(h=>h.RoleProfile.Specialization).Distinct().Count());
+            Assert.True(HeroKitCatalog.All.All(h=>!string.IsNullOrEmpty(h.RoleProfile.Description)));
+            Assert.AreEqual(HeroTemperament.Hunter,HeroKitCatalog.Get("quin").RoleProfile.Temperament);
+            Assert.AreEqual(HeroTemperament.Guardian,HeroKitCatalog.Get("van").RoleProfile.Temperament);
+            Assert.Throws<System.ArgumentException>(()=>HeroRoles.Get("unknown"));
+        }
+        [Test] public void RoleEconomyBonusesAreBoundedNonstackingAndDisabledForAuthoritativeMatches(){
+            Assert.AreEqual(1.10f,HeroRoles.ConstructionMultiplier(true,false),.0001f);
+            Assert.AreEqual(1.10f,HeroRoles.HarvestMultiplier(true,false),.0001f);
+            Assert.AreEqual(1.10f,HeroRoles.ArmyMultiplier(true,true,false),.0001f);
+            Assert.AreEqual(1f,HeroRoles.ArmyMultiplier(false,false,false));
+            Assert.AreEqual(1f,HeroRoles.ConstructionMultiplier(true,true));
+            Assert.AreEqual(1f,HeroRoles.HarvestMultiplier(true,true));
+            Assert.AreEqual(1f,HeroRoles.ArmyMultiplier(true,true,true));
+        }
         [Test] public void EveryHeroCanDamageAnEnemyAndAnEnemyTowerWithTouchIntent(){
             foreach(var kit in HeroKitCatalog.All){
                 var b=new OfflineBattle(kit.Id);var p=b.Player;

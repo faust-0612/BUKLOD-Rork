@@ -1,6 +1,41 @@
 using System;
 using System.Collections.Generic;
 namespace Buklod.Empire {
+    public enum HeroRole { Fighter, Assassin, Tank, Commander, Mage, Support, Engineer, Marksman, Summoner }
+    public enum HeroTemperament { Aggressive, Guardian, Hunter, Support, Strategist }
+    public readonly struct HeroRoleProfile {
+        public readonly HeroRole Role;
+        public readonly string Specialization, Description;
+        public readonly HeroTemperament Temperament;
+        internal HeroRoleProfile(HeroRole role,string specialization,string description,HeroTemperament temperament){
+            Role=role;Specialization=specialization;Description=description;Temperament=temperament;
+        }
+        public string Label=>Role+" / "+Specialization;
+    }
+    // Native role policy. Canonical IDs and SacredStone resources remain unchanged.
+    public static class HeroRoles {
+        public static HeroRoleProfile Get(string id){
+            switch(id){
+                case "phan":return new HeroRoleProfile(HeroRole.Fighter,"Warlord","Frontline pressure and troop strength",HeroTemperament.Aggressive);
+                case "quin":return new HeroRoleProfile(HeroRole.Assassin,"Scout","Ranged scouting, marks and pursuit",HeroTemperament.Hunter);
+                case "van":return new HeroRoleProfile(HeroRole.Tank,"Guardian","Shielding and frontline protection",HeroTemperament.Guardian);
+                case "christian":return new HeroRoleProfile(HeroRole.Commander,"Leadership","Troop coordination and team protection",HeroTemperament.Strategist);
+                case "lhen":return new HeroRoleProfile(HeroRole.Mage,"Enchanter","Resonance, healing and team buffs",HeroTemperament.Support);
+                case "ace":return new HeroRoleProfile(HeroRole.Support,"Battle Medic","Healing and emergency rescue",HeroTemperament.Support);
+                case "ellusur":return new HeroRoleProfile(HeroRole.Engineer,"Master Architect","Construction and team sustain",HeroTemperament.Strategist);
+                case "jawo":return new HeroRoleProfile(HeroRole.Marksman,"Beastmaster","Ranged pressure and creature hunting",HeroTemperament.Hunter);
+                case "mitch":return new HeroRoleProfile(HeroRole.Fighter,"Berserker","Aggressive pressure and area control",HeroTemperament.Aggressive);
+                case "niel":return new HeroRoleProfile(HeroRole.Assassin,"Mystic Spellblade","Burst damage and mobile attacks",HeroTemperament.Hunter);
+                case "angel":return new HeroRoleProfile(HeroRole.Support,"Divine Paladin","Shields and damage protection",HeroTemperament.Guardian);
+                case "vhen":return new HeroRoleProfile(HeroRole.Summoner,"Nature Summoner","Resource gathering and summoned turrets",HeroTemperament.Strategist);
+                case "trudice":return new HeroRoleProfile(HeroRole.Mage,"Arcane Tactician","Stuns, debuffs and tactical control",HeroTemperament.Strategist);
+                default:throw new ArgumentException("Unknown hero ID",nameof(id));
+            }
+        }
+        public static float ConstructionMultiplier(bool architectNearby,bool authoritative)=>!authoritative&&architectNearby?1.10f:1f;
+        public static float HarvestMultiplier(bool summonerNearby,bool authoritative)=>!authoritative&&summonerNearby?1.10f:1f;
+        public static float ArmyMultiplier(bool warlordNearby,bool commanderNearby,bool authoritative)=>!authoritative&&(warlordNearby||commanderNearby)?1.10f:1f;
+    }
     public enum SkillSlot { Primary, Secondary, Ultimate }
     public readonly struct SkillSpec {
         public readonly string Id; public readonly float Cooldown;
@@ -8,6 +43,7 @@ namespace Buklod.Empire {
     }
     public sealed class HeroKit {
         public readonly string Id, Name, Passive;
+        public HeroRoleProfile RoleProfile=>HeroRoles.Get(Id);
         public readonly float Speed, BasicDamage, BasicRange, BasicCooldown;
         public readonly SkillSpec Primary, Secondary, Ultimate;
         public HeroKit(string id,string name,string passive,float speed,float damage,float range,float cooldown,SkillSpec primary,SkillSpec secondary,SkillSpec ultimate){

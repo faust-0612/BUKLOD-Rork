@@ -223,6 +223,8 @@ namespace Buklod.Empire {
             var worker=Gatherer(team,id);if(worker==null)return false;worker.PreferredResource=resource;worker.ResourceNodeId=0;
             worker.WorkerOrder=worker.Cargo>1e-6?VillageWorkerOrder.Return:VillageWorkerOrder.Gather;return true;
         }
+        // Local role auras require an actual living nearby allied hero; no global or stacked bonus.
+        private bool RoleNearby(ArenaTeam team,Vector2 position,string id)=>!IsAuthoritative&&units.Any(h=>h.Team==team&&h.Kind==BattleTargetKind.Hero&&h.State.Alive&&h.State.Kit.Id==id&&(h.Position-position).sqrMagnitude<=100f);
         // Adapter calls are only valid during the canonical worker job's due window.
         bool IVillageLogistics.TryGather(ArenaTeam team,string workerId,double wood,double stone,double crystal){
             if(!ExecutingJob(team,VillageEffect.Gather,workerId))return false;
@@ -230,7 +232,7 @@ namespace Buklod.Empire {
             if(u==null||u.WorkerOrder!=VillageWorkerOrder.Gather||u.Villager.Remaining>0||u.LastHarvestTick==tick||!u.State.CanMove(Time)||!u.State.CanCast(Time))return false;
             var n=WorkerNode(u);if(n==null||Vector2.Distance(n.Position,u.Position)>2.5f)return false;
             // Ignore caller-supplied quantities; source of truth is the living worker's canonical rate.
-            double rate=(team==ArenaTeam.Lux?1:1.4)*(u.Villager.Level>=5?1.2:1);
+            double rate=(team==ArenaTeam.Lux?1:1.4)*(u.Villager.Level>=5?1.2:1)*HeroRoles.HarvestMultiplier(RoleNearby(team,u.Position,"vhen"),IsAuthoritative);
             double amount=Math.Min(n.Stock,Math.Min(CargoLimit-u.Cargo,12*u.Villager.Power*rate));
             if(amount<=1e-6)return false;
             u.LastHarvestTick=tick;n.Stock-=amount;u.AddCargo(n.Kind,amount);
@@ -401,7 +403,7 @@ namespace Buklod.Empire {
                 if(Vector2.Distance(builder.Position,order.Position)>2.5f){Steer(builder,order.Position-builder.Position,4);continue;}
                 // A work pulse only after reaching the site and passing the work gate.
                 int before=Mathf.FloorToInt((order.Progress+.001f)/.8f);
-                order.Progress+=Step;
+                order.Progress+=Step*HeroRoles.ConstructionMultiplier(RoleNearby(builder.Team,builder.Position,"ellusur"),IsAuthoritative);
                 if(before!=Mathf.FloorToInt((order.Progress+.001f)/.8f)||before==0&&order.Progress<=Step+.001f)builder.ConstructionWorkSequence++;
                 float duration=order.Duration;
                 if(order.Progress+0.001f<duration)continue;
@@ -1244,6 +1246,7 @@ namespace Buklod.Empire {
                 case "ace":if(hurt&&TryHeroCast(u,SkillSlot.Primary,Vector2.zero))return true;break;
                 case "lhen":if(hurt&&TryHeroCast(u,SkillSlot.Secondary,Vector2.zero))return true;break;
                 case "ellusur":if(hurt&&TryHeroCast(u,SkillSlot.Secondary,Vector2.zero))return true;break;
+                case "angel":if(!IsAuthoritative&&hurt&&TryHeroCast(u,SkillSlot.Primary,Vector2.zero))return true;break;
             }
             if((int)Difficulty>=(int)ArenaDifficulty.Advanced&&danger&&allies.Count(v=>v.State.Health<v.State.MaxHealth*.8f)>=2){
                 switch(a.Kit.Id){case "van":case "ace":case "lhen":case "ellusur":case "christian":case "phan":case "angel":return TryHeroCast(u,SkillSlot.Ultimate,Vector2.zero);}
@@ -1304,11 +1307,20 @@ namespace Buklod.Empire {
             return Mathf.Clamp01(hp*.65f+.20f+Mathf.Clamp(allies-enemies,-3,3)*.13f-Mathf.Clamp01(pressure)*.35f+bias);
         }
         BotStyle Style(BattleUnit u){
-            // Hero-specific support and jungle roles take precedence over slot temperament.
             string id=u.State.Kit.Id;
-            if(id=="van"||id=="ace"||id=="lhen"||id=="ellusur")return BotStyle.Support;
-            if(u.Jungler)return BotStyle.Hunter;
-            return Personality(u.Id);
+            // Preserve existing authoritative AI policy for compatibility.
+            if(IsAuthoritative){
+                if(id=="van"||id=="ace"||id=="lhen"||id=="ellusur")return BotStyle.Support;
+                if(u.Jungler)return BotStyle.Hunter;
+                return Personality(u.Id);
+            }
+            switch(u.State.Kit.RoleProfile.Temperament){
+                case HeroTemperament.Aggressive:return BotStyle.Aggressive;
+                case HeroTemperament.Guardian:return BotStyle.Guardian;
+                case HeroTemperament.Hunter:return BotStyle.Hunter;
+                case HeroTemperament.Support:return BotStyle.Support;
+                default:return BotStyle.Strategist;
+            }
         }
         BotMemory Memory(BattleUnit u){
             if(!botMemory.TryGetValue(u.Id,out var m)){m=new BotMemory{LastDamage=u.DamageTaken};botMemory.Add(u.Id,m);}
@@ -1526,6 +1538,7 @@ namespace Buklod.Empire {
             if(trainer==null||trainer.Villager.Remaining>0||!trainer.State.CanCast(Time))return false;
             // Reserve every valid exit before committing any paid troop in this batch.
             Vector2[] reserved=null;if(!IsAuthoritative&&!TryPaidSpawnSites(team,site.Position,count,out reserved))return false;
+            power*=HeroRoles.ArmyMultiplier(RoleNearby(team,site.Position,"phan"),RoleNearby(team,site.Position,"christian"),IsAuthoritative);
             for(int i=0;i<count;i++){
                 var role=IsAuthoritative?MinionRole.Infantry:TeamHasHumanController(team)?playerMilitaryRole:(MinionRole)((waves.Wave+(int)lane+i)%5);
                 WildernessKind? creature=null;

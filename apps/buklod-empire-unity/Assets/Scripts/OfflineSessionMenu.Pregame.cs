@@ -127,7 +127,7 @@ namespace Buklod.Empire {
                             aspect.aspectRatio=(float)portrait.width/portrait.height;
                         }
                         var label=Label("Roster identity",card,Vector2.zero,new Vector2(1,.30f),
-                            hero.Name+" • "+(i<5?"LUX":"TENEBRA"),20);
+                            hero.Name+" • "+hero.RoleProfile.Role+"\n"+(i<5?"LUX":"TENEBRA"),16);
                         label.color=accent;
                     }
                     return true;
