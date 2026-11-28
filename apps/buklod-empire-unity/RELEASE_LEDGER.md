@@ -73,3 +73,7 @@ The updater can recover a corrupt same-revision receipt without replacing a vali
 ## 2026-11-28 — Jungle hazard animation source
 
 Original key poses cover Demon movement, attack, hit and death and Snake hit and death. The established CC0 source clips remain in use. The review scene composer generates fixed-path Unity clips and both hazards receive their existing movement and confirmed attack signals. No damage, health, death or reward mechanics were changed. The GLB binding regression and changed-file C# syntax checks passed. No engine playback, APK or deployment.
+
+## 2026-11-28 — Hazard import acceptance gate
+
+Standalone review preflight now validates both Jungle Hazard Animator controllers, two motion blend clips, required attack/hit/death transitions, and weighted-bone binding for original pose tracks. Python asset and source-contract fixtures passed. Unity import and motion-gate execution remain deferred. No build or deployment.

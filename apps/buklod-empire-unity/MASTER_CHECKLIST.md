@@ -47,3 +47,5 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 - [x] Wired reserved Unity room composition through the durable lease/start coordinator. The room exposes an owner-thread pump and requires an injected store and host lease identity. Added denied-renewal regression coverage. A concrete isolated store, trusted settlement and ingress remain required.
 
 - [x] Authored and wired the missing Demon and Snake controller clips on the original pinned rigs. Both GLBs passed exact checksum and unique skin-joint binding checks. Hit and Death states are available without changing invulnerable hazard gameplay. Unity import and playback deferred.
+
+- [x] Added an isolated offline motion preflight for the original Jungle Demon and Snake prefabs. The Unity gate verifies the movement blend, typed parameters, action transitions and rig curves before packaging. Its execution remains deferred until Unity import.

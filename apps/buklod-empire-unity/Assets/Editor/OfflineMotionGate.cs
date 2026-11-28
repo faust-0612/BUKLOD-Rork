@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
+using UnityEditor.Animations;
 using UnityEngine;
 namespace Buklod.Empire.Editor {
     // Verify real imported prefab animation curves and sampled skinned geometry
@@ -10,8 +11,46 @@ namespace Buklod.Empire.Editor {
     internal static class OfflineMotionGate {
         static bool Finite(float n)=>!float.IsNaN(n)&&!float.IsInfinity(n);
         static bool Finite(Vector3 v)=>Finite(v.x)&&Finite(v.y)&&Finite(v.z);
+        static void ValidateHazard(GameObject prefab,string id){
+            if(!prefab)throw new BuildFailedException("Missing Jungle "+id+" prefab.");
+            var animator=prefab.GetComponent<Animator>();
+            if(!animator||!(animator.runtimeAnimatorController is AnimatorController controller))
+                throw new BuildFailedException("Missing Jungle "+id+" authored controller.");
+            var bones=new HashSet<string>(prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true)
+                .SelectMany(renderer=>renderer.bones).Where(bone=>bone&&bone.IsChildOf(prefab.transform))
+                .Select(bone=>AnimationUtility.CalculateTransformPath(bone,prefab.transform)));
+            var machine=controller.layers.Single().stateMachine;
+            var patrol=machine.defaultState;
+            if(!patrol||patrol.name!="Patrol"||!(patrol.motion is BlendTree movement)||
+               movement.blendParameter!="Speed"||movement.children.Length!=2||
+               !controller.parameters.Any(p=>p.name=="Speed"&&p.type==AnimatorControllerParameterType.Float))
+                throw new BuildFailedException("Invalid Jungle "+id+" patrol blend.");
+            void CheckClip(Motion motion,string action,bool original){
+                if(!(motion is AnimationClip clip)||!Finite(clip.length)||clip.length<=0)
+                    throw new BuildFailedException("Missing Jungle "+id+"/"+action+" clip.");
+                var curves=AnimationUtility.GetCurveBindings(clip).Where(binding=>binding.type==typeof(Transform)).ToArray();
+                if(curves.Length==0||curves.Any(binding=>!string.IsNullOrEmpty(binding.path)&&!prefab.transform.Find(binding.path)))
+                    throw new BuildFailedException("Unbound Jungle "+id+"/"+action+" rig curve.");
+                if(original&&curves.Any(binding=>!bones.Contains(binding.path)))
+                    throw new BuildFailedException("Original Jungle "+id+"/"+action+" tracks must bind to weighted bones.");
+            }
+            CheckClip(movement.children[0].motion,"Idle",false);
+            CheckClip(movement.children[1].motion,"Move",id=="Demon");
+            foreach(string action in new[]{"Attack","Hit","Death"}){
+                var state=machine.states.Select(row=>row.state).SingleOrDefault(row=>row.name==action);
+                if(!state||!controller.parameters.Any(p=>p.name==action&&p.type==AnimatorControllerParameterType.Trigger)||
+                   !machine.anyStateTransitions.Any(t=>t.destinationState==state&&t.conditions.Any(condition=>condition.parameter==action))||
+                   (action=="Death"?state.transitions.Length!=0:!state.transitions.Any(t=>t.destinationState==patrol&&t.hasExitTime)))
+                    throw new BuildFailedException("Invalid Jungle "+id+"/"+action+" transition.");
+                CheckClip(state.motion,action,id=="Demon"||action!="Attack");
+            }
+        }
+
         internal static void Validate(BattleVisualCatalog catalog){
-            catalog.ValidateOfflineReview();int count=0;
+            catalog.ValidateOfflineReview();
+            ValidateHazard(catalog.jungleDemon,"Demon");
+            ValidateHazard(catalog.jungleSnake,"Snake");
+            int count=0;
             foreach(var h in catalog.heroes){
                 var instance=UnityEngine.Object.Instantiate(h.prefab);
                 try{

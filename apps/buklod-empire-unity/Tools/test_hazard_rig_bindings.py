@@ -11,6 +11,14 @@ PALETTE = PROJECT / 'Tools/AssetCandidates/LibraryFirst'
 
 
 class HazardRigBindings(unittest.TestCase):
+    def test_offline_motion_gate_checks_both_hazard_prefabs(self):
+        gate = (PROJECT / 'Assets/Editor/OfflineMotionGate.cs').read_text()
+        for creature in ('Demon', 'Snake'):
+            self.assertIn(f'ValidateHazard(catalog.jungle{creature},"{creature}")', gate)
+        self.assertIn('bones.Contains(binding.path)', gate)
+        for action in ('Idle', 'Move', 'Attack', 'Hit', 'Death'):
+            self.assertIn(f'"{action}"', gate)
+
     def test_pose_tracks_bind_to_unique_skin_joints(self):
         manifest = json.loads((PALETTE / 'manifest.json').read_text())
         source = (PROJECT / 'Assets/Editor/ReviewHazardMotion.cs').read_text()
