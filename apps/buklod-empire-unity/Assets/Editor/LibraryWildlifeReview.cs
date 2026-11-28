@@ -22,6 +22,7 @@ namespace Buklod.Empire.Editor {
         };
         static string ModelPath(Spec s)=>Out+"Models/Animals/"+s.name;
         static string PrefabPath(Spec s)=>Out+"Prefabs/camp_"+s.kind+".prefab";
+        static string ClipPath(Spec s,string slot)=>Out+"Clips/camp_"+s.kind+"_"+slot+".anim";
         static byte[] Read(Spec s){
             string file=Source+s.name;
             if(!File.Exists(file)||new FileInfo(file).Length!=s.bytes)throw new FileNotFoundException("Missing exact Library creature.",file);
@@ -66,7 +67,7 @@ namespace Buklod.Empire.Editor {
             var imported=AssetDatabase.LoadAllAssetsAtPath(ModelPath(s)).OfType<AnimationClip>().Where(c=>c.length>0).ToArray();
             var motions=new Dictionary<string,AnimationClip>(StringComparer.Ordinal);
             foreach(var pair in new[]{("Idle","Idle"),("Walk","Walk"),("Attack",s.attack),("Hit","Idle_HitReact_Left"),("Death","Death")}){
-                motions.Add(pair.Item1,Clip(imported,pair.Item2,pair.Item1,Out+"Clips/camp_"+s.kind+"_"+pair.Item1+".anim"));
+                motions.Add(pair.Item1,Clip(imported,pair.Item2,pair.Item1,ClipPath(s,pair.Item1)));
             }
             string controllerPath=Out+"Controllers/camp_"+s.kind+".controller";
             if(File.Exists(controllerPath))AssetDatabase.DeleteAsset(controllerPath);
@@ -130,8 +131,26 @@ namespace Buklod.Empire.Editor {
                     throw new BuildFailedException("Creature source/prefab dependency missing: "+s.kind);
                 var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath(s));
                 var animator=prefab?prefab.GetComponentInChildren<Animator>(true):null;
-                if(!animator||!animator.runtimeAnimatorController||new[]{"Idle","Walk","Attack","Hit","Death"}.Any(n=>!animator.runtimeAnimatorController.animationClips.Any(c=>c&&c.name==n&&c.length>0)))
-                    throw new BuildFailedException("Missing original creature action clips: "+s.kind);
+                if(!animator||!(animator.runtimeAnimatorController is AnimatorController controller)||controller.layers.Length!=1)
+                    throw new BuildFailedException("Missing authored creature controller: "+s.kind);
+                var machine=controller.layers[0].stateMachine;
+                var idle=machine.defaultState;
+                if(!idle||!(idle.motion is BlendTree movement)||movement.blendParameter!="Speed")
+                    throw new BuildFailedException("Missing creature locomotion blend: "+s.kind);
+                var children=movement.children;
+                if(children.Length!=2)throw new BuildFailedException("Missing creature locomotion motion: "+s.kind);
+                void RequireClip(string slot,Motion motion){
+                    string expected=ClipPath(s,slot);
+                    if(!(motion is AnimationClip clip)||!LibraryStructureReview.Finite(clip.length)||clip.length<=0||
+                       AssetDatabase.GetAssetPath(clip)!=expected||!set.Contains(expected))
+                        throw new BuildFailedException("Missing original creature motion: "+s.kind+"/"+slot+" ("+expected+")");
+                }
+                RequireClip("Idle",children[0].motion);
+                RequireClip("Walk",children[1].motion);
+                foreach(string slot in new[]{"Attack","Hit","Death"}){
+                    var state=machine.states.Select(row=>row.state).SingleOrDefault(row=>row.name==slot);
+                    RequireClip(slot,state?state.motion:null);
+                }
             }
         }
     }

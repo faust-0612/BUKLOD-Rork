@@ -1,0 +1,27 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-wildlife-clip-preflight-20261128.json",
+  "baseRef": "9d02b4c40c9351244fe9e197590363e2c58ebb86",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Verify exact wildlife motions by asset reference and controller role.",
+  "chosenApproach": "Use stable generated clip paths and validate locomotion and action state references.",
+  "selectionRationale": "Unity asset display names can differ from slot names.",
+  "alternativeApproaches": [
+    "Match the displayed clip name."
+  ],
+  "riskAreas": [
+    "Editor preflight"
+  ],
+  "preserveBehaviors": [
+    "Keep existing creature clips, roles, gameplay and provenance."
+  ],
+  "acceptanceChecks": [
+    "Exact nonempty generated clip is required in each controller role."
+  ],
+  "allowedPaths": [
+    ".buklod/scopes/empire-wildlife-clip-preflight-20261128.json",
+    "apps/buklod-empire-unity/Assets/Editor/LibraryWildlifeReview.cs"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": []
+}
