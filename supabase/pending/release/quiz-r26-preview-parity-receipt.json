@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-28",
+  "status": "R26_PREVIEW_BUILD_VERIFIED_USER_TERMINAL",
+  "webCommit": "a242c9f1bf957ee9d745118fd59d2263619a555f",
+  "deploymentId": "ww2v6qis0v",
+  "previewUrl": "https://buklod-quiz--ww2v6qis0v.expo.app/",
+  "expoProjectId": "cb7608c2-d967-44b0-9001-10b8d4c445a8",
+  "proofPath": "dist-quiz-main-r26.WGE2d9/quiz-r26-preview-proof.json",
+  "userReported": [
+    "QUIZ_WEB_PARITY_SELF_TEST_PASS (9 assertions)",
+    "QUIZ_R26_WEB_EXPORT_PASS",
+    "QUIZ_R26_PREVIEW_VERIFIED"
+  ],
+  "independentReadOnlyParity": {
+    "mainAttempts": 951,
+    "mainResponses": 61909,
+    "mainReleased": 460,
+    "activeMain": 0,
+    "activeDedicated": 0,
+    "attemptIdentityAndGradeDigestMatch": true,
+    "responseContentAndGradeDigestMatch": true,
+    "excludedQuarantinedAttemptAndResponses": 51
+  },
+  "limitations": [
+    "Local proof file not independently retrieved; user supplied terminal output.",
+    "Authenticated student/faculty smoke still not verified for exact R26 preview.",
+    "Legacy MAIN launcher still needs coordinated compatibility or verified OTA.",
+    "No full recoverable Dedicated backup evidence. No deletion or production alias promotion performed."
+  ],
+  "next": "Promote immutable existing preview only after authenticated smoke and legacy launcher continuity gates."
+}
