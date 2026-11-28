@@ -26,7 +26,8 @@ for file in \
  supabase/migrations/20261125142000_faith_accomplishment_named_notifications.sql \
  supabase/migrations/20261126113000_children_teaching_verified_sessions_v1.sql \
  supabase/migrations/20261126113100_faith_children_teaching_report_v3.sql \
+ tests/fixtures/faith-accomplishment-postgres17-verification-20261125.sql \
  supabase/tests/children_teaching_behavior_isolated_20261126.sql; do
   qa_sql -f "$file"
 done
-echo 'CHILDREN_TEACHING_ISOLATED_FIXTURE_QA_PASS (NOT production release approval)'
+echo 'FAITH_ACCOMPLISHMENT_AND_CHILDREN_TEACHING_ISOLATED_FIXTURE_QA_PASS (NOT production release approval)'
