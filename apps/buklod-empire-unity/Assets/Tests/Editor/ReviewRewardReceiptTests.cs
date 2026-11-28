@@ -8,6 +8,10 @@ namespace Buklod.Empire.Tests {
             Assert.False(b.BuyPlayer("blade"));Assert.AreEqual(1,b.RewardFeed.Sequence);
             Assert.True(b.SellPlayer("blade"));Assert.True(b.RewardFeed.TryGet(2,out var sell));Assert.AreEqual("sold",sell.Effect);
         }
+        [Test] public void NeutralRewardSummaryReportsMatchLocalGoldAndXp(){
+            var f=new ReviewRewardFeed();f.Add(5,"TEAM BOSS BONUS",35,45);
+            Assert.True(f.TryGet(1,out var receipt));StringAssert.Contains("+35 GOLD",receipt.Summary);StringAssert.Contains("+45 XP",receipt.Summary);
+        }
         [Test] public void FeedRejectsInvalidValuesAndRetainsBoundedHistory(){
             var f=new ReviewRewardFeed();f.Add(0,"invalid",-1,0);f.Add(0,"invalid",0,float.NaN);
             Assert.AreEqual(0,f.Sequence);

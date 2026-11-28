@@ -20,3 +20,5 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 - [x] Forward-port bounded confirmed ranged-basic projectile tracers and visible hero HP/shield/level/damage overlays; bind to current BattleView, pause/reset lifecycle and fog checks. Regression fixtures authored, not run. Skill projectile receipts and reward feed remain open.
 
 - [x] Confirmed local combat, assist, shop, pickup and relic reward receipts integrated into existing HUD; no new currency grants. Regression fixtures authored; execution deferred. Neutral camp receipts and full multi-event presentation remain open.
+
+- [x] Neutral camp and shared boss reward receipts, including capped actual gold changes; fixture authored, execution deferred.

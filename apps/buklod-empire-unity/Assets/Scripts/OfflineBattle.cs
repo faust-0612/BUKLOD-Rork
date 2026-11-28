@@ -594,7 +594,8 @@ namespace Buklod.Empire {
             hero.RecallEnds=0;hero.State.Set("revealed",1,Time+2,Time);
             if(defeated){
                 hero.EarnedFeedbackSequence++;
-                var a=hero.State;hero.Gold=Mathf.Min(9999,hero.Gold+Mathf.RoundToInt((camp.Boss?90:30)*(1+hero.CovenantBonus.NeutralReward)));GainXp(hero,(camp.Boss?90:35)*(1+hero.CovenantBonus.NeutralReward));
+                int beforeGold=hero.Gold;float earnedXp=(camp.Boss?90:35)*(1+hero.CovenantBonus.NeutralReward);
+                var a=hero.State;hero.Gold=Mathf.Min(9999,hero.Gold+Mathf.RoundToInt((camp.Boss?90:30)*(1+hero.CovenantBonus.NeutralReward)));GainXp(hero,earnedXp);
                 switch(camp.Kind){
                     case WildernessKind.AzureStag:a.Mana=Mathf.Min(a.MaxMana,a.Mana+25);a.Set("cooldown",.15f,Time+45,Time);break;
                     case WildernessKind.CrimsonWolf:a.Set("fury",.12f,Time+45,Time);break;
@@ -604,9 +605,10 @@ namespace Buklod.Empire {
                     case WildernessKind.RiverSpirit:a.Set("vision",8,Time+40,Time);break;
                     case WildernessKind.WindFalcon:a.Set("haste",.12f,Time+40,Time);break;
                     case WildernessKind.AncientSentinel:case WildernessKind.ColossalGuardian:
-                        foreach(var ally in units.Where(u=>u.Team==hero.Team&&u.Kind==BattleTargetKind.Hero&&u.State.Alive)){ally.Gold=Mathf.Min(9999,ally.Gold+35);GainXp(ally,45);if(camp.Kind==WildernessKind.AncientSentinel)ally.State.AddTemporaryShield(20,Time+12,Time);}
+                        foreach(var ally in units.Where(u=>u.Team==hero.Team&&u.Kind==BattleTargetKind.Hero&&u.State.Alive)){int allyGold=ally.Gold;ally.Gold=Mathf.Min(9999,ally.Gold+35);GainXp(ally,45);if(ally==hero)earnedXp+=45;else PlayerReceipt(ally,"TEAM BOSS BONUS",ally.Gold-allyGold,45);if(camp.Kind==WildernessKind.AncientSentinel)ally.State.AddTemporaryShield(20,Time+12,Time);}
                         if(camp.Kind==WildernessKind.ColossalGuardian)waves.EmpowerSiege(hero.Team,2);break;
                 }
+                PlayerReceipt(hero,camp.Kind.ToString(),hero.Gold-beforeGold,earnedXp);
                 RollRelic(hero,camp.Position,camp.Boss?.65f:.4f,camp.Boss?"boss":"buff");
                 if(dropRandom.NextDouble()<(camp.Boss?.92:.48))SpawnDrop(hero,camp.Position,camp.Boss);
             }return true;

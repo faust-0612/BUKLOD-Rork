@@ -1,0 +1,32 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-neutral-receipts-20261128.json",
+  "baseRef": "69ca972e0599e56f727be7df347c53955f6083da",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Complete neutral and team boss reward receipt wiring.",
+  "chosenApproach": "Observe existing successful awards without changing formulas.",
+  "selectionRationale": "Preserves authoritative economy and offline isolation.",
+  "alternativeApproaches": [
+    "Duplicate reward logic in HUD"
+  ],
+  "riskAreas": [
+    "gold cap",
+    "boss shared rewards"
+  ],
+  "preserveBehaviors": [
+    "Existing reward formulas, no BP/QMP or online changes"
+  ],
+  "acceptanceChecks": [
+    "Receipt shows awarded gold and XP; fixture authored, external verification deferred"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewRewardReceiptTests.cs",
+    "apps/buklod-empire-unity/MASTER_CHECKLIST.md",
+    ".buklod/scopes/empire-neutral-receipts-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewRewardReceiptTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}
