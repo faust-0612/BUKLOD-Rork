@@ -12,6 +12,7 @@ namespace Buklod.Empire {
         public bool premiumVisuals=true;
         [SerializeField, HideInInspector] private bool stylizedBenchmark;
         private bool StylizedBenchmark => ReviewOnly && stylizedBenchmark;
+        [SerializeField,HideInInspector] private bool privateCandidatePractice;
         private ArenaReviewFoley reviewFoley;
         private ReviewHeroDialogue reviewDialogue;
         ReviewMotionLibrary reviewMotion;bool authoredWalk;
@@ -23,7 +24,7 @@ namespace Buklod.Empire {
         LocalPracticeStore practice;System.Guid practiceMatch;bool practiceAttempted;bool practiceUnavailable;
         internal string PracticeResultStatus {get;private set;}="";
         LocalPracticeStore PracticeStore(){
-            if(!ReviewOnly||practiceUnavailable)return null;
+            if(!ReviewOnly||practiceUnavailable||privateCandidatePractice)return null;
             if(practice==null)try{practice=new LocalPracticeStore(System.IO.Path.Combine(Application.persistentDataPath,"offline-practice"));}
                 catch(System.Exception e){practiceUnavailable=true;Debug.LogWarning("Local practice storage unavailable: "+e.GetType().Name);}
             return practice;
@@ -32,6 +33,7 @@ namespace Buklod.Empire {
         void SavePracticeResult(){
             if(!ReviewOnly||practiceAttempted||Battle==null||!Battle.Finished)return;
             practiceAttempted=true;
+            if(privateCandidatePractice){PracticeResultStatus="Private candidate practice — not recorded";return;}
             if(Battle.AutonomousTraining){PracticeResultStatus="AI demonstration — not recorded";return;}
             var store=PracticeStore();if(store==null){PracticeResultStatus="Local practice save unavailable";return;}
             var p=Battle.Player;int outcome=!Battle.Winner.HasValue?0:Battle.Winner.Value==p.Team?1:-1;
@@ -56,6 +58,7 @@ namespace Buklod.Empire {
 #if UNITY_EDITOR
         public void ConfigureEditorReview(){if(Application.isPlaying)throw new System.InvalidOperationException("Configure review before play.");editorReviewOnly=true;}
         public bool IsConfiguredReview=>editorReviewOnly;
+        public void ConfigurePrivateCandidatePractice(){if(Application.isPlaying||!editorReviewOnly)throw new System.InvalidOperationException("Private practice requires editor review.");privateCandidatePractice=true;}
 #endif
         internal bool IsEditorReview=>ReviewOnly;
         private bool ReviewOnly {
@@ -121,7 +124,7 @@ namespace Buklod.Empire {
             nextCatalog.Validate();
             // Validate the requested simulation and loadout before retiring any existing match visuals.
             var candidate=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
-            if(!autonomous)candidate.ConfigureBotLearning(OfflineBotLearningStore.Load(hero,difficulty));
+            if(!autonomous&&!privateCandidatePractice)candidate.ConfigureBotLearning(OfflineBotLearningStore.Load(hero,difficulty));
             if(!candidate.SelectPlayerTactic(tactic)||covenant.HasValue&&!candidate.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
             // Commit the candidate before any destructive visual operation. A later exception must not advertise the retired match as resumable.
@@ -177,7 +180,7 @@ namespace Buklod.Empire {
         }
         private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));SavePracticeResult();SaveBotLearning();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
         void SaveBotLearning(){
-            if(Battle==null||!Battle.TryCollectBotLearning(out var profile))return;
+            if(privateCandidatePractice||Battle==null||!Battle.TryCollectBotLearning(out var profile))return;
             try{OfflineBotLearningStore.Save(selectedHero,Battle.Difficulty,profile);}
             catch(System.Exception e){Debug.LogWarning("Offline AI learning save failed: "+e.GetType().Name);}
         }

@@ -1,0 +1,40 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-owner-motion-practice-20261128.json",
+  "baseRef": "69e561527b161a9e427a3512ff7402003b93b58b",
+  "productionBaselineEvidence": "Standalone Empire DEV; no approved production APK.",
+  "objective": "Bind 3 actual private optimized skinned models with 36 composed/retargeted motion candidates into real isolated offline gameplay and live showcase.",
+  "chosenApproach": "Exact hash-pinned private assets, clone offline catalog in separate Editor scene, preserve 13 simulation identities, block player builds and practice persistence.",
+  "selectionRationale": "Actual battle rendering, not another standalone preview; no false rights or canonical mapping approval.",
+  "alternativeApproaches": [
+    "Replace canonical production catalog or package unverified private assets; rejected."
+  ],
+  "riskAreas": [
+    "Unity import and animator clip bindings",
+    "Provisional hero mappings",
+    "Unverified visual quality and device performance"
+  ],
+  "preserveBehaviors": [
+    "Existing normal offline scene and 13 canonical kits",
+    "No changes to MAIN production",
+    "Existing full roster APK gate"
+  ],
+  "acceptanceChecks": [
+    "9 exact GLBs loaded and scene dependencies verified",
+    "3 actual hero prefabs with LODs and controllers",
+    "Private scene cannot be packaged",
+    "No mastery or bot-learning persistence"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Editor/AndroidBuildGuard.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OwnerMotionPracticeScene.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OwnerMotionPracticeTests.cs",
+    "apps/buklod-empire-unity/Tools/OWNER_MOTION_PRACTICE.md",
+    ".buklod/scopes/empire-owner-motion-practice-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/OwnerMotionPracticeTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

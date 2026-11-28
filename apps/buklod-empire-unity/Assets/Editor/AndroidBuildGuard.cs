@@ -15,6 +15,10 @@ namespace Buklod.Empire.Editor
 
         public void OnPreprocessBuild(BuildReport report)
         {
+            // Private owner candidates may be inspected in Editor practice but cannot be packaged.
+            foreach(var scene in EditorBuildSettings.scenes.Where(s=>s.enabled))
+                if(OwnerMotionPracticeScene.IsPrivatePath(scene.path)||AssetDatabase.GetDependencies(scene.path,true).Any(OwnerMotionPracticeScene.IsPrivatePath))
+                    throw new BuildFailedException("Private owner motion candidates are editor-only; no player build authorized.");
             if (report.summary.platform != BuildTarget.Android)
                 return;
 
