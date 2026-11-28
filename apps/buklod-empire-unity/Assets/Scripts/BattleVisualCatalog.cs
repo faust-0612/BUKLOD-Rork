@@ -16,6 +16,13 @@ namespace Buklod.Empire {
         public GameObject genesisRift;
         public HeroVisual[] heroes;
         public FactionVisual[] factions;
+        [Serializable] public sealed class StructureCollapseVisual {public GameObject source,collapse;}
+        public StructureCollapseVisual[] structureCollapses;
+        internal GameObject ResolveStructureCollapse(GameObject source){
+            if(!source||structureCollapses==null)return null;
+            foreach(var row in structureCollapses)if(row!=null&&row.source==source)return row.collapse;
+            return null;
+        }
         public TextAsset provenanceReceipt;
         [Serializable] private sealed class Provenance {public bool rightsVerified,originalArtReviewed;public string evidence;}
         public GameObject Resolve(BattleUnit unit,bool reviewOnly=false){

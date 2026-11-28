@@ -38,3 +38,5 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 
 - [x] Forward-ported two weighted eye joints per hero, the idle blink and head/chest curves, and the reset curves for authored motion overrides. Full-detail and LOD eye weights verified across all 13 generated rigs. Facial expression and lip-sync coverage remain open.
 - [x] Forward-ported hand-bound weapon traces for confirmed basic attacks. Traces are limited to visible review heroes, clear on pause/cull, and are purely visual. Unity execution deferred.
+
+- [x] Wired built-in core and tower collapse fragments to their exact authored source prefab. Sidecar prefabs keep the static updater allowlist intact. Missing, unreadable or updated art uses the existing root-collapse presentation. Source checks passed. Unity import and fixture execution deferred.

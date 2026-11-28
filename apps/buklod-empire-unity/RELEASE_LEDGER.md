@@ -59,3 +59,7 @@ No production release, no paid CI, no current APK update.
 ## 2026-11-28 — Facial motion and basic attack trails
 
 DEV follows `7d9f266131b110af3e909f9314a96883ed95cbcd`. Reused isolated pregame implementations for the 13-hero blink rig and hand-bound basic attack traces. Verified exported full-detail and LOD skin data for both eye joints on every hero. Editor animation import, playback, visual quality, and device impact remain deferred. The existing startup logo remains wired to the offline review startup. No APK, host or live deployment.
+
+## 2026-11-28 — Authored structure destruction
+
+Baseline `37a979979df881a01c1423d62d43047ae1df5905`. Forward-ported the pregame branch fragment partitioner as separately generated review-only collapse prefabs for authored Lux and Tenebra cores and towers. Runtime selects the fragments by exact source prefab, preserves fog and retirement limits, and falls back to root collapse for remote replacements. Static updater component restrictions are preserved. Six changed C# files parsed and 33 authored input checks passed. Unity fragment generation and playback deferred. The production preflight remains blocked on seven production inputs. No build or deployment.

@@ -142,14 +142,28 @@ namespace Buklod.Empire.Editor {
                 return saved;
             }finally{UnityEngine.Object.DestroyImmediate(root);UnityEngine.Object.DestroyImmediate(old);}
         }
+        static void AddCollapse(List<BattleVisualCatalog.StructureCollapseVisual> list,GameObject source,string id){
+            // Keep behavior-bearing collapse assets separate from the strict static updater slots.
+            var copy=UnityEngine.Object.Instantiate(source);
+            try{
+                ReviewStructureFragmentComposer.Attach(copy,id);
+                var fragments=copy.GetComponent<ReviewStructureFragments>();
+                if(!fragments||!fragments.Ready)return;
+                var collapse=PrefabUtility.SaveAsPrefabAsset(copy,PrefabPath(id+"_collapse"));
+                if(!collapse)throw new BuildFailedException("Could not save collapse visual: "+id);
+                list.Add(new BattleVisualCatalog.StructureCollapseVisual{source=source,collapse=collapse});
+            }finally{UnityEngine.Object.DestroyImmediate(copy);}
+        }
         internal static void Bind(BattleVisualCatalog catalog){
             var doc=Read();
             foreach(var b in doc.staticReviewBindings){Copy(doc,b.group,b.name);if(!string.IsNullOrEmpty(b.crop))Copy(doc,b.group,b.crop);}
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             var map=doc.staticReviewBindings.ToDictionary(b=>b.id,StringComparer.Ordinal);
+            var collapses=new List<BattleVisualCatalog.StructureCollapseVisual>();
             foreach(var f in catalog.factions){
                 string p=f.team==ArenaTeam.Lux?"lux_":"tenebra_";
                 f.tower=Build(map[p+"tower"],f.tower);f.core=Build(map[p+"core"],f.core);
+                AddCollapse(collapses,f.core,p+"core");AddCollapse(collapses,f.tower,p+"tower");
                 f.depot=Build(map[p+"depot"],f.depot);f.guardPost=Build(map[p+"guardPost"],f.guardPost);
                 f.farm=Build(map[p+"farm"],f.farm);f.barracks=Build(map[p+"barracks"],f.barracks);
                 f.market=Build(map[p+"market"],f.market);f.house=Build(map[p+"house"],f.house);
@@ -157,6 +171,8 @@ namespace Buklod.Empire.Editor {
             foreach(var r in catalog.resources)r.prefab=Build(map[r.kind.ToString().ToLowerInvariant()],r.prefab);
             catalog.fieldPickup=Build(map["field_pickup"],catalog.fieldPickup);
             catalog.relicPickup=Build(map["relic_pickup"],catalog.relicPickup);
+            catalog.structureCollapses=collapses.ToArray();
+            EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
             Debug.Log("Library-first static roster: 16 structures, 5 resources, 2 pickups. Review only; no runtime verification or production approval.");
         }

@@ -91,6 +91,7 @@ namespace Buklod.Empire {
         public int PooledVisualCount=>pooledCount;
         private sealed class Visual {
             public float collapseDuration;
+            public ReviewStructureFragments collapseFragments;
             public Vector3 collapsePosition,collapseScale;
             public Quaternion collapseRotation;
             public ReviewWeaponTrail weaponTrail;
@@ -218,6 +219,10 @@ namespace Buklod.Empire {
         }
         private void Return(Visual v){
             v.fallback?.Dispose();v.fallback=null;
+            if(v.collapseFragments){
+                v.collapseFragments.gameObject.SetActive(false);
+                Destroy(v.collapseFragments.gameObject);
+            }
             v.instance.SetActive(false);
             if(v.collapseDuration>0)v.instance.transform.localScale=v.collapseScale;
             SetShadows(v,true); // preserve original prefab shadow modes across rentals
@@ -251,7 +256,9 @@ namespace Buklod.Empire {
                     Return(v);dying.RemoveAt(i);
                     continue;
                 }
-                if(v.collapseDuration>0){
+                if(v.collapseFragments){
+                    v.collapseFragments.Apply(1-row.remaining/v.collapseDuration,worldScale,v.unit.Id);
+                }else if(v.collapseDuration>0){
                     var t=v.instance.transform;
                     var pose=ReviewFortressCollapse.Evaluate(1-row.remaining/v.collapseDuration,worldScale,v.unit.Id,v.unit.Core);
                     t.SetPositionAndRotation(v.collapsePosition+pose.Offset,v.collapseRotation*Quaternion.Euler(pose.Tilt));
@@ -395,6 +402,16 @@ namespace Buklod.Empire {
                     var t=v.instance.transform;
                     v.collapseDuration=u.Core?1.25f:.70f;
                     v.collapsePosition=t.position;v.collapseRotation=t.rotation;v.collapseScale=t.localScale;
+                    var collapsePrefab=u.Core||u.IsCombatStructure?visuals.ResolveStructureCollapse(v.prefab):null;
+                    if(collapsePrefab){
+                        var instance=Instantiate(collapsePrefab,t.position,t.rotation,transform);
+                        instance.transform.localScale=t.localScale;
+                        var fragments=instance.GetComponent<ReviewStructureFragments>();
+                        if(fragments&&fragments.Begin()){
+                            v.collapseFragments=fragments;
+                            v.instance.SetActive(false);
+                        }else Destroy(instance);
+                    }
                     if(u.Core)coreCollapseUntil=Time.unscaledTime+v.collapseDuration;
                     dying.Add((v,v.collapseDuration));
                 }else if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&CanTrigger(v,"Death")){
