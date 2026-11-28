@@ -526,7 +526,7 @@ export default function BuklodProfileCharacterCard({
                     ) : null}
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 2 }}>
-                    {rankLabel ? <BuklodCircleRankBadge rankName={rankLabel} size={32} /> : null}
+                    {rankLabel ? <BuklodCircleRankBadge rankName={rankLabel} size={32} animate /> : null}
                     <Text numberOfLines={2} style={[styles.summaryValue, { flex: 1 }]}>
                       {rankLabel || 'BUKLOD Rank'}
                     </Text>
