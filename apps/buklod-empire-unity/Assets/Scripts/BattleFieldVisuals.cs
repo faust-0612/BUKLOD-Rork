@@ -18,6 +18,7 @@ namespace Buklod.Empire {
         private ReviewPresentationAudio presentationAudio;
         private WorldInteractionEffects worldEffects;
         private readonly Dictionary<int,(int hit,int attack,int defeat)> campHistory=new Dictionary<int,(int,int,int)>();
+        private readonly Dictionary<int,int> hazardAttackHistory=new Dictionary<int,int>();
         private readonly Dictionary<int,Animator> campAnimators=new Dictionary<int,Animator>();
         private readonly Dictionary<int,float> campDeathUntil=new Dictionary<int,float>();
         private int pooled;
@@ -158,7 +159,13 @@ namespace Buklod.Empire {
                     delta.y=0;if(delta.sqrMagnitude>.0001f)go.transform.rotation=Quaternion.LookRotation(delta);
                     go.transform.position=position;
                     var animator=go.GetComponentInChildren<Animator>(true);
-                    if(animator&&!hazard.Demon)animator.SetFloat("Speed",1f);
+                    bool attacked=!fresh&&hazardAttackHistory.TryGetValue(hazard.Id,out int previousAttack)&&hazard.AttackSequence>previousAttack;
+                    hazardAttackHistory[hazard.Id]=hazard.AttackSequence;
+                    if(animator&&!hazard.Demon){
+                        animator.SetFloat("Speed",delta.sqrMagnitude>.0001f?1f:0f);
+                        if(attacked)animator.SetTrigger("Attack");
+                    }
+                    if(attacked&&battleEffects)battleEffects.Emit(go.transform.position,hazard.Demon?new Color(1,.2f,.35f):new Color(.45f,1,.15f),1);
                 }
                 foreach(var d in bound.Drops)if(Visible(d.Position))Loot(2,d.Id,d.Position,view.visuals.fieldPickup,d.Item.Tier,d.SpawnedAt);
                 foreach(var d in bound.RelicDrops)if(Visible(d.Position))Loot(3,d.Id,d.Position,view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt);
@@ -191,7 +198,7 @@ namespace Buklod.Empire {
         private void Clear(){
             foreach(var go in active.Values)if(go)Destroy(go);
             foreach(var pool in pools.Values)foreach(var go in pool)if(go)Destroy(go);
-            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();campHistory.Clear();campAnimators.Clear();campDeathUntil.Clear();pooled=0;
+            active.Clear();prefabs.Clear();pools.Clear();seen.Clear();removed.Clear();appliedTints.Clear();campHistory.Clear();hazardAttackHistory.Clear();campAnimators.Clear();campDeathUntil.Clear();pooled=0;
         }
         private void OnDestroy(){Clear();}
     }

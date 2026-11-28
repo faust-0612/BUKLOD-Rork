@@ -134,8 +134,30 @@ namespace Buklod.Empire {
                 return "";
             }
         }
+        public const int VenomTicks=3;
+        public const float VenomTickFraction=.02f;
+        readonly Dictionary<int,(int remaining,float next)> jungleVenom=new Dictionary<int,(int,float)>();
+        void HazardDamage(BattleUnit target,float fraction){
+            var state=target.State;if(!state.Alive||state.Buff("invulnerable",Time)>0)return;
+            target.RecallEnds=0;float before=state.Health;
+            float damage=state.MaxHealth*fraction*(1-Mathf.Clamp(state.Buff("guard",Time),0,.4f));
+            state.Health=Mathf.Max(0,state.Health-state.Absorb(damage,Time));target.DamageTaken+=before-state.Health;
+            if(!state.Alive){jungleVenom.Remove(target.Id);target.Deaths++;target.KillStreak=0;target.RespawnAt=Time+OfflineMatchRules.RespawnDelay(Time);target.RecentHeroDamage.Clear();CheckElimination();}
+        }
+        void AdvanceVenom(){
+            if(jungleVenom.Count==0)return;
+            foreach(var id in jungleVenom.Keys.ToArray()){
+                var target=units.FirstOrDefault(u=>u.Id==id&&u.State.Alive);
+                if(target==null){jungleVenom.Remove(id);continue;}
+                var poison=jungleVenom[id];if(Time<poison.next)continue;
+                if(poison.remaining<=1)jungleVenom.Remove(id);
+                else jungleVenom[id]=(poison.remaining-1,poison.next+1f);
+                HazardDamage(target,VenomTickFraction);if(Finished)return;
+            }
+        }
         void AdvanceJungleHazards(){
-            if(!JungleHazardsActive)return;
+            if(!JungleHazardsActive){jungleVenom.Clear();return;}
+            AdvanceVenom();if(Finished)return;
             foreach(var h in hazards){
                 var target=units.FirstOrDefault(u=>u.Id==h.Target&&u.Kind==BattleTargetKind.Hero&&u.State.Alive&&InHazardRange(u.Position,h.Home,h.Demon?22:12)&&ClearSight(h.Position,u.Position));
                 if(target==null){
@@ -149,12 +171,12 @@ namespace Buklod.Empire {
                 if(target==null||Time<h.Windup||Time<h.NextAttack||!InHazardRange(target.Position,h.Position,h.Demon?3.8f:2.6f)||!ClearSight(h.Position,target.Position))continue;
                 h.NextAttack=Time+(h.Demon?1.8f:2.4f);h.AttackSequence++;
                 var state=target.State;if(state.Buff("invulnerable",Time)>0)continue;
-                target.RecallEnds=0;float before=state.Health;
-                float damage=state.MaxHealth*(h.Demon?.13f:.09f);
-                damage*=1-Mathf.Clamp(state.Buff("guard",Time),0,.4f);
-                state.Health=Mathf.Max(0,state.Health-state.Absorb(damage,Time));target.DamageTaken+=before-state.Health;
-                if(!h.Demon&&state.Alive)state.Set("slow",.25f,Time+3,Time);
-                if(!state.Alive){target.Deaths++;target.KillStreak=0;target.RespawnAt=Time+OfflineMatchRules.RespawnDelay(Time);target.RecentHeroDamage.Clear();CheckElimination();}
+                HazardDamage(target,h.Demon?.13f:.09f);
+                if(!h.Demon&&state.Alive){
+                    state.Set("slow",.25f,Time+3,Time);
+                    // Existing venom runs to completion; repeated bites cannot stack or postpone ticks.
+                    if(!jungleVenom.ContainsKey(target.Id))jungleVenom[target.Id]=(VenomTicks,Time+1f);
+                }
                 if(Finished)return;
             }
         }

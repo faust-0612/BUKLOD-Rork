@@ -9,6 +9,10 @@ namespace Buklod.Empire.Tests {
             Assert.AreEqual(new Vector2(OfflineBattle.Width,OfflineBattle.Height),b.JungleHazards[0].Home+b.JungleHazards[1].Home);
             Assert.AreEqual(new Vector2(OfflineBattle.Width,OfflineBattle.Height),b.JungleHazards[2].Home+b.JungleHazards[3].Home);
         }
+        [Test] public void VenomBudgetIsBoundedPerApplication(){
+            Assert.AreEqual(3,OfflineBattle.VenomTicks);
+            Assert.AreEqual(.06f,OfflineBattle.VenomTicks*OfflineBattle.VenomTickFraction,.0001f);
+        }
         [Test] public void HazardRangeIncludesBoundary(){
             Assert.True(OfflineBattle.InHazardRange(Vector2.right*10,Vector2.zero,10));
             Assert.False(OfflineBattle.InHazardRange(Vector2.right*10.1f,Vector2.zero,10));
