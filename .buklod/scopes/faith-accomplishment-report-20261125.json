@@ -3,7 +3,7 @@
   "objective": "Accomplishment-based weekly and monthly Faith Monitoring with actual distinct validated activities, mentoring roles and server-confirmed Children Story assessment",
   "baseRef": "main",
   "productionBaselineEvidence": "GitHub main 9aed7d6ad8b6d0ad80aa71daaf66962e9d49de04 inspected; production runtime/OTA and frozen RC not verified. Read-only production schema and EXPLAIN of core query performed. No deployment authorized by this branch.",
-  "chosenApproach": "Add v2 period RPC reusing v1 scope authorization; keep v1 daily metrics and add accomplishment counts; independently synchronize adult-account story assessments using the existing offline queue.",
+  "chosenApproach": "Add v2 period RPC reusing v1 scope authorization; keep v1 daily metrics and add accomplishment counts; independently synchronize adult-account story assessments using the existing offline queue. Correct V2 scheduled devotion coverage while retaining actual dates; include verified KL and label Word as the same source.",
   "selectionRationale": "No new manual approval, reward or ad behavior; one count per actual unit, no fake zero for unavailable sources, exact workspace protection.",
   "alternativeApproaches": [
     "Client-only aggregation rejected: incomplete offline data and cross-scope risk.",
@@ -42,6 +42,8 @@
     "Mentor sessions and mentee participation separate",
     "Scope permissions and account-bound sync enforced",
     "SALIKSIK conditional on source migration; children teaching remains unavailable until canonical evidence source exists",
-    "No production release before consolidated DEV/RC verification"
+    "No production release before consolidated DEV/RC verification",
+    "Two scheduled devotions completed together count as two scheduled dates, one actual completion day; historical late completion included; CSV matches UI",
+    "KL verified chapter completion counted once; Word not double counted"
   ]
 }
