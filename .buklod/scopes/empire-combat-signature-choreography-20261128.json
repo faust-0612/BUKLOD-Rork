@@ -1,0 +1,43 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-combat-signature-choreography-20261128.json",
+  "baseRef": "c288a788ccc485bacc73f23f86abf78ad481c119",
+  "productionBaselineEvidence": "Standalone Empire offline DEV; no approved APK.",
+  "objective": "Replace generic offline attack/skill outline effects with distinct depth-tested 3D surfaces, retime real hero action clips and protect visual release from hit interruptions.",
+  "chosenApproach": "Bounded pooled 13-form geometry, canonical skill mapping, 60fps monotonic retiming of imported action curves, confirmed visible damage feedback only.",
+  "selectionRationale": "Use actual gameplay render path and both existing and private candidate composers; preserve simulation authority, original action durations and fog.",
+  "alternativeApproaches": [
+    "More generic line pulses or separate demo scenes; rejected."
+  ],
+  "riskAreas": [
+    "Unity shader and clip import",
+    "Actual skill silhouettes and timing require runtime visual review",
+    "Online snapshot lacks authoritative cast events"
+  ],
+  "preserveBehaviors": [
+    "Offline combat rules, action acceptance and damage unchanged",
+    "No MAIN/production or APK changes",
+    "Private candidate build restrictions and full authored roster gate"
+  ],
+  "acceptanceChecks": [
+    "Actual gameplay uses signature meshes for 39 canonical skills and melee attacks",
+    "Confirmed hit feedback does not interrupt protected attack/skill phase",
+    "All motion curves preserve order and duration",
+    "Pool bounded to 12; no offscreen hero skill effects"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/BattleEffects.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Editor/CandidateReviewComposer.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OwnerMotionPracticeScene.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/CombatMotionRhythm.cs",
+    "apps/buklod-empire-unity/Assets/Editor/CombatMotionBaker.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/CombatSignatureMesh.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/CombatSignatureTests.cs",
+    ".buklod/scopes/empire-combat-signature-choreography-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/CombatSignatureTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

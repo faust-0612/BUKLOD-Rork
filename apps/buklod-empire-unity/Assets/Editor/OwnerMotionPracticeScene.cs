@@ -81,6 +81,7 @@ namespace Buklod.Empire.Editor {
                 var found=source.Where(x=>x.name==name).ToArray();
                 if(found.Length!=1)throw new InvalidOperationException("Missing exact candidate motion "+s.Model+"/"+name);
                 var clip=UnityEngine.Object.Instantiate(found[0]);clip.name=name;clip.legacy=false;
+                CombatMotionBaker.Apply(clip,s.Hero,name);
                 var bindings=AnimationUtility.GetCurveBindings(clip).Where(x=>x.type==typeof(Transform)).ToArray();
                 if(bindings.Length==0||bindings.Any(x=>!string.IsNullOrEmpty(x.path)&&!model.transform.Find(x.path)))
                     throw new InvalidOperationException("Unbound candidate clip "+s.Model+"/"+name);

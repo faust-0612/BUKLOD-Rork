@@ -98,6 +98,8 @@ namespace Buklod.Empire {
             public Vector3 collapsePosition,collapseScale;
             public Quaternion collapseRotation;
             public ReviewWeaponTrail weaponTrail;
+            public float poseProtectedUntil;
+            public readonly System.Collections.Generic.Dictionary<string,float> actionDurations=new System.Collections.Generic.Dictionary<string,float>(System.StringComparer.Ordinal);
             public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public GameObject instance,prefab;public Animator animator;public ReviewClipPlayback fallback;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
@@ -207,6 +209,7 @@ namespace Buklod.Empire {
             try{
                 if(v.animator){
                     v.animator.speed=Paused?0f:1f;if(reviewMotion)reviewMotion.Apply(prefab,v.animator,authoredWalk);
+                    if(unit.Kind==BattleTargetKind.Hero&&v.animator.runtimeAnimatorController)foreach(var clip in v.animator.runtimeAnimatorController.animationClips)if(clip&&clip.length>0)v.actionDurations[clip.name]=clip.length;
                     if(ReviewOnly&&unit.Kind==BattleTargetKind.Hero){
                         // A live, active Animator must initialize its graph before reading parameters.
                         v.animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;v.animator.Rebind();v.animator.Update(0f);
@@ -334,7 +337,8 @@ namespace Buklod.Empire {
                     Trigger(v,"Attack");
                     if(v.weaponTrail)v.weaponTrail.Begin();
                     if(u.Kind==BattleTargetKind.Hero){
-                        if(effects)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
+                        if(v.actionDurations.TryGetValue("Attack",out var attackLength))v.poseProtectedUntil=Mathf.Max(v.poseProtectedUntil,Battle.Time+CombatMotionRhythm.ProtectedSeconds("Attack",attackLength));
+                        if(effects&&inView&&!immediate)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
                         if(reviewFoley&&inView&&!immediate)reviewFoley.WeaponAttack(u.State.Kit.Id,t.position,player);
                     }else if(u.IsCombatStructure&&effects&&inView&&!immediate&&Battle.IsPositionVisibleTo(Battle.Player.Team,u.LastAttackTargetPosition)){
                         // Reuse the existing bolt effect for confirmed tower fire; no new art assets.
@@ -352,7 +356,7 @@ namespace Buklod.Empire {
                         if(!u.State.TryGetCast(seq,out var cast)||u.State.Kit==null||!SkillCueCatalog.TryGet(u.State.Kit.Skill(cast.Slot).Id,out var cue))continue;
                         var aim=cast.Aim;var forward=aim.sqrMagnitude>.0025f?new Vector3(aim.x,0,aim.y):t.forward;
                         if(aim.sqrMagnitude>.0025f)t.rotation=Quaternion.LookRotation(forward);
-                        if(effects)effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward);
+                        if(effects&&inView&&!immediate)effects.EmitSkill(t.position,BattleEffects.Accent(u.State.Kit.Id),cue,forward);
                         if(skillAudio&&(u==Battle.Player||Vector2.Distance(u.Position,Battle.Player.Position)<=26))skillAudio.Play(cue,t.position,u==Battle.Player);
                         if(reviewDialogue&&u==Battle.Player&&cast.Slot==SkillSlot.Ultimate)reviewDialogue.Ultimate(u.State.Kit.Id);
                         castThisFrame=true;
@@ -363,6 +367,7 @@ namespace Buklod.Empire {
                     if(castThisFrame&&v.animator&&u.State.TryGetCast(latest,out var last)){
                         foreach(var trigger in new[]{"Primary","Secondary","Ultimate","Attack","Hit"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
                         var name=last.Slot.ToString();Trigger(v,name);
+                        if(v.actionDurations.TryGetValue(name,out var actionLength))v.poseProtectedUntil=Battle.Time+CombatMotionRhythm.ProtectedSeconds(name,actionLength);
                     }
                 }
                 if(u.RepairSequence>v.repairSequence){
@@ -389,7 +394,11 @@ namespace Buklod.Empire {
                         if(inView&&reviewFoley)reviewFoley.Work(t.position);
                     }
                 }
-                if(!castThisFrame&&!attackedThisFrame&&tookHit)Trigger(v,"Hit");
+                if(!castThisFrame&&!attackedThisFrame&&tookHit&&(!hero||CombatMotionRhythm.CanReact(Battle.Time,v.poseProtectedUntil)))Trigger(v,"Hit");
+                if(tookHit&&hero&&inView&&!immediate&&effects){
+                    float fraction=(u.DamageTaken-v.damageTaken)/Mathf.Max(1,u.State.MaxHealth);
+                    effects.EmitContact(t.position,u.Team==ArenaTeam.Lux?new Color(.64f,.78f,1):new Color(1,.52f,.38f),fraction*5);
+                }
                 if(tookHit&&!immediate&&inView&&reviewFoley)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,t.position);
                 v.damageTaken=u.DamageTaken;v.fallback?.Tick(immediate?0:Time.deltaTime);
             }

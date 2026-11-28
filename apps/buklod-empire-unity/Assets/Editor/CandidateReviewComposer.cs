@@ -136,6 +136,7 @@ namespace Buklod.Empire.Editor {
                             ?ReviewWeaponMotion.Bake(instance,id,candidates[0])
                             :UnityEngine.Object.Instantiate(candidates[0]);
                         clone.name=name;clone.legacy=false;
+                        if(HeroKitCatalog.All.Any(h=>h.Id==id))CombatMotionBaker.Apply(clone,id,name);
                         if(HeroKitCatalog.All.Any(h=>h.Id==id)&&(name=="Idle"||name=="Walk"||name=="Run"))ReviewSecondaryMotion.Bake(instance,clone,name,id);
                         if(HeroKitCatalog.All.Any(h=>h.Id==id))ReviewFaceMotion.Bake(instance,clone,name,id);
                         var settings=AnimationUtility.GetAnimationClipSettings(clone);settings.loopTime=name=="Idle"||name=="Walk"||name=="Run";AnimationUtility.SetAnimationClipSettings(clone,settings);

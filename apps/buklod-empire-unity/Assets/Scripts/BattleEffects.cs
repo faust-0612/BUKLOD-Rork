@@ -6,11 +6,22 @@ namespace Buklod.Empire {
         public Material skillParticleMaterial;
         public Material premiumSurfaceMaterial;
         PremiumSkillSurface[] surfaces;int surfaceCursor;
+        CombatSignatureMesh[] signatures;int signatureCursor;
+        void Signature(SignatureForm form,Vector3 at,Vector3 direction,Color color,float size,float duration,bool ultimate){
+            if(!premiumSurfaceMaterial)return;
+            if(signatures==null)signatures=new CombatSignatureMesh[previewCamera?2:CombatSignatureMesh.Capacity];
+            int index=signatureCursor;signatureCursor=(index+1)%signatures.Length;
+            if(signatures[index]==null)signatures[index]=new CombatSignatureMesh(transform,premiumSurfaceMaterial);
+            signatures[index].Begin(form,at,direction,color,size,duration,ultimate,Time.unscaledTime);
+        }
+        public void EmitContact(Vector3 at,Color color,float fraction){
+            Signature(SignatureForm.Contact,at,Vector3.forward,color,Mathf.Lerp(.48f,.88f,Mathf.Clamp01(fraction)),.27f,false);
+        }
         public const int Capacity=24, Segments=32;
         private sealed class Pulse {public LineRenderer line;public float start,duration,radius;public Color color;public int style;public bool skill,basicSlash;public SkillCueShape shape;public Vector3 forward;public SkillParticleBurst burst;}
         private Pulse[] pool;private int next;private Camera battleCamera;private Camera previewCamera;
         public void ConfigurePreview(Camera camera){if(pool!=null||!camera)throw new System.InvalidOperationException("Configure before emitting preview effects.");previewCamera=camera;}
-        public void Clear(){if(pool!=null)foreach(var p in pool){p.line.enabled=false;p.burst?.Stop();}if(surfaces!=null)foreach(var s in surfaces)s?.Stop();next=surfaceCursor=0;}
+        public void Clear(){if(pool!=null)foreach(var p in pool){p.line.enabled=false;p.burst?.Stop();}if(surfaces!=null)foreach(var s in surfaces)s?.Stop();if(signatures!=null)foreach(var s in signatures)s?.Stop();next=surfaceCursor=signatureCursor=0;}
         private void Initialize(){
             if(pool!=null||!pulseMaterial)return;
             pool=new Pulse[previewCamera?1:Capacity];
@@ -28,15 +39,20 @@ namespace Buklod.Empire {
             var p=pool[next];next=(next+1)%pool.Length;p.start=Time.unscaledTime;
             p.burst?.Stop();p.skill=false;p.basicSlash=false;p.style=Mathf.Clamp(style,0,4);p.duration=p.style==3?.65f:.32f;
             p.radius=p.style==3?3.5f:p.style==2?2.1f:p.style==1?1.6f:.85f;
-            p.color=color;p.line.transform.position=at+Vector3.up*.11f;p.line.enabled=true;Draw(p,0);
+            p.color=color;p.line.forceRenderingOff=false;p.line.transform.position=at+Vector3.up*.11f;p.line.enabled=true;Draw(p,0);
         }
         public void EmitSkill(Vector3 at,Color color,SkillCue cue,Vector3 direction){
+            if(premiumSurfaceMaterial&&CinematicSkillCatalog.TryGet(cue.Id,out _)){
+                bool ultimate=cue.Index>=0&&cue.Index%3==2;
+                Signature(CombatSignatureMesh.Form(cue.Shape),at+Vector3.up*.045f,direction,color,cue.Size,cue.Duration,ultimate);
+            }
             Initialize();if(pool==null)return;
             var p=pool[next];next=(next+1)%pool.Length;p.start=Time.unscaledTime;p.skill=true;p.basicSlash=false;p.shape=cue.Shape;p.duration=cue.Duration;p.radius=cue.Size;p.color=color;p.style=0;
             direction.y=0;p.forward=direction.sqrMagnitude>.001f?direction.normalized:Vector3.forward;
             p.line.transform.position=at+Vector3.up*.16f;p.line.enabled=true;Draw(p,0);
+            p.line.forceRenderingOff=premiumSurfaceMaterial&&cue.Index>=0;
             p.burst?.Begin(at+Vector3.up*.14f,color,cue,p.forward);p.burst?.Draw(0,battleCamera);
-            if(premiumSurfaceMaterial&&CinematicSkillCatalog.TryGet(cue.Id,out var profile)){
+            if(premiumSurfaceMaterial&&cue.Index>=0&&cue.Index%3==2&&CinematicSkillCatalog.TryGet(cue.Id,out var profile)){
                 if(surfaces==null)surfaces=new PremiumSkillSurface[previewCamera?1:8];
                 int slot=surfaceCursor;surfaceCursor=(surfaceCursor+1)%surfaces.Length;
                 if(surfaces[slot]==null)surfaces[slot]=new PremiumSkillSurface(transform,premiumSurfaceMaterial);
@@ -44,12 +60,17 @@ namespace Buklod.Empire {
             }
         }
         public void EmitBasic(Vector3 at,Color color,Vector3 forward,bool ranged){
+            if(premiumSurfaceMaterial){
+                // Ranged travel is already shown by the confirmed projectile feed. No fake extra shot.
+                if(!ranged)Signature(SignatureForm.Cleave,at,forward,color,1.65f,.31f,false);
+                return;
+            }
             if(ranged){
                 EmitSkill(at+Vector3.up*.65f,color,new SkillCue("basic_ranged_review",SkillCueShape.Bolt,1.3f,.24f,-1),forward);return;
             }
             Initialize();if(pool==null)return;
             var p=pool[next];next=(next+1)%pool.Length;p.start=Time.unscaledTime;
-            p.skill=false;p.basicSlash=true;p.style=0;p.duration=.26f;p.radius=1.55f;p.color=color;
+            p.skill=false;p.basicSlash=true;p.line.forceRenderingOff=false;p.style=0;p.duration=.26f;p.radius=1.55f;p.color=color;
             forward.y=0;p.forward=forward.sqrMagnitude>.001f?forward.normalized:Vector3.forward;
             p.line.transform.position=at+Vector3.up*.72f;p.line.enabled=true;
             p.burst?.Begin(at+Vector3.up*.5f,color,new SkillCue("basic_melee_review",SkillCueShape.Impact,1.1f,.26f,-1),p.forward);
@@ -93,7 +114,7 @@ namespace Buklod.Empire {
                 p.line.SetPosition(i,(right*x+p.forward*z+Vector3.up*y)*r);
             }
         }
-        private void Update(){if(surfaces!=null)foreach(var s in surfaces)s?.Tick(Time.unscaledTime);if(pool==null)return;foreach(var p in pool)if(p.line.enabled){
+        private void Update(){if(signatures!=null)foreach(var s in signatures)s?.Tick(Time.unscaledTime);if(surfaces!=null)foreach(var s in surfaces)s?.Tick(Time.unscaledTime);if(pool==null)return;foreach(var p in pool)if(p.line.enabled){
             float t=(Time.unscaledTime-p.start)/p.duration;
             if(t>=1){p.line.enabled=false;p.burst?.Stop();}
             else{Draw(p,Mathf.Clamp01(t));if(p.skill||p.basicSlash)p.burst?.Draw(Mathf.Clamp01(t),battleCamera);}
@@ -101,6 +122,6 @@ namespace Buklod.Empire {
         private void OnDisable(){Clear();}
         private void OnApplicationFocus(bool focused){if(!focused)Clear();}
         private void OnApplicationPause(bool paused){if(paused)Clear();}
-        private void OnDestroy(){if(pool!=null)foreach(var p in pool)p.burst?.Dispose();if(surfaces!=null)foreach(var s in surfaces)s?.Dispose();}
+        private void OnDestroy(){if(pool!=null)foreach(var p in pool)p.burst?.Dispose();if(surfaces!=null)foreach(var s in surfaces)s?.Dispose();if(signatures!=null)foreach(var s in signatures)s?.Dispose();}
     }
 }
