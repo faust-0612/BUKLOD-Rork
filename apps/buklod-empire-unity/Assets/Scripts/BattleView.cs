@@ -108,6 +108,7 @@ namespace Buklod.Empire {
             nextCatalog.Validate();
             // Validate the requested simulation and loadout before retiring any existing match visuals.
             var candidate=new OfflineBattle(hero,new Navigation(worldScale),seed,difficulty,autonomous);
+            if(!autonomous)candidate.ConfigureBotLearning(OfflineBotLearningStore.Load(hero,difficulty));
             if(!candidate.SelectPlayerTactic(tactic)||covenant.HasValue&&!candidate.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
             // Commit the candidate before any destructive visual operation. A later exception must not advertise the retired match as resumable.
@@ -147,7 +148,12 @@ namespace Buklod.Empire {
             ControlFeedbackButton=button;ControlFeedbackAccepted=ok&&!Battle.HasPendingPlayerAttack;ControlFeedbackUntil=Battle.HasPendingPlayerAttack?0:Time.unscaledTime+.28f;
             return ok;
         }
-        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));SavePracticeResult();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
+        private void Update(){if(Battle==null||Paused)return;Battle.Advance(Time.deltaTime,ToWorld(input.Joystick));SavePracticeResult();SaveBotLearning();Sync(false);if(fieldVisuals)fieldVisuals.Refresh();}
+        void SaveBotLearning(){
+            if(Battle==null||!Battle.TryCollectBotLearning(out var profile))return;
+            try{OfflineBotLearningStore.Save(selectedHero,Battle.Difficulty,profile);}
+            catch(System.Exception e){Debug.LogWarning("Offline AI learning save failed: "+e.GetType().Name);}
+        }
         private void LateUpdate(){if(Battle!=null)Follow(false);}
         public Vector3 FieldPosition(Vector2 p)=>Ground(p);
         private Vector3 Ground(Vector2 p){var at=new Vector3(p.x*worldScale,0,p.y*worldScale);return NavMesh.SamplePosition(at,out var hit,Mathf.Max(2,worldScale*2),NavMesh.AllAreas)?hit.position:at;}

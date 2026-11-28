@@ -1,0 +1,36 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-bot-learning-20261128.json",
+  "baseRef": "744684d74c241e67ad0b80a4d71d181d90147a06",
+  "productionBaselineEvidence": "Standalone Empire DEV only; no verified APK or production change; runtime explicitly deferred.",
+  "objective": "Persistent offline bot learning and visible tactical adaptation.",
+  "chosenApproach": "Bounded device-local aggregate profile by hero and difficulty; use existing simulation and movement gates.",
+  "selectionRationale": "Preserves deterministic online simulation, privacy and zero budget.",
+  "alternativeApproaches": [
+    "Cloud model training requires services and data",
+    "Unbounded replay logging risks privacy and storage"
+  ],
+  "riskAreas": [
+    "offline save lifecycle",
+    "fog of war",
+    "hazard steering",
+    "bot tactics"
+  ],
+  "preserveBehaviors": [
+    "13 hero skill and combat contracts, online authority, existing rewards, MAIN"
+  ],
+  "acceptanceChecks": [
+    "Profile validation and bounded updates; no unfinished or autonomous learning; Unity regression tests and gameplay deferred"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/NeutralObjectiveTests.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineBotLearning.cs",
+    ".buklod/scopes/empire-bot-learning-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/NeutralObjectiveTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

@@ -899,6 +899,7 @@ namespace Buklod.Empire {
             }
             if(tick%10==0)VillageAuras();
             HeroPassives();
+            ObserveHumanForLearning();
             var copy=units.ToArray();
             foreach(var u in copy){
                 if(Finished)break;var a=u.State;if(u.Villager!=null){if(!IsAuthoritative)DefendVillageWorker(u);continue;}
@@ -1023,8 +1024,15 @@ namespace Buklod.Empire {
             if(HazardSteer(u,dir,speed))return;
             if(dir.sqrMagnitude<1)return;float n=Mathf.Min(speed*Step,dir.magnitude);
             if(Move(u,dir,n))return;
-            if(navigation!=null&&navigation.TryWaypoint(u.Position,u.Position+dir,out var waypoint)&&Move(u,waypoint-u.Position,Mathf.Min(n,Vector2.Distance(u.Position,waypoint))))return;
-            if(!Move(u,new Vector2(-dir.y,dir.x),n))Move(u,new Vector2(dir.y,-dir.x),n);
+            bool avoid=JungleHazardsActive&&u.Kind==BattleTargetKind.Hero&&!HumanControlled(u);
+            bool Safe(Vector2 direction,float distance)=>!avoid||SafeJungleSegment(u.Position,u.Position+direction.normalized*distance);
+            if(navigation!=null&&navigation.TryWaypoint(u.Position,u.Position+dir,out var waypoint)){
+                var delta=waypoint-u.Position;float length=Mathf.Min(n,delta.magnitude);
+                if(Safe(delta,length)&&Move(u,delta,length))return;
+            }
+            var left=new Vector2(-dir.y,dir.x);var right=-left;
+            if(Safe(left,n)&&Move(u,left,n))return;
+            if(Safe(right,n))Move(u,right,n);
         }
         private bool TrySupport(BattleUnit u){
             var a=u.State;var allies=units.Where(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(u,v)<=9).ToArray();
@@ -1048,9 +1056,39 @@ namespace Buklod.Empire {
             public Vector2 LastSeen;
             public bool HasObservation;
             public int LastDeath, EnemyCastBursts;
-            public float NextPurchase, RegroupUntil;
+            public float NextPurchase, RegroupUntil, FlankUntil, FeintUntil, NextFeint;
+            public int FlankSide,FlankTarget;
         }
         readonly Dictionary<int,BotMemory> botMemory=new Dictionary<int,BotMemory>();
+        OfflineBotLearning learned=new OfflineBotLearning();
+        int learningObservations,learningCasts,learningAdvances,learningIsolated,lastObservedCast;
+        float lastObservedDistance;
+        bool previouslyObserved,learningCollected;
+        public bool ConfigureBotLearning(OfflineBotLearning profile){
+            if(IsAuthoritative||AutonomousTraining||Time!=0||profile==null)return false;
+            learned=profile.Copy();return true;
+        }
+        // Only the enemy team's visible, local observations of the human player enter the profile.
+        void ObserveHumanForLearning(){
+            if(IsAuthoritative||AutonomousTraining||tick%10!=0||!Player.State.Alive){if(!Player.State.Alive)previouslyObserved=false;return;}
+            var observer=units.Where(v=>v.Team!=Player.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(v,Player)<=18&&ClearSight(v.Position,Player.Position)&&IsVisibleTo(v.Team,Player)).OrderBy(v=>Dist(v,Player)).ThenBy(v=>v.Id).FirstOrDefault();
+            if(observer==null){previouslyObserved=false;return;}
+            float distance=Dist(observer,Player);
+            if(previouslyObserved){
+                learningObservations++;
+                if(Player.State.CastSequence>lastObservedCast)learningCasts++;
+                if(distance<lastObservedDistance-1)learningAdvances++;
+                if(!units.Any(v=>v!=Player&&v.Team==Player.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(v,Player)<10&&IsVisibleTo(observer.Team,v)))learningIsolated++;
+            }
+            previouslyObserved=true;lastObservedCast=Player.State.CastSequence;lastObservedDistance=distance;
+        }
+        public bool TryCollectBotLearning(out OfflineBotLearning profile){
+            profile=null;
+            if(IsAuthoritative||AutonomousTraining||!Finished||learningCollected)return false;
+            learningCollected=true;
+            if(!learned.Learn(learningObservations,learningCasts,learningAdvances,learningIsolated))return false;
+            profile=learned.Copy();return true;
+        }
         public static float BotReactionSeconds(ArenaDifficulty difficulty,int personality){
             float baseline=difficulty==ArenaDifficulty.Beginner?.85f:difficulty==ArenaDifficulty.Normal?.60f:difficulty==ArenaDifficulty.Advanced?.42f:difficulty==ArenaDifficulty.Expert?.30f:.22f;
             return baseline+(Mathf.Abs(personality%5)*.035f);
@@ -1078,7 +1116,7 @@ namespace Buklod.Empire {
         bool ObserveBot(BattleUnit u,BotMemory m){
             if(Time<m.NextThink)return false;
             m.NextThink=Time+BotReactionSeconds(Difficulty,u.Id);
-            if(m.LastDeath!=u.Deaths){m.LastDeath=u.Deaths;m.TargetId=0;m.HasObservation=false;m.ObservedHero=0;m.Pressure=.25f;m.EnemyCastBursts=0;m.LastDamage=u.DamageTaken;}
+            if(m.LastDeath!=u.Deaths){m.LastDeath=u.Deaths;m.FlankUntil=0;m.FeintUntil=0;m.RegroupUntil=0;m.TargetId=0;m.HasObservation=false;m.ObservedHero=0;m.Pressure=.25f;m.EnemyCastBursts=0;m.LastDamage=u.DamageTaken;}
             float delta=Mathf.Max(0,u.DamageTaken-m.LastDamage);m.LastDamage=u.DamageTaken;
             m.Pressure=Mathf.Clamp01(m.Pressure*.82f+delta/Mathf.Max(1,u.State.MaxHealth));
             var seen=units.Where(v=>v.Team!=u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
@@ -1130,7 +1168,7 @@ namespace Buklod.Empire {
             }
             var a=u.State;var memory=Memory(u);bool thinking=ObserveBot(u,memory);
             float hp=a.Health/Mathf.Max(1,a.MaxHealth);var style=Style(u);
-            u.Retreat=CanRespawn(u.Team)&&(OfflineMatchRules.Retreat(hp,u.Retreat)||hp<BotRiskThreshold(u.Id,memory.Pressure));
+            u.Retreat=CanRespawn(u.Team)&&(OfflineMatchRules.Retreat(hp,u.Retreat)||hp<Mathf.Min(.68f,BotRiskThreshold(u.Id,memory.Pressure)+(u.Team!=Player.Team&&!AutonomousTraining?learned.RiskBias:0)));
             if(thinking&&Time>=memory.NextPurchase&&Vector2.Distance(u.Position,u.Spawn)<12&&CoreAlive(u.Team)){
                 memory.NextPurchase=Time+1.5f;
                 var order=hp<.45f||style==BotStyle.Guardian?new[]{"armor","vitality","boots","blade","aegis","wisdom"}:
@@ -1175,6 +1213,23 @@ namespace Buklod.Empire {
                 if(distance<12f){
                     if(thinking&&distance<=a.Kit.BasicRange&&ClearSight(u.Position,t.Position))Basic(u,t.Position-u.Position,null,0,t.Id);
                     return;
+                }
+            }
+            // Bounded feints and flanks use visible opponents and nearby allies only.
+            if(t!=null&&t.Kind==BattleTargetKind.Hero&&defense==null&&CanRespawn(u.Team)&&(int)Difficulty>=(int)ArenaDifficulty.Advanced){
+                float d=Dist(u,t);
+                bool allyNear=units.Any(v=>v!=u&&v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&!v.Retreat&&Dist(v,u)<14);
+                float flankBias=u.Team!=Player.Team&&!AutonomousTraining?learned.FlankBias:0;
+                if(thinking&&allyNear&&hp>.60f&&d>4&&d<12&&Time>=memory.NextFeint&&style==BotStyle.Hunter){
+                    memory.FeintUntil=Time+.7f;memory.NextFeint=Time+12;
+                }
+                if(Time<memory.FeintUntil&&allyNear&&d<14){Steer(u,u.Position-t.Position,speed);return;}
+                if(thinking&&allyNear&&hp>.60f-flankBias&&d>5&&d<15&&(style==BotStyle.Hunter||style==BotStyle.Strategist)&&Time>=memory.FlankUntil){
+                    memory.FlankUntil=Time+1.2f;memory.FlankSide=(u.Id%2==0?1:-1);memory.FlankTarget=t.Id;
+                }
+                if(Time<memory.FlankUntil&&memory.FlankTarget==t.Id&&d>5){
+                    var forward=(t.Position-u.Position).normalized;var side=new Vector2(-forward.y,forward.x)*memory.FlankSide;
+                    goal=u.Position+forward*4+side*3;
                 }
             }
             if(t==null||Dist(u,t)>Mathf.Max(1.5f,a.Kit.BasicRange*.82f)||!ClearSight(u.Position,t.Position))Steer(u,goal-u.Position,speed);

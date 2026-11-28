@@ -37,6 +37,22 @@ namespace Buklod.Empire.Tests {
             Assert.AreEqual(SkillSlot.Primary,OfflineBattle.BotPreferredSkill("quin",14,1,0,.9f,.8f,false,true));
             Assert.IsNull(OfflineBattle.BotPreferredSkill("phan",12,1,0,.9f,.8f,false,true));
         }
+        [Test] public void LearningIsBoundedVersionedAndRequiresEvidence(){
+            var p=new OfflineBotLearning();
+            Assert.False(p.Learn(7,3,3,3));Assert.False(p.Learn(8,9,0,0));
+            Assert.True(p.Learn(10,8,5,6));Assert.AreEqual(1,p.samples);Assert.AreEqual(.8f,p.burst,.0001f);
+            for(int i=0;i<100;i++)Assert.True(p.Learn(10,10,10,10));
+            Assert.AreEqual(OfflineBotLearning.MaxSamples,p.samples);Assert.LessOrEqual(p.RiskBias,.12001f);
+            var clone=OfflineBotLearning.Decode(JsonUtility.ToJson(p));Assert.AreEqual(p.samples,clone.samples);Assert.AreEqual(p.burst,clone.burst,.0001f);
+            Assert.AreEqual(0,OfflineBotLearning.Decode("{\"version\":999,\"samples\":64}").samples);
+            Assert.AreEqual(0,OfflineBotLearning.Decode("broken").samples);
+        }
+        [Test] public void LearningNeverCollectsFromUnfinishedOrAutonomousMatches(){
+            var p=new OfflineBotLearning();p.Learn(10,5,5,5);
+            var b=new OfflineBattle("phan");Assert.True(b.ConfigureBotLearning(p));Assert.False(b.TryCollectBotLearning(out _));
+            b.Advance(.1f,Vector2.zero);Assert.False(b.ConfigureBotLearning(p));
+            var demo=new OfflineBattle("phan",autonomousTraining:true);Assert.False(demo.ConfigureBotLearning(p));Assert.False(demo.TryCollectBotLearning(out _));
+        }
         [Test] public void HazardRangeIncludesBoundary(){
             Assert.True(OfflineBattle.InHazardRange(Vector2.right*10,Vector2.zero,10));
             Assert.False(OfflineBattle.InHazardRange(Vector2.right*10.1f,Vector2.zero,10));
