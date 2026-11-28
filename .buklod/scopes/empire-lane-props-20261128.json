@@ -1,0 +1,28 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-lane-props-20261128.json",
+  "baseRef": "6e1772fb0b5fd121111da20860c979c9fbd5ff5a",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Place authored environment assets next to playable lanes.",
+  "chosenApproach": "Use mirrored lane shoulder placements and validate their model bounds.",
+  "selectionRationale": "Assets are visible during ordinary play.",
+  "alternativeApproaches": [
+    "Keep perimeter placements."
+  ],
+  "riskAreas": [
+    "Camera framing",
+    "Decorative overlap"
+  ],
+  "preserveBehaviors": [
+    "Navigation and combat rules unchanged."
+  ],
+  "acceptanceChecks": [
+    "All 24 authored placements fit inside the battlefield and have disabled colliders."
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Editor/AuthoredExpansionReview.cs",
+    ".buklod/scopes/empire-lane-props-20261128.json"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": []
+}

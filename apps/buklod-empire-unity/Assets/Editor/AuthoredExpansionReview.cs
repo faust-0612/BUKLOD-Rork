@@ -48,11 +48,18 @@ namespace Buklod.Empire.Editor {
             }
             var holder=new GameObject("Authored medieval environment expansion (review only)");
             try{
-                for(int i=0;i<models.Length;i++)for(int team=0;team<2;team++)
-                    Place(models[i],holder.transform,team,3.2f,5+i*(OfflineBattle.Height-10)/8f,1.8f);
-                // Preserve the six exterior lane decorations even if a banner needs a candidate substitute.
-                for(int team=0;team<2;team++)foreach(float fraction in new[]{.19f,.5f,.81f})
-                    Place(models[6],holder.transform,team,1.45f,OfflineBattle.Height*fraction,2.2f);
+                float[] lanes={.19f,.5f,.81f};
+                for(int team=0;team<2;team++){
+                    for(int lane=0;lane<lanes.Length;lane++){
+                        float laneCenter=OfflineBattle.Height*lanes[lane];
+                        for(int slot=0;slot<3;slot++){
+                            int model=lane*3+slot;
+                            float z=laneCenter+(slot==1?8f:-8f);
+                            Place(models[model],holder.transform,team,22f+slot*12f,z,slot==0?3.2f:2.5f);
+                        }
+                        Place(models[6],holder.transform,team,16f,laneCenter+7f,3f);
+                    }
+                }
                 resolved=rows;
                 if(Candidate){
                     string report=Environment.GetEnvironmentVariable("BUKLOD_DECORATION_REPORT");
@@ -60,7 +67,7 @@ namespace Buklod.Empire.Editor {
                     File.WriteAllText(report,JsonUtility.ToJson(new DecorationReport{status="OFFLINE_DECORATION_CANDIDATE",placements=rows,instances=24,productionApproved=false},true));
                 }
             }catch{resolved=null;UnityEngine.Object.DestroyImmediate(holder);throw;}
-            Debug.Log("BUKLOD authored environment expansion: 9 decoration slots, 24 exterior decorative instances; substitutions="+rows.Count(r=>r.actual!=r.requested));
+            Debug.Log("BUKLOD authored environment expansion: 9 decoration slots, 24 battlefield shoulder decorations; substitutions="+rows.Count(r=>r.actual!=r.requested));
         }
         static Bounds BoundsFor(Renderer[] renderers){
             if(renderers.Length==0)throw new InvalidOperationException("Authored model has no renderer.");
@@ -68,7 +75,7 @@ namespace Buklod.Empire.Editor {
             foreach(var renderer in renderers)bounds.Encapsulate(renderer.bounds);
             return bounds;
         }
-        static void Place(GameObject model,Transform parent,int team,float margin,float z,float spanLimit){
+        static void Place(GameObject model,Transform parent,int team,float distanceFromHome,float z,float spanLimit){
             var obj=(GameObject)PrefabUtility.InstantiatePrefab(model,parent);
             if(!obj)throw new InvalidOperationException("Cannot instantiate authored model.");
             obj.transform.localRotation=Quaternion.Euler(0,team==0?35:-145,0);
@@ -78,13 +85,12 @@ namespace Buklod.Empire.Editor {
             if(span<=.001f||float.IsNaN(span)||float.IsInfinity(span))throw new InvalidOperationException("Invalid authored model bounds.");
             obj.transform.localScale*=spanLimit/span;
             bounds=BoundsFor(renderers);
-            // Recenter imported pivot; guarantee the visible bounds never cover
-            // canonical playable x coordinates even if original pivot is offset.
-            float x=team==0?-margin:OfflineBattle.Width+margin;
+            // Mirror the spawn-side lane shoulder inside the playable map.
+            float x=team==0?distanceFromHome:OfflineBattle.Width-distanceFromHome;
             obj.transform.position+=new Vector3(x-bounds.center.x,-bounds.min.y,z-bounds.center.z);
             bounds=BoundsFor(renderers);
-            if(team==0?bounds.max.x>=0:bounds.min.x<=OfflineBattle.Width)
-                throw new InvalidOperationException("Exterior decoration intrudes on canonical battlefield.");
+            if(bounds.min.x<0||bounds.max.x>OfflineBattle.Width||bounds.min.z<0||bounds.max.z>OfflineBattle.Height)
+                throw new InvalidOperationException("Lane shoulder decoration exceeds battlefield bounds.");
             foreach(var c in obj.GetComponentsInChildren<Collider>(true))c.enabled=false;
         }
         internal static void Validate(string[] dependencies){
