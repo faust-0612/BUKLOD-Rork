@@ -198,7 +198,7 @@ export default function BuklodFaithPeriodReport({ scopeId, scopeName }: Props) {
         {ACCOMPLISHMENT_METRICS.filter(([key]) => key !== 'mentees_reached_count').map(([key, label]) => <Metric key={key} label={label} value={displayAccomplishment(accomplishmentTotal(activeReport.members, key))} />)}
       </View>
       <Text style={styles.context}>
-        Reading and Devotion rates use {activeReport.expected_days} elapsed days × {totals.active_members} members. {activeReport.devotion_date_basis === 'scheduled' ? 'Devotion uses scheduled publication dates, including late approved completions.' : 'Legacy devotion activity-day calculation; scheduled coverage is unavailable.'} ABAKA, KL and personal Bible count member accomplishments during membership; mentoring counts approved shared-scope sessions. Mentor and mentee totals are separate, not additive. Unavailable sources are not counted as zero.
+        Reading and Devotion rates use {activeReport.expected_days} elapsed days × {totals.active_members} members. {activeReport.devotion_date_basis === 'scheduled' ? 'Devotion uses scheduled publication dates, including late approved completions.' : 'Legacy devotion activity-day calculation; scheduled coverage is unavailable.'} Reading and devotion reflect canonical member activities across active scopes. ABAKA, KL and personal Bible count member accomplishments during membership; mentoring counts approved shared-scope sessions. Mentor and mentee totals are separate, not additive. Unavailable sources are not counted as zero.
       </Text>
       <Text style={styles.sectionTitle}>INDIVIDUAL MEMBER REPORT</Text>
       <TextInput style={styles.search} placeholder="Search member by name" placeholderTextColor="#738679"

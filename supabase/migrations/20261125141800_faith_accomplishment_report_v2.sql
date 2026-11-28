@@ -41,6 +41,7 @@ begin
  ), reading as (
   select s.user_id,count(distinct s.assignment_id) n
   from public.daily_bible_submissions s
+  join members u on u.uid=s.user_id
   join public.daily_bible_assignments a on a.id=s.assignment_id
   left join lateral (
     select f.status from public.buklod_scope_formation_approvals_v2 f
@@ -50,28 +51,30 @@ begin
   ) f on true
   where a.reading_date between v_start and v_end
     and upper(coalesce(f.status,s.status,''))='APPROVED'
-    and exists(select 1 from membership m where m.user_id=s.user_id and m.scope_id=s.cluster_id
-      and s.submitted_at>=m.joined_at)
   group by s.user_id
  ), devotion_events as (
   -- Scheduled dates drive period coverage; actual completion dates remain separate.
-  -- Only server-backed completion and exact-scope approval are accepted.
+  -- Match the Nov 17 all-active-member-scope reporting policy: source scope
+  -- is processing attribution, not report ownership. V1's authorized roster
+  -- is the boundary. Canonical server submission status is the legacy fallback.
   select s.user_id, d.id devotional_id, d.publish_date scheduled_date,
-    dc.completion_date actual_date, bool_or(upper(f.status)='APPROVED') approved,
-    bool_or(upper(f.status)='REJECTED') revision
+    coalesce(dc.completion_date,(dc.completed_at at time zone 'Asia/Manila')::date) actual_date,
+    bool_or(upper(coalesce(f.status,s.status,'PENDING'))='APPROVED') approved,
+    bool_or(upper(coalesce(f.status,s.status,'PENDING'))='REJECTED') revision
   from public.devotional_reward_submissions s
   join public.devotional_completions dc on dc.id=s.completion_id and dc.user_id=s.user_id
   join public.devotionals d on d.id=s.devotional_id and d.id=dc.devotional_id
-  join membership m on m.user_id=s.user_id and dc.completed_at>=m.joined_at
-  join lateral (
+  join members u on u.uid=s.user_id
+  left join lateral (
     select f0.status from public.buklod_scope_formation_approvals_v2 f0
-    where f0.scope_id=m.scope_id and f0.learner_id=s.user_id
+    where f0.learner_id=s.user_id
       and f0.item_kind='DAILY_DEVOTION' and f0.item_id=s.id
-    order by f0.updated_at desc nulls last,f0.created_at desc limit 1
+    order by case f0.status when 'APPROVED' then 0 when 'REJECTED' then 1 else 2 end,
+      f0.created_at desc limit 1
   ) f on true
   where d.publish_date between v_start and v_end and dc.completed_at is not null
     and dc.completed_at<=now()
-  group by s.user_id,d.id,d.publish_date,dc.completion_date
+  group by s.user_id,d.id,d.publish_date,coalesce(dc.completion_date,(dc.completed_at at time zone 'Asia/Manila')::date)
  ), devotion_dates as (
   select user_id,scheduled_date,bool_or(approved) approved,bool_or(revision) revision,
     coalesce(jsonb_agg(distinct actual_date order by actual_date) filter(where approved and actual_date is not null),'[]'::jsonb) actual_dates

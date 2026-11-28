@@ -23,3 +23,10 @@ test('children completion source is server verified and deduplicated',()=>{
  assert.match(reader,/enqueueOfflineAction\(\{kind:'children_story_completion_v1'/);
  assert.match(coordinator,/data\?\.recorded!==true/);
 });
+
+test('formation accomplishments preserve Nov 17 member-attribution policy',()=>{
+ assert.match(sql,/join members u on u.uid=s.user_id/);
+ assert.match(sql,/coalesce\(f.status,s.status,'PENDING'\)/);
+ assert.doesNotMatch(sql,/f0.scope_id=m.scope_id/);
+ assert.match(sql,/case f0.status when 'APPROVED' then 0/);
+});
