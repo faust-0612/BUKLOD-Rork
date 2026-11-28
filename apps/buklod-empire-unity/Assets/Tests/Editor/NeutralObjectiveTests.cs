@@ -18,6 +18,12 @@ namespace Buklod.Empire.Tests {
             Assert.AreEqual(1f,OfflineBattle.HazardSegmentClearance(new Vector2(-10,6),new Vector2(10,6),Vector2.zero,5),.0001f);
             Assert.AreEqual(5f,OfflineBattle.HazardSegmentClearance(Vector2.right*10,Vector2.right*10,Vector2.zero,5),.0001f);
         }
+        [Test] public void BotReactionAndRiskAreBoundedAndDistinct(){
+            Assert.Greater(OfflineBattle.BotReactionSeconds(ArenaDifficulty.Beginner,1),OfflineBattle.BotReactionSeconds(ArenaDifficulty.Expert,1));
+            Assert.AreNotEqual(OfflineBattle.BotReactionSeconds(ArenaDifficulty.Normal,1),OfflineBattle.BotReactionSeconds(ArenaDifficulty.Normal,2));
+            Assert.Greater(OfflineBattle.BotRiskThreshold(1,1),OfflineBattle.BotRiskThreshold(1,0));
+            Assert.LessOrEqual(OfflineBattle.BotRiskThreshold(4,100),.68f);
+        }
         [Test] public void HazardRangeIncludesBoundary(){
             Assert.True(OfflineBattle.InHazardRange(Vector2.right*10,Vector2.zero,10));
             Assert.False(OfflineBattle.InHazardRange(Vector2.right*10.1f,Vector2.zero,10));
