@@ -40,6 +40,26 @@ begin
  raise exception 'Other scope allowed'; exception when insufficient_privilege then null; end;
 end;
 $test$;
+-- Canonical formation approval may have been processed by a different scope.
+-- Preserve member report visibility, dedupe repeated approval rows, and use
+-- legacy approved submission status when a historical approval row is absent.
+update public.buklod_scope_formation_approvals_v2 set scope_id='00000000-0000-0000-0000-000000000020'
+ where item_kind='DAILY_DEVOTION' and item_id='00000000-0000-0000-0000-000000000131';
+insert into public.buklod_scope_formation_approvals_v2 select * from public.buklod_scope_formation_approvals_v2
+ where item_kind='DAILY_DEVOTION' and item_id='00000000-0000-0000-0000-000000000131';
+delete from public.buklod_scope_formation_approvals_v2 where item_kind='DAILY_DEVOTION'
+ and item_id='00000000-0000-0000-0000-000000000132';
+update public.daily_bible_submissions set cluster_id='00000000-0000-0000-0000-000000000020'
+ where assignment_id='00000000-0000-0000-0000-000000000102';
+do $test$
+declare r jsonb; m jsonb;
+begin
+ r:=public.buklod_scope_faith_monitoring_period_v2('00000000-0000-0000-0000-000000000010','week',null);
+ select item into m from jsonb_array_elements(r->'members') item where item->>'user_id'='00000000-0000-0000-0000-000000000001';
+ if m->>'devotion_completed_count' is distinct from '2' or m->>'devotion_completed_days' is distinct from '1'
+ or m->>'reading_approved_count' is distinct from '2' then raise exception 'Canonical member reporting regression: %',m; end if;
+end;
+$test$;
 -- Replay two distinct scheduled days from the same past week, completed together today.
 update public.devotionals set publish_date=date_trunc('week',timezone('Asia/Manila',now()))::date-7
  where id='00000000-0000-0000-0000-000000000181';
