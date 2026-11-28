@@ -343,6 +343,11 @@ namespace Buklod.Empire {
                         if(v.actionDurations.TryGetValue("Attack",out var attackLength))v.poseProtectedUntil=Mathf.Max(v.poseProtectedUntil,Battle.Time+CombatMotionRhythm.ProtectedSeconds("Attack",attackLength));
                         if(effects&&inView&&!immediate)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
                         if(reviewFoley&&inView&&!immediate)reviewFoley.WeaponAttack(u.State.Kit.Id,t.position,player);
+                    }else if(u.Kind==BattleTargetKind.Minion&&effects&&inView&&!immediate&&Battle.IsPositionVisibleTo(Battle.Player.Team,u.LastAttackTargetPosition)){
+                        var tint=u.Team==ArenaTeam.Lux?new Color(.35f,.76f,1):new Color(1,.30f,.26f);var at=Ground(u.LastAttackTargetPosition);var direction=at-t.position;direction.y=0;
+                        if(u.Role==MinionRole.Healer)effects.EmitSkill(at,tint,new SkillCue("minion_heal",SkillCueShape.Heal,1.2f,.35f,-1),t.forward);
+                        else if(u.Role==MinionRole.Mage||u.Role==MinionRole.Gunner||u.Role==MinionRole.Siege)effects.EmitSkill(t.position+Vector3.up*.65f,tint,new SkillCue("minion_projectile",SkillCueShape.Bolt,Mathf.Max(1,direction.magnitude/1.5f),.25f,-1),direction);
+                        else effects.EmitBasic(t.position,tint,t.forward,false);
                     }else if(u.IsCombatStructure&&effects&&inView&&!immediate&&Battle.IsPositionVisibleTo(Battle.Player.Team,u.LastAttackTargetPosition)){
                         // Reuse the existing bolt effect for confirmed tower fire; no new art assets.
                         var at=Ground(u.LastAttackTargetPosition);var direction=at-t.position;direction.y=0;

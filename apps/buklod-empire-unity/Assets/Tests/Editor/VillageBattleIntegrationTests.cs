@@ -51,6 +51,13 @@ namespace Buklod.Empire.Tests {
             Assert.AreEqual(MinionRole.Siege,OfflineBattle.CreatureRole(WildernessKind.StoneGolem));
             Assert.AreEqual(MinionRole.Healer,OfflineBattle.CreatureRole(WildernessKind.AzureStag));
         }
+        [Test] public void FormationOffsetsAreDistinctAndRoleOrdered(){
+            foreach(VillageFormation type in System.Enum.GetValues(typeof(VillageFormation))){
+                var points=Enumerable.Range(0,12).Select(i=>OfflineBattle.FormationOffset(type,i,12,Vector2.right)).ToArray();
+                Assert.AreEqual(12,points.Distinct().Count());
+            }
+            var b=new OfflineBattle("phan");Assert.True(b.SetPlayerFormation(VillageFormation.Wedge));Assert.False(b.SetPlayerFormation((VillageFormation)999));Assert.False(b.OrderPlayerFormationMove(b.Player.Position));
+        }
         [Test] public void TwelveCanonicalVillagersAndDamageSync(){
             var b=new OfflineBattle("phan");var villagers=b.Units.Where(u=>u.Kind==BattleTargetKind.Villager).ToArray();
             Assert.AreEqual(12,villagers.Length);Assert.AreEqual(12,villagers.Select(u=>u.Villager.Job.Id).Distinct().Count());

@@ -12,6 +12,9 @@ namespace Buklod.Empire {
         public WildernessVisual[] wilderness;
         public ResourceVisual[] resources;
         public GameObject fieldPickup,relicPickup;
+        [Serializable] public sealed class ItemVisual {public string slot;public int tier;public GameObject prefab;public Texture2D icon;}
+        public ItemVisual[] itemArt;
+        public ItemVisual ResolveItem(string slot,int tier){ItemVisual chosen=null;if(itemArt!=null)foreach(var row in itemArt)if(row!=null&&row.slot==slot&&row.tier<=tier&&(chosen==null||row.tier>chosen.tier))chosen=row;return chosen;}
         public GameObject jungleDemon,jungleSnake;
         public GameObject genesisRift;
         public HeroVisual[] heroes;

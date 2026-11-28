@@ -171,7 +171,7 @@ namespace Buklod.Empire {
                     if(attacked&&battleEffects)battleEffects.Emit(go.transform.position,hazard.Demon?new Color(1,.2f,.35f):new Color(.45f,1,.15f),1);
                 }
                 foreach(var d in bound.Drops)if(Visible(d.Position))Loot(2,d.Id,d.Position,view.visuals.fieldPickup,d.Item.Tier,d.SpawnedAt,d.Item.Name);
-                foreach(var d in bound.RelicDrops)if(Visible(d.Position))Loot(3,d.Id,d.Position,view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt,d.Item.Name);
+                foreach(var d in bound.RelicDrops)if(Visible(d.Position)){var art=view.visuals.ResolveItem(d.Item.Slot,d.Item.Tier);Loot(3,d.Id,d.Position,art!=null&&art.prefab?art.prefab:view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt,d.Item.Name);}
                 if(review)foreach(var u in bound.Units){
                     if(!u.State.Alive||!Nearby(u.Position)||(u.Team!=bound.Player.Team&&!bound.IsVisibleTo(bound.Player.Team,u)))continue;
                     if(u.Villager!=null&&u.Cargo>1e-6){

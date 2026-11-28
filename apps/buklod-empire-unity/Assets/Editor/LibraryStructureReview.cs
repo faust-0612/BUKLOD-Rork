@@ -7,6 +7,8 @@ using System.Security.Cryptography;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 namespace Buklod.Empire.Editor {
     // Real CC0 source models replace visual-only static catalog entries in the isolated review.
     // Existing prefab dimensions are used solely as a scale reference; no old geometry is rendered.
@@ -15,7 +17,8 @@ namespace Buklod.Empire.Editor {
         const string Out=CandidateReviewComposer.Out+"/LibraryFirst/";
         [Serializable] sealed class Row {public string source,name,gitBlob;public int bytes;}
         [Serializable] sealed class Binding {public string id,group,name,crop;}
-        [Serializable] sealed class Manifest {public string status,license,author;public Row[] models;public Binding[] staticReviewBindings;public bool releaseApproved;}
+        [Serializable] sealed class Manifest {public string status,license,author;public Row[] models;public Binding[] staticReviewBindings;public ItemBinding[] itemReviewBindings;public bool releaseApproved;}
+        [Serializable] sealed class ItemBinding {public string id,group,name;public int tier;}
         static readonly string[] Roles={"tower","core","depot","guardPost","farm","barracks","market","house"};
         static readonly string[] Extra={"wood","stone","gold","food","crystal","field_pickup","relic_pickup"};
         internal static string GitBlob(byte[] bytes){
@@ -172,12 +175,59 @@ namespace Buklod.Empire.Editor {
             catalog.fieldPickup=Build(map["field_pickup"],catalog.fieldPickup);
             catalog.relicPickup=Build(map["relic_pickup"],catalog.relicPickup);
             catalog.structureCollapses=collapses.ToArray();
+            BindItemArt(doc,catalog);
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
             Debug.Log("Library-first static roster: 16 structures, 5 resources, 2 pickups. Review only; no runtime verification or production approval.");
         }
+        static string ItemPath(ItemBinding row)=>PrefabPath("item_"+row.id+"_t"+row.tier);
+        static string IconPath(ItemBinding row)=>Out+"Icons/"+row.id+"_t"+row.tier+".png";
+        static void SetLayer(Transform node,int layer){node.gameObject.layer=layer;foreach(Transform child in node)SetLayer(child,layer);}
+        static void BindItemArt(Manifest doc,BattleVisualCatalog catalog){
+            if(doc.itemReviewBindings==null||doc.itemReviewBindings.Length==0)throw new BuildFailedException("Pinned item-art inputs required.");
+            var keys=new HashSet<string>();foreach(var row in doc.itemReviewBindings){
+                if(row==null||!new[]{"weapon","shield","armor","boots","jewel","health","mana","cache"}.Contains(row.id)||row.tier!=1&&row.tier!=3||!keys.Add(row.id+":"+row.tier)||!SafeName(row.name))throw new BuildFailedException("Invalid item binding.");
+                Copy(doc,row.group,row.name);
+            }
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            Directory.CreateDirectory(Out+"Icons");Directory.CreateDirectory(Out+"Prefabs");
+            var items=new List<BattleVisualCatalog.ItemVisual>();
+            foreach(var row in doc.itemReviewBindings){
+                var root=new GameObject("Authored item "+row.id);GameObject preview=null,camGo=null,keyGo=null,fillGo=null;
+                RenderTexture target=null;Texture2D pixels=null;var previous=RenderTexture.active;
+                try{
+                    var model=Model(row.group,row.name,root.transform);var bounds=BoundsOf(model);
+                    float span=Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z));
+                    if(!Finite(span)||span<=.001f)throw new BuildFailedException("Invalid item art bounds: "+row.name);
+                    model.transform.localScale*=1.35f/span;bounds=BoundsOf(model);
+                    model.transform.position+=new Vector3(-bounds.center.x,-bounds.min.y,-bounds.center.z);
+                    var prefab=PrefabUtility.SaveAsPrefabAsset(root,ItemPath(row));
+                    if(!prefab)throw new BuildFailedException("Cannot save item prefab: "+row.name);
+                    preview=UnityEngine.Object.Instantiate(prefab);preview.transform.position=new Vector3(4000,4000,4000);
+                    SetLayer(preview.transform,30);bounds=BoundsOf(preview);
+                    camGo=new GameObject("Item studio camera");var camera=camGo.AddComponent<Camera>();camera.enabled=false;camera.cullingMask=1<<30;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.035f,.045f,.065f,1);camera.orthographic=true;camera.orthographicSize=1.02f;camera.nearClipPlane=.1f;camera.farClipPlane=15;
+                    camera.transform.position=bounds.center+new Vector3(2.7f,1.9f,-4.2f);camera.transform.LookAt(bounds.center);
+                    var data=camera.GetUniversalAdditionalCameraData();data.renderPostProcessing=false;data.renderShadows=false;
+                    keyGo=new GameObject("Item key");var key=keyGo.AddComponent<Light>();key.type=LightType.Point;key.cullingMask=1<<30;key.range=10;key.intensity=4;key.color=new Color(1,.90f,.70f);key.transform.position=bounds.center+new Vector3(-2,3,-3);
+                    fillGo=new GameObject("Item fill");var fill=fillGo.AddComponent<Light>();fill.type=LightType.Point;fill.cullingMask=1<<30;fill.range=10;fill.intensity=2.5f;fill.color=new Color(.55f,.72f,1);fill.transform.position=bounds.center+new Vector3(3,1,1);
+                    target=RenderTexture.GetTemporary(192,192,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);
+                    var request=new UniversalRenderPipeline.SingleCameraRequest{destination=target};
+                    if(!RenderPipeline.SupportsRenderRequest(camera,request))throw new BuildFailedException("URP item studio capture unsupported.");
+                    RenderPipeline.SubmitRenderRequest(camera,request);RenderTexture.active=target;
+                    pixels=new Texture2D(192,192,TextureFormat.RGBA32,false);pixels.ReadPixels(new Rect(0,0,192,192),0,0);pixels.Apply();
+                    File.WriteAllBytes(IconPath(row),pixels.EncodeToPNG());
+                    AssetDatabase.ImportAsset(IconPath(row),ImportAssetOptions.ForceSynchronousImport);
+                    var importer=AssetImporter.GetAtPath(IconPath(row)) as TextureImporter;
+                    if(importer){importer.mipmapEnabled=false;importer.npotScale=TextureImporterNPOTScale.None;importer.maxTextureSize=256;importer.SaveAndReimport();}
+                    var icon=AssetDatabase.LoadAssetAtPath<Texture2D>(IconPath(row));if(!icon)throw new BuildFailedException("Item icon import failed: "+row.name);
+                    items.Add(new BattleVisualCatalog.ItemVisual{slot=row.id,tier=row.tier,prefab=prefab,icon=icon});
+                }finally{RenderTexture.active=previous;if(target)RenderTexture.ReleaseTemporary(target);if(pixels)UnityEngine.Object.DestroyImmediate(pixels);foreach(var obj in new[]{root,preview,camGo,keyGo,fillGo})if(obj)UnityEngine.Object.DestroyImmediate(obj);}
+            }
+            catalog.itemArt=items.ToArray();
+        }
         internal static void ValidateDependencies(IEnumerable<string> dependencies){
             var doc=Read();var set=new HashSet<string>(dependencies,StringComparer.Ordinal);
+            foreach(var row in doc.itemReviewBindings??Array.Empty<ItemBinding>()){var input=Find(doc,row.group,row.name);Verified(input);if(!set.Contains(ItemPath(row))||!set.Contains(IconPath(row))||!set.Contains(ModelPath(row.group,row.name)))throw new BuildFailedException("Missing authored item dependency: "+row.name);}
             foreach(var b in doc.staticReviewBindings){
                 if(!set.Contains(PrefabPath(b.id)))throw new BuildFailedException("Missing Library-first prefab: "+b.id);
                 if(b.id=="field_pickup"||b.id=="relic_pickup"){

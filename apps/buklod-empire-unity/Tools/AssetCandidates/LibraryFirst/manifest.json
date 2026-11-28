@@ -33,6 +33,12 @@
       "mirror": "trebeljahr/quaternius-showcase",
       "sourceCommit": "0128ca510d653bb04d6d1e4885bd8890b5050b4f",
       "sourceDirectory": "public/glb/easy_enemies_pack/"
+    },
+    "Weapons": {
+      "sourceUrl": "https://quaternius.com/packs/medievalweapons.html",
+      "mirror": "trebeljahr/quaternius-showcase",
+      "sourceCommit": "0128ca510d653bb04d6d1e4885bd8890b5050b4f",
+      "sourceDirectory": "public/glb/medieval_weapons_pack/"
     }
   },
   "models": [
@@ -265,6 +271,76 @@
       "gitBlob": "fdb107f06725f487fed66c7386b31c56c236e8ad",
       "bytes": 216696,
       "clips": 4
+    },
+    {
+      "source": "RPG",
+      "name": "Sword.glb",
+      "gitBlob": "add0a9400c6f3790b1b1df831467e9803970e199",
+      "bytes": 47240,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Sword_big_Golden.glb",
+      "gitBlob": "e7046ffb4be64852f3d5686d12ed74a03b63c508",
+      "bytes": 50048,
+      "clips": 0
+    },
+    {
+      "source": "Weapons",
+      "name": "Shield_Heater.glb",
+      "gitBlob": "da6627ef6a41898013b944f330a30f413eb8985a",
+      "bytes": 97820,
+      "clips": 0
+    },
+    {
+      "source": "Weapons",
+      "name": "Shield_Celtic_Golden.glb",
+      "gitBlob": "e8f8bb1e1103bff4377bb2032f6e68f69176d3d2",
+      "bytes": 47584,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Armor_Metal.glb",
+      "gitBlob": "34d3517b14b56fbdc9e71f9bb705f52653f9b61b",
+      "bytes": 33440,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Armor_Golden.glb",
+      "gitBlob": "c06577b4bc47644ccb44ce9fd4ccc4aee96a9b91",
+      "bytes": 58064,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Ring5.glb",
+      "gitBlob": "68ed9f05f3c2f0af34b262be9c110d55ba790368",
+      "bytes": 30500,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Necklace3.glb",
+      "gitBlob": "780d3a109b282f94bd79aa01e5029bbd4b754110",
+      "bytes": 61920,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Potion4_Filled.glb",
+      "gitBlob": "4b7e4388e8ddb3513726fbae5df34f6337034967",
+      "bytes": 37676,
+      "clips": 0
+    },
+    {
+      "source": "RPG",
+      "name": "Chest_Closed.glb",
+      "gitBlob": "544e63ca39289d37837dc4c88f7d716e8386511b",
+      "bytes": 96748,
+      "clips": 0
     }
   ],
   "unityImported": false,
@@ -433,6 +509,74 @@
         "Hit": "Idle_HitReact_Left",
         "Death": "Death"
       }
+    }
+  ],
+  "itemReviewBindings": [
+    {
+      "id": "health",
+      "group": "RPG",
+      "name": "Potion1_Filled.glb",
+      "tier": 1
+    },
+    {
+      "id": "weapon",
+      "group": "RPG",
+      "name": "Sword.glb",
+      "tier": 1
+    },
+    {
+      "id": "weapon",
+      "group": "RPG",
+      "name": "Sword_big_Golden.glb",
+      "tier": 3
+    },
+    {
+      "id": "shield",
+      "group": "Weapons",
+      "name": "Shield_Heater.glb",
+      "tier": 1
+    },
+    {
+      "id": "shield",
+      "group": "Weapons",
+      "name": "Shield_Celtic_Golden.glb",
+      "tier": 3
+    },
+    {
+      "id": "armor",
+      "group": "RPG",
+      "name": "Armor_Metal.glb",
+      "tier": 1
+    },
+    {
+      "id": "armor",
+      "group": "RPG",
+      "name": "Armor_Golden.glb",
+      "tier": 3
+    },
+    {
+      "id": "jewel",
+      "group": "RPG",
+      "name": "Ring5.glb",
+      "tier": 1
+    },
+    {
+      "id": "jewel",
+      "group": "RPG",
+      "name": "Necklace3.glb",
+      "tier": 3
+    },
+    {
+      "id": "mana",
+      "group": "RPG",
+      "name": "Potion4_Filled.glb",
+      "tier": 1
+    },
+    {
+      "id": "cache",
+      "group": "RPG",
+      "name": "Chest_Closed.glb",
+      "tier": 1
     }
   ]
 }

@@ -6,6 +6,7 @@ namespace Buklod.Empire {
     public enum ArenaDifficulty { Beginner, Normal, Advanced, Expert, Grandmaster }
     public enum VillageWorkerOrder { Gather, Return, Hold }
     public enum VillageArmyOrder { Advance, GuardBase, FollowHero, HoldPosition }
+    public enum VillageFormation { Line, Wedge, Column }
     public enum VillageBuildOrder { Depot, GuardPost, Repair, Farm, Barracks, Market, House }
     public enum VillageResourceKind { Wood, Stone, Food, Crystal, Gold }
     public sealed class VillageConstructionOrder {
@@ -293,6 +294,21 @@ namespace Buklod.Empire {
         private VillageArmyOrder playerArmyOrder=VillageArmyOrder.Advance;
         public MinionRole PlayerMilitaryRole=>playerMilitaryRole;
         public VillageArmyOrder PlayerArmyOrder=>playerArmyOrder;
+        public VillageFormation PlayerFormation {get;private set;}=VillageFormation.Line;
+        public bool SetPlayerFormation(VillageFormation formation){if(IsAuthoritative||Finished||AutonomousTraining||!Enum.IsDefined(typeof(VillageFormation),formation))return false;PlayerFormation=formation;return true;}
+        internal static Vector2 FormationOffset(VillageFormation formation,int index,int count,Vector2 forward,float spacing=2.8f){
+            if(count<1||index<0||index>=count)return Vector2.zero;if(forward.sqrMagnitude<.001f)forward=Vector2.right;forward.Normalize();var side=new Vector2(-forward.y,forward.x);
+            if(formation==VillageFormation.Column)return -forward*index*spacing;
+            if(formation==VillageFormation.Wedge){if(index==0)return Vector2.zero;int row=(index+1)/2;return -forward*row*spacing+side*(index%2==1?-1:1)*row*spacing*.85f;}
+            int columns=Mathf.Min(5,count),r=index/columns,col=index%columns,width=Mathf.Min(columns,count-r*columns);return side*(col-(width-1)*.5f)*spacing-forward*r*spacing;
+        }
+        public bool OrderPlayerFormationMove(Vector2 point){
+            if(IsAuthoritative||Finished||AutonomousTraining||!Finite(point)||Blocked(point)||!IsPositionVisibleTo(Player.Team,point))return false;
+            var army=units.Where(u=>u.Team==Player.Team&&u.PaidMinion&&u.State.Alive).OrderBy(u=>u.Role==MinionRole.Healer?2:u.Role==MinionRole.Mage||u.Role==MinionRole.Gunner?1:0).ThenBy(u=>u.Id).ToArray();if(army.Length==0)return false;
+            var center=army.Aggregate(Vector2.zero,(sum,u)=>sum+u.Position)/army.Length;var forward=point-center;var goals=new Vector2[army.Length];
+            for(int i=0;i<army.Length;i++){var goal=point+FormationOffset(PlayerFormation,i,army.Length,forward);if(Blocked(goal)||!IsPositionVisibleTo(Player.Team,goal))return false;goals[i]=goal;}
+            for(int i=0;i<army.Length;i++){army[i].ArmyWaypoint=goals[i];army[i].IndividualOrder=VillageArmyOrder.HoldPosition;}return true;
+        }
         private readonly HashSet<WildernessKind>[] creatureContracts={new HashSet<WildernessKind>(),new HashSet<WildernessKind>()};
         public WildernessKind? PlayerCreatureContract {get;private set;}
         public IEnumerable<WildernessKind> PlayerCreatureContracts=>creatureContracts[(int)Player.Team].OrderBy(x=>x);
@@ -950,7 +966,9 @@ namespace Buklod.Empire {
         private bool Spawn(MinionSpawn m,Vector2? site=null,bool paid=false,WildernessKind? creature=null){
             if(Finished||Time>=OfflineMatchRules.MatchLimit||!ArenaDraftRules.ValidTeam(m.Team)||!Enum.IsDefined(typeof(ArenaLane),m.Lane)||MinionCount(m.Team)>=FactionMinionLimit||m.Power<=0||float.IsNaN(m.Power)||float.IsInfinity(m.Power))return false;
             var stats=MinionCombatRules.Stats(m.Role);
-            var u=Add(m.Team,BattleTargetKind.Minion,new SkillActor(stats.Health*m.Power),site??new Vector2(m.Team==ArenaTeam.Lux?19:Width-19,LaneY[(int)m.Lane]),m.Lane,role:m.Role);u.Power=m.Power;u.PaidMinion=paid;u.RecruitedCreature=creature;return true;
+            var origin=site??new Vector2(m.Team==ArenaTeam.Lux?19:Width-19,LaneY[(int)m.Lane]);
+            if(paid&&!IsAuthoritative){var forward=m.Team==ArenaTeam.Lux?Vector2.right:Vector2.left;for(int i=0;i<12;i++){var candidate=origin+forward*3+FormationOffset(VillageFormation.Line,i,12,forward,2.4f);if(!Blocked(candidate)&&!units.Any(x=>x.State.Alive&&x.Kind!=BattleTargetKind.Structure&&Vector2.Distance(x.Position,candidate)<1.8f)){origin=candidate;break;}}}
+            var u=Add(m.Team,BattleTargetKind.Minion,new SkillActor(stats.Health*m.Power),origin,m.Lane,role:m.Role);u.Power=m.Power;u.PaidMinion=paid;u.RecruitedCreature=creature;return true;
         }
         private int Towers(ArenaTeam team)=>units.Count(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&!u.IsVillageBuilding&&u.State.Alive);
         // Trusted match-loop adapter. Slot identity is assigned by the server, never from a packet.
@@ -1415,7 +1433,9 @@ namespace Buklod.Empire {
                 else if(order==VillageArmyOrder.FollowHero){if(!Player.State.Alive)return;goal=Player.Position;}
                 if(order!=VillageArmyOrder.Advance&&!u.ArmyWaypoint.HasValue&&Vector2.Distance(u.Position,goal)<3f)return;
             }
-            Steer(u,goal-u.Position,s.SpeedSourceUnits/40*(1+u.State.Buff("haste",Time))*(1-Mathf.Clamp(u.State.Buff("slow",Time),0,.45f)));
+            var heading=goal-u.Position;
+            if(!IsAuthoritative&&u.PaidMinion&&heading.sqrMagnitude>2.25f){Vector2 repel=Vector2.zero;foreach(var ally in units){if(ally==u||!ally.State.Alive||ally.Team!=u.Team||!ally.PaidMinion)continue;var d=u.Position-ally.Position;float sq=d.sqrMagnitude;if(sq>.001f&&sq<5.76f)repel+=d.normalized*(1-Mathf.Sqrt(sq)/2.4f);}if(repel.sqrMagnitude>0)heading=heading.normalized*3+Vector2.ClampMagnitude(repel,1.4f);}
+            Steer(u,heading,s.SpeedSourceUnits/40*(1+u.State.Buff("haste",Time))*(1-Mathf.Clamp(u.State.Buff("slow",Time),0,.45f)));
         }
         private IEnumerable<BattleUnit> ActiveTowers(ArenaTeam team)=>units.Where(u=>u.Team==team&&u.Kind==BattleTargetKind.Structure&&!u.Core&&!u.Temporary&&!u.IsVillageBuilding&&u.State.Alive);
         public int LowestTowerLevel(ArenaTeam team)=>ActiveTowers(team).Select(u=>u.TowerLevel).DefaultIfEmpty(0).Min();
