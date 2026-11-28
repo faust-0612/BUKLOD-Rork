@@ -3,22 +3,16 @@ import {ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,TextInput,View} f
 import {router,useFocusEffect} from 'expo-router';
 import {supabase} from '@/lib/supabase';
 
-type Pending={attempt_id:string;date:string;essay_question:string;reference:string;rubric:string;essay_answer:string};
 export default function AdminBibleV4(){
  const [kind,setKind]=useState<'flash'|'arena'>('flash');
  const [level,setLevel]=useState<'easy'|'medium'|'hard'>('medium');
  const [slots,setSlots]=useState(5),[schedule,setSchedule]=useState('');
- const [pending,setPending]=useState<Pending[]>([]),[events,setEvents]=useState<any[]>([]);
- const [grade,setGrade]=useState<Record<string,number>>({});
- const [feedback,setFeedback]=useState<Record<string,string>>({});
+ const [events,setEvents]=useState<any[]>([]);
  const [busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[notice,setNotice]=useState('');
  const load=useCallback(async()=>{
-  const [e,p]=await Promise.all([
-   (supabase as any).rpc('get_my_buklod_bible_events_v4'),
-   (supabase as any).rpc('admin_list_buklod_bible_v4_pending')]);
-  if(e.error)throw e.error;if(p.error)throw p.error;
-  setEvents(Array.isArray(e.data?.events)?e.data.events:[]);
-  setPending(Array.isArray(p.data?.pending)?p.data.pending:[]);
+  const {data,error}=await (supabase as any).rpc('get_my_buklod_bible_events_v4');
+  if(error)throw error;
+  setEvents(Array.isArray(data?.events)?data.events:[]);
  },[]);
  useFocusEffect(useCallback(()=>{void load().catch(()=>setNotice('Admin Bible services unavailable.')).finally(()=>setLoading(false));},[load]));
  const act=async(fn:()=>Promise<void>)=>{
@@ -38,18 +32,10 @@ export default function AdminBibleV4(){
   if(error)throw error;
   setNotice('Event scheduled successfully.');
  });
- const review=(p:Pending)=>void act(async()=>{
-  if(grade[p.attempt_id]===undefined)throw Error('Choose a rubric score.');
-  const {error}=await (supabase as any).rpc('admin_review_buklod_bible_v4_essay',{
-   p_attempt_id:p.attempt_id,p_essay_units:grade[p.attempt_id],
-   p_feedback:feedback[p.attempt_id]||'Reviewed using biblical context and the stated rubric.'});
-  if(error)throw error;
-  setNotice('Essay reviewed and finalized.');
- });
  return <ScrollView contentContainerStyle={s.root} keyboardShouldPersistTaps="handled">
   <Pressable onPress={()=>router.back()}><Text style={s.bold}>← Back to Admin</Text></Pressable>
   <Text style={s.title}>Bible Challenge Administration</Text>
-  <Text style={s.note}>System Admin only · Live event scheduler and secure essay review · Manila time</Text>
+  <Text style={s.note}>System Admin only · Live event scheduler · Manila time. Bible essays are graded automatically.</Text>
   {loading?<ActivityIndicator/>:null}
   {notice?<Text style={s.notice}>{notice}</Text>:null}
   <View style={s.card}>
@@ -72,20 +58,9 @@ export default function AdminBibleV4(){
      if(error)throw error;})}><Text style={s.danger}>Cancel</Text></Pressable>:null}
    </View>)}
   </View>
-  <View style={s.card}><Text style={s.bold}>Pending essay assessments · {pending.length}</Text>
-   {pending.length===0?<Text style={s.note}>No essays to review.</Text>:pending.map(p=><View key={p.attempt_id} style={s.review}>
-     <Text style={s.bold}>{p.date} · {p.reference}</Text>
-     <Text style={s.note}>Question: {p.essay_question}</Text>
-     <Text style={s.note}>Rubric: {p.rubric}</Text>
-     <Text style={s.answer}>{p.essay_answer}</Text>
-     <Text style={s.note}>Essay contribution (0–2 units):</Text>
-     <View style={s.row}>{[0,1,2].map(v=><Pressable key={v} onPress={()=>setGrade(x=>({...x,[p.attempt_id]:v}))}
-       style={[s.choice,grade[p.attempt_id]===v&&s.selected]}><Text style={s.bold}>{v}/2</Text></Pressable>)}</View>
-     <TextInput style={s.input} placeholder="Grading rationale" maxLength={600}
-       value={feedback[p.attempt_id]||''} onChangeText={v=>setFeedback(x=>({...x,[p.attempt_id]:v}))}/>
-     <Pressable disabled={busy||grade[p.attempt_id]===undefined} style={s.action} onPress={()=>review(p)}>
-      <Text style={s.white}>FINALIZE SCORE & BP</Text></Pressable>
-   </View>)}
+  <View style={s.card}>
+   <Text style={s.bold}>Automated Bible Quiz grading</Text>
+   <Text style={s.note}>Rubric-based scoring is automatic and final. Learners see their criteria and results directly in Bible Quiz; no manual review queue or approval button.</Text>
   </View>
  </ScrollView>;
 }

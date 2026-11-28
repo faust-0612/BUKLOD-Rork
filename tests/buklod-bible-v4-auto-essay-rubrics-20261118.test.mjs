@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const rubric=read('supabase/migrations/20261118002700_buklod_bible_v4_automatic_essay_rubrics.sql');
+const finalize=read('supabase/migrations/20261118002800_buklod_bible_v4_finalize_pending_essays.sql');
+const ui=read('src/components/bible/BuklodBibleQuizV4.tsx');
+const admin=read('src/app/admin/bible-v4-events.tsx');
+test('server grading is immediate, rubric-specific, visible, and reward-safe',()=>{
+ for(const id of ['v4_h_x01','v4_h_x02','v4_h_x03'])assert.match(rubric,new RegExp(id));
+ assert.match(rubric,/private\.buklod_bible_v4_grade_essay\(q\.id,p_answers->>q\.id\)/);
+ assert.match(rubric,/item_units:=\(v_essay_feedback->>'units'\)::integer/);
+ assert.match(rubric,/units:=units\+item_units/);
+ assert.match(rubric,/out_result:=private\.buklod_bible_v4_finalize\(a\.id,units\)/);
+ assert.match(rubric,/rubric_feedback/);
+ assert.match(rubric,/rubric_guidance/);
+ assert.match(rubric,/criteria_matched/);
+ assert.doesNotMatch(rubric,/state='pending_review'|pending boolean:=true/);
+ assert.match(rubric,/revoke all on function public\.admin_review_buklod_bible_v4_essay/);
+ assert.match(rubric,/revoke all on function public\.admin_list_buklod_bible_v4_pending/);
+});
+test('pending attempts are finalized once with no manual approval and clear notice',()=>{
+ assert.match(finalize,/where state='pending_review'/);
+ assert.match(finalize,/for update/);
+ assert.match(finalize,/private\.buklod_bible_v4_grade_essay\(q\.id,a\.submitted_answers->>q\.id\)/);
+ assert.match(finalize,/private\.buklod_bible_v4_finalize\(a\.id,v_total\)/);
+ assert.match(finalize,/not exists/);
+ assert.match(finalize,/bible_quiz_result/);
+ assert.doesNotMatch(finalize,/admin_review_buklod_bible_v4_essay/);
+});
+test('learner sees required criteria, immediate feedback and no manual review language',()=>{
+ assert.match(ui,/rubric_guidance/);
+ assert.match(ui,/rubric_feedback\.message/);
+ assert.match(ui,/criteria_matched/);
+ assert.match(ui,/requirements_met/);
+ assert.match(ui,/Awtomatikong/);
+ assert.doesNotMatch(ui,/Manual rubric review is required/);
+ assert.doesNotMatch(admin,/admin_review_buklod_bible_v4_essay/);
+ assert.doesNotMatch(admin,/admin_list_buklod_bible_v4_pending/);
+});
