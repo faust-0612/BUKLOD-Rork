@@ -83,7 +83,7 @@ namespace Buklod.Empire {
         private void ApplySafeArea(){lastSafe=MobileBattleInput.SafeArea;safeRoot.anchorMin=new Vector2(lastSafe.xMin/Mathf.Max(1,Screen.width),lastSafe.yMin/Mathf.Max(1,Screen.height));safeRoot.anchorMax=new Vector2(lastSafe.xMax/Mathf.Max(1,Screen.width),lastSafe.yMax/Mathf.Max(1,Screen.height));}
         private void Open(){if(starting)return;panelGroup.alpha=1;shown=true;view.SetPaused(true);panel.gameObject.SetActive(true);feedback.text="";Rebuild();}
         private bool Active=>view.Battle!=null&&!view.Battle.Finished;
-        private void Reply(bool ok,string success){if(ok&&authored)authored.AcceptedAction(success);feedback.text=ok?success:"Not available: check eligibility, funds, distance or cooldown.";Rebuild();}
+        private void Reply(bool ok,string success,string pickupEffect=null){if(ok&&authored)authored.AcceptedAction(success,pickupEffect);feedback.text=ok?success:"Not available: check eligibility, funds, distance or cooldown.";Rebuild();}
         private void HeroCard(int i,HeroKit kit){
             float x=(i%5)/5f,y=1-(i/5+1)/3f;
             var r=Rect(kit.Id,body,new Vector2(x+.008f,y+.015f),new Vector2(x+.192f,y+1f/3-.015f));
@@ -366,7 +366,7 @@ namespace Buklod.Empire {
                 Cell(i++,4,5,b.PracticeCounterUsed?"Practice counter used":counterTarget==null?"No counter target":"Counter "+counterTarget.State.Kit.Name,()=>Reply(counterTarget!=null&&b.TryPracticeCounter(counterTarget.State.Kit.Id,counterTarget.Id),"Practice counter activated; no stone spent"),active&&counterTarget!=null);
                 foreach(var u in b.Units.Where(u=>u.Team!=p.Team&&u.State.Alive&&b.IsVisibleTo(p.Team,u)&&Vector2.Distance(p.Position,u.Position)<=p.State.Kit.BasicRange).OrderBy(u=>Vector2.Distance(p.Position,u.Position)).Take(5)){var target=u;Cell(i++,4,5,"Attack "+(u.State.Kit?.Name??u.Kind.ToString()),()=>{Close();b.PlayerAttackUnit(target.Id);},active);}
                 foreach(var camp in b.Camps.Where(c=>c.Alive&&b.IsPositionVisibleTo(p.Team,c.Position)&&Vector2.Distance(p.Position,c.Position)<=p.State.Kit.BasicRange).OrderBy(c=>Vector2.Distance(p.Position,c.Position)).Take(3)){var target=camp;Cell(i++,4,5,"Attack "+camp.Kind,()=>{Close();b.AttackNeutralPlayer(target.Id);},active);}
-                foreach(var drop in b.Drops.Where(x=>Vector2.Distance(p.Position,x.Position)<=ArenaPickupCatalog.Radius).Take(4)){var target=drop;Cell(i++,4,5,"Pick "+drop.Item.Name,()=>Reply(b.CollectPlayerPickup(target.Id),"Picked up"),active);}
+                foreach(var drop in b.Drops.Where(x=>Vector2.Distance(p.Position,x.Position)<=ArenaPickupCatalog.Radius).Take(4)){var target=drop;Cell(i++,4,5,"Pick "+drop.Item.Name,()=>Reply(b.CollectPlayerPickup(target.Id),"Picked up",target.Item.Effect),active);}
                 foreach(var drop in b.RelicDrops.Where(x=>Vector2.Distance(p.Position,x.Position)<=ArenaRelicCatalog.Radius).Take(4)){var target=drop;Cell(i++,4,5,"Relic "+drop.Item.Name,()=>Reply(b.CollectPlayerRelic(target.Id),"Relic acquired"),active);}
                 if(i==0)Cell(0,4,5,"No nearby target",()=>{},false);
             }

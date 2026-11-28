@@ -30,6 +30,20 @@ namespace Buklod.Empire {
             lastEarned=player.EarnedFeedbackSequence;lastLevel=player.State.Level;
             lastPickup=player.PickupFeedbackSequence;lastRelic=player.RelicFeedbackSequence;lastPurchase=player.PurchaseFeedbackSequence;
         }
+        public static string PickupSound(string effect){
+            switch(effect){
+                case "health":return "heal-restore";
+                case "mana":return "gem-sparkle";
+                case "xp":return "xp-gain";
+                case "gold":return "coin-shower";
+                case "shield":case "cooldown":case "haste":case "fury":case "guard":case "regen":return "power-up-charge";
+                default:return "item-get";
+            }
+        }
+        public static AudioClip PickupClip(string effect,AudioClip fallback){
+            var clip=Resources.Load<AudioClip>("LibraryAudio/Reward/"+PickupSound(effect));
+            return clip?clip:fallback;
+        }
         public static string LevelUpVariant(int level){
             if(level<=2)return "level-up-magic-harp";
             if(level%5==0)return "level-up-epic-brass";
@@ -53,7 +67,7 @@ namespace Buklod.Empire {
             if(player.State.Alive&&delta<2f){stride+=delta;if(stride>=1.3f){stride%=1.3f;if(steps!=null&&steps.Length>0&&!feet.isPlaying){var clip=steps[nextStep++%steps.Length];if(clip)feet.PlayOneShot(clip,.22f);}}}
             else stride=0;
             // One bounded economy voice; a specific accepted action takes precedence over generic earnings.
-            var cue=player.RelicFeedbackSequence>lastRelic?relic:player.PurchaseFeedbackSequence>lastPurchase?purchase:player.PickupFeedbackSequence>lastPickup?pickup:player.EarnedFeedbackSequence>lastEarned?coins:null;
+            var cue=player.RelicFeedbackSequence>lastRelic?relic:player.PurchaseFeedbackSequence>lastPurchase?purchase:player.PickupFeedbackSequence>lastPickup?PickupClip(player.LastPickupFeedbackEffect,pickup):player.EarnedFeedbackSequence>lastEarned?coins:null;
             if(cue&&Time.unscaledTime>=nextCoin){economy.Stop();economy.PlayOneShot(EmpireContentUpdater.Resolve(cue),cue==coins?.16f:.25f);nextCoin=Time.unscaledTime+1.2f;}
             // Actual accepted match-state transition, never an XP/BP grant.
             if(player.State.Level>lastLevel&&levelUp){

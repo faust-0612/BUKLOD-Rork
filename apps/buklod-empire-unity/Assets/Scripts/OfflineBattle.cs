@@ -52,6 +52,7 @@ namespace Buklod.Empire {
         public int EarnedFeedbackSequence {get;internal set;}
         // Presentation-only receipts; increment only after an accepted action.
         public int PickupFeedbackSequence {get;internal set;}
+        public string LastPickupFeedbackEffect {get;internal set;}
         public int RelicFeedbackSequence {get;internal set;}
         public int PurchaseFeedbackSequence {get;internal set;}
         internal int AggressorId, LastTowerTarget, ConsecutiveTowerHits,KillStreak,ConsecutiveDeaths;
@@ -588,7 +589,7 @@ namespace Buklod.Empire {
                 case "cooldown":amount=s.ReduceActiveCooldowns(v/1000,Time);break;
                 case "haste":case "fury":case "guard":case "regen":if(s.ExtendPickupBuff(item.Effect,v,item.Duration,Time))amount=v;break;
             }
-            if(amount<=0)return false;drops.Remove(d);u.EarnedFeedbackSequence++;u.PickupFeedbackSequence++;return true;
+            if(amount<=0)return false;drops.Remove(d);u.LastPickupFeedbackEffect=item.Effect;u.EarnedFeedbackSequence++;u.PickupFeedbackSequence++;return true;
         }
         private void CollectNearby(BattleUnit u){for(int i=drops.Count-1;i>=0;i--)if(CollectPickup(u,drops[i].Id))break;for(int i=relicDrops.Count-1;i>=0;i--)if(CollectRelic(u,relicDrops[i].Id))break;}
         public bool Dash(SkillActor actor,Vector2 direction,float distance)=>Move(Find(actor),direction,distance);

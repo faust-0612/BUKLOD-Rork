@@ -6,8 +6,8 @@ namespace Buklod.Empire {
         public ArenaEntranceDoor entrance;
         AudioSource source,feedback;
         float nextFeedback;
-        public void AcceptedAction(string action){
-            AudioClip cue=action=="Purchased"?purchase:action=="Picked up"?pickup:action=="Relic acquired"?relic:null;
+        public void AcceptedAction(string action,string pickupEffect=null){
+            AudioClip cue=action=="Purchased"?purchase:action=="Picked up"?ArenaReviewFoley.PickupClip(pickupEffect,pickup):action=="Relic acquired"?relic:null;
             if(!cue||Time.unscaledTime<nextFeedback)return;
             if(!feedback){feedback=gameObject.AddComponent<AudioSource>();feedback.playOnAwake=false;feedback.spatialBlend=0;}
             feedback.Stop();feedback.volume=.32f*ReviewAudioSettings.Get(ReviewAudioChannel.Effects);
