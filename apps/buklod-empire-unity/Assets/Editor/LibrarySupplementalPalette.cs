@@ -26,6 +26,34 @@ namespace Buklod.Empire.Editor {
         };
         static string Key(Row row)=>row.source+"/"+row.name;
         static bool SafeName(string name)=>!string.IsNullOrWhiteSpace(name)&&name==Path.GetFileName(name)&&name.EndsWith(".glb",StringComparison.Ordinal)&&!name.Contains("/")&&!name.Contains("\\")&&!name.Contains(":");
+        static bool Finite(float value)=>!float.IsNaN(value)&&!float.IsInfinity(value);
+        static bool Finite(Vector3 value)=>Finite(value.x)&&Finite(value.y)&&Finite(value.z);
+        // Validate original skeletal curves and baked deformation before making a review prefab.
+        static void Sample(GameObject source,AnimationClip clip,string key){
+            var instance=UnityEngine.Object.Instantiate(source);
+            var mesh=new Mesh();
+            try{
+                var skins=instance.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                if(skins.Length==0||skins.Any(x=>!x.sharedMesh||x.sharedMesh.vertexCount==0))
+                    throw new InvalidOperationException("Invalid supplemental skin: "+key);
+                var bindings=AnimationUtility.GetCurveBindings(clip).Where(x=>x.type==typeof(Transform)).ToArray();
+                if(bindings.Length==0||bindings.Any(x=>!string.IsNullOrEmpty(x.path)&&!instance.transform.Find(x.path)))
+                    throw new InvalidOperationException("Unbound supplemental rig curves: "+key+"/"+clip.name);
+                var nodes=instance.GetComponentsInChildren<Transform>(true);
+                var pos=nodes.Select(x=>x.localPosition).ToArray();
+                var rot=nodes.Select(x=>x.localRotation).ToArray();
+                var scale=nodes.Select(x=>x.localScale).ToArray();
+                foreach(float fraction in new[]{0f,.5f,.99f}){
+                    for(int i=0;i<nodes.Length;i++){nodes[i].localPosition=pos[i];nodes[i].localRotation=rot[i];nodes[i].localScale=scale[i];}
+                    clip.SampleAnimation(instance,clip.length*fraction);
+                    foreach(var skin in skins){
+                        mesh.Clear();skin.BakeMesh(mesh);mesh.RecalculateBounds();
+                        if(mesh.vertexCount!=skin.sharedMesh.vertexCount||!Finite(mesh.bounds.center)||!Finite(mesh.bounds.size)||mesh.bounds.size.sqrMagnitude<=.000001f)
+                            throw new InvalidOperationException("Invalid sampled supplemental mesh: "+key+"/"+clip.name);
+                    }
+                }
+            }finally{UnityEngine.Object.DestroyImmediate(mesh);UnityEngine.Object.DestroyImmediate(instance);}
+        }
         [MenuItem("BUKLOD Empire/Import supplemental authored creature palette")]
         public static void Prepare(){
             if(Application.isPlaying)throw new InvalidOperationException("Exit play mode first.");
@@ -54,14 +82,17 @@ namespace Buklod.Empire.Editor {
                 var model=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
                 if(!model||!model.GetComponentInChildren<SkinnedMeshRenderer>(true))throw new InvalidOperationException("Missing imported rig: "+row.name);
                 var imported=AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<AnimationClip>().Where(c=>c.length>0).ToArray();
-                foreach(var expected in Expected[Key(row)])
-                    if(imported.Count(c=>c.name.Split('|').Last()==expected)!=1)
+                foreach(var expected in Expected[Key(row)]){
+                    var matches=imported.Where(c=>c.name.Split('|').Last()==expected).ToArray();
+                    if(matches.Length!=1||!Finite(matches[0].length))
                         throw new InvalidOperationException("Missing or ambiguous supplemental animation: "+row.name+"/"+expected);
+                    Sample(model,matches[0],Key(row));
+                }
                 // Preserve the complete authored model and clips. No fabricated combat motions.
                 Debug.Log("Supplemental source ready for visual review: "+row.name+" ("+imported.Length+" clips)");
             }
             AssetDatabase.SaveAssets();
-            Debug.Log("Nine supplemental source rigs imported for review only; not a gameplay replacement or release approval.");
+            Debug.Log("Nine supplemental source rigs imported and required authored clips sampled for review only; not a gameplay replacement or release approval.");
         }
     }
 }
