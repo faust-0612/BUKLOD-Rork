@@ -308,12 +308,12 @@ namespace Buklod.Empire {
                     v.farmGrowth.Apply(farmNode.Stock,farmNode.Capacity,immediate||!existing,Time.deltaTime);
                 bool hero=u.Kind==BattleTargetKind.Hero;
                 if(hero&&v.equipment)v.equipment.Apply(u);
-                int requestedLod=premiumVisuals?0:-1;
+                int requestedLod=ReviewOnly?BattleRenderBudget.ReviewHeroLod(premiumVisuals,player,inView,v.forcedLod,distanceSquared):premiumVisuals?0:-1;
                 if(hero&&v.lodGroups!=null&&v.forcedLod!=requestedLod){
                     foreach(var lod in v.lodGroups)if(lod)lod.ForceLOD(requestedLod);
                     v.forcedLod=requestedLod;
                 }
-                SetShadows(v,(premiumVisuals&&hero&&inView)||BattleRenderBudget.KeepShadow(player,v.shadowsOn,distanceSquared));
+                SetShadows(v,(premiumVisuals&&hero&&inView&&(!ReviewOnly||requestedLod==0))||BattleRenderBudget.KeepShadow(player,v.shadowsOn,distanceSquared));
                 var t=v.instance.transform;
                 if((v.sampledAt-u.Position).sqrMagnitude>=.15f*.15f){
                     v.sampledAt=u.Position;v.groundY=Ground(u.Position).y;

@@ -1,0 +1,44 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-consolidated-candidate-parity-20261128.json",
+  "baseRef": "87ba0f95a902af683db8d7952726e1e028a66ed3",
+  "productionBaselineEvidence": "Empire DEV only, no RC or approved APK",
+  "objective": "Prevent native cloud/local build divergence and excessive forced full hero detail",
+  "chosenApproach": "Shared actual serialized dependency validation with cloud preparation lease recovery, exact portrait receipt checks and review LOD hysteresis",
+  "selectionRationale": "Consolidated release must use the same verified source and real assets across native entrypoints; preserve player visual fidelity",
+  "alternativeApproaches": [
+    "Separate incomplete cloud validation or force every hero to full geometry; rejected"
+  ],
+  "riskAreas": [
+    "Unity compile and runtime not available",
+    "LOD thresholds require device verification",
+    "Full licensed roster remains missing"
+  ],
+  "preserveBehaviors": [
+    "No MAIN/production changes",
+    "Existing roster, content trust, motion, asset and private-scene gates",
+    "Simulation and combat untouched"
+  ],
+  "acceptanceChecks": [
+    "Both build callbacks use shared validation",
+    "Cloud deformation checks before build",
+    "Invalid/missing roster portrait receipt rejected",
+    "Full detail local player with bounded hysteresis for other heroes"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Editor/CloudReviewBuild.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OfflineReviewAndroidBuild.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OfflineReviewBuildBootstrap.cs",
+    "apps/buklod-empire-unity/Assets/Editor/PortraitCaptureReview.cs",
+    "apps/buklod-empire-unity/Assets/Editor/ConsolidatedCandidateValidation.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleRenderBudget.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ConsolidatedRenderBudgetTests.cs",
+    "apps/buklod-empire-unity/RELEASE_LEDGER.md",
+    ".buklod/scopes/empire-consolidated-candidate-parity-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ConsolidatedRenderBudgetTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

@@ -50,12 +50,8 @@ namespace Buklod.Empire.Editor {
                 EnsureReviewPipeline();ConsolidatedOfflineReview.Prepare();StylizedArenaBenchmark.Prepare();
                 var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
                 if(!view||!view.IsConfiguredReview||!view.visuals)throw new BuildFailedException("Review scene missing.");
-                var deps=AssetDatabase.GetDependencies(StylizedArenaBenchmark.ScenePath,true);
-                ReviewAuthoredAssetGate.Validate(deps);AuthoredExpansionReview.Validate(deps);
+                ConsolidatedCandidateValidation.Validate(StylizedArenaBenchmark.ScenePath,false);
                 OfflineMotionGate.Validate(view.visuals);
-                OfflineAuthoredMotionReview.ValidateDependencies(deps);
-                PortraitCaptureReview.ValidateDependencies(deps);
-                HeroDialogueReview.ValidateDependencies(view.gameObject,deps);
                 OfflineBattlefieldCapture.Capture(view);
                 Debug.Log("BUKLOD_OFFLINE_PREFLIGHT_PASS — no APK or device approval.");
             } finally {GraphicsSettings.defaultRenderPipeline=previous;QualitySettings.renderPipeline=quality;AssetDatabase.SaveAssets();}

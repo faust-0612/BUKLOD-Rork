@@ -28,21 +28,7 @@ namespace Buklod.Empire.Editor {
             var scenes=EditorBuildSettings.scenes.Where(s=>s.enabled).ToArray();
             if(scenes.Length!=1||scenes[0].path!=Scene||!AssetDatabase.LoadAssetAtPath<SceneAsset>(Scene))
                 throw new BuildFailedException("Only the offline review scene is allowed.");
-            EmpireContentPublisher.ValidateBuildConfiguration();
-            var dependencies=AssetDatabase.GetDependencies(Scene,true);
-            ReviewAuthoredAssetGate.Validate(dependencies);
-            AuthoredExpansionReview.Validate(dependencies);
-            OfflineAuthoredMotionReview.ValidateDependencies(dependencies);
-            PortraitCaptureReview.ValidateDependencies(dependencies);
-            if(!dependencies.Contains(Catalog)||!dependencies.Contains(Nav)||dependencies.Any(p=>p.StartsWith("Assets/Production/",StringComparison.OrdinalIgnoreCase)||p==ArenaSceneComposer.ScenePath))
-                throw new BuildFailedException("Invalid or production scene dependencies.");
-            var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(Catalog);
-            if(!catalog)throw new BuildFailedException("Offline review catalog missing.");
-            catalog.ValidateOfflineReview();
-            EmpireContentPublisher.ValidateBase(catalog);
-            if(!(GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset))throw new BuildFailedException("URP missing.");
-            var bank=Resources.Load<TextAsset>("SkillAudioBank");
-            if(!bank)throw new BuildFailedException("Skill audio missing.");SkillAudio.ValidateBank(bank.bytes);
+            ConsolidatedCandidateValidation.Validate(Scene,true);
         }
         [MenuItem("BUKLOD Empire/Build isolated offline test APK (local)")]
         public static void Build(){
@@ -59,10 +45,8 @@ namespace Buklod.Empire.Editor {
             StylizedArenaBenchmark.Prepare();
             var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
             if(!view||!view.IsConfiguredReview||!view.visuals||!view.GetComponent<EmpireContentUpdater>())throw new BuildFailedException("Review scene or native content updater missing.");
-            view.visuals.ValidateOfflineReview();
-            EmpireContentPublisher.ValidateBase(view.visuals);
+            ConsolidatedCandidateValidation.Validate(Scene,true);
             OfflineMotionGate.Validate(view.visuals);
-            HeroDialogueReview.ValidateDependencies(view.gameObject,AssetDatabase.GetDependencies(Scene,true));
             var root=Path.GetFullPath("Builds/OfflineReview");Directory.CreateDirectory(root);
             var output=Path.Combine(root,"buklod-empire-offline-test-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss")+".apk");
             if(File.Exists(output))throw new BuildFailedException("Output already exists.");

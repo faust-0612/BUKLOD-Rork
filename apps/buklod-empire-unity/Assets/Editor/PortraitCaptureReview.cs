@@ -41,7 +41,7 @@ namespace Buklod.Empire.Editor {
             var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(path);return tex&&tex.width==Width&&tex.height==Height;
         }
         internal static void ValidateDependencies(string[] dependencies){
-            if(!AuthoredExpansionReview.Requested)return;
+            if(!AuthoredExpansionReview.Requested&&!AuthoredRosterBuildGate.Active)return;
             foreach(var h in HeroKitCatalog.All)
                 if(!dependencies.Contains(Out+"/"+h.Id+".tga")||!dependencies.Contains(Out+"/"+h.Id+"-full.tga"))throw new UnityEditor.Build.BuildFailedException("Missing actual rendered hero portrait: "+h.Id);
         }
@@ -108,7 +108,10 @@ namespace Buklod.Empire.Editor {
         }
         internal static void Bind(GameObject root){
             string manifest=Out+"/manifest.json";
-            if(!File.Exists(manifest))return; // optional: retain existing vector hero cards
+            if(!File.Exists(manifest)){
+                if(AuthoredRosterBuildGate.Active||AuthoredExpansionReview.Requested)throw new InvalidOperationException("Missing actual roster portrait receipt.");
+                return; // optional for older isolated review only
+            }
             var doc=JsonUtility.FromJson<Receipt>(File.ReadAllText(manifest));
             var ids=HeroKitCatalog.All.Select(h=>h.Id).ToArray();
             if(doc==null||doc.status!="REVIEW_ONLY"||doc.recipe!=CaptureRecipe||doc.rows==null||doc.rows.Length!=ids.Length)throw new InvalidOperationException("Incomplete portrait manifest.");

@@ -10,6 +10,8 @@ namespace Buklod.Empire.Editor {
     public static class CloudReviewBuild {
         const string Marker="BUKLOD_EMPIRE_CLOUD_REVIEW";
         internal static bool IsPrepared {get;private set;}
+        static IDisposable rosterLease;
+        static void ResetPreparation(){IsPrepared=false;rosterLease?.Dispose();rosterLease=null;}
         static bool Authorized=>Environment.GetEnvironmentVariable(Marker)=="1"&&Application.isBatchMode;
         public static void Prepare(){
             if(Application.unityVersion!="6000.3.29f1"||!Authorized||Application.isPlaying||EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android)
@@ -18,12 +20,18 @@ namespace Buklod.Empire.Editor {
             if(!PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.Android).Split(';').Contains("BUKLOD_OFFLINE_REVIEW"))
                 throw new BuildFailedException("Set BUKLOD_OFFLINE_REVIEW in the cloud scripting define symbols.");
 #endif
-            IsPrepared=false;
-            // Cloud review is batch-mode only; retain this verified selection until the build callback.
-            AuthoredRosterBuildGate.Begin();
+            ResetPreparation();
+            // Retain the verified roster selection for the build callback; dispose failed or superseded preparations.
+            try{
+            rosterLease=AuthoredRosterBuildGate.Begin();
+            EmpireContentPublisher.ValidateBuildConfiguration();
             OfflineReviewBuildBootstrap.EnsureReviewPipeline();
             ConsolidatedOfflineReview.Prepare();
             StylizedArenaBenchmark.Prepare();
+            ConsolidatedCandidateValidation.Validate(StylizedArenaBenchmark.ScenePath,true);
+            var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
+            if(!view)throw new BuildFailedException("Missing prepared match.");
+            OfflineMotionGate.Validate(view.visuals);
             var target=NamedBuildTarget.Android;
             PlayerSettings.SetApplicationIdentifier(target,BattleView.OfflineTestApplicationId);
             PlayerSettings.productName="BUKLOD Empire Offline Test";
@@ -38,6 +46,7 @@ namespace Buklod.Empire.Editor {
             AssetDatabase.SaveAssets();
             IsPrepared=true;
             Debug.Log("BUKLOD isolated cloud review prepared; no production or visual approval.");
+            }catch{ResetPreparation();throw;}
         }
         internal static void Validate(BuildReport report){
             if(!Authorized||!IsPrepared||report.summary.platform!=BuildTarget.Android||
@@ -52,19 +61,7 @@ namespace Buklod.Empire.Editor {
             string path=StylizedArenaBenchmark.ScenePath;
             if(scenes.Length!=1||scenes[0].path!=path||!AssetDatabase.LoadAssetAtPath<SceneAsset>(path))
                 throw new BuildFailedException("Only the generated stylized review scene is allowed.");
-            string catalogPath=CandidateReviewComposer.Out+"/OfflineReviewCatalog.asset",navPath=CandidateReviewComposer.Out+"/OfflineReviewNavMesh.asset";
-            var deps=AssetDatabase.GetDependencies(path,true);
-            ReviewAuthoredAssetGate.Validate(deps);
-            if(!deps.Contains(catalogPath)||!deps.Contains(navPath)||deps.Any(x=>x.StartsWith("Assets/Production/",StringComparison.OrdinalIgnoreCase)||x==ArenaSceneComposer.ScenePath))
-                throw new BuildFailedException("Review dependency scope mismatch.");
-            var catalog=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(catalogPath);
-            if(!catalog)throw new BuildFailedException("Missing review catalog.");
-            catalog.ValidateOfflineReview();
-            if(!(UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline is UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset))
-                throw new BuildFailedException("Missing review URP pipeline.");
-            var bank=Resources.Load<TextAsset>("SkillAudioBank");
-            if(!bank)throw new BuildFailedException("Missing skill audio bank.");
-            SkillAudio.ValidateBank(bank.bytes);
+            ConsolidatedCandidateValidation.Validate(path,true);
         }
     }
 }
