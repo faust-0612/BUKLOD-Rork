@@ -1047,6 +1047,8 @@ namespace Buklod.Empire {
             public float SeenAt,NextThink,Pressure,LastDamage;
             public Vector2 LastSeen;
             public bool HasObservation;
+            public int LastDeath, EnemyCastBursts;
+            public float NextPurchase, RegroupUntil;
         }
         readonly Dictionary<int,BotMemory> botMemory=new Dictionary<int,BotMemory>();
         public static float BotReactionSeconds(ArenaDifficulty difficulty,int personality){
@@ -1056,6 +1058,19 @@ namespace Buklod.Empire {
         public static float BotRiskThreshold(int personality,float pressure){
             return Mathf.Clamp(.30f+Mathf.Abs(personality%5)*.035f+Mathf.Clamp01(pressure)*.18f,.30f,.68f);
         }
+        public enum BotStyle { Aggressive, Guardian, Hunter, Support, Strategist }
+        public static BotStyle Personality(int slot)=>(BotStyle)((slot%5+5)%5);
+        public static float BotEngagementScore(BotStyle style,float hp,int allies,int enemies,float pressure){
+            float bias=style==BotStyle.Aggressive?.25f:style==BotStyle.Guardian?-.15f:style==BotStyle.Hunter?.10f:style==BotStyle.Support?-.10f:0;
+            return Mathf.Clamp01(hp*.65f+.20f+Mathf.Clamp(allies-enemies,-3,3)*.13f-Mathf.Clamp01(pressure)*.35f+bias);
+        }
+        BotStyle Style(BattleUnit u){
+            // Hero-specific support and jungle roles take precedence over slot temperament.
+            string id=u.State.Kit.Id;
+            if(id=="van"||id=="ace"||id=="lhen"||id=="ellusur")return BotStyle.Support;
+            if(u.Jungler)return BotStyle.Hunter;
+            return Personality(u.Id);
+        }
         BotMemory Memory(BattleUnit u){
             if(!botMemory.TryGetValue(u.Id,out var m)){m=new BotMemory{LastDamage=u.DamageTaken};botMemory.Add(u.Id,m);}
             return m;
@@ -1063,13 +1078,15 @@ namespace Buklod.Empire {
         bool ObserveBot(BattleUnit u,BotMemory m){
             if(Time<m.NextThink)return false;
             m.NextThink=Time+BotReactionSeconds(Difficulty,u.Id);
+            if(m.LastDeath!=u.Deaths){m.LastDeath=u.Deaths;m.TargetId=0;m.HasObservation=false;m.ObservedHero=0;m.Pressure=.25f;m.EnemyCastBursts=0;m.LastDamage=u.DamageTaken;}
             float delta=Mathf.Max(0,u.DamageTaken-m.LastDamage);m.LastDamage=u.DamageTaken;
             m.Pressure=Mathf.Clamp01(m.Pressure*.82f+delta/Mathf.Max(1,u.State.MaxHealth));
             var seen=units.Where(v=>v.Team!=u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)&&ClearSight(u.Position,v.Position)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
             if(seen!=null){
-                if(m.HasObservation&&m.ObservedHero==seen.Id&&seen.State.CastSequence>m.ObservedCast)m.Pressure=Mathf.Clamp01(m.Pressure+.08f);
+                if(m.HasObservation&&m.ObservedHero==seen.Id&&seen.State.CastSequence>m.ObservedCast){m.Pressure=Mathf.Clamp01(m.Pressure+.08f);m.EnemyCastBursts=Mathf.Min(5,m.EnemyCastBursts+1);}
+                else m.EnemyCastBursts=Mathf.Max(0,m.EnemyCastBursts-1);
                 m.ObservedHero=seen.Id;m.ObservedCast=seen.State.CastSequence;m.SeenAt=Time;m.LastSeen=seen.Position;m.HasObservation=true;
-            }else if(Time-m.SeenAt>5){m.HasObservation=false;m.ObservedHero=0;m.TargetId=0;}
+            }else if(Time-m.SeenAt>5){m.HasObservation=false;m.ObservedHero=0;m.TargetId=0;m.EnemyCastBursts=0;}
             return true;
         }
         private void Bot(BattleUnit u,float speed){
@@ -1079,24 +1096,44 @@ namespace Buklod.Empire {
                 var away=u.Position-center;HazardSteer(u,away.sqrMagnitude>.01f?away:Vector2.right,speed);return;
             }
             var a=u.State;var memory=Memory(u);bool thinking=ObserveBot(u,memory);
-            float hp=a.Health/Mathf.Max(1,a.MaxHealth);
+            float hp=a.Health/Mathf.Max(1,a.MaxHealth);var style=Style(u);
             u.Retreat=CanRespawn(u.Team)&&(OfflineMatchRules.Retreat(hp,u.Retreat)||hp<BotRiskThreshold(u.Id,memory.Pressure));
-            if(Vector2.Distance(u.Position,u.Spawn)<12&&CoreAlive(u.Team)){
-                var order=a.Health/a.MaxHealth<.45f?new[]{"armor","vitality","boots","blade","aegis","wisdom"}:new[]{"blade","boots","armor","withering_thorn","sealbreaker","renewal"};
-                foreach(var item in order)Buy(u,item);
+            if(thinking&&Time>=memory.NextPurchase&&Vector2.Distance(u.Position,u.Spawn)<12&&CoreAlive(u.Team)){
+                memory.NextPurchase=Time+1.5f;
+                var order=hp<.45f||style==BotStyle.Guardian?new[]{"armor","vitality","boots","blade","aegis","wisdom"}:
+                    style==BotStyle.Support?new[]{"wisdom","boots","armor","renewal","aegis","blade"}:
+                    style==BotStyle.Hunter?new[]{"boots","blade","sealbreaker","armor","withering_thorn","renewal"}:
+                    new[]{"blade","boots","armor","withering_thorn","sealbreaker","renewal"};
+                foreach(var item in order)if(Buy(u,item))break;
             }
             if(u.Retreat){if(a.Health/a.MaxHealth<.45f)UseTactic(u,Vector2.zero);if(!units.Any(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<15)&&BeginRecall(u))return;Steer(u,u.Spawn-u.Position,speed);return;}
             bool supported=thinking&&TrySupport(u);
-            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&v.Villager?.Job.Effect==VillageEffect.Gather?4:0)+(ClearSight(u.Position,v.Position)?3:0)+(v.Id==memory.TargetId?2.5f:0)).ThenBy(v=>v.Id).FirstOrDefault();
+            var t=units.Where(v=>v.Team!=u.Team&&Attackable(v)&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v)).OrderByDescending(v=>18-Dist(u,v)+(1-v.State.Health/v.State.MaxHealth)*7+(v.Core?9:v.Kind==BattleTargetKind.Hero?3.5f:v.Kind==BattleTargetKind.Structure?2:0)+((int)Difficulty>=(int)ArenaDifficulty.Advanced&&v.Kind==BattleTargetKind.Villager&&v.Villager?.Job.Effect==VillageEffect.Gather?4:0)+(ClearSight(u.Position,v.Position)?3:0)+(v.Id==memory.TargetId?2.5f:0)+(style==BotStyle.Hunter&&v.Kind==BattleTargetKind.Hero?(1-v.State.Health/v.State.MaxHealth)*5:0)+(style==BotStyle.Strategist&&v.IsCombatStructure?3:0)).ThenBy(v=>v.Id).FirstOrDefault();
             var defense=DefenseThreat(u);if(defense!=null)t=defense;
             if(thinking)memory.TargetId=t?.Id??0;
+            // Local, visible numerical advantage: regroup rather than feed isolated deaths.
+            if(t!=null&&t.Kind==BattleTargetKind.Hero&&defense==null&&CanRespawn(u.Team)){
+                var allies=units.Where(v=>v!=u&&v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(u,v)<=18&&!v.Retreat).ToArray();
+                int foes=units.Count(v=>v.Team!=u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&Dist(u,v)<=18&&IsVisibleTo(u.Team,v));
+                float engage=BotEngagementScore(style,hp,allies.Length+1,foes,memory.Pressure);
+                if(thinking&&engage<.40f)memory.RegroupUntil=Time+1.5f;
+                if(Time<memory.RegroupUntil){
+                    var ally=allies.OrderByDescending(v=>Dist(v,t)).ThenBy(v=>v.Id).FirstOrDefault();
+                    var away=ally!=null&&Dist(ally,t)>Dist(u,t)+2?ally.Position-u.Position:u.Position-t.Position;
+                    Steer(u,away,speed);return;
+                }
+            }
             if(t==null&&u.Jungler&&CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&a.Health/a.MaxHealth>.55f){
                 var camp=wilderness.Camps.Where(c=>c.Alive&&(!JungleHazardsActive||JungleClearance(c.Position)>=0)&&(c.Boss?Vector2.Distance(u.Position,c.Position)<40:((u.Team==ArenaTeam.Lux)==(c.Position.x<Width/2)))&&(Time<180||Vector2.Distance(u.Position,c.Position)<35)).OrderBy(c=>Vector2.Distance(u.Position,c.Position)).ThenBy(c=>c.Id).FirstOrDefault();
-                if(camp!=null){var campDirection=camp.Position-u.Position;if(campDirection.magnitude>a.Kit.BasicRange*.9f||!ClearSight(u.Position,camp.Position))Steer(u,campDirection,speed);else{if(camp.Health<=90)UseTactic(u,campDirection);Basic(u,campDirection,null,camp.Id);}return;}
+                if(camp!=null){var campDirection=camp.Position-u.Position;if(campDirection.magnitude>a.Kit.BasicRange*.9f||!ClearSight(u.Position,camp.Position))Steer(u,campDirection,speed);else if(thinking){if(camp.Health<=90)UseTactic(u,campDirection);Basic(u,campDirection,null,camp.Id);}return;}
             }
             if(t==null&&(!CoreAlive((ArenaTeam)(1-(int)u.Team))||Time>=OfflineMatchRules.MatchLimit))t=units.Where(v=>v.Team!=u.Team&&Attackable(v)).OrderBy(v=>Dist(u,v)).ThenBy(v=>v.Id).FirstOrDefault();
             var goal=t==null?LaneGoal(u):t.Position;
-            if(t==null&&memory.HasObservation&&Time-memory.SeenAt<=3&&hp>.65f&&memory.Pressure<.45f&&Vector2.Distance(u.Position,memory.LastSeen)>3&&Vector2.Distance(u.Position,memory.LastSeen)<22)goal=memory.LastSeen;
+            if(t==null&&memory.HasObservation&&Time-memory.SeenAt<=3&&hp>.65f&&memory.Pressure<.45f&&style!=BotStyle.Support&&Vector2.Distance(u.Position,memory.LastSeen)>3&&Vector2.Distance(u.Position,memory.LastSeen)<22)goal=memory.LastSeen;
+            if(t==null&&style==BotStyle.Support){
+                var ally=units.Where(v=>v!=u&&v.Team==u.Team&&v.Kind==BattleTargetKind.Hero&&v.State.Alive&&!v.Retreat&&Dist(u,v)<24).OrderBy(v=>v.State.Health/v.State.MaxHealth).ThenBy(v=>v.Id).FirstOrDefault();
+                if(ally!=null&&Dist(u,ally)>5&&ally.State.Health<ally.State.MaxHealth*.8f)goal=ally.Position;
+            }
             if(CanRespawn(u.Team)&&CoreAlive((ArenaTeam)(1-(int)u.Team))&&t!=null&&t.IsCombatStructure&&t.State.Health>80&&!units.Any(v=>v.Team==u.Team&&v.Kind==BattleTargetKind.Minion&&v.State.Alive&&Dist(v,t)<12)){
                 float distance=Dist(u,t);
                 if(distance<10.5f){Steer(u,u.Position-t.Position,speed);return;}
@@ -1114,7 +1151,8 @@ namespace Buklod.Empire {
             if(supported||Finished)return;
             // One successful skill per decision: preserve mana and make the action readable.
             int nearby=Enemies(a,8,Vector2.zero).Count;
-            if((nearby>=3||nearby>=2&&memory.Pressure>.5f)&&a.TryCast(this,SkillSlot.Ultimate,dir,Time,!Finished))return;
+            if((nearby>=3||nearby>=2&&memory.Pressure>.5f||style==BotStyle.Hunter&&t.Kind==BattleTargetKind.Hero&&t.State.Health<t.State.MaxHealth*.22f&&Dist(u,t)<7)&&a.TryCast(this,SkillSlot.Ultimate,dir,Time,!Finished))return;
+            if(memory.EnemyCastBursts>=3&&hp<.6f&&Dist(u,t)<6&&UseTactic(u,Vector2.zero))return;
             if(nearby>=2&&a.TryCast(this,SkillSlot.Secondary,dir,Time,!Finished))return;
             if(Dist(u,t)<=Mathf.Max(9f,a.Kit.BasicRange)&&ClearSight(u.Position,t.Position))a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);
         }

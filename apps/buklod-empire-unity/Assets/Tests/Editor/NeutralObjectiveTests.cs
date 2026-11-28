@@ -24,6 +24,12 @@ namespace Buklod.Empire.Tests {
             Assert.Greater(OfflineBattle.BotRiskThreshold(1,1),OfflineBattle.BotRiskThreshold(1,0));
             Assert.LessOrEqual(OfflineBattle.BotRiskThreshold(4,100),.68f);
         }
+        [Test] public void BotPersonalitiesAndTeamAdvantageInfluenceEngagement(){
+            Assert.AreEqual(5,Enumerable.Range(0,5).Select(OfflineBattle.Personality).Distinct().Count());
+            Assert.Greater(OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Aggressive,.6f,2,2,0),OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Guardian,.6f,2,2,0));
+            Assert.Greater(OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Strategist,.6f,3,1,0),OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Strategist,.6f,1,3,0));
+            Assert.Less(OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Support,.6f,2,2,1),OfflineBattle.BotEngagementScore(OfflineBattle.BotStyle.Support,.6f,2,2,0));
+        }
         [Test] public void HazardRangeIncludesBoundary(){
             Assert.True(OfflineBattle.InHazardRange(Vector2.right*10,Vector2.zero,10));
             Assert.False(OfflineBattle.InHazardRange(Vector2.right*10.1f,Vector2.zero,10));
