@@ -113,9 +113,22 @@ namespace Buklod.Empire {
                     for(int i=0;i<roster.Length;i++){
                         float left=(i%5)*.2f;
                         float bottom=i<5?.53f:.03f;
-                        var label=Label("Roster slot",body,new Vector2(left,bottom),new Vector2(left+.2f,bottom+.44f),
-                            HeroKitCatalog.Get(roster[i]).Name+"\n"+(i<5?"LUX":"TENEBRA"),23);
-                        label.color=i<5?new Color(.55f,.8f,1):new Color(1,.55f,.48f);
+                        var hero=HeroKitCatalog.Get(roster[i]);
+                        var card=Rect("Roster slot "+hero.Id,body,new Vector2(left+.006f,bottom),
+                            new Vector2(left+.194f,bottom+.44f));
+                        var accent=i<5?new Color(.55f,.8f,1):new Color(1,.55f,.48f);
+                        var portrait=reviewPortraits?reviewPortraits.Find(hero.Id):null;
+                        if(portrait){
+                            var frame=Rect("Roster portrait",card,new Vector2(.04f,.30f),new Vector2(.96f,.98f));
+                            var image=frame.gameObject.AddComponent<RawImage>();
+                            image.texture=portrait;image.raycastTarget=false;
+                            var aspect=frame.gameObject.AddComponent<AspectRatioFitter>();
+                            aspect.aspectMode=AspectRatioFitter.AspectMode.FitInParent;
+                            aspect.aspectRatio=(float)portrait.width/portrait.height;
+                        }
+                        var label=Label("Roster identity",card,Vector2.zero,new Vector2(1,.30f),
+                            hero.Name+" • "+(i<5?"LUX":"TENEBRA"),20);
+                        label.color=accent;
                     }
                     return true;
                 default:

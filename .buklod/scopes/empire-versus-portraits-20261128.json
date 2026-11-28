@@ -1,0 +1,27 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-versus-portraits-20261128.json",
+  "baseRef": "a55b4ff7d833988cb8a714b390c7cd88a86526e1",
+  "productionBaselineEvidence": "Standalone DEV only.",
+  "objective": "Show the current roster portraits at lock-in and loading.",
+  "chosenApproach": "Bind the existing captured portrait catalog to the versus cards.",
+  "selectionRationale": "Keeps the displayed roster synchronized with match selections.",
+  "alternativeApproaches": [
+    "Create ten live preview cameras."
+  ],
+  "riskAreas": [
+    "Portrait lookup and UI scaling"
+  ],
+  "preserveBehaviors": [
+    "Current roster ordering and offline game rules."
+  ],
+  "acceptanceChecks": [
+    "Both sides display the corresponding available portraits without intercepting input."
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineSessionMenu.Pregame.cs",
+    ".buklod/scopes/empire-versus-portraits-20261128.json"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": []
+}
