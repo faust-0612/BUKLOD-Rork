@@ -120,6 +120,7 @@ namespace Buklod.Empire.Editor {
                 Bounds bounds=skin.bounds;if(bounds.size.y<=.01f||float.IsNaN(bounds.size.y)||float.IsInfinity(bounds.size.y))throw new InvalidOperationException("Invalid candidate bounds.");
                 float scale=1.85f/bounds.size.y;actor.transform.localScale*=scale;
                 actor.transform.localPosition-=new Vector3(bounds.center.x,bounds.min.y,bounds.center.z)*scale;group.RecalculateBounds();
+                ReviewWeaponTrailComposer.Attach(wrapper,s.Hero,true);
                 foreach(var col in wrapper.GetComponentsInChildren<Collider>(true))UnityEngine.Object.DestroyImmediate(col);
                 var saved=PrefabUtility.SaveAsPrefabAsset(wrapper,Root+"/Prefabs/"+s.Model+".prefab");
                 if(!saved)throw new InvalidOperationException("Candidate prefab save failed.");

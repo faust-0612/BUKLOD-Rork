@@ -13,12 +13,18 @@ namespace Buklod.Empire {
         public Transform Hand=>hand;
         public Vector3 Anchor=>anchor;
         public bool GeometryDerived=>geometryDerived;
-        Animator animator;LineRenderer line;Color tint;
-        readonly Vector3[] points=new Vector3[Samples];
-        int count;float remaining,wait;bool visible,armed,started;
+        Animator animator;Mesh mesh;MeshRenderer ribbon;Color tint;
+        readonly Vector3[] tips=new Vector3[Samples],bases=new Vector3[Samples];
+        readonly Vector3[] vertices=new Vector3[Samples*2];
+        readonly Vector2[] uv=new Vector2[Samples*2];
+        readonly Color[] colors=new Color[Samples*2];
+        readonly int[] indices=new int[(Samples-1)*6];
+        int count;float remaining,wait;bool visible,armed,started;string action="Attack";
+        internal static bool IsRightHand(string name)=>name=="Hand_R"||name=="mixamorig:RightHand"||name=="mixamorig_RightHand"||name=="RightHand";
+        internal static float Fade(float age)=>Mathf.Clamp01(age)*Mathf.Clamp01(age);
         public static bool Finite(Vector3 p)=>!float.IsNaN(p.x)&&!float.IsInfinity(p.x)&&!float.IsNaN(p.y)&&!float.IsInfinity(p.y)&&!float.IsNaN(p.z)&&!float.IsInfinity(p.z);
         public void Configure(Transform bone,Vector3 localAnchor,bool derived){
-            if(!bone||bone.name!="Hand_R"||!bone.IsChildOf(transform)||!Finite(localAnchor)||localAnchor.sqrMagnitude<.0025f)throw new System.ArgumentException("Invalid weapon trail binding");
+            if(!bone||!IsRightHand(bone.name)||!bone.IsChildOf(transform)||!Finite(localAnchor)||localAnchor.sqrMagnitude<.0025f)throw new System.ArgumentException("Invalid weapon trail binding");
             hand=bone;anchor=localAnchor;geometryDerived=derived;
         }
         // These offsets follow the original equipment dimensions, only for an unreadable imported mesh.
@@ -43,31 +49,51 @@ namespace Buklod.Empire {
         internal void Bind(Animator rig,Material material,Color color){
             Cancel();animator=rig;tint=color;visible=false;
             if(!hand||!animator||!material)return;
-            if(!line){
-                var go=new GameObject("Rig-sampled weapon trace");go.transform.SetParent(transform,false);go.layer=gameObject.layer;
-                line=go.AddComponent<LineRenderer>();line.useWorldSpace=true;line.sharedMaterial=material;line.shadowCastingMode=ShadowCastingMode.Off;line.receiveShadows=false;
-                line.numCapVertices=2;line.numCornerVertices=2;line.widthCurve=new AnimationCurve(new Keyframe(0,0),new Keyframe(.65f,.65f),new Keyframe(1,1));line.widthMultiplier=.075f;
-                line.positionCount=0;line.enabled=false;
+            if(!ribbon){
+                var go=new GameObject("Rig-sampled swept weapon surface");go.transform.SetParent(transform,false);go.layer=gameObject.layer;
+                mesh=new Mesh{name="Swept actual hand ribbon"};mesh.MarkDynamic();
+                for(int i=0;i<Samples-1;i++){int k=i*2,j=i*6;indices[j]=k;indices[j+1]=k+1;indices[j+2]=k+2;indices[j+3]=k+1;indices[j+4]=k+3;indices[j+5]=k+2;}
+                mesh.vertices=vertices;mesh.uv=uv;mesh.colors=colors;mesh.triangles=indices;
+                go.AddComponent<MeshFilter>().sharedMesh=mesh;
+                ribbon=go.AddComponent<MeshRenderer>();ribbon.shadowCastingMode=ShadowCastingMode.Off;ribbon.receiveShadows=false;
             }
-            var fade=tint;fade.a=0;var hot=Color.Lerp(tint,Color.white,.42f);hot.a=.72f;line.startColor=fade;line.endColor=hot;
+            ribbon.sharedMaterial=material;ribbon.enabled=false;
         }
         internal void SetVisible(bool value){visible=value;if(!visible)Cancel();}
-        internal void Begin(){Cancel();if(!visible||!hand||!line||!animator)return;armed=true;wait=.22f;remaining=.38f;}
-        internal void Cancel(){armed=started=false;count=0;if(line){line.enabled=false;line.positionCount=0;}}
+        internal void Begin(string state="Attack",float length=.38f){
+            Cancel();if(!visible||!hand||!ribbon||!animator||string.IsNullOrEmpty(state))return;
+            action=state;armed=true;wait=.25f;remaining=Mathf.Clamp(length,.14f,.7f);
+        }
+        internal void Cancel(){armed=started=false;count=0;if(ribbon)ribbon.enabled=false;}
+        bool Matches(AnimatorStateInfo state)=>state.IsName(action)||state.IsName("Base Layer."+action);
         void LateUpdate(){
             if(!armed)return;
-            if(!visible||!hand||!line||!animator||!Application.isFocused){Cancel();return;}
+            if(!visible||!hand||!ribbon||!animator||!Application.isFocused){Cancel();return;}
             float dt=Mathf.Clamp(Time.deltaTime,0,.1f);
-            var state=animator.GetCurrentAnimatorStateInfo(0);bool attack=state.IsName("Attack")||state.IsName("Base Layer.Attack");
-            if(animator.IsInTransition(0)){var next=animator.GetNextAnimatorStateInfo(0);attack|=next.IsName("Attack")||next.IsName("Base Layer.Attack");}
-            if(!started&&!attack){wait-=dt;if(wait<=0)Cancel();return;}
-            if(!attack||remaining<=0){Cancel();return;}
-            started=true;remaining-=dt;Vector3 point=hand.TransformPoint(anchor);
-            if(!Finite(point)){Cancel();return;}
-            if(count>0){float dist=(points[count-1]-point).sqrMagnitude;if(dist>4){Cancel();return;}if(dist<.000025f)return;}
-            if(count==Samples){for(int i=1;i<Samples;i++)points[i-1]=points[i];count--;}
-            points[count++]=point;line.positionCount=count;for(int i=0;i<count;i++)line.SetPosition(i,points[i]);line.enabled=count>1;
+            bool playing=Matches(animator.GetCurrentAnimatorStateInfo(0));
+            if(animator.IsInTransition(0))playing|=Matches(animator.GetNextAnimatorStateInfo(0));
+            if(!started&&!playing){wait-=dt;if(wait<=0)Cancel();return;}
+            if(!playing||remaining<=0){Cancel();return;}
+            started=true;remaining-=dt;
+            Vector3 tip=hand.TransformPoint(anchor),basis=hand.TransformPoint(anchor*.28f);
+            if(!Finite(tip)||!Finite(basis)){Cancel();return;}
+            if(count>0){float dist=(tips[count-1]-tip).sqrMagnitude;if(dist>4){Cancel();return;}if(dist<.000025f)return;}
+            if(count==Samples){for(int i=1;i<Samples;i++){tips[i-1]=tips[i];bases[i-1]=bases[i];}count--;}
+            tips[count]=tip;bases[count]=basis;count++;
+            if(count<2)return;
+            // A swept surface between two points on the real hand/bound geometry,
+            // not a billboard or a separate fake slash floating above the character.
+            for(int i=0;i<Samples;i++){
+                int j=Mathf.Min(i,count-1);float u=j/(float)(count-1);int k=i*2;
+                var edge=Vector3.Lerp(tips[j],bases[j],Mathf.Lerp(.75f,0,u));
+                vertices[k]=ribbon.transform.InverseTransformPoint(edge);
+                vertices[k+1]=ribbon.transform.InverseTransformPoint(bases[j]);
+                uv[k]=new Vector2(u,0);uv[k+1]=new Vector2(u,1);
+                var c=Color.Lerp(tint,Color.white,.52f);c.a=.82f*Fade(u);colors[k]=colors[k+1]=c;
+            }
+            mesh.vertices=vertices;mesh.uv=uv;mesh.colors=colors;mesh.RecalculateBounds();ribbon.enabled=true;
         }
+        void OnDestroy(){if(mesh)Destroy(mesh);}
         void OnDisable(){visible=false;Cancel();}
         void OnApplicationFocus(bool value){if(!value)Cancel();}
         void OnApplicationPause(bool value){if(value)Cancel();}

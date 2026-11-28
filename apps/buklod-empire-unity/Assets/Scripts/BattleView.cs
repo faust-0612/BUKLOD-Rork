@@ -201,7 +201,7 @@ namespace Buklod.Empire {
             var v=new Visual{instance=go,prefab=prefab,animator=go.GetComponentInChildren<Animator>(true)};
             if(ReviewOnly){v.farmGrowth=go.GetComponent<ReviewFarmGrowth>();v.equipment=go.GetComponent<ReviewEquipmentVisual>();if(v.equipment)v.equipment.ResetVisual();
                 v.weaponTrail=go.GetComponent<ReviewWeaponTrail>();
-                if(v.weaponTrail)v.weaponTrail.Bind(v.animator,effects?effects.pulseMaterial:null,BattleEffects.Accent(unit.State.Kit.Id));
+                if(v.weaponTrail)v.weaponTrail.Bind(v.animator,effects?(effects.premiumSurfaceMaterial?effects.premiumSurfaceMaterial:effects.pulseMaterial):null,BattleEffects.Accent(unit.State.Kit.Id));
             }
             v.lodGroups=go.GetComponentsInChildren<LODGroup>(true);
             v.renderers=go.GetComponentsInChildren<Renderer>(true);v.originalShadows=new ShadowCastingMode[v.renderers.Length];
@@ -338,7 +338,7 @@ namespace Buklod.Empire {
                     v.attack=u.LastAttack;
                     if(u.Kind!=BattleTargetKind.Structure&&u.AttackFacing.sqrMagnitude>.001f)t.rotation=Quaternion.LookRotation(new Vector3(u.AttackFacing.x,0,u.AttackFacing.y));
                     Trigger(v,"Attack");
-                    if(v.weaponTrail)v.weaponTrail.Begin();
+                    if(v.weaponTrail)v.weaponTrail.Begin("Attack",v.actionDurations.TryGetValue("Attack",out var traceLength)?traceLength:.38f);
                     if(u.Kind==BattleTargetKind.Hero){
                         if(v.actionDurations.TryGetValue("Attack",out var attackLength))v.poseProtectedUntil=Mathf.Max(v.poseProtectedUntil,Battle.Time+CombatMotionRhythm.ProtectedSeconds("Attack",attackLength));
                         if(effects&&inView&&!immediate)effects.EmitBasic(t.position,BattleEffects.Accent(u.State.Kit.Id),t.forward,u.State.Kit.BasicRange>=8f);
@@ -370,7 +370,11 @@ namespace Buklod.Empire {
                     if(castThisFrame&&v.animator&&u.State.TryGetCast(latest,out var last)){
                         foreach(var trigger in new[]{"Primary","Secondary","Ultimate","Attack","Hit"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
                         var name=last.Slot.ToString();Trigger(v,name);
-                        if(v.actionDurations.TryGetValue(name,out var actionLength))v.poseProtectedUntil=Battle.Time+CombatMotionRhythm.ProtectedSeconds(name,actionLength);
+                        if(v.actionDurations.TryGetValue(name,out var actionLength)){
+                            v.poseProtectedUntil=Battle.Time+CombatMotionRhythm.ProtectedSeconds(name,actionLength);
+                            if(v.weaponTrail&&SkillCueCatalog.TryGet(u.State.Kit.Skill(last.Slot).Id,out var traceCue)&&
+                                (traceCue.Shape==SkillCueShape.Impact||traceCue.Shape==SkillCueShape.Dash||traceCue.Shape==SkillCueShape.Surge||traceCue.Shape==SkillCueShape.Bolt))v.weaponTrail.Begin(name,actionLength);
+                        }
                     }
                 }
                 if(u.RepairSequence>v.repairSequence){

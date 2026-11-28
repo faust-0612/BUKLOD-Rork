@@ -1,0 +1,38 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-actual-rig-swept-combat-surface-20261128.json",
+  "baseRef": "eae3bccb9c9cdfa2d2bb7955ffcd48a4eb4f6407",
+  "productionBaselineEvidence": "Empire DEV; no approved native artifact or OTA.",
+  "objective": "Replace old line trace with actual hand-driven swept mesh and bind the three real private rig candidates.",
+  "chosenApproach": "Two points in actual weighted hand geometry, bounded 16-sample UV ribbon, exact action state and confirmed skill events; imported Mixamo aliases.",
+  "selectionRationale": "Actual rig motion controls the effect, not a floating outline; preserve gameplay and private asset rights restrictions.",
+  "alternativeApproaches": [
+    "Fake weapon anchor for private rigs; rejected."
+  ],
+  "riskAreas": [
+    "Unity glTF import and shader rendering require device validation",
+    "Private candidates not licensed for redistribution"
+  ],
+  "preserveBehaviors": [
+    "Same canonical equipment fallback for older diagnostic rigs",
+    "Visibility/focus/pause lifecycle",
+    "No changes to game damage, MAIN or publishing"
+  ],
+  "acceptanceChecks": [
+    "Three real full-detail GLBs have weighted RightHand geometry (CPU audit: 1080/774/866 vertices)",
+    "Bounded ribbon only during matching confirmed action",
+    "Private practice composer requires actual weighted anchor"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewWeaponTrail.cs",
+    "apps/buklod-empire-unity/Assets/Editor/ReviewWeaponTrailComposer.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OwnerMotionPracticeScene.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewWeaponTrailTests.cs",
+    ".buklod/scopes/empire-actual-rig-swept-combat-surface-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/ReviewWeaponTrailTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

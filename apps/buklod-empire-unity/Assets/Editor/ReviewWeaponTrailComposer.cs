@@ -4,13 +4,13 @@ using UnityEditor.Build;
 using UnityEngine;
 namespace Buklod.Empire.Editor {
     internal static class ReviewWeaponTrailComposer {
-        internal static void Attach(GameObject root,string hero){
-            var hands=root.GetComponentsInChildren<Transform>(true).Where(t=>t.name=="Hand_R").ToArray();
+        internal static void Attach(GameObject root,string hero,bool requireDerived=false){
+            var hands=root.GetComponentsInChildren<Transform>(true).Where(t=>ReviewWeaponTrail.IsRightHand(t.name)).ToArray();
             if(hands.Length!=1)throw new BuildFailedException("Weapon trail hand binding mismatch: "+hero);
             var hand=hands[0];Vector3 far=Vector3.zero;float best=.0025f;bool derived=false;
             // Full-detail mesh only; use bind-space weighted vertices so the anchor follows
             // the imported rig and its coordinate conversion rather than assuming axes.
-            foreach(var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>(true)){
+            foreach(var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(s=>!s.name.StartsWith("Private LOD ",StringComparison.Ordinal)&&s.name!="Mobile LOD1")){
                 var mesh=skin.sharedMesh;if(!mesh||!mesh.isReadable)continue;
                 int bone=Array.IndexOf(skin.bones,hand);if(bone<0||bone>=mesh.bindposes.Length)continue;
                 var vertices=mesh.vertices;var weights=mesh.boneWeights;if(weights.Length!=vertices.Length)continue;
@@ -22,6 +22,7 @@ namespace Buklod.Empire.Editor {
                     best=local.sqrMagnitude;far=local;derived=true;
                 }
             }
+            if(!derived&&requireDerived)throw new BuildFailedException("No actual weighted hand geometry for private candidate: "+hero);
             if(!derived)far=ReviewWeaponTrail.FallbackAnchor(hero);
             root.AddComponent<ReviewWeaponTrail>().Configure(hand,far,derived);
             if(!derived)Debug.LogWarning("Weapon trail uses equipment-dimension anchor, mesh not readable or no suitable weighted vertex: "+hero);
