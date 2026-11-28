@@ -49,7 +49,7 @@ namespace Buklod.Empire {
                 if(value&&visual.weaponTrail)visual.weaponTrail.SetVisible(false);
             }
             foreach(var row in dying)if(row.visual.animator)row.visual.animator.speed=value?0f:1f;
-            if(value){if(projectiles)projectiles.Clear();if(combatOverlay)combatOverlay.ResetOverlay();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
+            if(value){if(effects)effects.Clear();if(projectiles)projectiles.Clear();if(combatOverlay)combatOverlay.ResetOverlay();if(skillAudio)skillAudio.Clear();if(reviewFoley)reviewFoley.SuspendBattleAudio();if(reviewDialogue)reviewDialogue.Stop();}
         }
         public const string OfflineTestApplicationId="org.mzbministry.buklod.empire.review";
         [SerializeField, HideInInspector] private bool editorReviewOnly;

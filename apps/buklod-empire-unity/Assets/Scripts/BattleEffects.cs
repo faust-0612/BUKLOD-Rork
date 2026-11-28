@@ -4,11 +4,13 @@ namespace Buklod.Empire {
     public sealed class BattleEffects:MonoBehaviour {
         public Material pulseMaterial;
         public Material skillParticleMaterial;
+        public Material premiumSurfaceMaterial;
+        PremiumSkillSurface[] surfaces;int surfaceCursor;
         public const int Capacity=24, Segments=32;
         private sealed class Pulse {public LineRenderer line;public float start,duration,radius;public Color color;public int style;public bool skill,basicSlash;public SkillCueShape shape;public Vector3 forward;public SkillParticleBurst burst;}
         private Pulse[] pool;private int next;private Camera battleCamera;private Camera previewCamera;
         public void ConfigurePreview(Camera camera){if(pool!=null||!camera)throw new System.InvalidOperationException("Configure before emitting preview effects.");previewCamera=camera;}
-        public void Clear(){if(pool==null)return;foreach(var p in pool){p.line.enabled=false;p.burst?.Stop();}next=0;}
+        public void Clear(){if(pool!=null)foreach(var p in pool){p.line.enabled=false;p.burst?.Stop();}if(surfaces!=null)foreach(var s in surfaces)s?.Stop();next=surfaceCursor=0;}
         private void Initialize(){
             if(pool!=null||!pulseMaterial)return;
             pool=new Pulse[previewCamera?1:Capacity];
@@ -34,6 +36,12 @@ namespace Buklod.Empire {
             direction.y=0;p.forward=direction.sqrMagnitude>.001f?direction.normalized:Vector3.forward;
             p.line.transform.position=at+Vector3.up*.16f;p.line.enabled=true;Draw(p,0);
             p.burst?.Begin(at+Vector3.up*.14f,color,cue,p.forward);p.burst?.Draw(0,battleCamera);
+            if(premiumSurfaceMaterial&&CinematicSkillCatalog.TryGet(cue.Id,out var profile)){
+                if(surfaces==null)surfaces=new PremiumSkillSurface[previewCamera?1:8];
+                int slot=surfaceCursor;surfaceCursor=(surfaceCursor+1)%surfaces.Length;
+                if(surfaces[slot]==null)surfaces[slot]=new PremiumSkillSurface(transform,premiumSurfaceMaterial);
+                surfaces[slot].Begin(at+Vector3.up*.075f,color,cue,profile,p.forward,Time.unscaledTime);
+            }
         }
         public void EmitBasic(Vector3 at,Color color,Vector3 forward,bool ranged){
             if(ranged){
@@ -85,12 +93,14 @@ namespace Buklod.Empire {
                 p.line.SetPosition(i,(right*x+p.forward*z+Vector3.up*y)*r);
             }
         }
-        private void Update(){if(pool==null)return;foreach(var p in pool)if(p.line.enabled){
+        private void Update(){if(surfaces!=null)foreach(var s in surfaces)s?.Tick(Time.unscaledTime);if(pool==null)return;foreach(var p in pool)if(p.line.enabled){
             float t=(Time.unscaledTime-p.start)/p.duration;
             if(t>=1){p.line.enabled=false;p.burst?.Stop();}
             else{Draw(p,Mathf.Clamp01(t));if(p.skill||p.basicSlash)p.burst?.Draw(Mathf.Clamp01(t),battleCamera);}
         }}
         private void OnDisable(){Clear();}
-        private void OnDestroy(){if(pool!=null)foreach(var p in pool)p.burst?.Dispose();}
+        private void OnApplicationFocus(bool focused){if(!focused)Clear();}
+        private void OnApplicationPause(bool paused){if(paused)Clear();}
+        private void OnDestroy(){if(pool!=null)foreach(var p in pool)p.burst?.Dispose();if(surfaces!=null)foreach(var s in surfaces)s?.Dispose();}
     }
 }

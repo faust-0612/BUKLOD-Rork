@@ -40,7 +40,7 @@ namespace Buklod.Empire {
             MakeLight("Showcase rim",new Vector3(.3f,2.5f,-2f),new Color(.48f,.74f,1),1.4f);
             var source=view.GetComponent<BattleEffects>();
             if(source&&source.pulseMaterial){var fx=new GameObject("Showcase skill effects");fx.transform.SetParent(stage.transform,false);fx.layer=Layer;
-                previewEffects=fx.AddComponent<BattleEffects>();previewEffects.pulseMaterial=source.pulseMaterial;previewEffects.skillParticleMaterial=source.skillParticleMaterial;previewEffects.ConfigurePreview(camera);}
+                previewEffects=fx.AddComponent<BattleEffects>();previewEffects.pulseMaterial=source.pulseMaterial;previewEffects.skillParticleMaterial=source.skillParticleMaterial;previewEffects.premiumSurfaceMaterial=source.premiumSurfaceMaterial;previewEffects.ConfigurePreview(camera);}
             previewAudio=view.GetComponent<SkillAudio>();if(!previewAudio)previewAudio=view.gameObject.AddComponent<SkillAudio>();
         }
         void MakeLight(string label,Vector3 at,Color color,float intensity){
@@ -105,11 +105,12 @@ namespace Buklod.Empire {
         void FrameCamera(){
             var motion=ReviewPortraitMotion.Get(hero);
             float phase=Mathf.SmoothStep(0,1,portraitElapsed/motion.Duration);
-            float orbit=fullBody?0:Mathf.Lerp(motion.Orbit,0,phase);
-            float lift=fullBody?0:.26f+motion.Height*(1-phase);
+            float intro=PremiumMotionEnvelope.Ease(Mathf.Clamp01(portraitElapsed/motion.Duration));
+            float orbit=Mathf.Lerp(motion.Orbit*(fullBody?.72f:1f),0,intro);
+            float lift=fullBody?Mathf.Lerp(-.06f,0,intro):.26f+motion.Height*(1-phase);
             var focus=bounds.center+Vector3.up*(bounds.size.y*lift);
             var direction=Quaternion.Euler(0,orbit,0)*new Vector3(.12f,.035f,1f).normalized;
-            camera.orthographicSize=portraitSize*(fullBody?1:Mathf.Lerp(1+motion.Zoom,1,phase));
+            camera.orthographicSize=portraitSize*Mathf.Lerp(1+motion.Zoom*(fullBody?.75f:1f),1,intro);
             camera.transform.position=focus+direction*Mathf.Max(3,bounds.size.magnitude*2);
             camera.transform.LookAt(focus);
         }
@@ -158,7 +159,7 @@ namespace Buklod.Empire {
         void Update(){
             if(!actor||!camera||!camera.enabled)return;
             fallback?.Tick(Time.unscaledDeltaTime);
-            if(!fullBody&&portraitElapsed<1){
+            if(portraitElapsed<1){
                 portraitElapsed+=Mathf.Min(.05f,Time.unscaledDeltaTime);
                 FrameCamera();
             }

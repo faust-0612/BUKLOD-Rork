@@ -1,0 +1,45 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-premium-presentation-20261128.json",
+  "baseRef": "a0af3de4a8741f44f4a1d3e086064e029fe0bd66",
+  "productionBaselineEvidence": "Standalone DEV; no approved production APK.",
+  "objective": "Upgrade confirmed skill effects to layered volumetric ribbon geometry, blend fallback animation and choreograph the live hero showcase.",
+  "chosenApproach": "Shared bounded depth-tested URP surface mesh, hero-specific existing 39 motifs, quintic animation transitions and preview camera easing.",
+  "selectionRationale": "Visual enhancement without changing hit timing, fog, simulation, stats or production catalog. Review composer serializes the optional material.",
+  "alternativeApproaches": [
+    "Large per-skill particle prefabs or full-screen camera flashes, rejected for mobile budget and readability."
+  ],
+  "riskAreas": [
+    "URP shader compile",
+    "PlayableGraph crossfade",
+    "GPU overdraw and actual device frame pacing"
+  ],
+  "preserveBehaviors": [
+    "Offline simulation and existing skill audio/particles",
+    "Existing hero IDs and original gameplay rules",
+    "No new native build, MAIN changes or approval bypass"
+  ],
+  "acceptanceChecks": [
+    "All 39 canonical skills map to finite bounded distinct motif surfaces",
+    "At most eight pooled 246-vertex skill surfaces",
+    "Focus/pause clears effects; preview uses same material",
+    "Smooth interrupted clip blending and camera introduction"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/BattleEffects.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/BattleView.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewLiveHeroPreview.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewClipPlayback.cs",
+    "apps/buklod-empire-unity/Assets/Editor/OfflineReviewComposer.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/PremiumMotionEnvelope.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/PremiumSkillSurface.cs",
+    "apps/buklod-empire-unity/Assets/Shaders/PremiumSkillSurface.shader",
+    "apps/buklod-empire-unity/Assets/Editor/PremiumSkillSurfaceMaterial.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/PremiumPresentationTests.cs",
+    ".buklod/scopes/empire-premium-presentation-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/PremiumPresentationTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

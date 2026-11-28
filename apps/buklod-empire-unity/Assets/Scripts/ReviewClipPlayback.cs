@@ -11,7 +11,8 @@ namespace Buklod.Empire {
         readonly List<AnimationClipPlayable> clips=new List<AnimationClipPlayable>();
         readonly List<AnimationClip> assets=new List<AnimationClip>();
         PlayableGraph graph;AnimationMixerPlayable mixer;int current=-1;
-        string locomotion="Idle";bool action,death;float remaining;
+        string locomotion="Idle";bool action,death;float remaining,blendAge,blendDuration;
+        float[] blendFrom;
         static readonly HashSet<string> warned=new HashSet<string>();
         public static ReviewClipPlayback TryCreate(Animator animator,string id){
             try{return new ReviewClipPlayback(animator);}
@@ -27,7 +28,7 @@ namespace Buklod.Empire {
                     indices.Add(clip.name,assets.Count);assets.Add(clip);
                 }
                 if(!indices.ContainsKey("Idle")||!indices.ContainsKey("Walk"))throw new InvalidOperationException("Locomotion clips missing");
-                mixer=AnimationMixerPlayable.Create(graph,assets.Count);
+                mixer=AnimationMixerPlayable.Create(graph,assets.Count);blendFrom=new float[assets.Count];
                 for(int i=0;i<assets.Count;i++){
                     var playable=AnimationClipPlayable.Create(graph,assets[i]);
                     playable.SetApplyFootIK(false);playable.SetApplyPlayableIK(false);
@@ -42,9 +43,21 @@ namespace Buklod.Empire {
         }
         bool Switch(string name){
             if(!indices.TryGetValue(name,out int next))return false;
-            if(current>=0)mixer.SetInputWeight(current,0f);
-            current=next;var clip=clips[next];clip.SetTime(0);clip.SetDone(false);mixer.SetInputWeight(next,1f);
-            return true;
+            bool first=current<0;
+            for(int i=0;i<assets.Count;i++)blendFrom[i]=mixer.GetInputWeight(i);
+            // Do not restart a locomotion clip that is still contributing during an interrupted blend.
+            if(next==current||blendFrom[next]<.001f||name!="Idle"&&name!="Walk"&&name!="Run"){clips[next].SetTime(0);clips[next].SetDone(false);}
+            current=next;blendAge=0;blendDuration=first?0:PremiumMotionEnvelope.BlendDuration(name);
+            ApplyBlend(first?1:0);return true;
+        }
+        void ApplyBlend(float t){
+            float w=PremiumMotionEnvelope.Ease(t);
+            for(int i=0;i<assets.Count;i++){
+                float weight=Mathf.Lerp(blendFrom[i],i==current?1:0,w);
+                mixer.SetInputWeight(i,weight);
+                // Inactive clips do not continuously advance in a manual playable graph.
+                clips[i].SetSpeed(weight>.0001f?1:0);
+            }
         }
         public void SetSpeed(float speed){
             locomotion=speed<.12f?"Idle":speed>=4.5f&&indices.ContainsKey("Run")?"Run":"Walk";
@@ -58,14 +71,16 @@ namespace Buklod.Empire {
             if(!graph.IsValid()||current<0)return;
             dt=Mathf.Clamp(dt,0,.1f);
             if(death&&remaining<=0)return;
+            blendAge+=dt;ApplyBlend(blendDuration<=0?1:Mathf.Clamp01(blendAge/blendDuration));
+            // Loop every visible locomotion contribution, including outgoing clips.
+            foreach(var name in new[]{"Idle","Walk","Run"})if(indices.TryGetValue(name,out var i)&&mixer.GetInputWeight(i)>0&&clips[i].GetTime()>=assets[i].length)
+                clips[i].SetTime(clips[i].GetTime()%assets[i].length);
+            float step=action?Mathf.Min(dt,Mathf.Max(0,remaining)):dt;
+            graph.Evaluate(step);
             if(action){
-                remaining-=dt;
+                remaining-=step;
                 if(remaining<=0&&!death){action=false;Switch(locomotion);}
             }
-            // Explicit loop for imported clips regardless of their imported wrap mode.
-            if(!action&&clips[current].GetTime()>=assets[current].length)
-                clips[current].SetTime(clips[current].GetTime()%assets[current].length);
-            graph.Evaluate(dt);
         }
         public void Dispose(){if(graph.IsValid())graph.Destroy();}
     }

@@ -96,6 +96,7 @@ namespace Buklod.Empire.Editor {
             if(!mat){mat=new Material(shader);AssetDatabase.CreateAsset(mat,Out+"/ReviewPulse.mat");}
             root.GetComponent<BattleEffects>().pulseMaterial=mat;
             root.GetComponent<BattleEffects>().skillParticleMaterial=SkillParticleMaterial.Get(Out+"/ReviewSkillParticles.mat");
+            root.GetComponent<BattleEffects>().premiumSurfaceMaterial=PremiumSkillSurfaceMaterial.Get(Out+"/ReviewPremiumSkillSurface.mat");
             var fragmentShader=Shader.Find("BUKLOD/Review/WorldFragments");
             if(!fragmentShader||!fragmentShader.isSupported)throw new InvalidOperationException("World fragment review shader unavailable.");
             var fragmentPath=Out+"/ReviewWorldFragments.mat";
