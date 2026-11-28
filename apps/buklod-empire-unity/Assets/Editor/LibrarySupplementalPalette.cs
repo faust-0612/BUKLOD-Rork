@@ -54,6 +54,55 @@ namespace Buklod.Empire.Editor {
                 }
             }finally{UnityEngine.Object.DestroyImmediate(mesh);UnityEngine.Object.DestroyImmediate(instance);}
         }
+        // Build isolated review prefabs, never alter the canonical wilderness catalog.
+        static void BuildCombatPrefab(GameObject source,AnimationClip[] imported,string key){
+            var required=Expected[key];
+            if(required.Length!=5)return; // No invented hit/death clips for incomplete rigs.
+            string id=Path.GetFileNameWithoutExtension(key);
+            string folder=Out+"CombatPrefabs/";
+            Directory.CreateDirectory(folder);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            var slots=new[]{"Idle","Walk","Attack","Hit","Death"};
+            var clips=new AnimationClip[slots.Length];
+            for(int i=0;i<slots.Length;i++){
+                var original=imported.Single(c=>c.name.Split('|').Last()==required[i]);
+                var copy=UnityEngine.Object.Instantiate(original);
+                copy.name=slots[i];copy.legacy=false;
+                var settings=AnimationUtility.GetAnimationClipSettings(copy);
+                settings.loopTime=i<2;AnimationUtility.SetAnimationClipSettings(copy,settings);
+                string path=folder+id+"_"+slots[i]+".anim";
+                var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+                if(existing){EditorUtility.CopySerialized(copy,existing);UnityEngine.Object.DestroyImmediate(copy);clips[i]=existing;}
+                else{AssetDatabase.CreateAsset(copy,path);clips[i]=copy;}
+            }
+            string controllerPath=folder+id+".controller";
+            if(AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath))AssetDatabase.DeleteAsset(controllerPath);
+            var controller=AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+            controller.AddParameter("Speed",AnimatorControllerParameterType.Float);
+            var machine=controller.layers[0].stateMachine;
+            var idle=machine.AddState("Locomotion");machine.defaultState=idle;
+            var blend=new BlendTree{name="Authored locomotion",blendType=BlendTreeType.Simple1D,blendParameter="Speed",useAutomaticThresholds=false};
+            AssetDatabase.AddObjectToAsset(blend,controller);
+            blend.AddChild(clips[0],0);blend.AddChild(clips[1],1);idle.motion=blend;
+            // Death has transition priority over attack or hit.
+            foreach(int i in new[]{4,2,3}){
+                controller.AddParameter(slots[i],AnimatorControllerParameterType.Trigger);
+                var state=machine.AddState(slots[i]);state.motion=clips[i];
+                var enter=machine.AddAnyStateTransition(state);enter.hasExitTime=false;enter.duration=.05f;enter.canTransitionToSelf=false;
+                enter.AddCondition(AnimatorConditionMode.If,0,slots[i]);
+                if(i!=4){var exit=state.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;exit.duration=.1f;}
+            }
+            var instance=UnityEngine.Object.Instantiate(source);
+            try{
+                foreach(var legacy in instance.GetComponentsInChildren<Animation>(true))UnityEngine.Object.DestroyImmediate(legacy);
+                foreach(var nested in instance.GetComponentsInChildren<Animator>(true))if(nested.gameObject!=instance)UnityEngine.Object.DestroyImmediate(nested);
+                var animator=instance.GetComponent<Animator>();if(!animator)animator=instance.AddComponent<Animator>();
+                animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
+                foreach(var collider in instance.GetComponentsInChildren<Collider>(true))collider.enabled=false;
+                if(!PrefabUtility.SaveAsPrefabAsset(instance,folder+id+".prefab"))throw new InvalidOperationException("Supplemental prefab save failed: "+key);
+                EditorUtility.SetDirty(controller);EditorUtility.SetDirty(machine);
+            }finally{UnityEngine.Object.DestroyImmediate(instance);}
+        }
         [MenuItem("BUKLOD Empire/Import supplemental authored creature palette")]
         public static void Prepare(){
             if(Application.isPlaying)throw new InvalidOperationException("Exit play mode first.");
@@ -88,11 +137,12 @@ namespace Buklod.Empire.Editor {
                         throw new InvalidOperationException("Missing or ambiguous supplemental animation: "+row.name+"/"+expected);
                     Sample(model,matches[0],Key(row));
                 }
+                BuildCombatPrefab(model,imported,Key(row));
                 // Preserve the complete authored model and clips. No fabricated combat motions.
                 Debug.Log("Supplemental source ready for visual review: "+row.name+" ("+imported.Length+" clips)");
             }
             AssetDatabase.SaveAssets();
-            Debug.Log("Nine supplemental source rigs imported and required authored clips sampled for review only; not a gameplay replacement or release approval.");
+            Debug.Log("Nine supplemental source rigs sampled; seven complete combat review prefabs prepared. No gameplay replacement or release approval.");
         }
     }
 }
