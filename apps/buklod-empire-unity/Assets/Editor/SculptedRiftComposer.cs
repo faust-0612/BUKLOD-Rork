@@ -51,6 +51,34 @@ namespace Buklod.Empire.Editor {
             if(collision)obj.AddComponent<MeshCollider>().sharedMesh=mesh;
             return obj;
         }
+        // Scanline mesh follows the same polygon as navigation; vertices shared.
+        static Geometry Terrain(){
+            var zs=new SortedSet<float>();
+            for(int z=0;z<=SculptedRiftLayout.Height;z+=2)zs.Add(z);
+            for(int i=0;i<N;i++)zs.Add(Mathf.Clamp(SculptedRiftLayout.Boundary(i).y,0,SculptedRiftLayout.Height));
+            var rows=zs.ToArray();var g=new Geometry();int cols=SculptedRiftLayout.TerrainColumns;
+            for(int row=0;row<rows.Length;row++){
+                float z=rows[row],left=float.PositiveInfinity,right=float.NegativeInfinity;
+                for(int i=0;i<N;i++){
+                    var a=SculptedRiftLayout.Boundary(i);var b=SculptedRiftLayout.Boundary(i+1);
+                    if(z<Mathf.Min(a.y,b.y)-.0001f||z>Mathf.Max(a.y,b.y)+.0001f)continue;
+                    if(Mathf.Abs(a.y-b.y)<.0001f){left=Mathf.Min(left,Mathf.Min(a.x,b.x));right=Mathf.Max(right,Mathf.Max(a.x,b.x));continue;}
+                    float x=Mathf.Lerp(a.x,b.x,Mathf.Clamp01((z-a.y)/(b.y-a.y)));left=Mathf.Min(left,x);right=Mathf.Max(right,x);
+                }
+                if(float.IsInfinity(left)||float.IsInfinity(right)||left>right)throw new InvalidOperationException("Missing island cross-section: "+z);
+                for(int col=0;col<=cols;col++){
+                    var p=new Vector2(Mathf.Lerp(left,right,col/(float)cols),z);
+                    g.Vertices.Add(V(p,col==0||col==cols?0:SculptedRiftLayout.GroundElevation(p)));
+                }
+                if(row==0)continue;
+                for(int col=0;col<cols;col++){
+                    int a=(row-1)*(cols+1)+col,b=a+1,c=row*(cols+1)+col,d=c+1;
+                    if(Vector3.Cross(g.Vertices[c]-g.Vertices[a],g.Vertices[b]-g.Vertices[a]).sqrMagnitude>1e-10f){g.Indices.Add(a);g.Indices.Add(c);g.Indices.Add(b);}
+                    if(Vector3.Cross(g.Vertices[c]-g.Vertices[b],g.Vertices[d]-g.Vertices[b]).sqrMagnitude>1e-10f){g.Indices.Add(b);g.Indices.Add(c);g.Indices.Add(d);}
+                }
+            }
+            return g;
+        }
         static void Strip(Geometry g,IReadOnlyList<Vector2> points,float halfWidth,float y){
             for(int i=0;i<points.Count-1;i++){
                 Vector2 a=points[i],b=points[i+1],d=(b-a).normalized;
@@ -111,7 +139,7 @@ namespace Buklod.Empire.Editor {
             if(b.size.y<.001f)throw new InvalidOperationException("Invalid foliage bounds.");
             obj.transform.localScale*=height/b.size.y;
             b=renderers[0].bounds;foreach(var r in renderers.Skip(1))b.Encapsulate(r.bounds);
-            obj.transform.position+=new Vector3(point.x-b.center.x,-b.min.y,point.y-b.center.z);
+            obj.transform.position+=new Vector3(point.x-b.center.x,SculptedRiftLayout.GroundElevation(point)-b.min.y,point.y-b.center.z);
             foreach(var c in obj.GetComponentsInChildren<Collider>(true))c.enabled=false;
         }
         internal static void Assemble(GameObject original,Transform world){
@@ -124,11 +152,10 @@ namespace Buklod.Empire.Editor {
             // Disable the old rectangular renderers. They remain as material/provenance
             // references; the new island mesh is the actual visible and navigable ground.
             foreach(var r in original.GetComponentsInChildren<Renderer>(true))r.enabled=false;
-            var floor=new Geometry();var cliff=new Geometry();var rim=new Geometry();
+            var floor=Terrain();var cliff=new Geometry();var rim=new Geometry();
             var center=SculptedRiftLayout.Center;
             for(int i=0;i<N;i++){
                 var a=SculptedRiftLayout.Boundary(i);var b=SculptedRiftLayout.Boundary(i+1);
-                floor.Tri(V(center,0),V(b,0),V(a,0));
                 rim.Quad(V(Vector2.Lerp(a,center,.055f),.012f),V(Vector2.Lerp(b,center,.055f),.012f),V(b,.012f),V(a,.012f));
             }
             Cliff(cliff);
@@ -223,9 +250,41 @@ namespace Buklod.Empire.Editor {
                     Plant(j%2==0?bush:tallGrass,holder.transform,p,j%2==0?1.9f:1.0f,j*61+i*13);
                 }
             }
+            // Existing hash-pinned CC0 source models, already imported by LibraryStructureReview.Bind.
+            const string models=CandidateReviewComposer.Out+"/LibraryFirst/Models/";
+            var pine=AssetDatabase.LoadAssetAtPath<GameObject>(models+"RTS/Resource_PineTree.glb");
+            var rock=AssetDatabase.LoadAssetAtPath<GameObject>(models+"RTS/Resource_Rock_1.glb");
+            var crystal=AssetDatabase.LoadAssetAtPath<GameObject>(models+"RPG/Crystal2.glb");
+            if(!pine||!rock||!crystal)throw new InvalidOperationException("Required authored jungle geometry missing.");
+            var jungle=new GameObject("Jungle terrain and actual concealment brush");jungle.transform.SetParent(holder.transform,false);
+            var brushGround=new Geometry();
+            for(int i=0;i<SculptedRiftLayout.BrushCount;i++){
+                var pos=SculptedRiftLayout.BrushCenter(i);float radius=SculptedRiftLayout.BrushRadius(i);
+                Disc(brushGround,pos,radius,.014f,36);
+                for(int j=0;j<12;j++){
+                    float a=j*2*Mathf.PI/12;var p=pos+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius*.78f;
+                    Plant(j%3==0?bush:tallGrass,jungle.transform,p,j%3==0?1.35f:.75f,j*47+i*23);
+                }
+                for(int j=0;j<5;j++){
+                    float a=j*2*Mathf.PI/5;var p=pos+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius*.35f;
+                    Plant(shortGrass,jungle.transform,p,.54f,j*71);
+                }
+            }
+            PlaceMesh(jungle.transform,"Concealment ground footprints",brushGround.Save("ConcealmentBrush"),grass);
+            // Keep tall trees inside existing solid cover so routes and combat remain readable.
+            for(int i=0;i<SculptedRiftLayout.CoverCount;i++){
+                var cover=SculptedRiftLayout.Cover(i);var pos=new Vector2(cover.x*320,cover.y*220);float radius=cover.z*220;
+                for(int j=0;j<3;j++){
+                    float a=j*2*Mathf.PI/3+i*.53f;var p=pos+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius*.68f;
+                    Plant(pine,jungle.transform,p,3.8f+j*.45f,j*61+i*19);
+                }
+                Plant(rock,jungle.transform,pos,1.65f,i*37);
+            }
+            foreach(float z in new[]{95f,125f})foreach(float side in new[]{-1f,1f})
+                Plant(crystal,jungle.transform,new Vector2(160+side*5.1f,z),1.7f,side*35);
             // Validate the actual generated terrain asset rather than accepting the old plane.
             var actual=AssetDatabase.LoadAssetAtPath<Mesh>(FloorAsset);
-            if(!actual||actual.vertexCount!=N*3||actual.uv.Length!=actual.vertexCount)
+            if(!actual||actual.vertexCount<10000||actual.vertexCount>30000||actual.uv.Length!=actual.vertexCount||actual.bounds.min.y>-.35f)
                 throw new InvalidOperationException("Sculpted terrain geometry or texture mapping missing.");
             AssetDatabase.SaveAssets();
         }

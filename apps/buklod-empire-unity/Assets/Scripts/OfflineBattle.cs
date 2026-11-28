@@ -180,7 +180,7 @@ namespace Buklod.Empire {
                 if(Finished)return;
             }
         }
-        private static readonly Vector3[] Concealment={new Vector3(.25f,.38f,.022f),new Vector3(.75f,.62f,.022f),new Vector3(.40f,.73f,.02f),new Vector3(.60f,.27f,.02f)};
+        // Concealment positions shared with actual terrain brush and minimap.
         private readonly VillageSystem[] villages=new VillageSystem[2];
         private readonly List<VillageResourceNode> resourceNodes=new List<VillageResourceNode>();
         public IReadOnlyList<VillageResourceNode> ResourceNodes=>resourceNodes.AsReadOnly();
@@ -481,7 +481,7 @@ namespace Buklod.Empire {
             foreach(var c in cover){if(c.expires<=Time)continue;float at=Mathf.Clamp01(Vector2.Dot(c.position-from,d)/length);if((from+d*at-c.position).sqrMagnitude<c.radius*c.radius)return false;}
             return true;
         }
-        private static int ConcealmentZone(Vector2 p){for(int i=0;i<Concealment.Length;i++){var c=Concealment[i];if(Vector2.Distance(p,new Vector2(c.x*Width,c.y*Height))<=c.z*Height)return i;}return -1;}
+        private static int ConcealmentZone(Vector2 p)=>SculptedRiftLayout.BrushAt(p);
         public bool IsVisibleTo(ArenaTeam viewer,BattleUnit target){
             if(!ArenaDraftRules.ValidTeam(viewer)||target==null||Find(target.State)!=target||!target.State.Alive)return false;
             if(target.Team==viewer||Time>=OfflineMatchRules.MatchLimit||!CoreAlive(target.Team))return true;

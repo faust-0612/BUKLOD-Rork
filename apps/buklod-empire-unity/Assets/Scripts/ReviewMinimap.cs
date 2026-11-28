@@ -43,10 +43,21 @@ namespace Buklod.Empire {
             if(view.UsesSculptedRift){
                 var center=Point(rect,SculptedRiftLayout.Center);
                 for(int i=0;i<SculptedRiftLayout.BoundarySegments;i++)Triangle(vh,center,Point(rect,SculptedRiftLayout.Boundary(i)),Point(rect,SculptedRiftLayout.Boundary(i+1)),new Color32(37,74,49,255));
+                for(int brush=0;brush<SculptedRiftLayout.BrushCount;brush++){
+                    var c=SculptedRiftLayout.BrushCenter(brush);float rad=SculptedRiftLayout.BrushRadius(brush);
+                    for(int i=0;i<12;i++){float a=i*2*Mathf.PI/12,b=(i+1)*2*Mathf.PI/12;
+                        Triangle(vh,Point(rect,c),Point(rect,c+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*rad),Point(rect,c+new Vector2(Mathf.Cos(b),Mathf.Sin(b))*rad),new Color32(89,132,64,255));}
+                }
                 for(int lane=0;lane<3;lane++)for(int i=0;i<40;i++)
                     Segment(vh,Point(rect,SculptedRiftLayout.LanePoint(lane,i,40)),Point(rect,SculptedRiftLayout.LanePoint(lane,i+1,40)),r*.55f,new Color32(173,155,119,220));
                 for(int i=0;i<40;i++){float a=1+218*i/40f,b=1+218*(i+1)/40f;
                     Segment(vh,Point(rect,new Vector2(SculptedRiftLayout.RiverX(a),a)),Point(rect,new Vector2(SculptedRiftLayout.RiverX(b),b)),r*.8f,new Color32(52,132,157,240));
+                }
+                for(int lane=0;lane<3;lane++){
+                    var c=SculptedRiftLayout.Crossing(lane);
+                    var a=new Vector2(c.x-9,SculptedRiftLayout.LaneHeight(lane,c.x-9));
+                    var b=new Vector2(c.x+9,SculptedRiftLayout.LaneHeight(lane,c.x+9));
+                    Segment(vh,Point(rect,a),Point(rect,b),r*.8f,new Color32(213,193,147,255));
                 }
             }else{
                 foreach(float lane in new[]{.19f,.5f,.81f}){

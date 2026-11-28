@@ -1,0 +1,37 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-rift-physical-terrain-jungle-20261128.json",
+  "baseRef": "c181ac5fd3e9d349fb60173b4cce6aab6ce35dfd",
+  "productionBaselineEvidence": "Standalone Empire isolated DEV review.",
+  "objective": "Sculpt physical riverbed and actual authored jungle matching shared concealment and minimap.",
+  "chosenApproach": "Indexed polygon scanlines, shallow navigable river, flat crossings, pinned CC0 pine/rock/crystal models.",
+  "selectionRationale": "Preserve existing spawn and map balance; use same coordinates for visuals and simulation.",
+  "alternativeApproaches": [
+    "Block river traversal or change tower anchors; rejected."
+  ],
+  "riskAreas": [
+    "Unity NavMesh, renderer and mobile performance unverified"
+  ],
+  "preserveBehaviors": [
+    "Existing concealment, camps, collision, rules, production, MAIN"
+  ],
+  "acceptanceChecks": [
+    "Bounded textured physical terrain",
+    "All three crossings level",
+    "All four concealment zones rendered and mapped",
+    "Build dependency gate"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Scripts/SculptedRiftLayout.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/OfflineBattle.cs",
+    "apps/buklod-empire-unity/Assets/Editor/SculptedRiftComposer.cs",
+    "apps/buklod-empire-unity/Assets/Scripts/ReviewMinimap.cs",
+    "apps/buklod-empire-unity/Assets/Editor/ReviewAuthoredAssetGate.cs",
+    "apps/buklod-empire-unity/Assets/Tests/Editor/SculptedRiftTests.cs",
+    ".buklod/scopes/empire-rift-physical-terrain-jungle-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/SculptedRiftTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

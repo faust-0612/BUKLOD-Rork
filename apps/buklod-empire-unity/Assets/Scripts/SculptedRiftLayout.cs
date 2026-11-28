@@ -15,6 +15,8 @@ namespace Buklod.Empire {
             float radial=Mathf.Pow(Mathf.Pow(Mathf.Abs(x),4)+Mathf.Pow(Mathf.Abs(y),4),-.25f);
             // Gentle, centrally symmetric perimeter variations instead of a box edge.
             radial*=1-.012f*(1-Mathf.Cos(a*8))*.5f;
+            // Preserve the four cardinal anchors and mirror irregular headlands.
+            float shoulder=Mathf.Sin(2*a);radial*=1-shoulder*shoulder*(.017f*(1-Mathf.Cos(a*6))+.011f*(1-Mathf.Cos(a*10)));
             return Center+new Vector2(x*Width*.5f,y*Height*.5f)*radial;
         }
         public static bool Contains(Vector2 p,float clearance=0){
@@ -33,6 +35,29 @@ namespace Buklod.Empire {
         }
         public static float RiverX(float z)=>Width*.5f+7*Mathf.Sin((z-Height*.5f)*Mathf.PI*2/Height)+2.5f*Mathf.Sin((z-Height*.5f)*Mathf.PI*4/Height);
         public const float RiverHalfWidth=5.3f;
+        public const int TerrainColumns=128;
+        public const float RiverDepth=.56f;
+        // Physical shallow riverbed. Causeways and their approach remain level.
+        public static float GroundElevation(Vector2 p){
+            float bank=Mathf.Clamp01((RiverHalfWidth+2f-Mathf.Abs(p.x-RiverX(p.y)))/3.4f);
+            float dry=1f;
+            for(int lane=0;lane<3;lane++)dry=Mathf.Min(dry,Mathf.SmoothStep(0,1,Mathf.Clamp01((Mathf.Abs(p.y-LaneHeight(lane,p.x))-5f)/4f)));
+            return -RiverDepth*Mathf.SmoothStep(0,1,bank)*dry*Mathf.Clamp01(Mathf.Min(p.y,Height-p.y)/5f);
+        }
+        public const int BrushCount=4;
+        public static Vector3 Brush(int i){
+            switch(i){
+                case 0:return new Vector3(.25f,.38f,.022f);case 1:return new Vector3(.75f,.62f,.022f);
+                case 2:return new Vector3(.40f,.73f,.02f);case 3:return new Vector3(.60f,.27f,.02f);
+                default:throw new System.ArgumentOutOfRangeException(nameof(i));
+            }
+        }
+        public static Vector2 BrushCenter(int i){var c=Brush(i);return new Vector2(c.x*Width,c.y*Height);}
+        public static float BrushRadius(int i)=>Brush(i).z*Height;
+        public static int BrushAt(Vector2 p){
+            for(int i=0;i<BrushCount;i++)if(Vector2.Distance(p,BrushCenter(i))<=BrushRadius(i))return i;
+            return -1;
+        }
         public static float LaneHeight(int lane,float x){
             float baseY=Height*(lane==0?.19f:lane==1?.5f:.81f);
             // Preserve spawn and tower alignments; gentle curved outer lanes with
