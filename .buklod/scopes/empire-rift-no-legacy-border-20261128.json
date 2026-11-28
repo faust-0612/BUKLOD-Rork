@@ -1,0 +1,31 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-rift-no-legacy-border-20261128.json",
+  "baseRef": "5bef7193b6aa474e48af64a9945e6d1807e54cf1",
+  "productionBaselineEvidence": "Isolated offline DEV only.",
+  "objective": "Remove the legacy straight border foliage overlay from the actual sculpted APK scene.",
+  "chosenApproach": "Use the already assembled authored foliage around the new perimeter; retain legacy code for other scenes.",
+  "selectionRationale": "Avoid visibly rectangular decoration floating off the new island and redundant draw calls.",
+  "alternativeApproaches": [
+    "Keep both border passes; rejected."
+  ],
+  "riskAreas": [
+    "Unity runtime and scene verification pending"
+  ],
+  "preserveBehaviors": [
+    "Legacy scene foliage and pinned authored assets",
+    "No MAIN or production changes"
+  ],
+  "acceptanceChecks": [
+    "Sculpted scenes do not execute legacy straight border pass",
+    "All existing authored foliage retained through sculpted composer"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Editor/AuthoredNatureBenchmark.cs",
+    ".buklod/scopes/empire-rift-no-legacy-border-20261128.json"
+  ],
+  "regressionTests": [
+    "apps/buklod-empire-unity/Assets/Tests/Editor/SculptedRiftTests.cs"
+  ],
+  "lockedFeatureChanges": []
+}

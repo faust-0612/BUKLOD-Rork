@@ -6,6 +6,10 @@ namespace Buklod.Empire.Editor {
     internal static class AuthoredNatureBenchmark {
         const string Root="Assets/ThirdParty/QuaterniusReview/nature/glTF/";
         public static void Apply(){
+            // The sculpted scene already places all three pinned authored foliage models
+            // along its actual perimeter and cover. Do not re-add the old straight boundary.
+            var view=UnityEngine.Object.FindFirstObjectByType<BattleView>();
+            if(view&&view.UsesSculptedRift)return;
             var holder=new GameObject("Authored Quaternius foliage (review)");
             var bush=Load("Bush_Common");
             var shortGrass=Load("Grass_Common_Short");
