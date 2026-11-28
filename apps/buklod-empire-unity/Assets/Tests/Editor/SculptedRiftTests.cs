@@ -31,6 +31,15 @@ namespace Buklod.Empire.Tests {
             Assert.Less(SculptedRiftLayout.LaneHeight(0,100),41.8f);
             Assert.AreEqual(41.8f,SculptedRiftLayout.LaneHeight(0,35),.001f);
         }
+        [Test] public void PhysicalRiverbedAndCausewaysUseSameLayout(){
+            for(int lane=0;lane<3;lane++)Assert.AreEqual(0,SculptedRiftLayout.GroundElevation(SculptedRiftLayout.Crossing(lane)),.001f);
+            Assert.Less(SculptedRiftLayout.GroundElevation(new Vector2(SculptedRiftLayout.RiverX(75),75)),-.35f);
+            for(int i=0;i<4;i++){
+                var c=SculptedRiftLayout.BrushCenter(i);
+                Assert.AreEqual(i,SculptedRiftLayout.BrushAt(c));
+                Assert.AreEqual(-1,SculptedRiftLayout.BrushAt(c+Vector2.right*(SculptedRiftLayout.BrushRadius(i)+.2f)));
+            }
+        }
         [Test] public void CurvedApproachNeverReplacesActualCombatTarget(){
             var target=new Vector2(285,41.8f);
             Assert.AreEqual(target,SculptedRiftLayout.LaneWaypoint(0,new Vector2(278,41),true,target));

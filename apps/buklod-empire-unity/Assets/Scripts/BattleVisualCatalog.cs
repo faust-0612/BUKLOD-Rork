@@ -14,6 +14,9 @@ namespace Buklod.Empire {
         public GameObject fieldPickup,relicPickup;
         [Serializable] public sealed class ItemVisual {public string slot;public int tier;public GameObject prefab;public Texture2D icon;}
         public ItemVisual[] itemArt;
+        [Serializable] public sealed class BuildingArt {public ArenaTeam team;public VillageBuildOrder kind;public Texture2D icon;}
+        public BuildingArt[] buildingArt;
+        public Texture2D ResolveBuildingIcon(ArenaTeam team,VillageBuildOrder kind){if(buildingArt!=null)foreach(var row in buildingArt)if(row!=null&&row.team==team&&row.kind==kind)return row.icon;return null;}
         public ItemVisual ResolveItem(string slot,int tier){ItemVisual chosen=null;if(itemArt!=null)foreach(var row in itemArt)if(row!=null&&row.slot==slot&&row.tier<=tier&&(chosen==null||row.tier>chosen.tier))chosen=row;return chosen;}
         public GameObject jungleDemon,jungleSnake;
         public GameObject genesisRift;

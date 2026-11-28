@@ -261,12 +261,18 @@ namespace Buklod.Empire {
             ArmyCell(13,chosen==null?"No soldier":$"HP {chosen.State.Health:0}/{chosen.State.MaxHealth:0}",()=>{},false);
             ArmyCell(14,"HOUSE + ARMORY",()=>{},false);
         }
+        private void BuildingThumbnail(Button button,ArenaTeam team,VillageBuildOrder kind){
+            if(!view.visuals)return;var icon=view.visuals.ResolveBuildingIcon(team,kind);if(!icon)return;
+            var r=Rect("Authored building render",button.transform,new Vector2(.02f,.04f),new Vector2(.30f,.96f));var art=r.gameObject.AddComponent<RawImage>();art.texture=icon;art.raycastTarget=false;
+            var fit=r.gameObject.AddComponent<AspectRatioFitter>();fit.aspectMode=AspectRatioFitter.AspectMode.FitInParent;fit.aspectRatio=(float)icon.width/Mathf.Max(1,icon.height);
+            var label=button.GetComponentInChildren<Text>();label.rectTransform.anchorMin=new Vector2(.32f,0);label.rectTransform.anchorMax=Vector2.one;label.transform.SetAsLastSibling();
+        }
         private void ConstructionMap(OfflineBattle b){
-            summary.text="BUILD "+selectedBuild.ToString().ToUpperInvariant()+" • Choose a visible valid location near your base";
-            TacticalMap(b,body,new Vector2(0,.14f),new Vector2(.55f,1),0,p=>Reply(b.IsPositionVisibleTo(b.Player.Team,p)&&b.OrderPlayerConstruction(selectedBuild,p),"Construction queued at selected site"));
+            var bank=b.GetVillage(b.Player.Team);summary.text=$"BUILD {selectedBuild.ToString().ToUpperInvariant()} • Wood {bank.Wood:0} Stone {bank.Stone:0} Food {bank.Food:0} Gold {bank.Gold:0} • Tap visible ground";
+            TacticalMap(b,body,new Vector2(0,.14f),new Vector2(.55f,1),0,p=>Reply(b.OrderPlayerConstruction(selectedBuild,p),"Construction queued at selected site"));
             ButtonAt("Village",body,Vector2.zero,new Vector2(.27f,.13f),"VILLAGE",()=>{page=3;Rebuild();});
             ButtonAt("Army",body,new Vector2(.28f,0),new Vector2(.55f,.13f),"ARMY",()=>{page=10;Rebuild();});
-            int i=0;foreach(var kind in new[]{VillageBuildOrder.House,VillageBuildOrder.Barracks,VillageBuildOrder.Farm,VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Market}){var k=kind;float top=1-i++/6f;var button=ButtonAt("Select "+k,body,new Vector2(.57f,top-.15f),new Vector2(1,top-.01f),(k==VillageBuildOrder.Barracks?"ARMORY / BARRACKS":k.ToString().ToUpperInvariant())+(k==selectedBuild?" • SELECTED":""),()=>{selectedBuild=k;Rebuild();});}
+            int i=0;foreach(var kind in new[]{VillageBuildOrder.House,VillageBuildOrder.Barracks,VillageBuildOrder.Farm,VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Market}){var k=kind;float top=1-i++/6f;var button=ButtonAt("Select "+k,body,new Vector2(.57f,top-.15f),new Vector2(1,top-.01f),(k==VillageBuildOrder.Barracks?"ARMORY / BARRACKS":k.ToString().ToUpperInvariant())+(k==selectedBuild?" • SELECTED":""),()=>{selectedBuild=k;Rebuild();});BuildingThumbnail(button,b.Player.Team,k);if(k==selectedBuild)button.GetComponent<Outline>().effectColor=new Color(1,.85f,.42f);}
         }
         private void UpdateNavigation(){
             if(navigationTabs==null)return;

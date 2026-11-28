@@ -44,10 +44,21 @@ namespace Buklod.Empire {
             if(view.UsesSculptedRift){
                 var center=Point(rect,SculptedRiftLayout.Center);
                 for(int i=0;i<SculptedRiftLayout.BoundarySegments;i++)Triangle(vh,center,Point(rect,SculptedRiftLayout.Boundary(i)),Point(rect,SculptedRiftLayout.Boundary(i+1)),new Color32(37,74,49,255));
+                for(int brush=0;brush<SculptedRiftLayout.BrushCount;brush++){
+                    var c=SculptedRiftLayout.BrushCenter(brush);float rad=SculptedRiftLayout.BrushRadius(brush);
+                    for(int i=0;i<12;i++){float a=i*2*Mathf.PI/12,b=(i+1)*2*Mathf.PI/12;
+                        Triangle(vh,Point(rect,c),Point(rect,c+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*rad),Point(rect,c+new Vector2(Mathf.Cos(b),Mathf.Sin(b))*rad),new Color32(89,132,64,255));}
+                }
                 for(int lane=0;lane<3;lane++)for(int i=0;i<40;i++)
                     Segment(vh,Point(rect,SculptedRiftLayout.LanePoint(lane,i,40)),Point(rect,SculptedRiftLayout.LanePoint(lane,i+1,40)),r*.55f,new Color32(173,155,119,220));
                 for(int i=0;i<40;i++){float a=1+218*i/40f,b=1+218*(i+1)/40f;
                     Segment(vh,Point(rect,new Vector2(SculptedRiftLayout.RiverX(a),a)),Point(rect,new Vector2(SculptedRiftLayout.RiverX(b),b)),r*.8f,new Color32(52,132,157,240));
+                }
+                for(int lane=0;lane<3;lane++){
+                    var c=SculptedRiftLayout.Crossing(lane);
+                    var a=new Vector2(c.x-9,SculptedRiftLayout.LaneHeight(lane,c.x-9));
+                    var b=new Vector2(c.x+9,SculptedRiftLayout.LaneHeight(lane,c.x+9));
+                    Segment(vh,Point(rect,a),Point(rect,b),r*.8f,new Color32(213,193,147,255));
                 }
             }else{
                 foreach(float lane in new[]{.19f,.5f,.81f}){
@@ -73,6 +84,8 @@ namespace Buklod.Empire {
                 if(!ShowUnit(battle,u)||u==battle.Player)continue;
                 var tint=u.Team==battle.Player.Team?new Color32(83,189,255,255):new Color32(244,91,101,255);
                 var point=Point(rect,u.Position);
+                if(u.Team==battle.Player.Team&&u.PaidMinion&&u.ArmyWaypoint.HasValue){var destination=Point(rect,u.ArmyWaypoint.Value);Segment(vh,point,destination,r*.16f,new Color32(232,193,94,155));Diamond(vh,destination,r*.85f,new Color32(255,220,90,210));}
+                if(u.Team==battle.Player.Team&&u.Construction!=null){var job=u.Construction;var destination=Point(rect,job.Position);Segment(vh,point,destination,r*.18f,new Color32(117,231,165,180));Dot(vh,destination,r*1.5f,new Color32(117,231,165,200));}
                 if(u.Kind==BattleTargetKind.Structure)Dot(vh,point,r*(u.Core?2.0f:1.35f),tint);
                 else if(u.Kind==BattleTargetKind.Hero)Diamond(vh,point,r*1.45f,tint);
                 else if(u.PaidMinion&&u.Team==battle.Player.Team)Diamond(vh,point,r*(u.Id==SelectedSoldierId?2.0f:1.0f),u.Id==SelectedSoldierId?new Color32(255,220,90,255):tint);

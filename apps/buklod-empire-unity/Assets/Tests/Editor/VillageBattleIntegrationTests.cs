@@ -34,6 +34,22 @@ namespace Buklod.Empire.Tests {
                 Assert.AreEqual(0,new OfflinePracticeWarehouse(key).Items.Count);
             }finally{PlayerPrefs.DeleteKey(key);PlayerPrefs.Save();}
         }
+        [Test] public void StaleWarehouseCannotOverwriteNewerSnapshot(){
+            string key="buklod.test.warehouse."+System.Guid.NewGuid().ToString("N");
+            try{
+                Assert.True(ArenaRelicCatalog.TryGet("phan-weapon-t1",out var item));
+                var first=new OfflinePracticeWarehouse(key);var stale=new OfflinePracticeWarehouse(key);
+                Assert.True(first.TryDeposit(item));Assert.False(stale.TryDeposit(item));Assert.False(stale.Available);
+                Assert.AreEqual(1,new OfflinePracticeWarehouse(key).Items.Count);
+            }finally{PlayerPrefs.DeleteKey(key);PlayerPrefs.Save();}
+        }
+        [Test] public void InvalidConstructionAndFormationTargetsAreRejected(){
+            var b=new OfflineBattle("phan");var invalid=new Vector2(float.NaN,10);
+            Assert.False(b.CanPlacePlayerBuilding(VillageBuildOrder.House,invalid));
+            Assert.False(b.OrderPlayerConstruction(VillageBuildOrder.House,invalid));
+            Assert.False(b.OrderPlayerFormationMove(invalid));
+            Assert.False(b.HasConstructionOrder(b.Player.Team));
+        }
         [Test] public void QuickPotionConsumesOnlyOnActualRecovery(){
             var b=new OfflineBattle("phan");
             var bag=(System.Collections.Generic.List<ArenaRelicDefinition>)typeof(OfflineBattle).GetField("practiceVault",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(b);

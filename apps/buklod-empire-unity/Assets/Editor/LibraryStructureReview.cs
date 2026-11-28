@@ -176,6 +176,7 @@ namespace Buklod.Empire.Editor {
             catalog.relicPickup=Build(map["relic_pickup"],catalog.relicPickup);
             catalog.structureCollapses=collapses.ToArray();
             BindItemArt(doc,catalog);
+            BindBuildingArt(catalog);
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
             Debug.Log("Library-first static roster: 16 structures, 5 resources, 2 pickups. Review only; no runtime verification or production approval.");
@@ -193,8 +194,7 @@ namespace Buklod.Empire.Editor {
             Directory.CreateDirectory(Out+"Icons");Directory.CreateDirectory(Out+"Prefabs");
             var items=new List<BattleVisualCatalog.ItemVisual>();
             foreach(var row in doc.itemReviewBindings){
-                var root=new GameObject("Authored item "+row.id);GameObject preview=null,camGo=null,keyGo=null,fillGo=null;
-                RenderTexture target=null;Texture2D pixels=null;var previous=RenderTexture.active;
+                var root=new GameObject("Authored item "+row.id);
                 try{
                     var model=Model(row.group,row.name,root.transform);var bounds=BoundsOf(model);
                     float span=Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z));
@@ -203,31 +203,48 @@ namespace Buklod.Empire.Editor {
                     model.transform.position+=new Vector3(-bounds.center.x,-bounds.min.y,-bounds.center.z);
                     var prefab=PrefabUtility.SaveAsPrefabAsset(root,ItemPath(row));
                     if(!prefab)throw new BuildFailedException("Cannot save item prefab: "+row.name);
+                    var icon=CaptureIcon(prefab,IconPath(row));
+                    items.Add(new BattleVisualCatalog.ItemVisual{slot=row.id,tier=row.tier,prefab=prefab,icon=icon});
+                }finally{UnityEngine.Object.DestroyImmediate(root);}
+            }
+            catalog.itemArt=items.ToArray();
+        }
+        static Texture2D CaptureIcon(GameObject prefab,string path){
+            GameObject preview=null,camGo=null,keyGo=null,fillGo=null;RenderTexture target=null;Texture2D pixels=null;var previous=RenderTexture.active;Bounds bounds;
+            try{
                     preview=UnityEngine.Object.Instantiate(prefab);preview.transform.position=new Vector3(4000,4000,4000);
                     SetLayer(preview.transform,30);bounds=BoundsOf(preview);
-                    camGo=new GameObject("Item studio camera");var camera=camGo.AddComponent<Camera>();camera.enabled=false;camera.cullingMask=1<<30;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.035f,.045f,.065f,1);camera.orthographic=true;camera.orthographicSize=1.02f;camera.nearClipPlane=.1f;camera.farClipPlane=15;
-                    camera.transform.position=bounds.center+new Vector3(2.7f,1.9f,-4.2f);camera.transform.LookAt(bounds.center);
+                    camGo=new GameObject("Item studio camera");var camera=camGo.AddComponent<Camera>();camera.enabled=false;camera.cullingMask=1<<30;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.035f,.045f,.065f,1);camera.orthographic=true;float span=Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z));camera.orthographicSize=Mathf.Max(.1f,span*.80f);camera.nearClipPlane=.01f;camera.farClipPlane=Mathf.Max(15,span*12);
+                    camera.transform.position=bounds.center+new Vector3(2.7f,1.9f,-4.2f)*Mathf.Max(.1f,span/1.35f);camera.transform.LookAt(bounds.center);
                     var data=camera.GetUniversalAdditionalCameraData();data.renderPostProcessing=false;data.renderShadows=false;
-                    keyGo=new GameObject("Item key");var key=keyGo.AddComponent<Light>();key.type=LightType.Point;key.cullingMask=1<<30;key.range=10;key.intensity=4;key.color=new Color(1,.90f,.70f);key.transform.position=bounds.center+new Vector3(-2,3,-3);
-                    fillGo=new GameObject("Item fill");var fill=fillGo.AddComponent<Light>();fill.type=LightType.Point;fill.cullingMask=1<<30;fill.range=10;fill.intensity=2.5f;fill.color=new Color(.55f,.72f,1);fill.transform.position=bounds.center+new Vector3(3,1,1);
+                    keyGo=new GameObject("Item key");var key=keyGo.AddComponent<Light>();key.type=LightType.Point;key.cullingMask=1<<30;key.range=Mathf.Max(10,span*8);key.intensity=4;key.color=new Color(1,.90f,.70f);key.transform.position=bounds.center+new Vector3(-2,3,-3)*Mathf.Max(.1f,span/1.35f);
+                    fillGo=new GameObject("Item fill");var fill=fillGo.AddComponent<Light>();fill.type=LightType.Point;fill.cullingMask=1<<30;fill.range=Mathf.Max(10,span*8);fill.intensity=2.5f;fill.color=new Color(.55f,.72f,1);fill.transform.position=bounds.center+new Vector3(3,1,1)*Mathf.Max(.1f,span/1.35f);
                     target=RenderTexture.GetTemporary(192,192,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);
                     var request=new UniversalRenderPipeline.SingleCameraRequest{destination=target};
                     if(!RenderPipeline.SupportsRenderRequest(camera,request))throw new BuildFailedException("URP item studio capture unsupported.");
                     RenderPipeline.SubmitRenderRequest(camera,request);RenderTexture.active=target;
                     pixels=new Texture2D(192,192,TextureFormat.RGBA32,false);pixels.ReadPixels(new Rect(0,0,192,192),0,0);pixels.Apply();
-                    File.WriteAllBytes(IconPath(row),pixels.EncodeToPNG());
-                    AssetDatabase.ImportAsset(IconPath(row),ImportAssetOptions.ForceSynchronousImport);
-                    var importer=AssetImporter.GetAtPath(IconPath(row)) as TextureImporter;
+                    File.WriteAllBytes(path,pixels.EncodeToPNG());
+                    AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceSynchronousImport);
+                    var importer=AssetImporter.GetAtPath(path) as TextureImporter;
                     if(importer){importer.mipmapEnabled=false;importer.npotScale=TextureImporterNPOTScale.None;importer.maxTextureSize=256;importer.SaveAndReimport();}
-                    var icon=AssetDatabase.LoadAssetAtPath<Texture2D>(IconPath(row));if(!icon)throw new BuildFailedException("Item icon import failed: "+row.name);
-                    items.Add(new BattleVisualCatalog.ItemVisual{slot=row.id,tier=row.tier,prefab=prefab,icon=icon});
-                }finally{RenderTexture.active=previous;if(target)RenderTexture.ReleaseTemporary(target);if(pixels)UnityEngine.Object.DestroyImmediate(pixels);foreach(var obj in new[]{root,preview,camGo,keyGo,fillGo})if(obj)UnityEngine.Object.DestroyImmediate(obj);}
+                    var icon=AssetDatabase.LoadAssetAtPath<Texture2D>(path);if(!icon)throw new BuildFailedException("Item icon import failed: "+prefab.name);
+                return icon;
+            }finally{RenderTexture.active=previous;if(target)RenderTexture.ReleaseTemporary(target);if(pixels)UnityEngine.Object.DestroyImmediate(pixels);foreach(var obj in new[]{preview,camGo,keyGo,fillGo})if(obj)UnityEngine.Object.DestroyImmediate(obj);}
+        }
+        static string BuildingIconPath(ArenaTeam team,VillageBuildOrder kind)=>Out+"Icons/build_"+team.ToString().ToLowerInvariant()+"_"+kind.ToString().ToLowerInvariant()+".png";
+        static void BindBuildingArt(BattleVisualCatalog catalog){
+            var rows=new List<BattleVisualCatalog.BuildingArt>();Directory.CreateDirectory(Out+"Icons");
+            foreach(var f in catalog.factions)foreach(var entry in new[]{(VillageBuildOrder.House,f.house),(VillageBuildOrder.Barracks,f.barracks),(VillageBuildOrder.Farm,f.farm),(VillageBuildOrder.Depot,f.depot),(VillageBuildOrder.GuardPost,f.guardPost),(VillageBuildOrder.Market,f.market)}){
+                if(!entry.Item2)throw new BuildFailedException("Missing building preview source: "+entry.Item1);
+                rows.Add(new BattleVisualCatalog.BuildingArt{team=f.team,kind=entry.Item1,icon=CaptureIcon(entry.Item2,BuildingIconPath(f.team,entry.Item1))});
             }
-            catalog.itemArt=items.ToArray();
+            catalog.buildingArt=rows.ToArray();
         }
         internal static void ValidateDependencies(IEnumerable<string> dependencies){
             var doc=Read();var set=new HashSet<string>(dependencies,StringComparer.Ordinal);
             foreach(var row in doc.itemReviewBindings??Array.Empty<ItemBinding>()){var input=Find(doc,row.group,row.name);Verified(input);if(!set.Contains(ItemPath(row))||!set.Contains(IconPath(row))||!set.Contains(ModelPath(row.group,row.name)))throw new BuildFailedException("Missing authored item dependency: "+row.name);}
+            foreach(ArenaTeam team in Enum.GetValues(typeof(ArenaTeam)))foreach(var kind in new[]{VillageBuildOrder.House,VillageBuildOrder.Barracks,VillageBuildOrder.Farm,VillageBuildOrder.Depot,VillageBuildOrder.GuardPost,VillageBuildOrder.Market})if(!set.Contains(BuildingIconPath(team,kind)))throw new BuildFailedException("Missing building thumbnail: "+team+"/"+kind);
             foreach(var b in doc.staticReviewBindings){
                 if(!set.Contains(PrefabPath(b.id)))throw new BuildFailedException("Missing Library-first prefab: "+b.id);
                 if(b.id=="field_pickup"||b.id=="relic_pickup"){

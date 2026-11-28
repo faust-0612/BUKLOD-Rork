@@ -26,23 +26,24 @@ namespace Buklod.Empire {
         private const string StorageKey="buklod.empire.practice.warehouse.v1";
         [Serializable] private sealed class Snapshot {public int version=1;public string[] ids;}
         private readonly List<ArenaRelicDefinition> items=new List<ArenaRelicDefinition>();
-        private readonly string key;
+        private readonly string key;private string loadedSnapshot;private bool loadedExists;
         public bool Available {get;private set;}=true;
         public IReadOnlyList<ArenaRelicDefinition> Items=>items.AsReadOnly();
         public OfflinePracticeWarehouse(string storageKey=null){
             key=storageKey??StorageKey;
             try{
-                if(!PlayerPrefs.HasKey(key))return;
-                var s=JsonUtility.FromJson<Snapshot>(PlayerPrefs.GetString(key));
+                loadedExists=PlayerPrefs.HasKey(key);if(!loadedExists)return;
+                loadedSnapshot=PlayerPrefs.GetString(key);var s=JsonUtility.FromJson<Snapshot>(loadedSnapshot);
                 if(s==null||s.version!=1||s.ids==null||s.ids.Length>Capacity){Available=false;return;}
                 foreach(var id in s.ids){if(!ArenaRelicCatalog.TryGetPractice(id,out var item)){items.Clear();Available=false;return;}items.Add(item);}
             }catch{items.Clear();Available=false;}
         }
         private bool Save(List<ArenaRelicDefinition> next){
-            if(!Available)return false;string old=PlayerPrefs.GetString(key,"");bool existed=PlayerPrefs.HasKey(key);
-            try{PlayerPrefs.SetString(key,JsonUtility.ToJson(new Snapshot{ids=next.Select(x=>x.Id).ToArray()}));PlayerPrefs.Save();}
-            catch{Available=false;try{if(existed)PlayerPrefs.SetString(key,old);else PlayerPrefs.DeleteKey(key);}catch{}return false;}
-            items.Clear();items.AddRange(next);return true;
+            if(!Available)return false;
+            string old="";bool existed=false;string updated=null;bool attempted=false;
+            try{existed=PlayerPrefs.HasKey(key);old=PlayerPrefs.GetString(key,"");if(existed!=loadedExists||existed&&old!=loadedSnapshot){Available=false;return false;}updated=JsonUtility.ToJson(new Snapshot{ids=next.Select(x=>x.Id).ToArray()});attempted=true;PlayerPrefs.SetString(key,updated);PlayerPrefs.Save();}
+            catch{Available=false;if(attempted)try{if(existed)PlayerPrefs.SetString(key,old);else PlayerPrefs.DeleteKey(key);PlayerPrefs.Save();}catch{}return false;}
+            loadedExists=true;loadedSnapshot=updated;items.Clear();items.AddRange(next);return true;
         }
         public bool TryDeposit(ArenaRelicDefinition item){
             if(!Available||items.Count>=Capacity||item==null||!ArenaRelicCatalog.TryGetPractice(item.Id,out var canonical)||!ReferenceEquals(item,canonical))return false;

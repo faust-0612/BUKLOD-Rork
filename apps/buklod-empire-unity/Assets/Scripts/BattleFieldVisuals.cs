@@ -185,9 +185,12 @@ namespace Buklod.Empire {
                         }
                     }
                     var order=u.Construction;
-                    if(order!=null&&order.Kind!=VillageBuildOrder.Repair&&order.Progress>0&&Nearby(order.Position)&&(u.Team==bound.Player.Team||Visible(order.Position))){
+                    if(order!=null&&order.Kind!=VillageBuildOrder.Repair&&Nearby(order.Position)&&(u.Team==bound.Player.Team||Visible(order.Position))){
                         var prefab=ConstructionPrefab(u.Team,order.Kind);var go=Present(5,u.Id,order.Position,prefab,out _);
-                        if(go){var scale=prefab.transform.localScale;scale.y*=Mathf.Lerp(.10f,1,order.Completion);go.transform.localScale=scale;go.transform.position=view.FieldPosition(order.Position);}
+                        if(go){var scale=prefab.transform.localScale;scale.y*=Mathf.Lerp(.10f,1,order.Completion);go.transform.localScale=scale;go.transform.position=view.FieldPosition(order.Position);
+                            var key=(5,u.Id);if(!lootLabels.TryGetValue(key,out var label)||!label){var marker=new GameObject("Construction status "+u.Id);marker.transform.SetParent(transform,false);label=marker.AddComponent<TextMesh>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.GetComponent<MeshRenderer>().sharedMaterial=label.font.material;label.anchor=TextAnchor.MiddleCenter;label.alignment=TextAlignment.Center;label.fontSize=48;label.characterSize=.046f;lootLabels[key]=label;}
+                            label.text=order.Kind.ToString()+" • "+Mathf.RoundToInt(order.Completion*100)+"%";label.color=new Color(.94f,.78f,.42f);label.transform.position=view.FieldPosition(order.Position)+Vector3.up*2.8f;if(view.battleCamera)label.transform.rotation=view.battleCamera.transform.rotation;
+                        }
                     }
                 }
             }
