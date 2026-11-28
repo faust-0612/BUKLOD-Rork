@@ -8,7 +8,7 @@ using UnityEngine.InputSystem.UI;
 namespace Buklod.Empire {
     // All commands target the current offline session; no account or reward mutation.
     [RequireComponent(typeof(BattleView))]
-    public sealed class OfflineSessionMenu:MonoBehaviour {
+    public sealed partial class OfflineSessionMenu:MonoBehaviour {
         private BattleView view;private RectTransform canvas,panel,body;
         private Text title,summary,feedback;private Text contentStatus;private Button contentCheck,contentDownload;private Font font;private GameObject ownedEventSystem;
         private string selected;private string selectedGatherer;private bool shown,lastFinished;private int page,seed=1;
@@ -19,7 +19,7 @@ namespace Buklod.Empire {
         private CovenantTalent first=CovenantTalent.Fortitude,second=CovenantTalent.Resolve,third=CovenantTalent.Sustenance;
         private bool autoTraining,enableCovenant=true;
         private Button[] navigationTabs;
-        private Button resumeButton;
+        private Button resumeButton,startButton;
         private CanvasGroup resultStats,resultActions;private RectTransform resultEmblem;
         private Image[] navigationMarkers;
         private Text[] navigationLabels;
@@ -77,8 +77,9 @@ namespace Buklod.Empire {
             body=Rect("Commands",panel,new Vector2(.035f,.18f),new Vector2(.965f,.71f));
             feedback=Label("Feedback",panel,new Vector2(.03f,.10f),new Vector2(.97f,.18f),"",20);
             resumeButton=ButtonAt("Resume",panel,new Vector2(.06f,.015f),new Vector2(.46f,.10f),"RESUME CURRENT MATCH",Resume);
-            var start=ButtonAt("Start",panel,new Vector2(.54f,.015f),new Vector2(.94f,.10f),"START NEW MATCH",StartNew);
-            if(view.IsEditorReview){var startLabel=start.GetComponentInChildren<Text>();startLabel.color=NavigationAccent;startLabel.fontStyle=FontStyle.Bold;}
+            startButton=ButtonAt("Start",panel,new Vector2(.54f,.015f),new Vector2(.94f,.10f),"START NEW MATCH",StartNew);
+            if(view.IsEditorReview){var startLabel=startButton.GetComponentInChildren<Text>();startLabel.color=NavigationAccent;startLabel.fontStyle=FontStyle.Bold;}
+            if(view.IsEditorReview)pregame=new ReviewMatchFlow();
             Open();
         }
         private void ApplySafeArea(){lastSafe=MobileBattleInput.SafeArea;safeRoot.anchorMin=new Vector2(lastSafe.xMin/Mathf.Max(1,Screen.width),lastSafe.yMin/Mathf.Max(1,Screen.height));safeRoot.anchorMax=new Vector2(lastSafe.xMax/Mathf.Max(1,Screen.width),lastSafe.yMax/Mathf.Max(1,Screen.height));}
@@ -270,11 +271,12 @@ namespace Buklod.Empire {
             UpdateNavigation();resultStats=null;resultActions=null;resultEmblem=null;
             foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
             var b=view.Battle;var p=b?.Player;bool active=Active;
-            if(!view.IsEditorReview||showResult||confirmRestart||!(page==-1||page==0&&heroDetail))HideShowcase();
+            if(!view.IsEditorReview||showResult||confirmRestart||!(page==-1&&(pregame==null||!pregame.InWizard)||page==0&&heroDetail))HideShowcase();
             if(view.IsEditorReview&&navigationTabs!=null)for(int i=0;i<navigationTabs.Length;i++)navigationTabs[i].interactable=(active&&matchStarted)||i<3||i>=8;
             if(resumeButton)resumeButton.interactable=active&&(!view.IsEditorReview||matchStarted)&&!confirmRestart;
             title.text=b!=null&&b.Finished?(b.Winner.HasValue?(b.Winner.Value==ArenaTeam.Lux?"VICTORY":"DEFEAT"):"DRAW"):(view.IsEditorReview?"OFFLINE TEST — NOT FOR RELEASE":"OFFLINE TRAINING");
             summary.text=b==null?"Free offline training":$"Lv {p.State.Level}  Gold {p.Gold}  K/D/A {p.Kills}/{p.Deaths}/{p.Assists}  •  Lux {b.RemainingUnits(ArenaTeam.Lux)} : Tenebra {b.RemainingUnits(ArenaTeam.Tenebra)}  •  No persistent rewards"+(b.Finished?" • "+b.EndReason:"");
+            ConfigurePregameControls();
             if(view.IsEditorReview&&showResult&&b!=null&&b.Finished){
                 bool won=b.Winner==p.Team,draw=!b.Winner.HasValue;
                 var accent=draw?new Color(.82f,.87f,.94f):won?new Color(1,.82f,.38f):new Color(1,.50f,.43f);
@@ -319,13 +321,15 @@ namespace Buklod.Empire {
                 title.text="START A NEW MATCH?";summary.text="The unfinished local match will be discarded.";
                 Label("Restart scope",body,new Vector2(.08f,.42f),new Vector2(.92f,.90f),"No BP, permanent XP or Sacred Stone transaction will occur.",25);
                 ButtonAt("Keep match",body,new Vector2(.08f,.10f),new Vector2(.47f,.36f),"KEEP CURRENT MATCH",()=>{confirmRestart=false;Rebuild();});
-                ButtonAt("Discard match",body,new Vector2(.53f,.10f),new Vector2(.92f,.36f),"START NEW MATCH",()=>{confirmRestart=false;StartCoroutine(PrepareReviewMatch());});return;
+                ButtonAt("Discard match",body,new Vector2(.53f,.10f),new Vector2(.92f,.36f),"START NEW MATCH",()=>{confirmRestart=false;OpenPregame();});return;
             }
+            if(pregame!=null&&RenderPregame())return;
             if(view.IsEditorReview&&page==-1){Lobby();return;}
             if(page==0){
                 if(view.IsEditorReview&&heroDetail){HeroDetails();return;}
                 for(int i=0;i<HeroKitCatalog.All.Count;i++){var kit=HeroKitCatalog.All[i];if(view.IsEditorReview)HeroCard(i,kit);else Cell(i,5,3,(selected==kit.Id?"✓ ":"")+kit.Name,()=>{selected=kit.Id;Rebuild();});}
                 if(view.IsEditorReview){var kit=HeroKitCatalog.Get(selected);summary.text=kit.Name+"  •  "+kit.Passive.Replace('_',' ')+"  •  "+string.Join(" / ",new[]{kit.Primary.Id,kit.Secondary.Id,kit.Ultimate.Id}.Select(x=>x.Replace('_',' ')));}
+                if(pregame?.Stage==ReviewMatchStage.Hero)return;
                 Cell(13,5,3,"AI: "+difficulty,()=>{difficulty=(ArenaDifficulty)(((int)difficulty+1)%5);Rebuild();});
                 Cell(14,5,3,autoTraining?"AI vs AI":"Play hero",()=>{autoTraining=!autoTraining;Rebuild();});
             }else if(page==1){
@@ -407,34 +411,93 @@ namespace Buklod.Empire {
             panelGroup.interactable=false;
             layoutEditor=new ArenaHudLayoutEditor(safeRoot,font,sprite,()=>{layoutEditor=null;panelGroup.interactable=true;Rebuild();});
         }
-        private void Resume(){if(Active&&layoutEditor==null&&(!view.IsEditorReview||matchStarted)&&!confirmRestart)Close();}
+        private void Resume(){
+            if(starting){
+                if(pregame?.Stage==ReviewMatchStage.Loading)cancelPreparation=true;
+                return;
+            }
+            if(layoutEditor!=null||confirmRestart)return;
+            if(pregame!=null&&pregame.InWizard){
+                if(pregame.Back())ShowPregameStage();
+                return;
+            }
+            if(Active&&(!view.IsEditorReview||matchStarted)){
+                pregame?.ResumeBattle();
+                Close();
+            }
+        }
         private void StartNew(){
             if(starting)return;
-            if(view.IsEditorReview){if(confirmRestart)return;if(matchStarted&&Active){confirmRestart=true;Rebuild();return;}StartCoroutine(PrepareReviewMatch());return;}
+            if(pregame!=null){
+                if(confirmRestart)return;
+                if(pregame.InWizard){AdvancePregame();return;}
+                if(matchStarted&&Active){confirmRestart=true;Rebuild();return;}
+                OpenPregame();
+                return;
+            }
             BeginMatch();
         }
         private IEnumerator PrepareReviewMatch(){
-            starting=true;HideShowcase();view.SetPaused(true);panelGroup.interactable=false;
-            title.text="PREPARING GENESIS RIFT";summary.text="Initializing local training match";
+            starting=true;cancelPreparation=false;view.SetPaused(true);Rebuild();
             title.color=BattleEffects.Accent(selected);feedback.text="";
-            // Yield a frame so the real initialization state can be displayed; no artificial progress.
-            yield return null;
-            bool ready=false;var previousMatch=view.Battle;bool previouslyStarted=matchStarted;
-            try{BeginMatch(false);ready=true;}
-            catch(Exception error){Debug.LogException(error);view.SetPaused(true);panel.gameObject.SetActive(true);shown=true;matchStarted=previouslyStarted&&previousMatch!=null&&ReferenceEquals(previousMatch,view.Battle);Rebuild();feedback.color=new Color(1f,.70f,.49f);feedback.text=(matchStarted?"Previous match retained. ":"Match initialization failed: ")+error.Message;}
-            if(ready){
-                if(authored&&authored.entrance)authored.entrance.Open();
-                title.text="GENESIS RIFT";summary.text="Enter the battlefield";feedback.text="";
-                float elapsed=0,duration=authored&&authored.entrance?ArenaEntranceDoor.Duration:.55f;
-                while(elapsed<duration&&Application.isFocused){
-                    elapsed+=Time.unscaledDeltaTime;
-                    panelGroup.alpha=1-Mathf.SmoothStep(0,1,elapsed/duration);
+            var heroTexture=ShowcaseTexture(true);
+            if(heroTexture is RenderTexture&&livePreview){
+                foreach(Transform child in body){child.gameObject.SetActive(false);Destroy(child.gameObject);}
+                title.text=HeroKitCatalog.Get(selected).Name.ToUpperInvariant()+" • LOCKED IN";
+                var image=Rect("Locked hero preview",body,new Vector2(.25f,0),new Vector2(.75f,1)).gameObject.AddComponent<RawImage>();
+                image.texture=heroTexture;image.raycastTarget=false;
+                var aspect=image.gameObject.AddComponent<AspectRatioFitter>();
+                aspect.aspectMode=AspectRatioFitter.AspectMode.FitInParent;
+                aspect.aspectRatio=(float)heroTexture.width/heroTexture.height;
+                livePreview.SetPalette(previewPalette);
+                livePreview.PlayEntrance();
+                float elapsed=0;
+                while(elapsed<.65f&&!cancelPreparation){
+                    if(Application.isFocused)elapsed+=Mathf.Min(.05f,Time.unscaledDeltaTime);
                     yield return null;
                 }
-                if(authored&&authored.entrance&&authored.entrance.IsOpening)authored.entrance.Complete();
-                if(Application.isFocused)Close();
-                else {shown=true;view.SetPaused(true);Rebuild();}
+                HideShowcase();
             }
+            Rebuild();
+            yield return null;
+            while(!Application.isFocused&&!cancelPreparation)yield return null;
+            if(cancelPreparation){
+                pregame.FailLoading();
+                starting=false;
+                ShowPregameStage();
+                yield break;
+            }
+            panelGroup.interactable=false;
+            var previousMatch=view.Battle;
+            bool previouslyStarted=matchStarted;
+            Exception initializationError=null;
+            try{BeginMatch(false);}
+            catch(Exception error){initializationError=error;}
+            if(initializationError!=null){
+                Debug.LogException(initializationError);
+                view.SetPaused(true);
+                matchStarted=previouslyStarted&&previousMatch!=null&&ReferenceEquals(previousMatch,view.Battle);
+                pregame.FailLoading();
+                starting=false;panelGroup.interactable=true;
+                ShowPregameStage();
+                feedback.color=new Color(1f,.70f,.49f);
+                feedback.text=matchStarted?"Initialization failed. Previous match retained.":"Initialization failed. Check the local assets and try again.";
+                yield break;
+            }
+
+            pregame.CompleteLoading();
+            page=-1;
+            if(authored&&authored.entrance)authored.entrance.Open();
+            title.text="GENESIS RIFT";summary.text="Enter the battlefield";feedback.text="";
+            float doorElapsed=0,duration=authored&&authored.entrance?ArenaEntranceDoor.Duration:.55f;
+            while(doorElapsed<duration&&Application.isFocused){
+                doorElapsed+=Time.unscaledDeltaTime;
+                panelGroup.alpha=1-Mathf.SmoothStep(0,1,doorElapsed/duration);
+                yield return null;
+            }
+            if(authored&&authored.entrance&&authored.entrance.IsOpening)authored.entrance.Complete();
+            if(Application.isFocused)Close();
+            else {starting=false;shown=true;view.SetPaused(true);Rebuild();}
             panelGroup.alpha=1;starting=false;panelGroup.interactable=true;
         }
         private void BeginMatch(bool close=true){
@@ -455,11 +518,29 @@ namespace Buklod.Empire {
             if(lastSafe!=MobileBattleInput.SafeArea){ApplySafeArea();if(layoutEditor!=null)layoutEditor.Refresh();}
             if(starting||layoutEditor!=null)return;
             bool finished=view.Battle!=null&&view.Battle.Finished;
+            if(finished&&!lastFinished&&!shown&&view.ShowingCoreCollapse)return;
             if(finished&&!lastFinished&&view.IsEditorReview){showResult=true;resultRevealAt=Time.unscaledTime;}
             if((finished&&!lastFinished)||(!shown&&view.Paused))Open();lastFinished=finished;
             if(shown&&finished&&showResult&&resultRevealAt>=0){
                 ApplyResultReveal();if(Time.unscaledTime-resultRevealAt>=.9f)resultRevealAt=-1;
             }
+        }
+        private void OnEnable(){
+            if(pregame?.Stage==ReviewMatchStage.Startup)StartCoroutine(RevealStartup());
+            else if(pregame!=null&&shown)Rebuild();
+        }
+        private void OnDisable(){
+            if(pregame==null)return;
+            StopAllCoroutines();
+            HideShowcase();
+            if(!starting)return;
+            if(pregame.FailLoading()){
+                page=-1;
+                heroDetail=false;
+            }
+            starting=false;
+            panelGroup.alpha=1;
+            panelGroup.interactable=true;
         }
         private void OnApplicationPause(bool paused){if(paused&&view&&view.IsEditorReview)ReviewAudioSettings.Save();}
         private void OnDestroy(){HideShowcase();if(view&&view.IsEditorReview)ReviewAudioSettings.Save();if(ownedEventSystem)Destroy(ownedEventSystem);}

@@ -8,6 +8,8 @@ namespace Buklod.Empire {
         const int Layer=31, Width=512, Height=640;
         BattleView view;GameObject stage,actor;Camera camera;RenderTexture target;
         Animator animator;ReviewClipPlayback fallback;ReviewEvolutionWings wings;ReviewEquipmentVisual previewEquipment;Vector3 fullWingScale;string hero;Bounds bounds;int oldMask;bool maskOwned,focused=true,appPaused;
+        bool fullBody=true;
+        float portraitElapsed,portraitSize;
         float angle,castAt=-1,castEnd;SkillCue pendingCue;bool pendingEffect;BattleEffects previewEffects;SkillAudio previewAudio;
         public static SkillCue ScaleCue(SkillCue cue,float height){
             float size=Mathf.Clamp(cue.Size/4f,.35f,1f)*Mathf.Clamp(height,.1f,20f)*.38f;
@@ -67,7 +69,7 @@ namespace Buklod.Empire {
                     var skins=actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r=>r.name!="Mobile LOD1").ToArray();
                     if(skins.Length==0)throw new InvalidOperationException("Preview mesh missing.");
                     bounds=skins[0].bounds;foreach(var skin in skins.Skip(1))bounds.Encapsulate(skin.bounds);
-                    hero=id;angle=0;
+                    hero=id;angle=0;portraitElapsed=0;
                 }
                 // These are provisional looks on the isolated clone only.
                 ApplyPreviewLook(previewStage);
@@ -92,12 +94,36 @@ namespace Buklod.Empire {
                 if(wings){wings.transform.localScale=fullWingScale*(previewStage==3?.70f:1f);wings.gameObject.SetActive(showWings);}
                 float aspect=(float)Width/Height;camera.orthographicSize=FrameSize(bounds.size,aspect,full);
                 if(showWings)camera.orthographicSize=Mathf.Max(camera.orthographicSize,bounds.size.y*(previewStage==3?.85f:1.12f)/aspect);
-                var focus=bounds.center+Vector3.up*(full?0:bounds.size.y*.26f);
-                camera.transform.position=focus+new Vector3(.12f,.035f,1f).normalized*Mathf.Max(3,bounds.size.magnitude*2);
-                camera.transform.LookAt(focus);
+                if(fullBody!=full)portraitElapsed=0;
+                fullBody=full;
+                portraitSize=camera.orthographicSize;
+                FrameCamera();
                 camera.enabled=focused&&!appPaused;animator.speed=camera.enabled?1:0;
                 return target;
             }catch(Exception error){Debug.LogWarning("Live hero preview unavailable; using captured model portrait: "+error.Message);Hide();return null;}
+        }
+        void FrameCamera(){
+            var motion=ReviewPortraitMotion.Get(hero);
+            float phase=Mathf.SmoothStep(0,1,portraitElapsed/motion.Duration);
+            float orbit=fullBody?0:Mathf.Lerp(motion.Orbit,0,phase);
+            float lift=fullBody?0:.26f+motion.Height*(1-phase);
+            var focus=bounds.center+Vector3.up*(bounds.size.y*lift);
+            var direction=Quaternion.Euler(0,orbit,0)*new Vector3(.12f,.035f,1f).normalized;
+            camera.orthographicSize=portraitSize*(fullBody?1:Mathf.Lerp(1+motion.Zoom,1,phase));
+            camera.transform.position=focus+direction*Mathf.Max(3,bounds.size.magnitude*2);
+            camera.transform.LookAt(focus);
+        }
+        public void PlayEntrance(){
+            if(!actor||!animator||!camera||!camera.enabled)return;
+            string action=ReviewEntranceProfiles.Motion(hero);
+            ClearCast();
+            if(fallback!=null){if(!fallback.Trigger(action))return;}
+            else{
+                if(!animator.parameters.Any(p=>p.type==AnimatorControllerParameterType.Trigger&&p.name==action))return;
+                animator.SetTrigger(action);
+            }
+            var clip=animator.runtimeAnimatorController.animationClips.FirstOrDefault(c=>c.name==action);
+            castEnd=Time.unscaledTime+(clip?clip.length:.65f);
         }
         public bool SetPalette(ReviewPalette palette){
             if(!actor||!Enum.IsDefined(typeof(ReviewPalette),palette))return false;
@@ -132,6 +158,10 @@ namespace Buklod.Empire {
         void Update(){
             if(!actor||!camera||!camera.enabled)return;
             fallback?.Tick(Time.unscaledDeltaTime);
+            if(!fullBody&&portraitElapsed<1){
+                portraitElapsed+=Mathf.Min(.05f,Time.unscaledDeltaTime);
+                FrameCamera();
+            }
             if(pendingEffect&&Time.unscaledTime>=castAt){
                 pendingEffect=false;
                 if(previewEffects)previewEffects.EmitSkill(bounds.center-Vector3.up*bounds.size.y*.16f,BattleEffects.Accent(hero),pendingCue,actor.transform.forward);

@@ -33,6 +33,13 @@ namespace Buklod.Empire {
             if(string.IsNullOrEmpty(name)||gold<0||xp<0||amount<0||float.IsNaN(xp)||float.IsInfinity(xp)||float.IsNaN(amount)||float.IsInfinity(amount)||float.IsNaN(time)||float.IsInfinity(time))return;
             int seq=++Sequence;rows[(seq-1)%Capacity]=new ReviewRewardReceipt(seq,time,name,gold,xp,effect,amount,tier);
         }
+        public bool TryReadNext(ref int cursor,out ReviewRewardReceipt receipt){
+            if(cursor>=Sequence){receipt=default;return false;}
+            int next=Math.Max(cursor+1,Sequence-Capacity+1);
+            if(!TryGet(next,out receipt))return false;
+            cursor=next;
+            return true;
+        }
         public bool TryGet(int sequence,out ReviewRewardReceipt receipt){
             receipt=default;if(sequence<=0||sequence>Sequence||Sequence-sequence>=Capacity)return false;
             receipt=rows[(sequence-1)%Capacity];return receipt.Sequence==sequence;

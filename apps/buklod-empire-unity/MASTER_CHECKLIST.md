@@ -22,3 +22,16 @@ Baseline: 902f6e441570a0ae8b3f64d1a027a33b4a76681c. Pregame source: baef37e00c5d
 - [x] Confirmed local combat, assist, shop, pickup and relic reward receipts integrated into existing HUD; no new currency grants. Regression fixtures authored; execution deferred. Neutral camp receipts and full multi-event presentation remain open.
 
 - [x] Neutral camp and shared boss reward receipts, including capped actual gold changes; fixture authored, execution deferred.
+
+## DEV source completion pass
+
+- [x] Reconciled staged offline match entry with the current menu and battle lifecycle. Startup, mode, difficulty, team formation, hero, loadout, lock-in and loading are wired. Existing costume, trial and resume flows retained. Loading can be cancelled before synchronous initialization.
+- [x] Bound the owner’s animated startup branding and reused each hero’s existing controller clips for a lock-in entrance. Added hero-specific portrait camera framing.
+- [x] Added ordered presentation of retained reward receipts, visible confirmed directed-skill tracers and bounded structure-root collapse with result reveal timing. Existing hit and reward rules retained.
+- [x] Verified the 103 pinned CC0 intake files against the owner’s matching archive and the installer’s checksum and license contract. Verified 36 tracked authored GLB source hashes and 33 additional authored review input files.
+- [x] Ran geometry source preflight, 34 Python tests, Node fixtures and generated review asset manifest validation for 183 files at 256 px hero and 1024 px shared texture resolution. Parsed C# sources in editor, review Android, production Android and server define configurations. These checks do not resolve Unity types, serialize an imported scene or execute C# fixtures.
+- [ ] Finish reconciliation of unported branches, including source-level parity for RTS and Sacred Stone behavior. Unpushed Windows-only changes remain uninspected.
+- [ ] Complete facial rig motion, combat weapon trails, detached structure fragments, remaining asset rights/bindings, full authored roster/faction assets and dialogue/audio coverage.
+- [ ] Complete adaptive combat and strategic AI regressions, all-hero gameplay and progression coverage, durable online host and settlement composition, online lobby/HUD, and full secure updater slot and publishing coverage.
+- [ ] Provide isolated hosting and pinned updater trust for the intended Android version code. Install the 103 verified Library inputs on the build workstation. Generate the review scene, catalog, NavMesh and Android settings through the documented isolated path.
+- [ ] Full Unity C# compilation, EditMode/PlayMode, Android/APK and hosted multiplayer verification are deferred. Production-only catalog and scene readiness remains blocked. Source-complete and build-ready verdict remains open.

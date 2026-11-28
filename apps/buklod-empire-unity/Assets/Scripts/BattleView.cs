@@ -72,6 +72,8 @@ namespace Buklod.Empire {
         private BattleEffects effects;
         ReviewProjectileEffects projectiles;
         ReviewCombatOverlay combatOverlay;
+        private float coreCollapseUntil;
+        internal bool ShowingCoreCollapse=>ReviewOnly&&!Paused&&Application.isFocused&&Time.unscaledTime<coreCollapseUntil;
         private ReviewContactShadows reviewShadows;
         private SkillAudio skillAudio;
         private readonly Dictionary<int,Visual> active=new Dictionary<int,Visual>();
@@ -84,7 +86,11 @@ namespace Buklod.Empire {
         private int pooledCount;
         public int ActiveVisualCount=>active.Count;
         public int PooledVisualCount=>pooledCount;
-        private sealed class Visual {public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public GameObject instance,prefab;public Animator animator;public ReviewClipPlayback fallback;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
+        private sealed class Visual {
+            public float collapseDuration;
+            public Vector3 collapsePosition,collapseScale;
+            public Quaternion collapseRotation;
+            public BattleUnit unit;public ReviewFarmGrowth farmGrowth;public ReviewEquipmentVisual equipment;public GameObject instance,prefab;public Animator animator;public ReviewClipPlayback fallback;public float attack=float.NegativeInfinity,damageTaken;public int castSequence,villageActions,repairSequence,constructionWork;public LODGroup[] lodGroups;public int forcedLod=int.MinValue;public Renderer[] renderers;public ShadowCastingMode[] originalShadows;public bool shadowsOn=true;public Vector2 sampledAt;public float groundY;public readonly HashSet<string> parameters=new HashSet<string>();}
         private sealed class Navigation:IBattleNavigation {
             private readonly float scale;
             public Navigation(float scale){this.scale=scale;}
@@ -114,7 +120,7 @@ namespace Buklod.Empire {
             if(!candidate.SelectPlayerTactic(tactic)||covenant.HasValue&&!candidate.SelectPlayerCovenant(covenant.Value))throw new System.InvalidOperationException("Invalid offline loadout.");
             var nextMotion=MotionPreview;if(nextMotion)nextMotion.Validate();
             // Commit the candidate before any destructive visual operation. A later exception must not advertise the retired match as resumable.
-            SetPaused(true);visuals=nextCatalog;Battle=candidate;
+            SetPaused(true);visuals=nextCatalog;Battle=candidate;coreCollapseUntil=0;
             foreach(var v in active.Values)Return(v);active.Clear();
             foreach(var row in dying)Return(row.visual);dying.Clear();
             effects=GetComponent<BattleEffects>();if(effects)effects.Clear();
@@ -206,6 +212,7 @@ namespace Buklod.Empire {
         private void Return(Visual v){
             v.fallback?.Dispose();v.fallback=null;
             v.instance.SetActive(false);
+            if(v.collapseDuration>0)v.instance.transform.localScale=v.collapseScale;
             SetShadows(v,true); // preserve original prefab shadow modes across rentals
             var stack=pool[v.prefab];
             if(BattleRenderBudget.CanPool(pooledCount,stack.Count)){stack.Push(v.instance);pooledCount++;}
@@ -231,7 +238,19 @@ namespace Buklod.Empire {
             // Sync is suspended while paused: only visible, unpaused animation time retires a death pose.
             for(int i=dying.Count-1;i>=0;i--){
                 var row=dying[i];row.remaining-=Mathf.Max(0,Time.deltaTime);
-                if(immediate||row.remaining<=0){Return(row.visual);dying.RemoveAt(i);}else{row.visual.fallback?.Tick(Time.deltaTime);dying[i]=row;}
+                var v=row.visual;
+                if(immediate||row.remaining<=0||
+                    v.collapseDuration>0&&!Battle.IsPositionVisibleTo(Battle.Player.Team,v.unit.Position)){
+                    Return(v);dying.RemoveAt(i);
+                    continue;
+                }
+                if(v.collapseDuration>0){
+                    var t=v.instance.transform;
+                    var pose=ReviewFortressCollapse.Evaluate(1-row.remaining/v.collapseDuration,worldScale,v.unit.Id,v.unit.Core);
+                    t.SetPositionAndRotation(v.collapsePosition+pose.Offset,v.collapseRotation*Quaternion.Euler(pose.Tilt));
+                    t.localScale=Vector3.Scale(v.collapseScale,pose.Scale);
+                }else v.fallback?.Tick(Time.deltaTime);
+                dying[i]=row;
             }
             seen.Clear();
             if(combatOverlay)combatOverlay.BeginFrame();
@@ -353,7 +372,8 @@ namespace Buklod.Empire {
                 var v=pair.Value;var u=v.unit;
                 // Retain the unit reference even if the simulation removed a dead minion this tick.
                 // Culling an alive unit or expiring a temporary structure never emits a death effect.
-                bool visibleDeath=!immediate&&u!=null&&!u.State.Alive&&!u.Temporary&&GeometryUtility.TestPlanesAABB(frustum,new Bounds(v.instance.transform.position,Vector3.one*Mathf.Max(2,worldScale*8)));
+                bool visibleDeath=!immediate&&u!=null&&!u.State.Alive&&!u.Temporary&&
+                    (!ReviewOnly||Battle.IsPositionVisibleTo(Battle.Player.Team,u.Position))&&GeometryUtility.TestPlanesAABB(frustum,new Bounds(v.instance.transform.position,Vector3.one*Mathf.Max(2,worldScale*8)));
                 if(visibleDeath){
                     var kind=u.Core?WorldImpactKind.Core:u.Kind==BattleTargetKind.Structure?WorldImpactKind.Structure:WorldImpactKind.Unit;
                     var tint=u.Team==ArenaTeam.Lux?new Color(.55f,.69f,.82f):new Color(.48f,.25f,.28f);
@@ -361,7 +381,13 @@ namespace Buklod.Empire {
                     if(reviewFoley&&u.DamageTaken>v.damageTaken+.001f)reviewFoley.Impact(u.Kind==BattleTargetKind.Structure,v.instance.transform.position);
                     if(effects)effects.Emit(v.instance.transform.position,tint,u.Core?3:u.Kind==BattleTargetKind.Structure?2:1);
                 }
-                if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&CanTrigger(v,"Death")){
+                if(visibleDeath&&ReviewOnly&&u.Kind==BattleTargetKind.Structure&&BattleRenderBudget.CanRetire(dying.Count)){
+                    var t=v.instance.transform;
+                    v.collapseDuration=u.Core?1.25f:.70f;
+                    v.collapsePosition=t.position;v.collapseRotation=t.rotation;v.collapseScale=t.localScale;
+                    if(u.Core)coreCollapseUntil=Time.unscaledTime+v.collapseDuration;
+                    dying.Add((v,v.collapseDuration));
+                }else if(visibleDeath&&BattleRenderBudget.CanRetire(dying.Count)&&v.animator&&v.animator.runtimeAnimatorController&&CanTrigger(v,"Death")){
                     foreach(var trigger in new[]{"Attack","Primary","Secondary","Ultimate","Hit","Work","Skill"})if(v.parameters.Contains(trigger))v.animator.ResetTrigger(trigger);
                     if(v.parameters.Contains("Speed"))v.animator.SetFloat("Speed",0);
                     Trigger(v,"Death");

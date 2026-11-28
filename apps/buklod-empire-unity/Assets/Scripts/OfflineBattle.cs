@@ -505,7 +505,37 @@ namespace Buklod.Empire {
             var a=Find(actor);if(a==null)return Array.Empty<SkillActor>();
             return units.Where(u=>u.Team==a.Team&&u.Kind==BattleTargetKind.Hero&&u.State.Alive&&Dist(a,u)<=radius).OrderBy(u=>u.Id).Select(u=>u.State).ToArray();
         }
-        public bool Hit(SkillActor actor,SkillActor target,float damage)=>ResolveHit(actor,target,damage,false);
+        private BattleUnit projectileCaster;
+        private Vector2 projectileFrom,projectileTo;
+        private bool projectileCaptured;
+
+        private bool TryHeroCast(BattleUnit caster,SkillSlot slot,Vector2 aim){
+            var actor=caster.State;
+            if(IsAuthoritative||actor.Kit==null||(int)slot<0||(int)slot>(int)SkillSlot.Ultimate||
+                !SkillCueCatalog.TryGet(actor.Kit.Skill(slot).Id,out var cue)||
+                !(cue.Shape==SkillCueShape.Bolt||cue.Id=="question_sigil"))
+                return actor.TryCast(this,slot,aim,Time,!Finished);
+            projectileCaster=caster;
+            projectileCaptured=false;
+            try{
+                bool cast=actor.TryCast(this,slot,aim,Time,!Finished);
+                if(cast&&projectileCaptured)ProjectileFeed.Add(actor.Kit.Id,projectileFrom,projectileTo,Time,true);
+                return cast;
+            }finally{
+                projectileCaster=null;
+                projectileCaptured=false;
+            }
+        }
+        public bool Hit(SkillActor actor,SkillActor target,float damage){
+            var caster=projectileCaster;
+            var victim=caster!=null&&caster.State==actor&&!projectileCaptured?Find(target):null;
+            bool visible=victim!=null&&IsVisibleTo(Player.Team,caster)&&IsVisibleTo(Player.Team,victim);
+            var from=visible?caster.Position:Vector2.zero;
+            var to=visible?victim.Position:Vector2.zero;
+            bool hit=ResolveHit(actor,target,damage,false);
+            if(hit&&visible){projectileFrom=from;projectileTo=to;projectileCaptured=true;}
+            return hit;
+        }
         private bool ResolveHit(SkillActor actor,SkillActor target,float damage,bool basic){
             var a=Find(actor);var t=Find(target);
             if(Finished||a==null||t==null||!actor.Alive||a.Team==t.Team||!Attackable(t)||float.IsNaN(damage)||float.IsInfinity(damage)||damage<=0)return false;
@@ -697,7 +727,7 @@ namespace Buklod.Empire {
             counterTarget=enemy;counterUntil=Time+ArenaStoneRules.CounterDuration;practiceCounterUsed=true;return true;
         }
         public bool CastPlayer(SkillSlot slot,Vector2 aim){
-            bool ok=Player.State.TryCast(this,slot,aim,Time,!Finished);if(ok)Player.RecallEnds=0;
+            bool ok=TryHeroCast(Player,slot,aim);if(ok)Player.RecallEnds=0;
             if(!IsAuthoritative&&!AutonomousTraining&&Enum.IsDefined(typeof(SkillSlot),slot)){
                 var s=Player.State;
                 if(ok)AttackFeedback("Cast: "+s.Kit.Skill(slot).Id.Replace('_',' '));
@@ -1050,13 +1080,13 @@ namespace Buklod.Empire {
             bool danger=units.Any(v=>v.Team!=u.Team&&v.Kind==BattleTargetKind.Hero&&Attackable(v)&&IsVisibleTo(u.Team,v)&&Dist(u,v)<10);
             if(!hurt&&!danger)return false;
             switch(a.Kit.Id){
-                case "van":if(hurt&&a.TryCast(this,SkillSlot.Primary,Vector2.zero,Time,!Finished))return true;break;
-                case "ace":if(hurt&&a.TryCast(this,SkillSlot.Primary,Vector2.zero,Time,!Finished))return true;break;
-                case "lhen":if(hurt&&a.TryCast(this,SkillSlot.Secondary,Vector2.zero,Time,!Finished))return true;break;
-                case "ellusur":if(hurt&&a.TryCast(this,SkillSlot.Secondary,Vector2.zero,Time,!Finished))return true;break;
+                case "van":if(hurt&&TryHeroCast(u,SkillSlot.Primary,Vector2.zero))return true;break;
+                case "ace":if(hurt&&TryHeroCast(u,SkillSlot.Primary,Vector2.zero))return true;break;
+                case "lhen":if(hurt&&TryHeroCast(u,SkillSlot.Secondary,Vector2.zero))return true;break;
+                case "ellusur":if(hurt&&TryHeroCast(u,SkillSlot.Secondary,Vector2.zero))return true;break;
             }
             if((int)Difficulty>=(int)ArenaDifficulty.Advanced&&danger&&allies.Count(v=>v.State.Health<v.State.MaxHealth*.8f)>=2){
-                switch(a.Kit.Id){case "van":case "ace":case "lhen":case "ellusur":case "christian":case "phan":case "angel":return a.TryCast(this,SkillSlot.Ultimate,Vector2.zero,Time,!Finished);}
+                switch(a.Kit.Id){case "van":case "ace":case "lhen":case "ellusur":case "christian":case "phan":case "angel":return TryHeroCast(u,SkillSlot.Ultimate,Vector2.zero);}
             }return false;
         }
         // Match-local observed behavior only; no account data, hidden enemy positions or external AI.
@@ -1254,11 +1284,11 @@ namespace Buklod.Empire {
             if(memory.EnemyCastBursts>=3&&hp<.6f&&Dist(u,t)<6&&(u.Tactic==ArenaTactic.Renew||u.Tactic==ArenaTactic.CleansingLight)&&UseTactic(u,Vector2.zero))return;
             if(!ClearSight(u.Position,t.Position))return;
             var slot=BotPreferredSkill(a.Kit.Id,Dist(u,t),nearby,wounded,hp,t.State.Health/Mathf.Max(1,t.State.MaxHealth),memory.Pressure>.35f,BotDashSafe(u,dir));
-            if(slot.HasValue&&a.TryCast(this,slot.Value,dir,Time,!Finished))return;
+            if(slot.HasValue&&TryHeroCast(u,slot.Value,dir))return;
             // Fall back to an actual damaging primary only, never blind dash/wall/support spam.
             string primary=a.Kit.Primary.Id;
             float range=primary=="groundbreaker"||primary=="resonance_wave"?6:primary=="vine_riff"?7.5f:primary=="pigment_bolt"?13:primary=="echo_lance"?12:primary=="question_sigil"?11:0;
-            if(range>0&&Dist(u,t)<=range)a.TryCast(this,SkillSlot.Primary,dir,Time,!Finished);
+            if(range>0&&Dist(u,t)<=range)TryHeroCast(u,SkillSlot.Primary,dir);
         }
         // Bounded retaliation, no pursuit, resource minting or construction override.
         private void DefendVillageWorker(BattleUnit worker){

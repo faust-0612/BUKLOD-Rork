@@ -142,7 +142,12 @@ namespace Buklod.Empire {
             mana.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*manaShown,safeArea.height*.013f);
             xp.rectTransform.sizeDelta=new Vector2(safeArea.width*.18f*xpShown,safeArea.height*.009f);
             for(int i=0;i<3;i++)if(cooldown[i+2].fillAmount<=.001f)labels[i+2].text=i==2?"ULT":i==0?"S1":"S2";
-            if(b.RewardFeed.Sequence>rewardCursor){rewardCursor=b.RewardFeed.Sequence;if(b.RewardFeed.TryGet(rewardCursor,out var receipt)&&b.Time-receipt.Time<=2.5f){rewardText=receipt.Summary;rewardUntil=receipt.Time+2.5f;nextObjectiveAt=0;}}
+            if(b.Time>=rewardUntil&&b.Time>=announcementUntil&&string.IsNullOrEmpty(b.JungleWarning)&&
+                string.IsNullOrEmpty(b.PlayerAttackFeedback)&&b.RewardFeed.TryReadNext(ref rewardCursor,out var receipt)){
+                rewardText=receipt.Summary;
+                rewardUntil=b.Time+1.2f;
+                nextObjectiveAt=0;
+            }
             if(b.Time<nextObjectiveAt&&!fresh&&string.IsNullOrEmpty(b.PlayerAttackFeedback))return;
             nextObjectiveAt=b.Time+.15f;
             if(!string.IsNullOrEmpty(b.JungleWarning)){objective.text=b.JungleWarning;objective.color=new Color(1,.25f,.25f);return;}

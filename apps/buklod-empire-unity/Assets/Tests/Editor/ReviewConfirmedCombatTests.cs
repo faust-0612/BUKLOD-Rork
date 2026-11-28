@@ -1,3 +1,4 @@
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
@@ -8,6 +9,21 @@ namespace Buklod.Empire.Tests {
             for(int i=0;i<20;i++)feed.Add("phan",Vector2.zero,Vector2.one,i,false);
             Assert.False(feed.TryGet(4,out _));Assert.True(feed.TryGet(5,out var row));Assert.AreEqual(5,row.Sequence);
             Assert.True(feed.TryGet(20,out row));Assert.AreEqual(19,row.Time);
+        }
+        [Test] public void DirectedSkillReceiptRequiresARealVisibleHit(){
+            var b=new OfflineBattle("trudice");
+            Assert.False(b.CastPlayer(SkillSlot.Primary,Vector2.right));
+            Assert.AreEqual(0,b.ProjectileFeed.Sequence);
+            var enemy=b.Units.First(u=>u.Team!=b.Player.Team&&u.Kind==BattleTargetKind.Hero);
+            var position=typeof(BattleUnit).GetProperty(nameof(BattleUnit.Position));
+            position.SetValue(b.Player,new Vector2(150,110));
+            position.SetValue(enemy,b.Player.Position+Vector2.right*4);
+            float before=enemy.State.Health;
+            Assert.True(b.CastPlayer(SkillSlot.Primary,Vector2.right));
+            Assert.Less(enemy.State.Health,before);
+            Assert.True(b.ProjectileFeed.TryGet(1,out var receipt));
+            Assert.True(receipt.Skill);
+            Assert.AreEqual(enemy.Position,receipt.To);
         }
         [Test] public void PresentationMathIsFiniteAndBounded(){
             Assert.AreEqual(0,ReviewCombatOverlay.Fraction(float.NaN,100));

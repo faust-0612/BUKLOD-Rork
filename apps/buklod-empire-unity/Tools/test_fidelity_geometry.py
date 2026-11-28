@@ -1,10 +1,11 @@
 import unittest, math, copy
 from collections import defaultdict
-from fidelity_geometry import add_fidelity_geometry,_triangle,_grid
+from fidelity_geometry import add_fidelity_geometry,_triangle,_unit,_cross,_sub
+from sculpt_geometry import bevel_plate
 
 class Fixture:
     def __init__(self,hair='long',cape=True,lod=False,face='oval',role='commander'):
-        self.h=1.03; self.w=.93; self.hair=hair; self.cape=cape; self.face=face;self.role=role;self.mobile_lod=lod
+        self.h=1.03; self.w=.93; self.waist=1.; self.hair=hair; self.cape=cape; self.face=face;self.role=role;self.mobile_lod=lod
         self.rest=[(0.,0.,0.)]*18
         for i in (6,7,8,9,10,11):self.rest[i]=(-.25 if i<9 else .25, .9,0.)
         self.geo=defaultdict(lambda:{'p':[],'n':[],'j':[],'w':[],'i':[]})
@@ -12,6 +13,15 @@ class Fixture:
         _triangle(self,2,p,n,[(2,2,1.)]*3)
         if cape:_triangle(self,2,p,n,[(17,17,1.)]*3)
         self.result=(0,1,2,4,[(5,6,7),(8,9,10)],[(11,12,13),(14,15,16)],17)
+
+    def plate(self,mat,joint,center,outline,depth):
+        if not bevel_plate(self,mat,joint,center,outline,depth):
+            raise AssertionError("Expected a valid beveled role plate")
+
+    def tri(self,mat,joint,points):
+        a,b,c=points
+        normal=_unit(_cross(_sub(b,a),_sub(c,a)))
+        _triangle(self,mat,points,[normal]*3,[(joint,joint,1.)]*3)
 
 class GeometryTests(unittest.TestCase):
     def test_geometry_finite_normalized_and_indexed(self):
