@@ -1,6 +1,6 @@
 /* Original BUKLOD Circle Rank emblem. No third-party badge artwork/assets. */
-import React from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
 import { isGenesisPreviewBuild } from '@/features/season2/genesis/genesisContract';
 import GenesisRankBadgeArtwork, { normalizeGenesisRankName } from '@/features/season2/genesis/GenesisRankBadgeArtwork';
 import { getBuklodCircleRankArt } from '@/lib/buklodCircleRankArt';
@@ -12,6 +12,7 @@ type BadgeProps = {
   rankName?: string | null;
   size?: number;
   locked?: boolean;
+  animate?: boolean;
 };
 
 type Colors = { base: string; edge: string; deep: string; jewel: string };
@@ -34,7 +35,7 @@ export function circleRankBadgeParts(rankName?: string | null) {
   return { family: family || 'Starter', level };
 }
 
-export default function BuklodCircleRankBadge({
+function OriginalCircleRankBadge({
   rankFamily, rankLevel, rankName, size = 56, locked = false,
 }: BadgeProps) {
   const parsed = circleRankBadgeParts(rankName);
@@ -90,4 +91,37 @@ export default function BuklodCircleRankBadge({
       </Svg>
     </View>
   );
+}
+
+/** Finite opt-in motion; the original artwork and dimensions are unchanged. */
+export default function BuklodCircleRankBadge(props: BadgeProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const enabled = Boolean(props.animate && !props.locked);
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    let motion: Animated.CompositeAnimation | undefined;
+    let preferenceChanged = false;
+    let reduced = true;
+    const stop = () => { motion?.stop(); scale.setValue(1); };
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', value => {
+      preferenceChanged = true;
+      reduced = value;
+      if (value) stop();
+    });
+    AccessibilityInfo.isReduceMotionEnabled().then(value => {
+      if (!alive) return;
+      if (!preferenceChanged) reduced = value;
+      if (reduced) return;
+      scale.setValue(0.96);
+      motion = Animated.sequence([
+        Animated.timing(scale, { toValue: 1.035, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(scale, { toValue: 1, duration: 320, easing: Easing.inOut(Easing.cubic), useNativeDriver: true, isInteraction: false }),
+      ]);
+      motion.start();
+    }).catch(() => { if (alive) stop(); });
+    return () => { alive = false; subscription.remove(); stop(); };
+  }, [enabled, props.rankName, props.rankFamily, props.rankLevel, scale]);
+  if (!enabled) return <OriginalCircleRankBadge {...props} />;
+  return <Animated.View style={{ transform: [{ scale }] }}><OriginalCircleRankBadge {...props} /></Animated.View>;
 }
