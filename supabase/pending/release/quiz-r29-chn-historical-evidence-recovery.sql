@@ -136,7 +136,7 @@ REVOKE ALL ON FUNCTION private.buklod_quiz_legacy_auto_ref_r28(uuid,uuid) FROM P
 -- and accepted by the existing AI payload RPC without faculty confirmation.
 -- The JWT setting is local to this transaction, and used only for read-only QA.
 DO $verify$
-DECLARE x record; cnt int; ready int; payload_count int; group_count int:=0; all_pending int:=0;
+DECLARE x record; g record; cnt int; ready int; payload_count int; group_count int:=0; all_pending int:=0;
 BEGIN
   IF (SELECT count(*) FROM private.buklod_quiz_recovered_assignment_r29)<>250 THEN RAISE EXCEPTION 'Recovery count mismatch'; END IF;
   IF has_table_privilege('anon','private.buklod_quiz_recovered_assignment_r29','SELECT')
@@ -144,6 +144,7 @@ BEGIN
      OR has_table_privilege('authenticated','private.buklod_quiz_recovered_assignment_r29','INSERT')
      OR has_function_privilege('authenticated','private.buklod_quiz_legacy_auto_ref_r28(uuid,uuid)','EXECUTE')
   THEN RAISE EXCEPTION 'Recovery attestation exposed'; END IF;
+  IF NOT (SELECT relrowsecurity FROM pg_catalog.pg_class WHERE oid='private.buklod_quiz_recovered_assignment_r29'::regclass) THEN RAISE EXCEPTION 'RLS not enabled'; END IF;
   FOR x IN SELECT DISTINCT a.exam_id,a.section_id,e.owner_user_id
     FROM public.buklod_quiz_attempts a JOIN public.buklod_quiz_exams e ON e.id=a.exam_id
     JOIN private.buklod_quiz_recovered_assignment_r29 t ON t.attempt_id=a.id
@@ -154,12 +155,12 @@ BEGIN
       count(DISTINCT v.attempt_id)
     INTO cnt,ready,group_count FROM public.buklod_quiz_historical_class_review_v2(x.exam_id,x.section_id) v;
     IF cnt<>34 OR ready<>34 OR group_count<>5 THEN RAISE EXCEPTION 'Historical review gate failed'; END IF;
-    FOR x IN SELECT v.attempt_id,v.reference_digest,count(*)::int AS pending
+    FOR g IN SELECT v.attempt_id,v.reference_digest,count(*)::int AS pending
       FROM public.buklod_quiz_historical_class_review_v2(x.exam_id,x.section_id) v
       GROUP BY v.attempt_id,v.reference_digest
     LOOP
-      SELECT count(*) INTO payload_count FROM public.buklod_quiz_historical_ai_payload_v1(x.attempt_id,x.reference_digest,false);
-      IF payload_count<>x.pending THEN RAISE EXCEPTION 'AI payload gate failed'; END IF;
+      SELECT count(*) INTO payload_count FROM public.buklod_quiz_historical_ai_payload_v1(g.attempt_id,g.reference_digest,false);
+      IF payload_count<>g.pending THEN RAISE EXCEPTION 'AI payload gate failed'; END IF;
       all_pending:=all_pending+payload_count;
     END LOOP;
   END LOOP;
