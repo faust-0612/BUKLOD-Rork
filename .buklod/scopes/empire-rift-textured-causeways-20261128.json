@@ -1,0 +1,30 @@
+{
+  "contractVersion": 2,
+  "scopeManifestPath": ".buklod/scopes/empire-rift-textured-causeways-20261128.json",
+  "baseRef": "4434c55216a3de3f516e61aba4a7807ea185678f",
+  "productionBaselineEvidence": "Offline DEV only",
+  "objective": "Reconcile Genesis blueprint terrain with current sculpted island and fix missing UVs and flat bridge details.",
+  "chosenApproach": "Preserve current sculpted navigation and add world tiled UVs, stone paving joints and raised parapets.",
+  "selectionRationale": "Existing branch already replaces square floor; improve actual scene rather than duplicate terrain.",
+  "alternativeApproaches": [
+    "Replace navigation and all map coordinates; rejected to preserve match rules."
+  ],
+  "riskAreas": [
+    "Unity visual verification pending",
+    "Parapets are visual only"
+  ],
+  "preserveBehaviors": [
+    "Existing simulation, routes, collision, camps and faction anchors"
+  ],
+  "acceptanceChecks": [
+    "Generated island has UV per vertex",
+    "Three causeways include stone parapets",
+    "No MAIN edits"
+  ],
+  "allowedPaths": [
+    "apps/buklod-empire-unity/Assets/Editor/SculptedRiftComposer.cs",
+    ".buklod/scopes/empire-rift-textured-causeways-20261128.json"
+  ],
+  "regressionTests": [],
+  "lockedFeatureChanges": []
+}

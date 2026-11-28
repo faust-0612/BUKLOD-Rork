@@ -25,7 +25,12 @@ namespace Buklod.Empire.Editor {
             internal void Quad(Vector3 a,Vector3 b,Vector3 c,Vector3 d){Tri(a,b,c);Tri(a,c,d);}
             internal Mesh Save(string name){
                 var fresh=new Mesh{name=name,indexFormat=IndexFormat.UInt32};
-                fresh.SetVertices(Vertices);fresh.SetTriangles(Indices,0);fresh.RecalculateNormals();fresh.RecalculateBounds();
+                fresh.SetVertices(Vertices);fresh.SetTriangles(Indices,0);
+                // World-space tiled UVs; the previous mesh had no UV channel, making
+                // imported stone/grass materials sample a single texel across the map.
+                var uv=new List<Vector2>(Vertices.Count);
+                foreach(var v in Vertices)uv.Add(name=="CliffFaces"||name=="CoverOutcrops"?new Vector2((v.x+v.z)*.16f,v.y*.22f):new Vector2(v.x*.16f,v.z*.16f));
+                fresh.SetUVs(0,uv);fresh.RecalculateNormals();fresh.RecalculateBounds();
                 string path=Out+"/"+name+".asset";
                 var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(path);
                 if(mesh){EditorUtility.CopySerialized(fresh,mesh);UnityEngine.Object.DestroyImmediate(fresh);EditorUtility.SetDirty(mesh);}
@@ -130,11 +135,17 @@ namespace Buklod.Empire.Editor {
             PlaceMesh(holder.transform,"Actual walkable island",floor.Save("WalkableIsland"),soil,true);
             PlaceMesh(holder.transform,"Layered rift cliffs",cliff.Save("CliffFaces"),stone);
             PlaceMesh(holder.transform,"Grass cliff shoulders",rim.Save("GrassShoulders"),grass);
-            var roads=new Geometry();var roadBorder=new Geometry();
+            var roads=new Geometry();var roadBorder=new Geometry();var joints=new Geometry();
             for(int lane=0;lane<3;lane++){
                 var points=new List<Vector2>();
                 for(int i=0;i<=80;i++)points.Add(SculptedRiftLayout.LanePoint(lane,i,80));
                 Strip(roadBorder,points,5.2f,.018f);Strip(roads,points,4.2f,.026f);
+                // Broken stone paving joints follow the road tangent, not world axes.
+                for(int i=2;i<79;i+=2){
+                    var a=points[i];var d=(points[i+1]-points[i-1]).normalized;var n=new Vector2(-d.y,d.x);
+                    if(Mathf.Abs(a.x-SculptedRiftLayout.RiverX(a.y))<13)continue;
+                    joints.Quad(V(a-n*4.1f-d*.065f,.029f),V(a+n*4.1f-d*.065f,.029f),V(a+n*4.1f+d*.065f,.029f),V(a-n*4.1f+d*.065f,.029f));
+                }
                 // Interlocking fortress access lanes, not isolated horizontal lines.
                 if(lane!=1)foreach(bool lux in new[]{true,false}){
                     float x=lux?19:SculptedRiftLayout.Width-19;
@@ -155,15 +166,27 @@ namespace Buklod.Empire.Editor {
             PlaceMesh(holder.transform,"Animated shallow rift river",river.Save("RiverWater"),water);
             PlaceMesh(holder.transform,"Curved stone lane shoulders",roadBorder.Save("LaneShoulders"),stone);
             PlaceMesh(holder.transform,"Three interlocking lanes",roads.Save("CurvedLanes"),paving);
-            var bridges=new Geometry();var bridgeTrim=new Geometry();
+            PlaceMesh(holder.transform,"Stone paving joints",joints.Save("LaneJoints"),stone);
+            var bridges=new Geometry();var bridgeTrim=new Geometry();var bridgeSides=new Geometry();
             for(int lane=0;lane<3;lane++){
                 var crossing=SculptedRiftLayout.Crossing(lane);float x=crossing.x;
                 var route=new List<Vector2>();
                 for(int i=0;i<=10;i++){float px=x-10+2*i;route.Add(new Vector2(px,SculptedRiftLayout.LaneHeight(lane,px)));}
                 Strip(bridgeTrim,route,5.2f,.049f);Strip(bridges,route,4.1f,.058f);
+                for(int i=0;i<route.Count-1;i++){
+                    var a=route[i];var b=route[i+1];var d=(b-a).normalized;var n=new Vector2(-d.y,d.x);
+                    foreach(float side in new[]{-1f,1f}){
+                        var p=a+n*4.65f*side;var q=b+n*4.65f*side;
+                        // Low stone parapets are visual only, outside the lane center.
+                        bridgeSides.Quad(V(p,.06f),V(q,.06f),V(q,.65f),V(p,.65f));
+                        bridgeSides.Quad(V(p,.65f),V(q,.65f),V(q+n*.28f*side,.65f),V(p+n*.28f*side,.65f));
+                        bridgeSides.Quad(V(q+n*.28f*side,.06f),V(p+n*.28f*side,.06f),V(p+n*.28f*side,.65f),V(q+n*.28f*side,.65f));
+                    }
+                }
             }
             PlaceMesh(holder.transform,"Three river crossings",bridges.Save("CausewayDecks"),paving);
             PlaceMesh(holder.transform,"Causeway stone borders",bridgeTrim.Save("CausewayBorders"),stone);
+            PlaceMesh(holder.transform,"Raised stone bridge parapets",bridgeSides.Save("CausewayParapets"),stone);
             var plazas=new Geometry();var rings=new Geometry();
             foreach(float x in new[]{14f,306f}){
                 var pos=new Vector2(x,110);Disc(plazas,pos,10,.065f);Annulus(rings,pos,8.5f,10,.073f);
@@ -200,6 +223,10 @@ namespace Buklod.Empire.Editor {
                     Plant(j%2==0?bush:tallGrass,holder.transform,p,j%2==0?1.9f:1.0f,j*61+i*13);
                 }
             }
+            // Validate the actual generated terrain asset rather than accepting the old plane.
+            var actual=AssetDatabase.LoadAssetAtPath<Mesh>(FloorAsset);
+            if(!actual||actual.vertexCount!=N*3||actual.uv.Length!=actual.vertexCount)
+                throw new InvalidOperationException("Sculpted terrain geometry or texture mapping missing.");
             AssetDatabase.SaveAssets();
         }
     }
