@@ -38,6 +38,7 @@ namespace Buklod.Empire.Editor {
             EconomyReviewImporter.Bind(c);
             LibraryStructureReview.Bind(c);
             LibraryWildlifeReview.Bind(c);
+            LibrarySupplementalPalette.BindHazards(c);
             c.ValidateEditorReview(); // deliberately no production receipt
             var catalogPath=Out+"/OfflineReviewCatalog.asset";
             var old=AssetDatabase.LoadAssetAtPath<BattleVisualCatalog>(catalogPath);

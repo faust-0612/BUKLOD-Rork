@@ -148,6 +148,18 @@ namespace Buklod.Empire {
                     if(go&&review){var scale=prefab.transform.localScale;scale.y*=StockScale(n.Stock,n.Capacity);go.transform.localScale=scale;}
                 }
                 foreach(var c in bound.Camps)Camp(c);
+                if(review&&bound.JungleHazardsActive)foreach(var hazard in bound.JungleHazards){
+                    if(!Visible(hazard.Position))continue;
+                    var prefab=hazard.Demon?view.visuals.jungleDemon:view.visuals.jungleSnake;
+                    var go=Present(7,hazard.Id,hazard.Position,prefab,out var fresh);
+                    if(!go)continue;
+                    var position=view.FieldPosition(hazard.Position)+Vector3.up*(hazard.Demon?1.6f:0f);
+                    var delta=position-go.transform.position;
+                    delta.y=0;if(delta.sqrMagnitude>.0001f)go.transform.rotation=Quaternion.LookRotation(delta);
+                    go.transform.position=position;
+                    var animator=go.GetComponentInChildren<Animator>(true);
+                    if(animator&&!hazard.Demon)animator.SetFloat("Speed",1f);
+                }
                 foreach(var d in bound.Drops)if(Visible(d.Position))Loot(2,d.Id,d.Position,view.visuals.fieldPickup,d.Item.Tier,d.SpawnedAt);
                 foreach(var d in bound.RelicDrops)if(Visible(d.Position))Loot(3,d.Id,d.Position,view.visuals.relicPickup,d.Item.Tier,d.SpawnedAt);
                 if(review)foreach(var u in bound.Units){

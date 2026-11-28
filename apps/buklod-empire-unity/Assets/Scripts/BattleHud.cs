@@ -141,6 +141,7 @@ namespace Buklod.Empire {
             for(int i=0;i<3;i++)if(cooldown[i+2].fillAmount<=.001f)labels[i+2].text=i==2?"ULT":i==0?"S1":"S2";
             if(b.Time<nextObjectiveAt&&!fresh&&string.IsNullOrEmpty(b.PlayerAttackFeedback))return;
             nextObjectiveAt=b.Time+.15f;
+            if(!string.IsNullOrEmpty(b.JungleWarning)){objective.text=b.JungleWarning;objective.color=new Color(1,.25f,.25f);return;}
             if(!string.IsNullOrEmpty(b.PlayerAttackFeedback)){objective.text=b.PlayerAttackFeedback;objective.color=new Color(1,.92f,.62f);return;}
             if(b.Time<announcementUntil){objective.text=announcement;objective.color=new Color(1,.82f,.40f);return;}
             objective.color=new Color(.85f,.94f,.91f);
@@ -171,7 +172,7 @@ namespace Buklod.Empire {
             if(!canvas.enabled||!input)return;
             if(width!=Screen.width||height!=Screen.height||safeArea!=MobileBattleInput.SafeArea||layoutRevision!=ArenaControlSettings.Revision)Layout();
             if(dialogueCaption)dialogueCaption.text=dialogue?dialogue.Caption:"";
-            if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo||view.Battle!=null&&!string.IsNullOrEmpty(view.Battle.PlayerAttackFeedback));
+            if(objective)objective.gameObject.SetActive(ArenaControlSettings.DetailedInfo||view.Battle!=null&&(!string.IsNullOrEmpty(view.Battle.PlayerAttackFeedback)||!string.IsNullOrEmpty(view.Battle.JungleWarning)));
             if(minimap)minimap.gameObject.SetActive(ArenaControlSettings.DetailedInfo);
             var stick=buttons[0].rectTransform;stick.anchorMin=stick.anchorMax=Normalized(input.MovementCenter);
             for(int i=1;i<buttons.Length;i++)buttons[i].rectTransform.localScale=Vector3.one*(input.ActiveSkill==i?.92f:1f);

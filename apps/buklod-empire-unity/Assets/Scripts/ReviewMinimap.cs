@@ -49,6 +49,7 @@ namespace Buklod.Empire {
                 if(node.Stock<=0||node.Team!=battle.Player.Team&&!battle.IsPositionVisibleTo(battle.Player.Team,node.Position))continue;
                 Diamond(vh,Point(rect,node.Position),r*.85f,BattleFieldVisuals.ResourceColor(node.Kind));
             }
+            if(battle.JungleHazardsActive)foreach(var hazard in battle.JungleHazards)if(battle.IsPositionVisibleTo(battle.Player.Team,hazard.Position))Diamond(vh,Point(rect,hazard.Position),r*2.2f,new Color32(255,65,105,255));
             foreach(var camp in battle.Camps){
                 if(!camp.Alive||!battle.IsPositionVisibleTo(battle.Player.Team,camp.Position))continue;
                 Diamond(vh,Point(rect,camp.Position),r*(camp.Boss?2:1.15f),new Color32(244,186,83,255));

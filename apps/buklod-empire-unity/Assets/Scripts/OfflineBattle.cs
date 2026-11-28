@@ -114,6 +114,50 @@ namespace Buklod.Empire {
         private readonly MinionWaveDirector waves=new MinionWaveDirector();
         private readonly NeutralObjectiveDirector wilderness=new NeutralObjectiveDirector();
         public IReadOnlyList<WildernessCamp> Camps=>wilderness.Camps;
+        public sealed class JungleHazard {
+            public readonly int Id; public readonly bool Demon; public readonly Vector2 Home;
+            public Vector2 Position {get;internal set;}
+            public int AttackSequence {get;internal set;}
+            public float WarningRadius=>Demon?15f:11f;
+            internal float NextAttack,Windup; internal int Target;
+            internal JungleHazard(int id,bool demon,Vector2 home){Id=id;Demon=demon;Home=Position=home;}
+        }
+        readonly JungleHazard[] hazards={new JungleHazard(1,true,new Vector2(135,72)),new JungleHazard(2,true,new Vector2(185,148)),new JungleHazard(3,false,new Vector2(91,125)),new JungleHazard(4,false,new Vector2(229,95))};
+        public IReadOnlyList<JungleHazard> JungleHazards=>Array.AsReadOnly(hazards);
+        public bool JungleHazardsActive=>!IsAuthoritative&&!Finished&&Time>=20&&Time<OfflineMatchRules.MatchLimit;
+        public static bool InHazardRange(Vector2 position,Vector2 hazard,float radius)=>radius>0&&(position-hazard).sqrMagnitude<=radius*radius;
+        public string JungleWarning {
+            get {
+                if(!JungleHazardsActive||!Player.State.Alive)return "";
+                foreach(var hazard in hazards)if(InHazardRange(Player.Position,hazard.Position,hazard.WarningRadius))
+                    return hazard.Demon?"DANGER: DEMON TERRITORY - retreat!":"DANGER: VENOM SNAKE - avoid!";
+                return "";
+            }
+        }
+        void AdvanceJungleHazards(){
+            if(!JungleHazardsActive)return;
+            foreach(var h in hazards){
+                var target=units.FirstOrDefault(u=>u.Id==h.Target&&u.Kind==BattleTargetKind.Hero&&u.State.Alive&&InHazardRange(u.Position,h.Home,h.Demon?22:12)&&ClearSight(h.Position,u.Position));
+                if(target==null){
+                    h.Target=0;h.Windup=0;
+                    target=units.Where(u=>u.Kind==BattleTargetKind.Hero&&u.State.Alive&&InHazardRange(u.Position,h.Home,h.Demon?18:10)&&InHazardRange(u.Position,h.Position,h.Demon?12:7)&&ClearSight(h.Position,u.Position)).OrderBy(u=>(u.Position-h.Position).sqrMagnitude).ThenBy(u=>u.Id).FirstOrDefault();
+                    if(target!=null){h.Target=target.Id;h.Windup=Time+1.2f;}
+                }
+                var goal=target!=null?target.Position:h.Home+new Vector2(Mathf.Cos(Time*.22f+h.Id),Mathf.Sin(Time*.22f+h.Id))*(h.Demon?5:3);
+                var next=Vector2.MoveTowards(h.Position,goal,Step*(h.Demon?5.5f:3.8f));
+                if(h.Demon||!Blocked(next))h.Position=next;
+                if(target==null||Time<h.Windup||Time<h.NextAttack||!InHazardRange(target.Position,h.Position,h.Demon?3.8f:2.6f)||!ClearSight(h.Position,target.Position))continue;
+                h.NextAttack=Time+(h.Demon?1.8f:2.4f);h.AttackSequence++;
+                var state=target.State;if(state.Buff("invulnerable",Time)>0)continue;
+                target.RecallEnds=0;float before=state.Health;
+                float damage=state.MaxHealth*(h.Demon?.13f:.09f);
+                damage*=1-Mathf.Clamp(state.Buff("guard",Time),0,.4f);
+                state.Health=Mathf.Max(0,state.Health-state.Absorb(damage,Time));target.DamageTaken+=before-state.Health;
+                if(!h.Demon&&state.Alive)state.Set("slow",.25f,Time+3,Time);
+                if(!state.Alive){target.Deaths++;target.KillStreak=0;target.RespawnAt=Time+OfflineMatchRules.RespawnDelay(Time);target.RecentHeroDamage.Clear();CheckElimination();}
+                if(Finished)return;
+            }
+        }
         private static readonly Vector3[] Concealment={new Vector3(.25f,.38f,.022f),new Vector3(.75f,.62f,.022f),new Vector3(.40f,.73f,.02f),new Vector3(.60f,.27f,.02f)};
         private readonly VillageSystem[] villages=new VillageSystem[2];
         private readonly List<VillageResourceNode> resourceNodes=new List<VillageResourceNode>();
@@ -824,6 +868,7 @@ namespace Buklod.Empire {
             foreach(var m in waves.Advance(Step,Towers(ArenaTeam.Lux),Towers(ArenaTeam.Tenebra)))Spawn(m);
             foreach(var u in units)u.State.Clock=Time;
             AdvanceWilderness();if(Finished)return;
+            AdvanceJungleHazards();if(Finished)return;
             AdvanceResourceNodes();AdvanceWorkers();AdvanceConstruction();AdvanceRecruitment();
             foreach(var village in villages){if(Finished)break;advancingVillage=village.Team;try{village.Advance(Step);}finally{advancingVillage=null;}}
             foreach(var u in units)if(u.Villager!=null){
@@ -931,6 +976,7 @@ namespace Buklod.Empire {
             }return false;
         }
         private void Bot(BattleUnit u,float speed){
+            if(JungleHazardsActive)foreach(var hazard in hazards)if(InHazardRange(u.Position,hazard.Position,hazard.WarningRadius+2)){var away=u.Position-hazard.Position;Steer(u,away.sqrMagnitude>.01f?away:Vector2.right,speed);return;}
             var a=u.State;u.Retreat=CanRespawn(u.Team)&&OfflineMatchRules.Retreat(a.Health/a.MaxHealth,u.Retreat);
             if(Vector2.Distance(u.Position,u.Spawn)<12&&CoreAlive(u.Team)){
                 var order=a.Health/a.MaxHealth<.45f?new[]{"armor","vitality","boots","blade","aegis","wisdom"}:new[]{"blade","boots","armor","withering_thorn","sealbreaker","renewal"};

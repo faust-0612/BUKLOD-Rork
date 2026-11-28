@@ -3,6 +3,16 @@ using NUnit.Framework;
 using UnityEngine;
 namespace Buklod.Empire.Tests {
     public class NeutralObjectiveTests {
+        [Test] public void JungleHazardsHaveMirroredTerritoriesAndNoCampIdentity(){
+            var b=new OfflineBattle("phan");Assert.AreEqual(4,b.JungleHazards.Count);Assert.False(b.JungleHazardsActive);
+            Assert.AreEqual(16,b.Camps.Count);
+            Assert.AreEqual(new Vector2(OfflineBattle.Width,OfflineBattle.Height),b.JungleHazards[0].Home+b.JungleHazards[1].Home);
+            Assert.AreEqual(new Vector2(OfflineBattle.Width,OfflineBattle.Height),b.JungleHazards[2].Home+b.JungleHazards[3].Home);
+        }
+        [Test] public void HazardRangeIncludesBoundary(){
+            Assert.True(OfflineBattle.InHazardRange(Vector2.right*10,Vector2.zero,10));
+            Assert.False(OfflineBattle.InHazardRange(Vector2.right*10.1f,Vector2.zero,10));
+        }
         [Test] public void MirroredCampsAndTimedBossesSpawnOnce(){
             var d=new NeutralObjectiveDirector();Assert.AreEqual(16,d.Camps.Count);Assert.False(d.Camps.Any(c=>c.Alive));
             d.Advance(20);Assert.AreEqual(14,d.Camps.Count(c=>c.Alive));d.Advance(120);Assert.AreEqual(15,d.Camps.Count(c=>c.Alive));d.Advance(480);Assert.AreEqual(16,d.Camps.Count(c=>c.Alive));

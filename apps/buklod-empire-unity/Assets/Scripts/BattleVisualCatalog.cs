@@ -12,6 +12,7 @@ namespace Buklod.Empire {
         public WildernessVisual[] wilderness;
         public ResourceVisual[] resources;
         public GameObject fieldPickup,relicPickup;
+        public GameObject jungleDemon,jungleSnake;
         public GameObject genesisRift;
         public HeroVisual[] heroes;
         public FactionVisual[] factions;

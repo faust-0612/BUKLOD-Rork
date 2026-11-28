@@ -103,6 +103,51 @@ namespace Buklod.Empire.Editor {
                 EditorUtility.SetDirty(controller);EditorUtility.SetDirty(machine);
             }finally{UnityEngine.Object.DestroyImmediate(instance);}
         }
+        internal static void BindHazards(BattleVisualCatalog catalog){
+            Prepare();
+            catalog.jungleDemon=BuildHazard("Monsters/quaternius-demon.glb",true);
+            catalog.jungleSnake=BuildHazard("Enemies/Snake.glb",false);
+        }
+        static GameObject BuildHazard(string key,bool demon){
+            string folder=Out+"Hazards/";Directory.CreateDirectory(folder);AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            string modelPath=Out+"Models/"+key;
+            var source=AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+            var imported=AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<AnimationClip>().ToArray();
+            string id=demon?"Demon":"Snake",path=folder+id+".controller";
+            if(AssetDatabase.LoadAssetAtPath<AnimatorController>(path))AssetDatabase.DeleteAsset(path);
+            var controller=AnimatorController.CreateAnimatorControllerAtPath(path);
+            var machine=controller.layers[0].stateMachine;
+            var names=demon?new[]{"Flying_Idle"}:new[]{"Snake_Idle","Snake_Walk","Snake_Attack"};
+            var clips=new AnimationClip[names.Length];
+            for(int i=0;i<names.Length;i++){
+                var clone=UnityEngine.Object.Instantiate(imported.Single(c=>c.name.Split('|').Last()==names[i]));clone.legacy=false;
+                var settings=AnimationUtility.GetAnimationClipSettings(clone);settings.loopTime=i<2;AnimationUtility.SetAnimationClipSettings(clone,settings);
+                string clipPath=folder+id+"_"+names[i]+".anim";var old=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
+                if(old){EditorUtility.CopySerialized(clone,old);UnityEngine.Object.DestroyImmediate(clone);clips[i]=old;}else{AssetDatabase.CreateAsset(clone,clipPath);clips[i]=clone;}
+            }
+            var idle=machine.AddState("Patrol");machine.defaultState=idle;
+            if(demon)idle.motion=clips[0];
+            else{
+                controller.AddParameter("Speed",AnimatorControllerParameterType.Float);
+                var blend=new BlendTree{name="Snake movement",blendType=BlendTreeType.Simple1D,blendParameter="Speed",useAutomaticThresholds=false};
+                AssetDatabase.AddObjectToAsset(blend,controller);blend.AddChild(clips[0],0);blend.AddChild(clips[1],1);idle.motion=blend;
+                controller.AddParameter("Attack",AnimatorControllerParameterType.Trigger);
+                var attack=machine.AddState("Attack");attack.motion=clips[2];var enter=machine.AddAnyStateTransition(attack);enter.hasExitTime=false;enter.AddCondition(AnimatorConditionMode.If,0,"Attack");var exit=attack.AddTransition(idle);exit.hasExitTime=true;exit.exitTime=1;
+            }
+            var instance=UnityEngine.Object.Instantiate(source);
+            try{
+                foreach(var legacy in instance.GetComponentsInChildren<Animation>(true))UnityEngine.Object.DestroyImmediate(legacy);
+                foreach(var nested in instance.GetComponentsInChildren<Animator>(true))if(nested.gameObject!=instance)UnityEngine.Object.DestroyImmediate(nested);
+                var animator=instance.GetComponent<Animator>();if(!animator)animator=instance.AddComponent<Animator>();
+                animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
+                foreach(var collider in instance.GetComponentsInChildren<Collider>(true))collider.enabled=false;
+                var bounds=LibraryStructureReview.BoundsOf(instance);float size=Mathf.Max(bounds.size.x,bounds.size.y,bounds.size.z);
+                if(!Finite(size)||size<=.001f)throw new InvalidOperationException("Invalid hazard size: "+id);
+                instance.transform.localScale*= (demon?4f:3f)/size;
+                var prefab=PrefabUtility.SaveAsPrefabAsset(instance,folder+id+".prefab");if(!prefab)throw new InvalidOperationException("Hazard prefab failed: "+id);
+                EditorUtility.SetDirty(controller);EditorUtility.SetDirty(machine);AssetDatabase.SaveAssets();return prefab;
+            }finally{UnityEngine.Object.DestroyImmediate(instance);}
+        }
         [MenuItem("BUKLOD Empire/Import supplemental authored creature palette")]
         public static void Prepare(){
             if(Application.isPlaying)throw new InvalidOperationException("Exit play mode first.");
